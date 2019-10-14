@@ -113,31 +113,15 @@
                   v-text="index + 1"
                 ></td>
                 <td class="d-flex justify-content-start align-items-center">
-                  <router-link
-                    :to="{ name: 'Token', params: { symbol: token.symbol } }"
-                    class="mr-2"
-                  >
-                    <img
-                      class="img-avatar img-avatar-thumb img-avatar32"
-                      :src="token.img"
-                      alt="Token Logo"
-                    />
-                  </router-link>
-                  <router-link
-                    :to="{ name: 'Token', params: { symbol: token.symbol } }"
-                    class="font-w700"
-                  >
-                    {{ token.symbol }}
-                  </router-link>
+                  <img
+                    class="img-avatar img-avatar-thumb img-avatar32"
+                    :src="token.img"
+                    alt="Token Logo"
+                  />
+                  {{ token.symbol }}
                 </td>
                 <td class="d-none d-md-table-cell">
-                  <router-link
-                    :to="{ name: 'Token', params: { symbol: token.symbol } }"
-                  >
-                    <span class="text-muted font-size-sm">{{
-                      token.name
-                    }}</span>
-                  </router-link>
+                  <span class="text-muted font-size-sm">{{ token.name }}</span>
                 </td>
                 <td
                   class="text-center font-w700"

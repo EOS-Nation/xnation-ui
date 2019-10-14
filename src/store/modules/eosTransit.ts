@@ -32,9 +32,9 @@ export class EosTransitModule extends VuexModule {
 
   // We're using our own test network as an example here.
   @getter accessContext = initAccessContext({
-    appName: 'EOS Nation - Bancor Portal',
+    appName: 'Bancor by EOS Nation',
     network: {
-      host: 'mainnet.eosn.io',
+      host: 'eos.eosn.io',
       port: 443,
       protocol: 'https',
       chainId:

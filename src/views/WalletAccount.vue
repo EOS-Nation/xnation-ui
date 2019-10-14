@@ -122,25 +122,17 @@
               <tr v-for="(token, index) in sortedTokens" :key="index">
                 <th class="text-center" v-text="index + 1"></th>
                 <th class="text-left font-w700" style="width: 160px">
-                  <router-link
-                    :to="{ name: 'Token', params: { symbol: token.symbol } }"
-                  >
-                    <img
+                  <img
                       class="img-avatar img-avatar-thumb img-avatar32 mr-3"
                       :src="token.logo_url"
                       alt=""
                     />
                     <span>{{ token.symbol }}</span>
-                  </router-link>
                 </th>
                 <td>
-                  <router-link
-                    :to="{ name: 'Token', params: { symbol: token.symbol } }"
-                  >
-                    <span class="text-muted font-size-sm">{{
-                      token.name
-                    }}</span>
-                  </router-link>
+                  <span class="text-muted font-size-sm">{{
+                    token.name
+                  }}</span>
                 </td>
                 <td class="text-right font-w700">
                   {{ numeral(token.balance).format('0,0.0000') }}

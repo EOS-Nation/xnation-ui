@@ -93,25 +93,17 @@
               <tr v-for="(token, index) in sortedTokens" :key="index">
                 <td class="text-center" v-text="index + 1"></td>
                 <td class="text-left font-w700" style="width: 180px">
-                  <router-link
-                    :to="{ name: 'Token', params: { symbol: token.symbol } }"
-                  >
-                    <img
+                  <img
                       class="img-avatar img-avatar-thumb img-avatar32 mr-3"
                       :src="token.img"
                       alt="Token Logo"
                     />
                     {{ token.symbol }}
-                  </router-link>
                 </td>
                 <td>
-                  <router-link
-                    :to="{ name: 'Token', params: { symbol: token.symbol } }"
-                  >
-                    <span class="text-muted font-size-sm">{{
+                  <span class="text-muted font-size-sm">{{
                       token.name
                     }}</span>
-                  </router-link>
                 </td>
                 <td class="text-center font-w700">
                   {{ token.contract }}
