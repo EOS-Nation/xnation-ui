@@ -1,4 +1,4 @@
-# Bancor Relay UI by EOS Nation
+# Bancor by EOS Nation
 
 ## Project setup
 ```
