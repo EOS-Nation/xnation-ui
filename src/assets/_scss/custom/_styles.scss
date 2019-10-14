@@ -1,0 +1,29 @@
+//
+// Custom Main
+//
+// Added own styles or override existing ones
+//
+// This file is included last, so you have access
+// to all Bootstrap and Core functions/mixins/styles etc
+// --------------------------------------------------
+
+.cursor {
+  cursor: pointer;
+}
+
+// Block Modes
+.block {
+
+  &.block-mode-loading {
+    > .block-header,
+    > .block-content,
+    > .nav-tabs {
+      opacity: 0.0;
+    }
+    &::after {
+      content: '';
+      background: url('../media/icons/circle-notch.svg') no-repeat 50% 50%;
+      background-size: 24px;
+    }
+  }
+}
