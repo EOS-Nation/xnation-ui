@@ -132,11 +132,11 @@ export function bancorMemo(
   // PARSE MEMO
   //
   if (relayFrom && relayTo) {
-    if (from === 'BNT')
+    if (from.includes('BNT'))
       return `${version},${relayTo.relayContract} ${
         relayTo.symbol
       },${amount},${receiver}`
-    else if (to === 'BNT')
+    else if (to.includes('BNT'))
       return `${version},${relayFrom.relayContract} ${
         relayTo.symbol
       },${amount},${receiver}`

@@ -186,7 +186,7 @@ export default class ModalConvertLiquidity extends Vue {
 
   // methods
   resetModal() {
-    this.timeleft = 6
+    this.timeleft = 4
     this.success = false
     this.error = false
   }
@@ -197,13 +197,13 @@ export default class ModalConvertLiquidity extends Vue {
   }
 
   async countdownConvert() {
-    this.timeleft = 5
+    this.timeleft = 3
     this.success = false
     this.error = false
     let timer = setInterval(() => {
       if (this.timeleft === 6) {
         clearInterval(timer)
-        this.timeleft = 5
+        this.timeleft = 3
         return
       }
       this.timeleft -= 1
