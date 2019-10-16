@@ -424,7 +424,7 @@ export default class ModalConvertLiquidity extends Vue {
                     ) +
                     ' ' +
                     this.convertFrom.symbol,
-                  memo: bancorx.bancorMemo(
+                  memo: bancorx.composeBancorMemo(
                     this.convertFrom.symbol,
                     this.convertTo.symbol,
                     tolerance,

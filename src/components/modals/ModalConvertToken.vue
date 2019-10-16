@@ -168,7 +168,7 @@ export default class ModalConvertToken extends Vue {
                     bancorx.tokenPrecision(relay.symbol, this.amount) +
                     ' ' +
                     relay.symbol,
-                  memo: bancorx.bancorMemo(
+                  memo: bancorx.composeBancorMemo(
                     this.convertFrom.code,
                     this.convertTo.code,
                     this.minReturn,

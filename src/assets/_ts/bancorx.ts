@@ -105,31 +105,29 @@ export async function relayBalances(from: string, to: string) {
 }
 
 /**
- * Bancor Memo - parse bancor memo
+ * Bancor Memo - Compose Bancor Memo
  *
  * @param {string} from symbol to convert FROM
  * @param {string} to symbol to convert TO
  * @param {string} receiver account to credit after conversion
  * @param {number} minReturn min return amount
  * @param {number} [version=1] bancor protocol version
- * @returns {string} parsed bancor memo
- * @example
+ * @returns {string} composed bancor memo
  *
- * // Calculate min return BNT
  */
-export function bancorMemo(
+export function composeBancorMemo(
   from: string,
   to: string,
   minReturn: string,
   receiver: string,
   version = 1
-) {
+): string | void {
   // Get Relays
   const relayFrom: TokenInfo | false = getTokenInfo(from)
   const relayTo: TokenInfo | false = getTokenInfo(to)
   const amount = tokenPrecision(to, minReturn)
   //
-  // PARSE MEMO
+  // Compose memo
   //
   if (relayFrom && relayTo) {
     if (from.includes('BNT'))
