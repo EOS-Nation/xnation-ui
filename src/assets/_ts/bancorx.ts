@@ -35,14 +35,14 @@ export async function minReturnFormula(
   // CALCULATE MIN RETURN AMOUNT
   //
   // get BTN Amount
-  const amountBntFrom = bancorFormula(
+  const amountBntFrom = bancorQuickConvert(
     balanceFrom,
     balanceBnt,
     parseFloat(amount)
   )
 
   // get min return amount
-  let minReturn = bancorFormula(balanceBntFrom, balanceTo, amountBntFrom)
+  let minReturn = bancorQuickConvert(balanceBntFrom, balanceTo, amountBntFrom)
 
   minReturn = minReturn * 0.99
 
@@ -105,31 +105,29 @@ export async function relayBalances(from: string, to: string) {
 }
 
 /**
- * Bancor Memo - parse bancor memo
+ * Bancor Memo - Compose Bancor Memo
  *
  * @param {string} from symbol to convert FROM
  * @param {string} to symbol to convert TO
  * @param {string} receiver account to credit after conversion
  * @param {number} minReturn min return amount
  * @param {number} [version=1] bancor protocol version
- * @returns {string} parsed bancor memo
- * @example
+ * @returns {string} composed bancor memo
  *
- * // Calculate min return BNT
  */
-export function bancorMemo(
+export function composeBancorMemo(
   from: string,
   to: string,
   minReturn: string,
   receiver: string,
   version = 1
-) {
+): string | void {
   // Get Relays
   const relayFrom: TokenInfo | false = getTokenInfo(from)
   const relayTo: TokenInfo | false = getTokenInfo(to)
   const amount = tokenPrecision(to, minReturn)
   //
-  // PARSE MEMO
+  // Compose memo
   //
   if (relayFrom && relayTo) {
     if (from.includes('BNT'))
@@ -185,24 +183,24 @@ export function bancorMemoLiquidity(
 }
 
 /**
- * Bancor Formula - calculate min return
+ * Bancor Formula - Calculate minimum return
+ * @description Returns expected amount from a relay of two reserves of 50% connector weight
  *
  * @param {number} balanceFrom relay FROM balance
  * @param {number} balanceTo relay TO balance
  * @param {number} amount amount to convert FROM
  * @returns {number} conversion min return amount
  * @example
+ * // Relay Contract has 100 BLU tokens and 100 RED tokens and someone sends it 1 blue token
+ * bancorQuickConvert(100, 100, 1) // 0.99
  *
- * // Calculate min return BNT
+ * 
  */
-export function bancorFormula(
+export function bancorQuickConvert(
   balanceFrom: number,
   balanceTo: number,
   amount: number
 ) {
-  //
-  // CALCULATE MIN RETURN AMOUNT
-  //
   return (amount / (balanceFrom + amount)) * balanceTo
 }
 
