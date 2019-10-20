@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { BancorWrapper } from "./BaseApi";
-import { TokenPrice } from '@/types/bancor'
+import { TokenPrice } from "@/types/bancor";
 
 const bancor = axios.create({
   baseURL: "https://api.bancor.network/0.1/"
@@ -27,7 +27,7 @@ export class BancorApi implements BancorWrapper {
     this.instance = axios.create({
       baseURL: "https://api.bancor.network/0.1/"
     });
-    this.photoBaseUrl = `https://storage.googleapis.com/bancor-prod-file-store/images/communities/`
+    this.photoBaseUrl = `https://storage.googleapis.com/bancor-prod-file-store/images/communities/`;
   }
 
   private async request(endpoint: string, params: any) {
@@ -38,12 +38,13 @@ export class BancorApi implements BancorWrapper {
   }
 
   public async getToken(symbol: string) {
-    const endpoint = 'currencies/' + symbol;
-    const res = await this.request(endpoint, {})
+    const endpoint = "currencies/" + symbol;
+    const res = await this.request(endpoint, {});
     return {
       ...res.data,
-      primaryCommunityImageName: this.photoBaseUrl + res.data.primaryCommunityImageName
-    }
+      primaryCommunityImageName:
+        this.photoBaseUrl + res.data.primaryCommunityImageName
+    };
   }
 
   public async getTokens(): Promise<TokenPrice[]> {
@@ -58,8 +59,9 @@ export class BancorApi implements BancorWrapper {
     });
     return res.data.page.map((token: TokenPrice) => ({
       ...token,
-      primaryCommunityImageName: this.photoBaseUrl + token.primaryCommunityImageName
-    }))
+      primaryCommunityImageName:
+        this.photoBaseUrl + token.primaryCommunityImageName
+    }));
   }
 
   public async getTokenTicker(symbol: string) {
@@ -97,8 +99,8 @@ export class BancorApi implements BancorWrapper {
     const res = await this.request(`currencies/rate`, {
       toCurrencyCode: toCurrency,
       fromCurrencyCode: fromCurrency
-    })
-    return res.data
+    });
+    return res.data;
   }
 }
 
