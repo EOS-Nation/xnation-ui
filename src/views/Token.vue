@@ -58,7 +58,7 @@
 <script lang="ts">
 import { Prop, Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
-import apiBancor from '@/api/bancor'
+import { baseApi } from '@/api/BaseApi'
 import HeroToken from '@/components/hero/HeroToken.vue'
 import showdown from 'showdown'
 import { TokenPrice } from '@/types/bancor'
@@ -110,10 +110,8 @@ export default class Token extends Vue {
   }
   async created() {
     try {
-      const endpoint = 'currencies/' + this.symbol.toUpperCase()
-      const params = {}
-      let token = await apiBancor(endpoint, params)
-      this.token = token.data.data
+      let token = await baseApi.getToken(this.symbol.toUpperCase())
+      this.token = token
     } catch (e) {
       console.log(e)
     }

@@ -21,11 +21,13 @@ async function apiBancor(endpoint: string, params: any) {
 
 export class BancorApi implements BancorWrapper {
   instance: AxiosInstance;
+  photoBaseUrl: string;
 
   constructor() {
     this.instance = axios.create({
       baseURL: "https://api.bancor.network/0.1/"
     });
+    this.photoBaseUrl = `https://storage.googleapis.com/bancor-prod-file-store/images/communities/`
   }
 
   private async request(endpoint: string, params: any) {
@@ -33,6 +35,15 @@ export class BancorApi implements BancorWrapper {
       params: params
     });
     return res.data;
+  }
+
+  public async getToken(symbol: string) {
+    const endpoint = 'currencies/' + symbol;
+    const res = await this.request(endpoint, {})
+    return {
+      ...res.data,
+      primaryCommunityImageName: this.photoBaseUrl + res.data.primaryCommunityImageName
+    }
   }
 
   public async getTokens(): Promise<TokenPrice[]> {
@@ -47,7 +58,7 @@ export class BancorApi implements BancorWrapper {
     });
     return res.data.page.map((token: TokenPrice) => ({
       ...token,
-      primaryCommunityImageName: `https://storage.googleapis.com/bancor-prod-file-store/images/communities/${token.primaryCommunityImageName}`
+      primaryCommunityImageName: this.photoBaseUrl + token.primaryCommunityImageName
     }))
   }
 
