@@ -17,7 +17,6 @@
                   <img
                     class="img-avatar img-avatar-thumb"
                     :src="
-                      'https://files.bancor.network/0.1/images/communities?imageName=' +
                         token.primaryCommunityImageName
                     "
                     alt="Token Logo"

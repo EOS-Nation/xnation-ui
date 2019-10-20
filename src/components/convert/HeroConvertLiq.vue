@@ -5,7 +5,6 @@
         <img
           class="img-avatar img-avatar-thumb"
           :src="
-            'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
               token.img
           "
           alt="Token Logo"

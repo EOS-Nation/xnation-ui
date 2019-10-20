@@ -17,7 +17,6 @@
           <img
             class="img-avatar img-avatar-thumb mb-2"
             :src="
-              'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                 convertFrom.img
             "
             alt="Token Logo"
@@ -30,7 +29,6 @@
             <img
               class="img-avatar img-avatar-thumb"
               :src="
-                'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                   convertFrom.img
               "
               alt="Token Logo"
@@ -74,7 +72,6 @@
           <img
             class="img-avatar img-avatar-thumb mb-2"
             :src="
-              'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                 convertTo.img
             "
             alt="Token Logo"
@@ -87,7 +84,6 @@
             <img
               class="img-avatar img-avatar-thumb"
               :src="
-                'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                   convertTo.img
               "
               alt="Token Logo"

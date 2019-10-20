@@ -17,7 +17,6 @@
           <img
             class="img-avatar img-avatar-thumb mb-2"
             :src="
-              'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                 transferToken.img
             "
             alt="Token Logo"

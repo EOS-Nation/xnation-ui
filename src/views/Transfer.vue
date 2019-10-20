@@ -68,7 +68,6 @@ export default class Transfer extends Vue {
             this.balances.push({
               name: token.name,
               logo_url:
-                'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                 token.primaryCommunityImageName,
               contract: relay.code,
               symbol: symbol,

@@ -45,7 +45,10 @@ export class BancorApi implements BancorWrapper {
       skip: 0,
       sortOrder: "desc"
     });
-    return res.data.page;
+    return res.data.page.map((token: TokenPrice) => ({
+      ...token,
+      primaryCommunityImageName: `https://storage.googleapis.com/bancor-prod-file-store/images/communities/${token.primaryCommunityImageName}`
+    }))
   }
 
   public async getTokenTicker(symbol: string) {

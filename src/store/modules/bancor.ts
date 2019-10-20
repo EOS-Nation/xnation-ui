@@ -77,9 +77,7 @@ export class BancorModule extends VuexModule {
       this.setEosRelays({
         symbol: reserve.symbol,
         name: t.name,
-        img:
-          'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
-          relayPrice.primaryCommunityImageName,
+        img: relayPrice.primaryCommunityImageName,
         ratio1: ratio.rows[0].ratio / 10000,
         ratio2: ratio.rows[1].ratio / 10000,
         fee: fee.rows[0].fee / 10000,

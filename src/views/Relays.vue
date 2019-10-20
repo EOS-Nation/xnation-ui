@@ -294,7 +294,6 @@ export default class Relays extends Vue {
           symbol: r.symbol,
           name: r.name,
           img:
-            'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
             r.img,
           ratio1: ratio.rows[0].ratio / 10000,
           ratio2: ratio.rows[1].ratio / 10000,

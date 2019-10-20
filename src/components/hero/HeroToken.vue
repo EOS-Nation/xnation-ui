@@ -18,7 +18,6 @@
             <img
               class="img-avatar img-avatar-thumb img-avatar96 mt-4 mr-3"
               :src="
-                'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                   token.primaryCommunityImageName
               "
               alt="Token Logo"

@@ -1016,7 +1016,12 @@ export const tokenDb: TokenInfo[] = [
     counterSymbol: 'SENSE',
     precision: 10
   }
-]
+].map(token => ({
+  ...token,
+  img: `https://storage.googleapis.com/bancor-prod-file-store/images/communities/${token.img}`
+}))
+
+
 export const relays: Relays = {
   EOS: {
     code: 'eosio.token',

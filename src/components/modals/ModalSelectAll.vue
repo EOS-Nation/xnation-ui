@@ -47,7 +47,6 @@
             :symbol="token.symbol"
             :balance="token.balance"
             :img="
-              'https://files.bancor.network/0.1/images/communities?imageName=' +
                 token.img
             "
           />

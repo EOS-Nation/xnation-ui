@@ -294,7 +294,6 @@ export default class WalletAccount extends Vue {
               reserveToken: true,
               name: token.name,
               logo_url:
-                'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                 token.primaryCommunityImageName,
               contract: relay.code,
               symbol: symbol,
@@ -321,7 +320,6 @@ export default class WalletAccount extends Vue {
               reserveToken: false,
               name: token.name,
               logo_url:
-                'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                 token.primaryCommunityImageName,
               contract: relay.code,
               symbol: symbol,
@@ -354,7 +352,6 @@ export default class WalletAccount extends Vue {
             reserveToken: tokenInfo.relayToken,
             name: tokenInfo.name,
             logo_url:
-              'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
               tokenInfo.img,
             contract: tokenInfo.relayContract,
             symbol: tokenInfo.symbol,
@@ -375,7 +372,6 @@ export default class WalletAccount extends Vue {
               reserveToken: tokenInfo.relayToken,
               name: tokenInfo.name,
               logo_url:
-                'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                 tokenInfo.img,
               contract: tokenInfo.relayContract,
               symbol: tokenInfo.symbol,

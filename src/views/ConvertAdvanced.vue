@@ -19,7 +19,6 @@
                   <img
                     class="img-avatar img-avatar-thumb"
                     :src="
-                      'https://files.bancor.network/0.1/images/communities?imageName=' +
                         convertFrom.primaryCommunityImageName
                     "
                     alt="Token Logo"
@@ -124,7 +123,6 @@
                     <img
                       class="img-avatar img-avatar48"
                       :src="
-                        'https://files.bancor.network/0.1/images/communities?imageName=' +
                           convertFrom.primaryCommunityImageName
                       "
                       alt="Token Logo"
@@ -200,7 +198,6 @@
                     <img
                       class="img-avatar img-avatar48"
                       :src="
-                        'https://files.bancor.network/0.1/images/communities?imageName=' +
                           convertTo.primaryCommunityImageName
                       "
                       alt="Token Logo"

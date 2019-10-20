@@ -299,7 +299,6 @@ export default class TokensTable extends Vue {
         name: t.name,
         image: t.primaryCommunityImageName,
         img:
-          'https://files.bancor.network/0.1/images/communities?imageName=' +
           t.primaryCommunityImageName,
         c24h: t.change24h,
         price: t.price,

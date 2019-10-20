@@ -17,7 +17,6 @@
           <img
             class="img-avatar img-avatar-thumb mb-2"
             :src="
-              'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                 convertFrom.primaryCommunityImageName
             "
             alt="Token Logo"
@@ -43,7 +42,6 @@
           <img
             class="img-avatar img-avatar-thumb mb-2"
             :src="
-              'https://storage.googleapis.com/bancor-prod-file-store/images/communities/' +
                 convertTo.primaryCommunityImageName
             "
             alt="Token Logo"
