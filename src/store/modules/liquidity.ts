@@ -6,8 +6,6 @@ import {
   Module
 } from 'vuex-class-component'
 import * as bancorx from '@/assets/_ts/bancorx'
-import { vxm } from '@/store'
-import apiBancor from '@/api/bancor'
 import { TokenInfo } from '@/assets/_ts/bancorx'
 
 @Module({ namespacedPath: 'liquidity/' })
