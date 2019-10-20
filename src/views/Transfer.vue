@@ -9,7 +9,7 @@
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
-import apiBancor from '@/api/bancor'
+import { baseApi } from '@/api/BaseApi'
 import HeroTransfer from '@/components/hero/HeroTransfer.vue'
 import * as bancorx from 'bancorx'
 import { TokenPrice } from '@/types/bancor'
@@ -87,17 +87,7 @@ export default class Transfer extends Vue {
 
   async created() {
     try {
-      const endpoint = 'currencies/tokens'
-      const params = {
-        limit: 150,
-        skip: 0,
-        fromCurrencyCode: 'USD',
-        includeTotal: true,
-        orderBy: 'volume24h',
-        sortOrder: 'desc'
-      }
-      let tokens = await apiBancor(endpoint, params)
-      this.tokens = tokens.data.data.page
+      this.tokens = await baseApi.getTokens()
       this.getRelays()
     } catch (e) {
       console.log(e)

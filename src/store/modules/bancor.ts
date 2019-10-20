@@ -7,6 +7,7 @@ import {
 } from 'vuex-class-component'
 import { vxm } from '@/store'
 import apiBancor from '@/api/bancor'
+import { baseApi } from '@/api/BaseApi'
 import * as bancorx from '@/assets/_ts/bancorx'
 import { TokenPrice } from '@/types/bancor'
 
@@ -24,19 +25,10 @@ export class BancorModule extends VuexModule {
 
   @action async getEosTokens() {
     this.setLoadingEosTokens(true)
-    const endpoint = 'currencies/tokens'
-    const params = {
-      limit: 50,
-      skip: 0,
-      fromCurrencyCode: 'USD',
-      includeTotal: true,
-      orderBy: 'volume24h',
-      sortOrder: 'desc',
-      blockchainType: 'eos'
-    }
+
     try {
-      const eos = await apiBancor(endpoint, params)
-      this.setEosTokens(eos.data.data.page)
+      const eos = await baseApi.getTokens()
+      this.setEosTokens(eos)
     } catch (e) {
       console.log(e)
     } finally {

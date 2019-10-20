@@ -190,6 +190,7 @@
 <script lang="ts">
 import { Prop, Watch, Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
+import {  baseApi } from '@/api/BaseApi'
 import apiBancor from '@/api/bancor'
 import * as bancorx from '@/assets/_ts/bancorx'
 import { TokenPrice } from '@/types/bancor'
@@ -399,18 +400,7 @@ export default class WalletAccount extends Vue {
     }
   }
   async getTokens() {
-    const endpoint = 'currencies/tokens'
-    const params = {
-      limit: 150,
-      skip: 0,
-      fromCurrencyCode: 'USD',
-      includeTotal: true,
-      orderBy: 'volume24h',
-      sortOrder: 'desc',
-      blockchainType: 'eos'
-    }
-    let tokens = await apiBancor(endpoint, params)
-    this.tokens = tokens.data.data.page
+    this.tokens = await baseApi.getTokens()
     vxm.tokens.setTokens({ eos: this.tokens, eth: [] })
     //vxm.convert.setToken({ t: this.tokens[0], d: 'from' })
     //vxm.convert.setToken({ t: this.tokens[1], d: 'to' })
