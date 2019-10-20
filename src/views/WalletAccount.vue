@@ -191,7 +191,6 @@
 import { Prop, Watch, Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
 import {  baseApi } from '@/api/BaseApi'
-import apiBancor, { bancorApi } from '@/api/bancor'
 import * as bancorx from '@/assets/_ts/bancorx'
 import { TokenPrice } from '@/types/bancor'
 import SortIcons from '@/components/common/SortIcons.vue'
@@ -366,7 +365,7 @@ export default class WalletAccount extends Vue {
         } else {
           try {
             const symbol = tokenInfo.symbol.toUpperCase();
-            const { price, price24h } = await bancorApi.getTokenTicker(symbol)
+            const { price, price24h } = await baseApi.getTokenTicker(symbol)
             const c24h = (price / price24h) * 100 - 100
             this.balances.push({
               reserveToken: tokenInfo.relayToken,

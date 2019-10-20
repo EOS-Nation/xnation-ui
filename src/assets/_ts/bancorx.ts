@@ -1,6 +1,6 @@
 import { vxm } from '@/store'
 import numeral from 'numeral'
-import apiBancor, { bancorApi } from '@/api/bancor'
+import { baseApi } from '@/api/BaseApi'
 /**
  * Bancor X
  *
@@ -279,11 +279,11 @@ export async function calcRate(
   }
   if (inverse) {
     // @ts-ignore
-    const data = await bancorApi.calculateCost(fromInfo.id, toInfo.id, parseFloat(amount) * parseInt('1' + decimalTo));
+    const data = await baseApi.calculateCost(fromInfo.id, toInfo.id, parseFloat(amount) * parseInt('1' + decimalTo));
     return setPrecision(from, data).toString()
   } else {
     // @ts-ignore
-    const data = await bancorApi.calculateReturn(fromInfo.id, toInfo.id, parseFloat(amount) * parseInt('1' + decimalFrom));
+    const data = await baseApi.calculateReturn(fromInfo.id, toInfo.id, parseFloat(amount) * parseInt('1' + decimalFrom));
     return setPrecision(to, data).toString()
   }
 

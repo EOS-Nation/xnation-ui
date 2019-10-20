@@ -6,10 +6,8 @@ import {
   Module
 } from 'vuex-class-component'
 import { TokenPrice } from '@/types/bancor'
-import apiBancor from '@/api/bancor'
 import { baseApi } from '@/api/BaseApi'
 
-import { vxm } from '@/store'
 import * as bancorx from '@/assets/_ts/bancorx'
 
 @Module({ namespacedPath: 'tokens/' })
