@@ -344,7 +344,6 @@ export default class WalletAccount extends Vue {
     const b = await vxm.wallet.getTokenBalances(this.account)
     //const relays = await vxm.liquidity.loadRelayTokens()
     for (const token of b) {
-      console.log(token)
       const tokenInfo: TokenInfo | false = bancorx.getTokenInfo(token.symbol)
       if (tokenInfo && token.amount) {
         const tokenPrice = this.tokens.find((t: TokenPrice) => {
