@@ -261,7 +261,6 @@ export async function calcRate(
   amount: string,
   inverse: boolean = false
 ) {
-  console.log(from)
   const fromInfo = tokenDb.find((t: TokenInfo) => {
     return t.symbol === from
   })
@@ -304,7 +303,6 @@ export async function calcDualLiquidityRate(
   inverse: boolean = false
 ) {
   const relayInfo = getTokenInfo(relay)
-  console.log(relayInfo)
   let from = ''
   let bnt = ''
   let to = ''

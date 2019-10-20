@@ -77,6 +77,14 @@ export class BancorApi implements BancorWrapper {
       streamId: "loadValue"
     });
   }
+
+  public async getRate(toCurrency: string, fromCurrency: string) {
+    const res = await this.request(`currencies/rate`, {
+      toCurrencyCode: toCurrency,
+      fromCurrencyCode: fromCurrency
+    })
+    return res.data
+  }
 }
 
 export const bancorApi = new BancorApi();

@@ -33,13 +33,9 @@ export class TokensModule extends VuexModule {
   }
 
   @action async getEthPrice() {
-    let params = {
-      toCurrencyCode: 'ETH',
-      fromCurrencyCode: 'USD'
-    }
     let eth: any
     try {
-      eth = await apiBancor('currencies/rate', params)
+      eth = await baseApi.getRate('ETH', 'USD');
     } catch (e) {
       console.log(e)
     }
@@ -68,7 +64,7 @@ export class TokensModule extends VuexModule {
     this.loadingTokens = b
   }
   @mutation setEth(eth: any) {
-    this.ethPrice = eth.data.data
+    this.ethPrice = eth;
   }
 }
 export const tokens = TokensModule.ExtractVuexModule(TokensModule)
