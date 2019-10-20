@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from "axios";
-import { BancorWrapper } from './BaseApi'
+import { BancorWrapper } from "./BaseApi";
 
 const bancor = axios.create({
   baseURL: "https://api.bancor.network/0.1/"
@@ -19,7 +19,6 @@ async function apiBancor(endpoint: string, params: any) {
 }
 
 export class BancorApi implements BancorWrapper {
-
   instance: AxiosInstance;
 
   constructor() {
@@ -45,10 +44,19 @@ export class BancorApi implements BancorWrapper {
       skip: 0,
       sortOrder: "desc"
     });
-    return res.data.page
+    return res.data.page;
+  }
+
+  public async getTokenTicker(symbol: string) {
+    const endpoint = "currencies/" + symbol + "/ticker";
+    const params = {
+      displayCurrencyCode: "USD"
+    };
+    const res = await this.request(endpoint, params);
+    return res.data;
   }
 }
 
-export const bancorApi = new BancorApi()
+export const bancorApi = new BancorApi();
 
-export default apiBancor
+export default apiBancor;
