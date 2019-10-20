@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { BancorWrapper } from "./BaseApi";
-import { TokenPrice } from "@/types/bancor";
+import { TokenPrice, IntegerAmount } from "@/types/bancor";
 
 const bancor = axios.create({
   baseURL: "https://api.bancor.network/0.1/"
@@ -73,13 +73,13 @@ export class BancorApi implements BancorWrapper {
     return res.data;
   }
 
-  private async priceDiscovery(tokenId: string, params: any) {
+  private async priceDiscovery(tokenId: string, params: any): Promise<IntegerAmount> {
     const endpoint = "currencies/" + tokenId + "/value";
     const res = await this.request(endpoint, params);
     return res.data;
   }
 
-  public async calculateCost(fromId: string, toId: string, amount: any) {
+  public async calculateCost(fromId: string, toId: string, amount: any): Promise<IntegerAmount> {
     return this.priceDiscovery(fromId, {
       toCurrencyId: toId,
       toAmount: amount,
@@ -87,7 +87,7 @@ export class BancorApi implements BancorWrapper {
     });
   }
 
-  public async calculateReturn(fromId: string, toId: string, amount: any) {
+  public async calculateReturn(fromId: string, toId: string, amount: any): Promise<IntegerAmount> {
     return this.priceDiscovery(fromId, {
       toCurrencyId: toId,
       fromAmount: amount,

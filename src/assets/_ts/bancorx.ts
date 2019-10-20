@@ -280,11 +280,11 @@ export async function calcRate(
   if (inverse) {
     // @ts-ignore
     const data = await baseApi.calculateCost(fromInfo.id, toInfo.id, parseFloat(amount) * parseInt('1' + decimalTo));
-    return setPrecision(from, data).toString()
+    return setPrecision(from, Number(data)).toString()
   } else {
     // @ts-ignore
     const data = await baseApi.calculateReturn(fromInfo.id, toInfo.id, parseFloat(amount) * parseInt('1' + decimalFrom));
-    return setPrecision(to, data).toString()
+    return setPrecision(to, Number(data)).toString()
   }
 
 }

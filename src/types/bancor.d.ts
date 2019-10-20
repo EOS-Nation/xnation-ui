@@ -19,3 +19,49 @@ export interface Volume24h {
 export interface PriceHistory {
   [index: number]: number
 }
+
+export interface TokenDetail {
+  _id:                       string;
+  type:                      string;
+  code:                      string;
+  lowerCaseCode:             string;
+  status:                    string;
+  isDiscoverable:            boolean;
+  createdAt:                 string;
+  isDeleted:                 boolean;
+  primaryCommunityId:        string;
+  name:                      string;
+  about:                     string;
+  promotionOrder:            null;
+  textIcon:                  string;
+  adminProfileId:            null;
+  details:                   Detail[];
+  primaryCommunityImageName: string;
+  order:                     number;
+  liquidityDepth:            string;
+}
+
+export interface Detail {
+  blockchain:      Blockchain;
+  blockchainId:    string;
+  type:            string;
+  stage:           string;
+  supply:          string;
+  decimals:        number;
+  relayCurrencyId: string;
+  converter:       Converter;
+  symbol:          string;
+}
+
+export interface Blockchain {
+  type:    string;
+  chainId: string;
+}
+
+export interface Converter {
+  activatedAt: string;
+}
+
+// Amount in an asset without reference to it's actual precision 
+// E.g. "10000" will be 1.0000 EOS
+export type IntegerAmount = string;

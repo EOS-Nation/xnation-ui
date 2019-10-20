@@ -1,12 +1,12 @@
 import { bancorApi } from "./bancor";
-import { TokenPrice } from "@/types/bancor";
+import { TokenPrice, TokenDetail, IntegerAmount } from "@/types/bancor";
 
 export interface BancorWrapper {
   getTokens(): Promise<TokenPrice[]>;
-  getToken(symbol: string): Promise<any>;
-  getTokenTicker(symbol: string): Promise<any>;
-  calculateCost(fromId: string, toId: string, amount: any): Promise<any>;
-  calculateReturn(fromId: string, toId: string, amount: any): Promise<any>;
+  getToken(symbol: string): Promise<TokenDetail>;
+  getTokenTicker?(symbol: string): Promise<any>;
+  calculateCost(fromId: string, toId: string, amount: any): Promise<IntegerAmount>;
+  calculateReturn(fromId: string, toId: string, amount: any): Promise<IntegerAmount>;
 }
 
 class BaseApi {
@@ -54,7 +54,9 @@ class BaseApi {
       });
       tokenData.push(tokens);
     }
-    return tokenData.flat(1);
+
+    const flat = tokenData.flat(1);
+    return flat
   }
 
   public async getToken(symbol: string) {
@@ -81,6 +83,7 @@ class BaseApi {
     // TODO
     // Clear hard coded and properly figure out which API to use
     const index = 0;
+    // @ts-ignore
     return this.apis[index].getTokenTicker(symbol);
   }
 }

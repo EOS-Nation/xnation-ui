@@ -197,6 +197,7 @@ import SortIcons from '@/components/common/SortIcons.vue'
 import HeroActions from '@/components/hero/HeroActions.vue'
 import numeral from 'numeral'
 import { TokenInfo } from '@/assets/_ts/bancorx'
+import { bancorApi } from '../api/bancor'
 
 @Component({
   components: {
@@ -365,7 +366,7 @@ export default class WalletAccount extends Vue {
         } else {
           try {
             const symbol = tokenInfo.symbol.toUpperCase();
-            const { price, price24h } = await baseApi.getTokenTicker(symbol)
+            const { price, price24h } = await bancorApi.getTokenTicker(symbol)
             const c24h = (price / price24h) * 100 - 100
             this.balances.push({
               reserveToken: tokenInfo.relayToken,
