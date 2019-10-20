@@ -1,6 +1,6 @@
 import { vxm } from '@/store'
 import numeral from 'numeral'
-import apiBancor from '@/api/bancor'
+import apiBancor, { bancorApi } from '@/api/bancor'
 /**
  * Bancor X
  *
@@ -278,24 +278,16 @@ export async function calcRate(
   for (let i = 0; i < toInfo.precision; i++) {
     decimalTo += '0'
   }
-  // @ts-ignore
-  const endpoint = 'currencies/' + fromInfo.id + '/value'
-  let params: any = {
+  if (inverse) {
     // @ts-ignore
-    toCurrencyId: toInfo.id,
-    fromAmount: parseFloat(amount) * parseInt('1' + decimalFrom),
-    streamId: 'loadValue'
+    const data = await bancorApi.calculateCost(fromInfo.id, toInfo.id, parseFloat(amount) * parseInt('1' + decimalTo));
+    return setPrecision(from, data).toString()
+  } else {
+    // @ts-ignore
+    const data = await bancorApi.calculateReturn(fromInfo.id, toInfo.id, parseFloat(amount) * parseInt('1' + decimalFrom));
+    return setPrecision(to, data).toString()
   }
-  if (inverse)
-    params = {
-      // @ts-ignore
-      toCurrencyId: toInfo.id,
-      toAmount: parseFloat(amount) * parseInt('1' + decimalTo),
-      streamId: 'loadDefaultConversionRateValue'
-    }
-  const resp = await apiBancor(endpoint, params)
-  if (inverse) return setPrecision(from, resp.data.data).toString()
-  else return setPrecision(to, resp.data.data).toString()
+
 }
 
 export function getTokenDb(tokens: boolean = true, relays: boolean = true) {

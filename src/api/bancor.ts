@@ -55,6 +55,28 @@ export class BancorApi implements BancorWrapper {
     const res = await this.request(endpoint, params);
     return res.data;
   }
+
+  private async priceDiscovery(tokenId: string, params: any) {
+    const endpoint = "currencies/" + tokenId + "/value";
+    const res = await this.request(endpoint, params);
+    return res.data;
+  }
+
+  public async calculateCost(fromId: string, toId: string, amount: any) {
+    return this.priceDiscovery(fromId, {
+      toCurrencyId: toId,
+      toAmount: amount,
+      streamId: "loadDefaultConversionRateValue"
+    });
+  }
+
+  public async calculateReturn(fromId: string, toId: string, amount: any) {
+    return this.priceDiscovery(fromId, {
+      toCurrencyId: toId,
+      fromAmount: amount,
+      streamId: "loadValue"
+    });
+  }
 }
 
 export const bancorApi = new BancorApi();
