@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { BancorWrapper } from "./BaseApi";
+import { TokenPrice } from '@/types/bancor'
 
 const bancor = axios.create({
   baseURL: "https://api.bancor.network/0.1/"
@@ -34,7 +35,7 @@ export class BancorApi implements BancorWrapper {
     return res.data;
   }
 
-  public async getTokens() {
+  public async getTokens(): Promise<TokenPrice[]> {
     const res = await this.request("currencies/tokens", {
       blockchainType: "eos",
       fromCurrencyCode: "USD",
