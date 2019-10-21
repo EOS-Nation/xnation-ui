@@ -237,12 +237,9 @@ export function tokenPrecision(symbol: string, amount: string) {
  *
  */
 export function getTokenInfo(symbol: string): TokenInfo | false {
-  const t = tokenDb.find((t: TokenInfo) => {
-    return t.symbol === symbol
-  })
-  if (t) return t
-  else return false
+  return tokenDb.find((t: TokenInfo) => t.symbol === symbol) || false
 }
+
 export function setPrecision(symbol: string, amount: number) {
   const tokenInfo = tokenDb.find((t: TokenInfo) => {
     return t.symbol === symbol
