@@ -18,39 +18,24 @@ export class TokensModule extends VuexModule {
   @getter ethPrice: any
 
   get tokenDb() {
-    let db = []
-    for (const t of this.eosTokens) {
-      db.push({
-        symbol: t.code,
-        tokenPrice: t,
-        relay: bancorx.relays[t.code],
-        reserve: bancorx.reserveTokens[t.code]
-      })
-    }
-    return db
+
+    return this.eosTokens.map(t => ({
+      symbol: t.code,
+      tokenPrice: t,
+      relay: bancorx.relays[t.code],
+      reserve: bancorx.reserveTokens[t.code]
+    }))
+
   }
 
   @action async getEthPrice() {
-    let eth: any
-    try {
-      eth = await baseApi.getRate('ETH', 'USD');
-    } catch (e) {
-      console.log(e)
-    }
+    const eth = await baseApi.getRate('ETH', 'USD');
     this.setEth(eth)
   }
 
   // actions
   @action async getTokens() {
-    let eos: any
-    let eth: any
-    try {
-      eos = await baseApi.getTokens()
-    } catch (e) {
-      console.log(e)
-    }
-
-    return eos
+    return baseApi.getTokens()
   }
 
   // mutations

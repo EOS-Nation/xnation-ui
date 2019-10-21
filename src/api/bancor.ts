@@ -2,23 +2,6 @@ import axios, { AxiosInstance } from "axios";
 import { BancorWrapper } from "./BaseApi";
 import { TokenPrice, IntegerAmount } from "@/types/bancor";
 
-const bancor = axios.create({
-  baseURL: "https://api.bancor.network/0.1/"
-});
-
-async function apiBancor(endpoint: string, params: any) {
-  try {
-    const res = await bancor.get(endpoint, {
-      params: params
-    });
-
-    console.log({ params: { endpoint, params }, data: res.data });
-    return res;
-  } catch (error) {
-    throw error;
-  }
-}
-
 export class BancorApi implements BancorWrapper {
   instance: AxiosInstance;
   photoBaseUrl: string;
@@ -105,5 +88,3 @@ export class BancorApi implements BancorWrapper {
 }
 
 export const bancorApi = new BancorApi();
-
-export default apiBancor;

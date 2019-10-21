@@ -7,7 +7,6 @@ import {
 } from 'vuex-class-component'
 import { TokenPrice } from '@/types/bancor'
 import * as bancorx from '@/assets/_ts/bancorx'
-import { vxm } from '@/store'
 
 @Module({ namespacedPath: 'convert/' })
 export class ConvertModule extends VuexModule {
@@ -50,21 +49,21 @@ export class ConvertModule extends VuexModule {
   @getter debouncedState: string = 'idle'
 
   // actions
-  @action async initConversion(d: 'from' | 'to') {
-    if ((d === 'from' && !this.amount) || (d === 'to' && !this.minReturn)) {
+  @action async initConversion(direction: 'from' | 'to') {
+    if ((direction === 'from' && !this.amount) || (direction === 'to' && !this.minReturn)) {
       this.setDebouncedState('idle')
       return
     }
-    let minReturn: string
-    if (d === 'from') {
-      minReturn = await bancorx.minReturnFormula(
+
+    if (direction === 'from') {
+      const minReturn = await bancorx.minReturnFormula(
         this.convertFrom.code,
         this.convertTo.code,
         this.amount
       )
       this.setAmount({ d: 'to', amount: minReturn })
     } else {
-      minReturn = await bancorx.minReturnFormula(
+      const minReturn = await bancorx.minReturnFormula(
         this.convertTo.code,
         this.convertFrom.code,
         this.minReturn
@@ -81,8 +80,8 @@ export class ConvertModule extends VuexModule {
     this.convertFrom = this.convertTo
     this.convertTo = newTo
   }
-  @mutation setDirection(d: 'from' | 'to') {
-    this.convertDirection = d
+  @mutation setDirection(direction: 'from' | 'to') {
+    this.convertDirection = direction
   }
 
   @mutation setToken(p: { t: TokenPrice; d: 'from' | 'to' }) {

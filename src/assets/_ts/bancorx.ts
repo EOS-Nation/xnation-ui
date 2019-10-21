@@ -241,9 +241,7 @@ export function getTokenInfo(symbol: string): TokenInfo | false {
 }
 
 export function setPrecision(symbol: string, amount: number) {
-  const tokenInfo = tokenDb.find((t: TokenInfo) => {
-    return t.symbol === symbol
-  })
+  const tokenInfo = getTokenInfo(symbol)
   let decimal = ''
   // @ts-ignore
   for (let i = 0; i < tokenInfo.precision; i++) {
@@ -258,12 +256,8 @@ export async function calcRate(
   amount: string,
   inverse: boolean = false
 ) {
-  const fromInfo = tokenDb.find((t: TokenInfo) => {
-    return t.symbol === from
-  })
-  const toInfo = tokenDb.find((t: TokenInfo) => {
-    return t.symbol === to
-  })
+  const fromInfo = getTokenInfo(from)
+  const toInfo = getTokenInfo(to)
   let decimalFrom = ''
   let decimalTo = ''
   // @ts-ignore

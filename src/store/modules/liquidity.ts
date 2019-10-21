@@ -22,23 +22,23 @@ export class LiquidityModule extends VuexModule {
   @mutation setRelaySelect(b: boolean) {
     this.relaySelect = b
   }
-  @mutation setFromToken(t: TokenInfo) {
-    this.fromToken = t
+  @mutation setFromToken(token: TokenInfo) {
+    this.fromToken = token
   }
-  @mutation setToToken(t: TokenInfo) {
-    this.toToken = t
+  @mutation setToToken(token: TokenInfo) {
+    this.toToken = token
   }
-  @mutation setDirection(d: 'from' | 'to') {
-    this.direction = d
+  @mutation setDirection(direction: 'from' | 'to') {
+    this.direction = direction
   }
-  @mutation setAmount(a: string) {
-    this.amount = a
+  @mutation setAmount(amount: string) {
+    this.amount = amount
   }
-  @mutation setAmountBnt(a: string) {
-    this.amountBnt = a
+  @mutation setAmountBnt(amount: string) {
+    this.amountBnt = amount
   }
-  @mutation setMinReturn(a: string) {
-    this.minReturn = a
+  @mutation setMinReturn(amount: string) {
+    this.minReturn = amount
   }
   @mutation setRateLoading(b: boolean) {
     this.rateLoading = b
@@ -203,50 +203,6 @@ export class LiquidityModule extends VuexModule {
 
   @getter relayTokens: any[] = []
   @getter relayDB: any[] = []
-
-  // Not in use? 
-  // @action async loadRelayTokens() {
-  //   let params = {
-  //     stage: 'traded',
-  //     name: 'bnt',
-  //     skip: 0,
-  //     limit: 100,
-  //     excludeSubTypes: 'bounty',
-  //     excludeEosRelays: false
-  //   }
-  //   const endpoint = 'currencies'
-  //   let rows: any = []
-  //   let more = true
-  //   try {
-  //     while (more) {
-  //       const resp = await apiBancor(endpoint, params)
-  //       rows = rows.concat(resp.data.data.currencies.page)
-  //       if (resp.data.data.currencies.page.length === 100) {
-  //         params.skip += params.limit
-  //       } else more = false
-  //     }
-  //   } catch (e) {
-  //     console.log(e)
-  //   }
-  //   const eosTokens = await vxm.tokens.getTokens()
-  //   let relays = []
-  //   for (const t of eosTokens) {
-  //     const relay = bancorx.getTokenInfo(t.code)
-  //     const reserve = bancorx.reserveTokens[t.code]
-  //     const relayPrice = rows.find((r: any) => r.code === reserve.symbol)
-  //     relays.push({
-  //       symbol: t.code,
-  //       name: t.name,
-  //       tokenPrice: t,
-  //       relay: relay,
-  //       reserve: reserve,
-  //       relayPrice: relayPrice
-  //     })
-  //   }
-  //   this.setRelayDB(relays)
-  //   this.setRelayTokens(rows)
-  //   return rows
-  // }
 
   @mutation setRelayTokens(r: any[]) {
     this.relayTokens = r

@@ -152,6 +152,7 @@ import * as bancorx from '@/assets/_ts/bancorx'
 import SortIcons from '@/components/common/SortIcons.vue'
 import HeroActions from '@/components/hero/HeroActions.vue'
 import { TokenPrice } from '@/types/bancor'
+import { tableApi } from '../api/TableWrapper'
 const numeral = require('numeral')
 const debounce = require('lodash.debounce')
 
@@ -233,9 +234,7 @@ export default class Relays extends Vue {
   }
 
   get isAuthenticated() {
-    if (vxm.eosTransit.walletState)
-      return vxm.eosTransit.walletState.authenticated
-    else return false
+    return vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated;
   }
 
   get tokenDb() {
@@ -247,8 +246,7 @@ export default class Relays extends Vue {
     this.$search(this.tokenSearch, this.tokens, this.searchOptions).then(
       (results: any) => {
         this.searchResults = results
-        if (this.tokenSearch === '') this.searchState = 'search'
-        else this.searchState = 'check'
+        this.searchState = this.tokenSearch === '' ? 'search' : 'check'
       }
     )
   }
@@ -264,48 +262,35 @@ export default class Relays extends Vue {
     let res = await vxm.tokens.getTokens()
     vxm.tokens.setTokens({ eos: res, eth: [] })
     let relayDb = bancorx.getTokenDb(false)
-    this.tokens = []
-    for (const r of relayDb) {
-      if (r.counterSymbol !== 'BNT') {
+    
+    this.tokens = await Promise.all(relayDb
+      .filter(({counterSymbol}) => counterSymbol !== 'BNT')
+      .map(async r => {
         const token = bancorx.getTokenInfo(r.counterSymbol)
         const tokenPrice = res.find((t: TokenPrice) => {
           // @ts-ignore
           return t.code === token.symbol
         })
         // @ts-ignore
-        const ratio = await vxm.eosTransit.accessContext.eosRpc.get_table_rows({
-          // @ts-ignore
-          code: token.relayContract,
-          table: 'reserves',
-          // @ts-ignore
-          scope: token.relayContract,
-          limit: 2
-        })
-        const fee = await vxm.eosTransit.accessContext.eosRpc.get_table_rows({
-          // @ts-ignore
-          code: token.relayContract,
-          table: 'settings',
-          // @ts-ignore
-          scope: token.relayContract,
-          limit: 1
-        })
-        this.tokens.push({
+        const [reserve1, reserve2] = await tableApi.getReserves(token.relayContract)
+        // @ts-ignore
+        const { fee } = await tableApi.getSettings(token.relayContract);
+        return {
           // @ts-ignore
           symbol: r.symbol,
           name: r.name,
           img:
             r.img,
-          ratio1: ratio.rows[0].ratio / 10000,
-          ratio2: ratio.rows[1].ratio / 10000,
-          fee: fee.rows[0].fee / 10000,
+          ratio1: reserve1.ratio / 10000,
+          ratio2: reserve2.ratio / 10000,
+          fee: fee / 10000,
           v24h: tokenPrice.volume24h.USD,
           // @ts-ignore
           contract: token.relayContract,
           liqDepth: tokenPrice.liquidityDepth,
           tokenPrice: tokenPrice
-        })
-      }
-    }
+        }
+    }))
     return res
   }
 
