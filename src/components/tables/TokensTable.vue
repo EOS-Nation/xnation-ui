@@ -291,21 +291,18 @@ export default class TokensTable extends Vue {
   async updateTokens() {
     let res = await vxm.tokens.getTokens()
     vxm.tokens.setTokens({ eos: res, eth: [] })
-    this.tokens = []
-    for (let t of res) {
-      this.tokens.push({
-        id: t.id,
-        symbol: t.code,
-        name: t.name,
-        image: t.primaryCommunityImageName,
-        img:
-          t.primaryCommunityImageName,
-        c24h: t.change24h,
-        price: t.price,
-        v24h: t.volume24h.USD,
-        liqDepth: t.liquidityDepth
-      })
-    }
+    this.tokens = res.map((t: TokenPrice) => ({
+      id: t.id,
+      symbol: t.code,
+      name: t.name,
+      image: t.primaryCommunityImageName,
+      img:
+        t.primaryCommunityImageName,
+      c24h: t.change24h,
+      price: t.price,
+      v24h: t.volume24h.USD,
+      liqDepth: t.liquidityDepth
+    }))
     return res
   }
 
