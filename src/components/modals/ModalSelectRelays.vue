@@ -79,10 +79,17 @@ export default class ModalSelectRelays extends Vue {
 
   // computed
   get relays() {
-    if (this.filter === 'All') return bancorx.getTokenDb()
-    else if (this.filter === 'Tokens') return bancorx.getTokenDb(true, false)
-    else if (this.filter === 'Relays') return bancorx.getTokenDb(false, true)
-    else return bancorx.getTokenDb()
+    switch (this.filter) {
+      case 'Tokens':
+          return bancorx.getTokenDb(true, false)
+        break;
+      case 'Relays':
+          return bancorx.getTokenDb(false, true)
+          break;
+      default:
+          bancorx.getTokenDb()
+        break;
+    }
   }
   get heroAction() {
     return vxm.general.heroAction
@@ -137,28 +144,24 @@ export default class ModalSelectRelays extends Vue {
   }
 
   mergeBalances() {
-    let array: any[] = []
-    for (const relay of this.relays) {
-      const balance = this.tokenBalances.find((t: any) => {
-        return t.symbol === relay.symbol
-      })
-      if (balance && balance.amount) {
-        array.push({
+    // @ts-ignore
+    this.relayBalances = this.relays.map(relay => {
+
+      const balance = this.tokenBalances.find((t: any) => t.symbol === relay.symbol)
+
+      return balance && balance.amount ? {
           symbol: relay.symbol,
           name: '',
           img: relay.img,
           balance: balance.amount
-        })
-      } else {
-        array.push({
+        } : {
           symbol: relay.symbol,
           name: '',
           img: relay.img,
           balance: '0'
-        })
-      }
-    }
-    this.relayBalances = array
+        }
+   
+    })
   }
 
   @Watch('tokenSearch')
