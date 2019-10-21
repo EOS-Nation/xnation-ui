@@ -295,7 +295,6 @@ export default class TokensTable extends Vue {
       id: t.id,
       symbol: t.code,
       name: t.name,
-      image: t.primaryCommunityImageName,
       img:
         t.primaryCommunityImageName,
       c24h: t.change24h,
