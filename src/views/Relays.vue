@@ -221,15 +221,15 @@ export default class Relays extends Vue {
     })
   }
 
-  initAction(a: 'convert' | 'transfer', s: string) {
+  initAction(action: 'convert' | 'transfer', symbol: string) {
     window.scroll({
       top: 0,
       left: 0,
       behavior: 'smooth'
     })
-    const tokenInfo = bancorx.getTokenInfo(s)
+    const tokenInfo = bancorx.getTokenInfo(symbol)
     if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo)
-    vxm.general.setHeroAction(a)
+    vxm.general.setHeroAction(action)
   }
 
   get isAuthenticated() {

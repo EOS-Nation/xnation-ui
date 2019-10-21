@@ -391,8 +391,8 @@ export default class ConvertAdvanced extends Vue {
   }
 
   // methods
-  openSelectTokenModal(d: 'from' | 'to') {
-    this.direction = d
+  openSelectTokenModal(direction: 'from' | 'to') {
+    this.direction = direction
     this.$bvModal.show('modal-select-token')
   }
 

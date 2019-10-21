@@ -12,8 +12,8 @@ export class GeneralModule extends VuexModule {
   @getter language: string = 'en'
   @getter heroAction: string = 'convert'
 
-  @mutation setHeroAction(a: string) {
-    this.heroAction = a
+  @mutation setHeroAction(action: string) {
+    this.heroAction = action
   }
 
   // Get / Set Language from Browser/LocaleStorage
