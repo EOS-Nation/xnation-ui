@@ -311,6 +311,8 @@ export default class Relays extends Vue {
 
     if (wallet && wallet.auth) {
       const res = await vxm.eosTransit.tx(actions);
+      vxm.general.setHeroAction("relay");
+      this.$router.push({ name: 'Relay', params: { account: this.smartTokenSymbol } })
     }
   }
 

@@ -16,6 +16,7 @@
           />
           <hero-convert v-if="heroAction === 'convert'" key="convert" />
           <hero-transfer v-if="heroAction === 'transfer'" key="transfer" />
+          <hero-relay v-if="heroAction === 'relay'" key="relay" />
         </transition>
       </div>
     </div>
@@ -28,12 +29,14 @@ import { vxm } from '@/store'
 import HeroConvert from '@/components/hero/HeroConvert.vue'
 import HeroTransfer from '@/components/hero/HeroTransfer.vue'
 import HeroLiquidity from '@/components/hero/HeroLiquidity.vue'
+import HeroRelay from '@/components/hero/HeroRelay.vue'
 
 @Component({
   components: {
     HeroConvert,
     HeroTransfer,
-    HeroLiquidity
+    HeroLiquidity,
+    HeroRelay
   }
 })
 export default class HeroActions extends Vue {

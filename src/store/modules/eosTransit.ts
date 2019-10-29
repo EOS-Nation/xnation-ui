@@ -98,17 +98,17 @@ export class EosTransitModule extends VuexModule {
   // actions
   @action async tx(actions: any) {
     // @ts-ignore
-    return this.wallet.eosApi
-        .transact(
-          {
-            actions
-          },
-          {
-            broadcast: true,
-            blocksBehind: 3,
-            expireSeconds: 60
-          }
-        )
+    // return this.wallet.eosApi
+    //     .transact(
+    //       {
+    //         actions
+    //       },
+    //       {
+    //         broadcast: true,
+    //         blocksBehind: 3,
+    //         expireSeconds: 60
+    //       }
+    //     )
   }
 
   @action async initLogin(provider: WalletProvider) {

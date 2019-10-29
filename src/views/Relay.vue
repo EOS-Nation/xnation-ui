@@ -1,14 +1,12 @@
 <template>
   <div>
     <hero-actions />
-    <!-- Page Content -->
-    <div class="d-none d-md-block content content-boxed">
+    <!-- <div class="d-none d-md-block content content-boxed">
       <tokens-table />
     </div>
     <div class="d-md-none content content-boxed px-0">
       <tokens-table />
-    </div>
-    <!-- END Page Content -->
+    </div> -->
   </div>
 </template>
 
