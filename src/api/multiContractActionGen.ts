@@ -22,22 +22,84 @@ class MultiContractActionGen {
     this.getAuth = getAuth;
   }
 
-  createRelay(
-    {
-      owner,
-      symbol,
-      precision,
-      initialSupply,
-      maxSupply
-    }: {
-      owner?: string;
-      symbol: string;
-      precision: number;
-      initialSupply: number;
-      maxSupply: number;
-    }
+  deleteReserve(symbolCode: string, currency: string) {
+    return [
+        {
+          account: this.contractName,
+          authorization: this.getAuth(),
+          name: "delreserve",
+          data: {
+            converter: symbolCode,
+            currency
+          }
+        }
+      ];
+  }
+
+  setReserve(
+    symbolCode: string,
+    symbol: string,
+    tokenContract: string,
+    saleEnabled: boolean,
+    ratio: number
   ): SemiAction[] {
-   
+    return [
+      {
+        account: this.contractName,
+        authorization: this.getAuth(),
+        name: "setreserve",
+        data: {
+          converter_currency_code: symbolCode,
+          currency: symbol,
+          contract: tokenContract,
+          sale_enabled: saleEnabled,
+          ratio
+        }
+      }
+    ];
+  }
+
+  updateOwner(symbolCode: string, owner: string) {
+    return [
+        {
+          account: this.contractName,
+          authorization: this.getAuth(),
+          name: "updateowner",
+          data: {
+            currency: symbolCode,
+            owner
+          }
+        }
+      ];
+  }
+
+  enableConversion(symbolCode: string, enabled: boolean) {
+    return [
+        {
+          account: this.contractName,
+          authorization: this.getAuth(),
+          name: "enablecnvrt",
+          data: {
+            currency: symbolCode,
+            enabled
+          }
+        }
+      ];
+  }
+
+  createRelay({
+    owner,
+    symbol,
+    precision,
+    initialSupply,
+    maxSupply
+  }: {
+    owner?: string;
+    symbol: string;
+    precision: number;
+    initialSupply: number;
+    maxSupply: number;
+  }): SemiAction[] {
     return [
       {
         account: this.contractName,

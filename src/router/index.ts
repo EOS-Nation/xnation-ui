@@ -5,6 +5,7 @@ import WalletAccount from '@/views/WalletAccount.vue'
 import Token from '@/views/Token.vue'
 import Tokens from '@/views/Tokens.vue'
 import Relays from '@/views/Relays.vue'
+import Relay from '@/views/Relay.vue'
 
 Vue.use(Router)
 
@@ -43,6 +44,12 @@ export default new Router({
       path: '/relays',
       name: 'Relays',
       component: Relays
+    },
+    {
+      path: '/relay/:account',
+      name: 'Relay',
+      component: Relay,
+      props: true
     },
     {
       path: '/wallet',
