@@ -94,8 +94,23 @@ export class EosTransitModule extends VuexModule {
     if (this.wallet && this.wallet.auth) return this.wallet.auth.accountName
     else return false
   }
-
+  
   // actions
+  @action async tx(actions: any) {
+    // @ts-ignore
+    return this.wallet.eosApi
+        .transact(
+          {
+            actions
+          },
+          {
+            broadcast: true,
+            blocksBehind: 3,
+            expireSeconds: 60
+          }
+        )
+  }
+
   @action async initLogin(provider: WalletProvider) {
     // We set the selected provider state
     this.setProvider(provider)
