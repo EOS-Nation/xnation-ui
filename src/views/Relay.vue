@@ -43,7 +43,7 @@ export default class Token extends Vue {
 
   // methods
   async created() {
-    vxm.general.setHeroAction('convert')
+    vxm.general.setHeroAction('relay')
   }
 }
 </script>
