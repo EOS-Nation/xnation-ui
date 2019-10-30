@@ -162,6 +162,10 @@ export default class HeroConvertRelay extends Vue {
   // method
   openSelectTokenModal() {
     vxm.liquidity.setDirection(this.direction)
+    if (this.$route.name == 'Relay') {
+       this.$bvModal.show('modal-select-relay')
+       return
+    }
     if (this.$route.name === 'Relays') {
       if (vxm.general.heroAction === 'convert') {
         this.$bvModal.show('modal-select-all')

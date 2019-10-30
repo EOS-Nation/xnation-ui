@@ -1,6 +1,80 @@
 <template>
   <div>
-      <h1>this should render</h1>
+    <b-row>
+      <b-col md="4">
+        <transition name="slide-fade-down" mode="out-in">
+          <hero-convert-relay v-if="ltr" key="ltr" direction="from" />
+          <hero-convert-relay v-else key="rtl" direction="from" />
+        </transition>
+      </b-col>
+      <b-col
+        md="4"
+        class="d-flex justify-content-center align-items-end"
+        style="min-height: 230px"
+      >
+        <div>
+          <transition name="fade" mode="out-in">
+            <font-awesome-icon
+              v-if="ltr"
+              icon="exchange-alt"
+              class="fa-2x text-white cursor"
+              key="ltr"
+              @click="swapTokens()"
+            />
+            <font-awesome-icon
+              v-else
+              icon="exchange-alt"
+              class="fa-2x text-white cursor"
+              key="rtl"
+              @click="swapTokens()"
+            />
+          </transition>
+          <div class="mb-3 mt-3">
+            <span class="text-white font-size-sm"
+              >1 {{ tokenFrom.symbol }} =
+              <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span
+              ><span v-else><font-awesome-icon icon="circle-notch" spin/></span>
+              {{ tokenTo.symbol }}</span
+            >
+          </div>
+          <div class="d-flex justify-content-center">
+            <b-btn
+              @click="initConvert()"
+              variant="success"
+              v-ripple
+              class="px-4 py-2 d-block"
+              :disabled="loadingTokens || minReturn === ''"
+            >
+              <font-awesome-icon
+                v-if="loadingTokens"
+                icon="circle-notch"
+                spin
+                fixed-width
+                class="mr-2"
+              />
+              <font-awesome-icon
+                v-else
+                icon="sync-alt"
+                fixed-width
+                class="mr-2"
+              />
+              <span class="font-w700">{{ 'Create Relay' }} </span>
+            </b-btn>
+          </div>
+
+        </div>
+      </b-col>
+      <b-col md="4">
+        <transition name="slide-fade-up" mode="out-in">
+          <hero-convert-relay v-if="!ltr" key="rtl" direction="to" />
+          <hero-convert-relay v-else key="ltr" direction="to" />
+        </transition>
+      </b-col>
+    </b-row>
+    <modal-select-all />
+    <modal-select-token />
+    <modal-select-relays />
+    <modal-convert-liquidity />
   </div>
 </template>
 
@@ -110,7 +184,7 @@ export default class HeroConvert extends Vue {
     if (!this.isAuthenticated) this.$bvModal.show('modal-login')
     else {
       vxm.convert.initConversion('from')
-      this.$bvModal.show('modal-convert-token')
+      this.$bvModal.show('modal-select-relay')
     }
   }
 

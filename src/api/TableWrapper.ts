@@ -2,6 +2,18 @@ import { vxm } from "@/store";
 
 class TableWrapper {
 
+
+  public async getReservesMulti(symbol: string) {
+    const table = await vxm.eosTransit.accessContext.eosRpc.get_table_rows({
+      code: `rockup.xyz`,
+      table: "reserves",
+      scope: symbol,
+      limit: 10
+    });
+
+    return table.rows;
+  }
+
   public async getReserves(contractName: string, scope = contractName): Promise<{
     contract: string;
     currency: string;

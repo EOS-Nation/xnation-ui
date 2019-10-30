@@ -1,15 +1,16 @@
-import Vue from 'vue'
-import Vuex from 'vuex'
+import Vue from "vue";
+import Vuex from "vuex";
 
-import { general, GeneralModule } from './modules/general'
-import { tokens, TokensModule } from './modules/tokens'
-import { convert, ConvertModule } from './modules/convert'
-import { eosTransit, EosTransitModule } from './modules/eosTransit'
-import { transfer, TransferModule } from './modules/transfer'
-import { wallet, walletModule } from './modules/wallet'
-import { liquidity, LiquidityModule } from './modules/liquidity'
+import { general, GeneralModule } from "./modules/general";
+import { tokens, TokensModule } from "./modules/tokens";
+import { convert, ConvertModule } from "./modules/convert";
+import { eosTransit, EosTransitModule } from "./modules/eosTransit";
+import { transfer, TransferModule } from "./modules/transfer";
+import { wallet, walletModule } from "./modules/wallet";
+import { liquidity, LiquidityModule } from "./modules/liquidity";
+import { newRelay, NewRelayModule } from "./modules/newRelay";
 
-Vue.use(Vuex)
+Vue.use(Vuex);
 
 export const store = new Vuex.Store({
   modules: {
@@ -19,10 +20,11 @@ export const store = new Vuex.Store({
     eosTransit,
     transfer,
     wallet,
-    liquidity
+    liquidity,
+    newRelay
   },
-  strict: process.env.NODE_ENV !== 'production'
-})
+  strict: process.env.NODE_ENV !== "production"
+});
 
 export const vxm = {
   general: GeneralModule.CreateProxy(store, GeneralModule) as GeneralModule,
@@ -37,5 +39,6 @@ export const vxm = {
   liquidity: LiquidityModule.CreateProxy(
     store,
     LiquidityModule
-  ) as LiquidityModule
-}
+  ) as LiquidityModule,
+  newRelay: NewRelayModule.CreateProxy(store, NewRelayModule) as NewRelayModule
+};

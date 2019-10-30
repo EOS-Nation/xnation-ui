@@ -1,11 +1,11 @@
+import { vxm } from "@/store/";
+
 interface SemiAction {
   account: string;
   name: string;
   data: any;
   authorization: Auth[];
 }
-
-import { vxm } from "@/store/";
 
 interface Auth {
   actor: string;
@@ -24,16 +24,16 @@ class MultiContractActionGen {
 
   deleteReserve(symbolCode: string, currency: string) {
     return [
-        {
-          account: this.contractName,
-          authorization: this.getAuth(),
-          name: "delreserve",
-          data: {
-            converter: symbolCode,
-            currency
-          }
+      {
+        account: this.contractName,
+        authorization: this.getAuth(),
+        name: "delreserve",
+        data: {
+          converter: symbolCode,
+          currency
         }
-      ];
+      }
+    ];
   }
 
   setReserve(
@@ -61,30 +61,30 @@ class MultiContractActionGen {
 
   updateOwner(symbolCode: string, owner: string) {
     return [
-        {
-          account: this.contractName,
-          authorization: this.getAuth(),
-          name: "updateowner",
-          data: {
-            currency: symbolCode,
-            owner
-          }
+      {
+        account: this.contractName,
+        authorization: this.getAuth(),
+        name: "updateowner",
+        data: {
+          currency: symbolCode,
+          owner
         }
-      ];
+      }
+    ];
   }
 
   enableConversion(symbolCode: string, enabled: boolean) {
     return [
-        {
-          account: this.contractName,
-          authorization: this.getAuth(),
-          name: "enablecnvrt",
-          data: {
-            currency: symbolCode,
-            enabled
-          }
+      {
+        account: this.contractName,
+        authorization: this.getAuth(),
+        name: "enablecnvrt",
+        data: {
+          currency: symbolCode,
+          enabled
         }
-      ];
+      }
+    ];
   }
 
   createRelay({
@@ -115,7 +115,7 @@ class MultiContractActionGen {
   }
 }
 
-export const multiContract = new MultiContractActionGen("derpy", () => {
+export const multiContract = new MultiContractActionGen("rockup.xyz", () => {
   const wallet = vxm.eosTransit.wallet;
   return [
     {
