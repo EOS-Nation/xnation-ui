@@ -30,6 +30,13 @@
         </b-form-group>
       </div>
     </b-modal>
+    <b-modal @ok="fund" id="fund-modal" title="Fund a Reserve">
+      <div>
+        <b-form-group id="fieldset-1" :label="fundLabel" label-for="input-1">
+          <b-form-input id="input-1" placeholder="1000" v-model="fundAmount" trim></b-form-input>
+        </b-form-group>
+      </div>
+    </b-modal>
     <hero-actions />
     <div class="d-none d-md-block content content-boxed">
       <div class="block">
@@ -39,15 +46,24 @@
             <small>- EOS</small>
           </h3>
           <div class="block-options">
-            <b-button size="sm" v-b-modal="'my-modal'">Add Reserve</b-button>
+            <b-button v-if="canAddReserve" size="sm" v-b-modal="'my-modal'">Add Reserve</b-button>
           </div>
         </div>
         <div class="block-content px-0 px-md-3">
+          <b-button
+            @click="toggleRelay"
+            size="sm"
+          >{{ this.enabled ? 'Disable Relay' : 'Enable Relay'}}</b-button>
+          <b-button
+            @click="buySmartTokens"
+            v-if="this.enabled"
+            size="sm"
+          >Buy Smart Tokens</b-button>
           <table class="table table-striped table-vcenter">
             <thead>
               <tr>
                 <th class="text-center d-none d-md-table-cell" style="width: 55px;">#</th>
-                <th class="cursor text-left">Token</th>
+                <th class="cursor text-left">Relay Balance</th>
                 <th class="d-none d-md-table-cell">Contract</th>
                 <th class="cursor text-center" style="min-width: 150px;">Ratio</th>
                 <th class="cursor text-right" style="min-width: 150px;">Status</th>
@@ -80,27 +96,29 @@
                     class="text-center font-w700"
                   >{{ numeral(reserve.ratio / 1000000).format('0.00%') }}</td>
                   <td class="text-right">
-                    <b-button
-                      size="sm"
-                      @click="toggleReserve(reserve)"
-                    >{{ reserve.sale_enabled ? 'Disable' : 'Enable' }}</b-button>
+                    <font-awesome-icon :icon="reserve.sale_enabled ? 'check' : 'times'" />
                   </td>
                   <td class="text-right">
-                    <!-- <b-btn
-                    @click="initAction('convert', token.symbol)"
-                    size="sm"
-                    variant="success"
-                    class="mr-1"
-                  >
-                    <font-awesome-icon icon="exchange-alt" />
-                  </b-btn>
-                  <b-btn
-                    @click="initAction('transfer', token.symbol)"
-                    size="sm"
-                    variant="info"
-                  >
-                    <font-awesome-icon icon="arrow-right" />
-                    </b-btn>-->
+                    <!-- <b-btn @click="fund(reserve)" size="sm" variant="success" class="mr-1"> -->
+                    <b-button size="sm" @click="toggleReserve(reserve)" variant="warning">
+                      <font-awesome-icon icon="power-off" />
+                    </b-button>
+                    <b-button
+                      size="sm"
+                      @click="selectedFund(reserve)"
+                      variant="success"
+                      v-b-modal="'fund-modal'"
+                    >
+                      <font-awesome-icon icon="hand-holding-usd" />
+                    </b-button>
+                    <b-button
+                      size="sm"
+                      v-if="!reserve.balance.split(' ')[0]"
+                      @click="deleteReserve(reserve)"
+                      variant="danger"
+                    >
+                      <font-awesome-icon icon="trash-alt" />
+                    </b-button>
                   </td>
                 </tr>
               </template>
@@ -142,6 +160,14 @@ export default class Token extends Vue {
   newRatio: string = "";
   loading: boolean = true;
   newEnabled: boolean = false;
+  currency: string = "";
+  enabled: boolean = false;
+  fee: number = 0;
+  launched: boolean = false;
+  owner: string = "";
+  stakeEnabled: boolean = false;
+  fundSelected: any = "";
+  fundAmount: string = "";
 
   // computed
   get wallet() {
@@ -163,10 +189,124 @@ export default class Token extends Vue {
     else return false;
   }
 
+  get fundLabel() {
+    return this.fundSelected
+      ? `Amount of ${this.fundSelected.balance.split(" ")[1]}`
+      : "";
+  }
+
+  get canAddReserve() {
+    const totalRatio = this.reserves.reduce((accum: number, item: any) => {
+      return accum + item.ratio;
+    }, 0);
+    return totalRatio !== 1000000;
+  }
+
   // methods
   async created() {
     vxm.general.setHeroAction("relay");
-    this.fetchRelays();
+    this.fetchData();
+  }
+
+  selectedFund(reserve: any) {
+    this.fundSelected = reserve;
+    console.log(reserve.balance);
+  }
+
+  async buySmartTokens() {
+    const actions = multiContract.fund('0.0050 BNTEOSS');
+    const wallet = vxm.eosTransit.wallet;
+    console.log(actions)
+
+    if (wallet && wallet.auth) {
+      const res = await vxm.eosTransit.tx(actions);
+      await wait(1000);
+      this.fetchData();
+    }
+}
+
+  async toggleRelay() {
+    const actions = multiContract.enableConversion(
+      this.$route.params.account,
+      !this.enabled
+    );
+
+    const wallet = vxm.eosTransit.wallet;
+
+    if (wallet && wallet.auth) {
+      const res = await vxm.eosTransit.tx(actions);
+      await wait(1000);
+      this.fetchData();
+    }
+  }
+
+  async fetchData() {
+    this.loading = true;
+    await Promise.all([this.fetchRelays(), this.fetchSettings()]);
+    this.loading = false;
+  }
+
+  async deleteReserve(reserve: any) {
+    const { balance, ratio, sale_enabled, contract } = reserve;
+    const [amount, symbol] = balance.split(" ");
+    const precision = amount.split(".")[1].length;
+
+    const actions = multiContract.deleteReserve(
+      this.$route.params.account,
+      symbol
+    );
+
+    const wallet = vxm.eosTransit.wallet;
+
+    if (wallet && wallet.auth) {
+      const res = await vxm.eosTransit.tx(actions);
+      this.fundAmount = "";
+      await wait(1000);
+      this.fetchData();
+    }
+  }
+
+  async fund() {
+    const { balance, ratio, sale_enabled, contract } = this.fundSelected;
+    const [amount, symbol] = balance.split(" ");
+    const precision = amount.split(".")[1].length;
+    const amountString = `${Number(this.fundAmount).toFixed(
+      precision
+    )} ${symbol}`;
+    const actions = this.launched ? multiContract.fundTransfer(
+      this.fundSelected.contract,
+      amountString,
+      this.$route.params.account
+    ) : multiContract.setupTransfer(
+      this.fundSelected.contract,
+      amountString,
+      this.$route.params.account
+    );
+    const wallet = vxm.eosTransit.wallet;
+
+    if (wallet && wallet.auth) {
+      const res = await vxm.eosTransit.tx(actions);
+      this.fundAmount = "";
+      await wait(1000);
+      this.fetchData();
+    }
+  }
+
+  async fetchSettings() {
+    const {
+      currency,
+      enabled,
+      fee,
+      launched,
+      owner,
+      stake_enabled
+    } = await tableApi.getSettingsMulti(this.$route.params.account);
+    this.currency = currency;
+    this.enabled = Boolean(enabled);
+    this.fee = fee;
+    this.launched = Boolean(launched);
+    this.owner = owner;
+    this.stakeEnabled = Boolean(stake_enabled);
   }
 
   async toggleReserve(reserve: any) {
@@ -204,13 +344,6 @@ export default class Token extends Vue {
 
   async addReserve() {
     const adjustedRatio = Number(this.newRatio) * 10000;
-    console.log(
-      this.$route.params.account,
-      this.newSymbolName,
-      this.newContract,
-      this.newEnabled,
-      adjustedRatio
-    );
 
     const actions = multiContract.setReserve(
       this.$route.params.account,

@@ -2,16 +2,33 @@ import { vxm } from "@/store";
 
 class TableWrapper {
 
+  multiContract: string;
+
+  constructor(multiContract: string) {
+    this.multiContract = multiContract
+  }
+
 
   public async getReservesMulti(symbol: string) {
     const table = await vxm.eosTransit.accessContext.eosRpc.get_table_rows({
-      code: `rockup.xyz`,
+      code: this.multiContract,
       table: "reserves",
       scope: symbol,
       limit: 10
     });
 
     return table.rows;
+  }
+
+  public async getSettingsMulti(symbol: string) {
+    const table = await vxm.eosTransit.accessContext.eosRpc.get_table_rows({
+      code: this.multiContract,
+      table: "converters",
+      scope: symbol,
+      limit: 1
+    });
+
+    return table.rows[0]
   }
 
   public async getReserves(contractName: string, scope = contractName): Promise<{
@@ -51,4 +68,4 @@ class TableWrapper {
 }
 
 
-export const tableApi = new TableWrapper();
+export const tableApi = new TableWrapper('welovebancor');
