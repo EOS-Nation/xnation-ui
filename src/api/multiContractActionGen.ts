@@ -73,6 +73,20 @@ class MultiContractActionGen {
     ];
   }
 
+  fund(quantity: string) {
+    return [
+      {
+        account: this.contractName,
+        authorization: this.getAuth(),
+        name: "fund",
+        data: {
+          owner: this.getAuth()[0].actor,
+          quantity
+        }
+      }
+    ];
+  }
+
   enableConversion(symbolCode: string, enabled: boolean) {
     return [
       {
@@ -82,6 +96,46 @@ class MultiContractActionGen {
         data: {
           currency: symbolCode,
           enabled
+        }
+      }
+    ];
+  }
+
+  setupTransfer(
+    tokenContract: string,
+    amountString: string,
+    symbolCode: string
+  ) {
+    return [
+      {
+        account: tokenContract,
+        authorization: this.getAuth(),
+        name: `transfer`,
+        data: {
+          from: this.getAuth()[0].actor,
+          to: this.contractName,
+          quantity: amountString,
+          memo: `setup;${symbolCode}`
+        }
+      }
+    ];
+  }
+
+  fundTransfer(
+    tokenContract: string,
+    amountString: string,
+    symbolCode: string
+  ) {
+    return [
+      {
+        account: tokenContract,
+        authorization: this.getAuth(),
+        name: `transfer`,
+        data: {
+          from: this.getAuth()[0].actor,
+          to: this.contractName,
+          quantity: amountString,
+          memo: `fund;${symbolCode}`
         }
       }
     ];
@@ -115,7 +169,7 @@ class MultiContractActionGen {
   }
 }
 
-export const multiContract = new MultiContractActionGen("rockup.xyz", () => {
+export const multiContract = new MultiContractActionGen("welovebancor", () => {
   const wallet = vxm.eosTransit.wallet;
   return [
     {
