@@ -22,6 +22,7 @@
     "bootstrap": "^4.3.1",
     "bootstrap-vue": "^2.0.1",
     "core-js": "^2.6.9",
+    "eos-common": "^0.1.36",
     "eos-transit": "^4.0.1",
     "eos-transit-keycat-provider": "^4.0.1",
     "eos-transit-ledger-provider": "^4.0.2",

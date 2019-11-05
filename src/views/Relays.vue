@@ -5,48 +5,25 @@
     <div></div>
     <div class="content content-boxed">
       <b-modal @ok="createRelay" id="my-modal" title="Create a Relay">
-        <p class="my-4">Smart Token Information</p>
+        <p class="my-4">Token to list on Bancor</p>
         <div>
+          <b-img v-if="tokenLogo" :src="tokenLogo" />
           <b-form-group
             id="fieldset-1"
             label="Symbol"
-            description="Smart Token Symbol"
+            description="New Token Symbol"
             label-for="input-1"
           >
-            <b-form-input id="input-1" placeholder="BNTEOS" v-model="smartTokenSymbol" trim></b-form-input>
+            <b-form-input id="input-1" placeholder="EOS" v-model="tokenSymbol" trim></b-form-input>
           </b-form-group>
-          <b-form-group
-            id="fieldset-1"
-            :description="precisionExample"
-            label="Precision"
-            label-for="input-1"
-          >
-            <b-form-input
-              id="input-1"
-              placeholder="4"
-              type="number"
-              v-model="smartTokenPrecision"
-              trim
-            ></b-form-input>
+          <b-form-group id="fieldset-1" label="Token Contract" label-for="input-1">
+            <b-form-input id="input-1" v-model="tokenContract" placeholder="eosio.token" trim></b-form-input>
           </b-form-group>
-          <b-form-group id="fieldset-1" label="Initial Supply" label-for="input-1">
-            <b-form-input
-              id="input-1"
-              type="number"
-              v-model="smartTokenInitialSupply"
-              placeholder="10000"
-              trim
-            ></b-form-input>
-          </b-form-group>
-          <b-form-group id="fieldset-1" label="Max Supply" label-for="input-1">
-            <b-form-input
-              id="input-1"
-              type="number"
-              v-model="smartTokenMaxSupply"
-              placeholder="10000000"
-              trim
-            ></b-form-input>
-          </b-form-group>
+          <font-awesome-icon
+            :icon="tokenExists === null ? 'question': tokenExists ? 'check' : 'times'"
+            fixed-width
+          />
+          <p v-if="tokenExists === false">Failed to find token.</p>
         </div>
       </b-modal>
 
@@ -175,12 +152,15 @@
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
+import axios from "axios";
 import * as bancorx from "@/assets/_ts/bancorx";
 import SortIcons from "@/components/common/SortIcons.vue";
 import HeroActions from "@/components/hero/HeroActions.vue";
 import { TokenPrice } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
+import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import { tableApi } from "../api/TableWrapper";
+import { split } from "eos-common";
 const numeral = require("numeral");
 const debounce = require("lodash.debounce");
 
@@ -210,24 +190,22 @@ export default class Relays extends Vue {
   searchResults: any = [];
   private searchState: string = "search";
   public debouncedGetSearch: any;
+  public debouncedSuggestPrecision: any;
   private currentSort = "v24h";
   private currentSortDir = "desc";
   modal: boolean = true;
   state: any;
-  smartTokenSymbol: any = null;
-  smartTokenPrecision: any = 4;
-  smartTokenInitialSupply: any = null;
-  smartTokenMaxSupply: any = null;
+  tokenSymbol: any = null;
+  tokenPrecision: any = 4;
+  tokenContract: any = null;
+  tokenExists: boolean | null = null;
+  tokenLogo: string = "";
 
   // computed
   get wallet() {
     return vxm.eosTransit.wallet;
   }
 
-  get precisionExample() {
-    return `E.g. ${Number(1000).toFixed(this.smartTokenPrecision)} ${this
-      .smartTokenSymbol || "BNTEOS"}`;
-  }
 
   get relaySelect() {
     return vxm.liquidity.relaySelect;
@@ -299,18 +277,46 @@ export default class Relays extends Vue {
     this.currentSort = s;
   }
 
+  createSmartTokenSymbol(ticker1: string, ticker2: string) {
+    const maxSymbolLength = 7;
+    if (ticker1.length + ticker2.length <= maxSymbolLength)
+      return ticker1 + ticker2;
+    else {
+      return ticker1 + ticker2[0] + ticker2[2] + ticker2[3];
+    }
+  }
+
   async createRelay() {
-    await multiContract.createRelay(
-      this.smartTokenSymbol,
-      Number(this.smartTokenPrecision),
-      Number(this.smartTokenInitialSupply),
-      Number(this.smartTokenMaxSupply)
+    const smartTokenSymbol = this.createSmartTokenSymbol(
+      "BNT",
+      this.tokenSymbol
     );
-    
+
+    await multiContract.createRelay(
+      smartTokenSymbol,
+      Number(4),
+      Number(1000),
+      Number(10000000000)
+    );
+    await multiContract.setReserve(
+      smartTokenSymbol,
+      `10,BNT`,
+      "bntbntbntbnt",
+      true,
+      50
+    );
+    await multiContract.setReserve(
+      smartTokenSymbol,
+      `${this.tokenPrecision},${this.tokenSymbol}`,
+      this.tokenContract,
+      true,
+      50
+    );
+
     vxm.general.setHeroAction("relay");
     this.$router.push({
       name: "Relay",
-      params: { account: this.smartTokenSymbol }
+      params: { account: this.tokenSymbol }
     });
   }
 
@@ -354,6 +360,42 @@ export default class Relays extends Vue {
     return res;
   }
 
+  @Watch("tokenSymbol")
+  @Watch("tokenContract")
+  onContractChange() {
+    if (this.tokenSymbol && this.tokenContract) {
+      this.debouncedSuggestPrecision();
+    }
+  }
+
+  async suggestPrecision() {
+    const contractName = this.tokenContract;
+    const symbol = this.tokenSymbol;
+
+    try {
+      const { max_supply } = await fetchTokenStats(
+        this.tokenContract,
+        this.tokenSymbol
+      );
+      const precision = max_supply.symbol.precision;
+      this.tokenPrecision = precision;
+      this.tokenExists = true;
+      try {
+        const metaData = await fetchTokenMeta(
+          this.tokenContract,
+          this.tokenSymbol
+        );
+        this.tokenLogo = metaData.logo;
+      } catch {
+        this.tokenLogo = "";
+      }
+    } catch (e) {
+      console.warn(e);
+      this.tokenExists = false;
+      this.tokenLogo = "";
+    }
+  }
+
   @Watch("tokenSearch")
   async onSearchChange(val: any, oldVal: any) {
     if (val !== "") {
@@ -368,11 +410,14 @@ export default class Relays extends Vue {
   async created() {
     vxm.general.setHeroAction("liq-add");
     // this.relays = await vxm.liquidity.loadRelayTokens()
-    await vxm.tokens.getEthPrice();
-    await this.updateTokens();
     this.debouncedGetSearch = debounce(() => {
       this.searchTokens();
     }, 500);
+    this.debouncedSuggestPrecision = debounce(() => {
+      this.suggestPrecision();
+    }, 500);
+    await vxm.tokens.getEthPrice();
+    await this.updateTokens();
   }
 }
 </script>
