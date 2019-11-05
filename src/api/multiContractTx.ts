@@ -1,6 +1,5 @@
 import { vxm } from "@/store/";
-import { multiContractAction } from "./multiContractAction";
-import { SemiAction } from "./multiContractAction";
+import { multiContractAction, SemiAction } from "../contracts/multi";
 import { ReserveInstance } from '@/types/bancor';
 
 interface Action {

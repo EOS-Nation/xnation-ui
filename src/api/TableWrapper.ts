@@ -1,16 +1,19 @@
 import { vxm } from "@/store";
+import { JsonRpc } from 'eosjs'
 
 class TableWrapper {
 
   multiContract: string;
+  rpc: JsonRpc;
 
-  constructor(multiContract: string) {
+  constructor(multiContract: string, rpc: JsonRpc) {
     this.multiContract = multiContract
+    this.rpc = rpc;
   }
 
 
   public async getReservesMulti(symbol: string) {
-    const table = await vxm.eosTransit.accessContext.eosRpc.get_table_rows({
+    const table = await this.rpc.get_table_rows({
       code: this.multiContract,
       table: "reserves",
       scope: symbol,
@@ -21,7 +24,7 @@ class TableWrapper {
   }
 
   public async getSettingsMulti(symbol: string) {
-    const table = await vxm.eosTransit.accessContext.eosRpc.get_table_rows({
+    const table = await this.rpc.get_table_rows({
       code: this.multiContract,
       table: "converters",
       scope: symbol,
@@ -37,7 +40,7 @@ class TableWrapper {
     p_enabled: number;
     ratio: number;
   }[]> {
-    const table = await vxm.eosTransit.accessContext.eosRpc.get_table_rows({
+    const table = await this.rpc.get_table_rows({
       code: contractName,
       table: "reserves",
       scope: scope,
@@ -57,7 +60,7 @@ class TableWrapper {
     smart_currency: string;
     smart_enabled: number;
   }> {
-    const table = await vxm.eosTransit.accessContext.eosRpc.get_table_rows({
+    const table = await this.rpc.get_table_rows({
       code: contractName,
       table: 'settings',
       scope,
@@ -68,4 +71,4 @@ class TableWrapper {
 }
 
 
-export const tableApi = new TableWrapper('welovebancor');
+export const tableApi = new TableWrapper('welovebancor', vxm.eosTransit.accessContext.eosRpc);
