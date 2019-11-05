@@ -54,11 +54,7 @@
             @click="toggleRelay"
             size="sm"
           >{{ this.enabled ? 'Disable Relay' : 'Enable Relay'}}</b-button>
-          <b-button
-            @click="buySmartTokens"
-            v-if="this.enabled"
-            size="sm"
-          >Buy Smart Tokens</b-button>
+          <b-button @click="buySmartTokens" v-if="this.enabled" size="sm">Buy Smart Tokens</b-button>
           <table class="table table-striped table-vcenter">
             <thead>
               <tr>
@@ -136,8 +132,9 @@ import { vxm } from "@/store";
 import { tableApi } from "@/api/TableWrapper";
 import TokensTable from "@/components/tables/TokensTable.vue";
 import HeroActions from "@/components/hero/HeroActions.vue";
-import { multiContract } from "@/api/multiContractActionGen";
+import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
+import { ReserveInstance } from "../types/bancor";
 // import numeral from 'numeral'
 const numeral = require("numeral");
 const { ContentLoader } = require("vue-content-loader");
@@ -210,39 +207,27 @@ export default class Token extends Vue {
 
   selectedFund(reserve: any) {
     this.fundSelected = reserve;
-    console.log(reserve.balance);
   }
 
   async buySmartTokens() {
-    const actions = multiContract.fund('0.0050 BNTEOSS');
-    const wallet = vxm.eosTransit.wallet;
-    console.log(actions)
-
-    if (wallet && wallet.auth) {
-      const res = await vxm.eosTransit.tx(actions);
-      await wait(1000);
-      this.fetchData();
-    }
-}
+    await multiContract.fund("0.0050 BNTEOSS");
+    await wait(1000);
+    this.fetchData();
+  }
 
   async toggleRelay() {
-    const actions = multiContract.enableConversion(
+    await multiContract.enableConversion(
       this.$route.params.account,
       !this.enabled
     );
 
-    const wallet = vxm.eosTransit.wallet;
-
-    if (wallet && wallet.auth) {
-      const res = await vxm.eosTransit.tx(actions);
-      await wait(1000);
-      this.fetchData();
-    }
+    await wait(1000);
+    this.fetchData();
   }
 
   async fetchData() {
     this.loading = true;
-    await Promise.all([this.fetchRelays(), this.fetchSettings()]);
+    await Promise.all([this.fetchReserves(), this.fetchSettings()]);
     this.loading = false;
   }
 
@@ -251,19 +236,10 @@ export default class Token extends Vue {
     const [amount, symbol] = balance.split(" ");
     const precision = amount.split(".")[1].length;
 
-    const actions = multiContract.deleteReserve(
-      this.$route.params.account,
-      symbol
-    );
-
-    const wallet = vxm.eosTransit.wallet;
-
-    if (wallet && wallet.auth) {
-      const res = await vxm.eosTransit.tx(actions);
-      this.fundAmount = "";
-      await wait(1000);
-      this.fetchData();
-    }
+    await multiContract.deleteReserve(this.$route.params.account, symbol);
+    this.fundAmount = "";
+    await wait(1000);
+    this.fetchData();
   }
 
   async fund() {
@@ -273,23 +249,16 @@ export default class Token extends Vue {
     const amountString = `${Number(this.fundAmount).toFixed(
       precision
     )} ${symbol}`;
-    const actions = this.launched ? multiContract.fundTransfer(
-      this.fundSelected.contract,
-      amountString,
-      this.$route.params.account
-    ) : multiContract.setupTransfer(
+
+    await multiContract[this.launched ? "fundTransfer" : "setupTransfer"](
       this.fundSelected.contract,
       amountString,
       this.$route.params.account
     );
-    const wallet = vxm.eosTransit.wallet;
 
-    if (wallet && wallet.auth) {
-      const res = await vxm.eosTransit.tx(actions);
-      this.fundAmount = "";
-      await wait(1000);
-      this.fetchData();
-    }
+    this.fundAmount = "";
+    await wait(1000);
+    this.fetchData();
   }
 
   async fetchSettings() {
@@ -309,27 +278,15 @@ export default class Token extends Vue {
     this.stakeEnabled = Boolean(stake_enabled);
   }
 
-  async toggleReserve(reserve: any) {
-    const { balance, ratio, sale_enabled, contract } = reserve;
-    const [amount, symbol] = balance.split(" ");
-    const precision = amount.split(".")[1].length;
-    const actions = multiContract.setReserve(
-      this.$route.params.account,
-      `${precision},${symbol}`,
-      contract,
-      !sale_enabled,
-      ratio
-    );
-    const wallet = vxm.eosTransit.wallet;
+  async toggleReserve(reserve: ReserveInstance) {
+    console.log({ reserve })
+    await multiContract.toggleReserve(this.$route.params.account, reserve);
 
-    if (wallet && wallet.auth) {
-      const res = await vxm.eosTransit.tx(actions);
-      await wait(1000);
-      this.fetchRelays();
-    }
+    await wait(1000);
+    this.fetchReserves();
   }
 
-  async fetchRelays() {
+  async fetchReserves() {
     try {
       const reserves = await tableApi.getReservesMulti(
         this.$route.params.account
@@ -343,23 +300,15 @@ export default class Token extends Vue {
   }
 
   async addReserve() {
-    const adjustedRatio = Number(this.newRatio) * 10000;
-
-    const actions = multiContract.setReserve(
+    await multiContract.setReserve(
       this.$route.params.account,
       `${this.newSymbolPrecision},${this.newSymbolName}`,
       this.newContract,
       this.newEnabled,
-      adjustedRatio
+      Number(this.newRatio)
     );
-
-    const wallet = vxm.eosTransit.wallet;
-
-    if (wallet && wallet.auth) {
-      const res = await vxm.eosTransit.tx(actions);
-      await wait(1000);
-      this.fetchRelays();
-    }
+    await wait(100);
+    await this.fetchReserves();
   }
 }
 </script>

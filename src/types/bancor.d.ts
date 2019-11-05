@@ -65,3 +65,7 @@ export interface Converter {
 // Amount in an asset without reference to it's actual precision 
 // E.g. "10000" will be 1.0000 EOS
 export type IntegerAmount = string;
+
+export interface ReserveInstance {
+  balance: string, ratio: number, sale_enabled: boolean, contract: string
+}

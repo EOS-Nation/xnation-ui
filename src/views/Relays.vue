@@ -179,7 +179,7 @@ import * as bancorx from "@/assets/_ts/bancorx";
 import SortIcons from "@/components/common/SortIcons.vue";
 import HeroActions from "@/components/hero/HeroActions.vue";
 import { TokenPrice } from "@/types/bancor";
-import { multiContract } from "@/api/multiContractActionGen";
+import { multiContract } from "@/api/multiContractTx";
 import { tableApi } from "../api/TableWrapper";
 const numeral = require("numeral");
 const debounce = require("lodash.debounce");
@@ -300,20 +300,18 @@ export default class Relays extends Vue {
   }
 
   async createRelay() {
-    const actions = multiContract.createRelay({
-      maxSupply: Number(this.smartTokenMaxSupply),
-      initialSupply: Number(this.smartTokenInitialSupply),
-      symbol: this.smartTokenSymbol,
-      precision: Number(this.smartTokenPrecision)
+    await multiContract.createRelay(
+      this.smartTokenSymbol,
+      Number(this.smartTokenPrecision),
+      Number(this.smartTokenInitialSupply),
+      Number(this.smartTokenMaxSupply)
+    );
+    
+    vxm.general.setHeroAction("relay");
+    this.$router.push({
+      name: "Relay",
+      params: { account: this.smartTokenSymbol }
     });
-
-    const wallet = vxm.eosTransit.wallet;
-
-    if (wallet && wallet.auth) {
-      const res = await vxm.eosTransit.tx(actions);
-      vxm.general.setHeroAction("relay");
-      this.$router.push({ name: 'Relay', params: { account: this.smartTokenSymbol } })
-    }
   }
 
   async updateTokens() {
