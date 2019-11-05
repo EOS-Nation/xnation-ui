@@ -7,35 +7,25 @@
           <hero-convert-relay v-else key="rtl" direction="from" />
         </transition>
       </b-col>
-      <b-col
-        md="4"
-        class="d-flex justify-content-center align-items-end"
-        style="min-height: 230px"
-      >
+      <b-col md="4" class="d-flex justify-content-center align-items-end" style="min-height: 230px">
         <div>
           <transition name="fade" mode="out-in">
             <font-awesome-icon
-              v-if="ltr"
               icon="exchange-alt"
               class="fa-2x text-white cursor"
-              key="ltr"
-              @click="swapTokens()"
-            />
-            <font-awesome-icon
-              v-else
-              icon="exchange-alt"
-              class="fa-2x text-white cursor"
-              key="rtl"
+              :spin="spinning"
               @click="swapTokens()"
             />
           </transition>
           <div class="mb-3 mt-3">
-            <span class="text-white font-size-sm"
-              >1 {{ tokenFrom.symbol }} =
-              <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span
-              ><span v-else><font-awesome-icon icon="circle-notch" spin/></span>
-              {{ tokenTo.symbol }}</span
-            >
+            <span class="text-white font-size-sm">
+              1 {{ tokenFrom.symbol }} =
+              <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span>
+              <span v-else>
+                <font-awesome-icon icon="circle-notch" spin />
+              </span>
+              {{ tokenTo.symbol }}
+            </span>
           </div>
           <div class="d-flex justify-content-center">
             <b-btn
@@ -46,22 +36,14 @@
               :disabled="loadingTokens || minReturn === ''"
             >
               <font-awesome-icon
-                v-if="loadingTokens"
-                icon="circle-notch"
-                spin
+                :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
+                :spin="loadingTokens"
                 fixed-width
                 class="mr-2"
               />
-              <font-awesome-icon
-                v-else
-                icon="sync-alt"
-                fixed-width
-                class="mr-2"
-              />
-              <span class="font-w700">{{ 'Create Relay' }} </span>
+              <span class="font-w700">{{ 'Add Liquidity' }}</span>
             </b-btn>
           </div>
-
         </div>
       </b-col>
       <b-col md="4">
@@ -79,15 +61,15 @@
 </template>
 
 <script lang="ts">
-import { Watch, Component, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store'
-import HeroConvertRelay from '@/components/convert/HeroConvertRelay.vue'
-import * as bancorx from '@/assets/_ts/bancorx'
-import numeral from 'numeral'
-import ModalSelectAll from '@/components/modals/ModalSelectAll.vue'
-import ModalConvertLiquidity from '@/components/modals/ModalConvertLiquidity.vue'
-import ModalSelectToken from '@/components/modals/ModalSelectToken.vue'
-import ModalSelectRelays from '@/components/modals/ModalSelectRelays.vue'
+import { Watch, Component, Vue } from "vue-property-decorator";
+import { vxm } from "@/store";
+import HeroConvertRelay from "@/components/convert/HeroConvertRelay.vue";
+import * as bancorx from "@/assets/_ts/bancorx";
+import numeral from "numeral";
+import ModalSelectAll from "@/components/modals/ModalSelectAll.vue";
+import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue";
+import ModalSelectToken from "@/components/modals/ModalSelectToken.vue";
+import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
 
 @Component({
   components: {
@@ -100,105 +82,110 @@ import ModalSelectRelays from '@/components/modals/ModalSelectRelays.vue'
 })
 export default class HeroConvert extends Vue {
   // data
-  ltr = true
-  rate = ''
-  rateLoading = false
-  numeral = numeral
+  ltr = true;
+  rate = "";
+  rateLoading = false;
+  numeral = numeral;
+  spinning = false;
 
   // computed
   get isAuthenticated() {
     if (vxm.eosTransit.walletState)
-      return vxm.eosTransit.walletState.authenticated
-    else return false
+      return vxm.eosTransit.walletState.authenticated;
+    else return false;
   }
 
   get heroAction() {
-    return vxm.general.heroAction
+    return vxm.general.heroAction;
   }
 
   get currentRoute() {
-    return this.$route.name
+    return this.$route.name;
   }
 
   set heroAction(val) {
-    vxm.general.setHeroAction(val)
+    vxm.general.setHeroAction(val);
   }
 
   get debouncedState() {
-    return vxm.convert.debouncedState
+    return vxm.convert.debouncedState;
   }
 
   get tokenFrom() {
-    return vxm.liquidity.fromToken
+    return vxm.liquidity.fromToken;
   }
 
   get tokenTo() {
-    return vxm.liquidity.toToken
+    return vxm.liquidity.toToken;
   }
 
   get amount() {
-    return vxm.liquidity.amount
+    return vxm.liquidity.amount;
   }
 
   get minReturn() {
-    return vxm.liquidity.minReturn
+    return vxm.liquidity.minReturn;
   }
 
   get tokens() {
-    return vxm.tokens.eosTokens
+    return vxm.tokens.eosTokens;
   }
 
   get loadingTokens() {
-    return vxm.liquidity.rateLoading
+    return vxm.liquidity.rateLoading;
   }
 
   async conversionRate() {
-    this.rateLoading = true
-    let amount = this.amount
-    if (amount === '') {
-      amount = '1'
+    this.rateLoading = true;
+    let amount = this.amount;
+    if (amount === "") {
+      amount = "1";
       const minReturn = await bancorx.calcRate(
         vxm.liquidity.fromToken.symbol,
         vxm.liquidity.toToken.symbol,
         amount
-      )
+      );
       this.rate = this.numeral(
         parseFloat(minReturn) / parseFloat(amount)
-      ).format('0,0.0000')
+      ).format("0,0.0000");
     } else
       this.rate = this.numeral(
         parseFloat(this.minReturn) / parseFloat(amount)
-      ).format('0,0.0000')
+      ).format("0,0.0000");
 
-    this.rateLoading = false
+    this.rateLoading = false;
   }
 
   // methods
   swapTokens() {
-    this.ltr = !this.ltr
-    vxm.liquidity.swapSelection()
-    vxm.liquidity.calcMinReturn()
+    this.ltr = !this.ltr;
+    this.spinning = true;
+    setTimeout(() => {
+      this.spinning = false
+    }, 1500)
+    vxm.liquidity.swapSelection();
+    vxm.liquidity.calcMinReturn();
   }
 
   initConvert() {
-    if (!this.isAuthenticated) this.$bvModal.show('modal-login')
+    if (!this.isAuthenticated) this.$bvModal.show("modal-login");
     else {
-      vxm.convert.initConversion('from')
-      this.$bvModal.show('modal-select-relay')
+      vxm.convert.initConversion("from");
+      this.$bvModal.show("modal-select-relay");
     }
   }
 
-  @Watch('minReturn')
+  @Watch("minReturn")
   async onStateChange(val: any, oldVal: any) {
-    await this.conversionRate()
+    await this.conversionRate();
   }
 
-  @Watch('tokenFrom')
+  @Watch("tokenFrom")
   async onTokenChange(val: any, oldVal: any) {
-    await this.conversionRate()
+    await this.conversionRate();
   }
   async created() {
-    await this.conversionRate()
+    await this.conversionRate();
   }
 }
 </script>
