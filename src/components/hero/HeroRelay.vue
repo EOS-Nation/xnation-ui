@@ -3,8 +3,12 @@
     <b-row>
       <b-col md="4">
         <transition name="slide-fade-down" mode="out-in">
-          <hero-convert-relay v-if="ltr" key="ltr" direction="from" />
-          <hero-convert-relay v-else key="rtl" direction="from" />
+          <token-amount-input
+            :amount.sync="token1Amount"
+            :symbol="token1Symbol"
+            :balance="token1UserBalance"
+            :img="token1Img"
+          />
         </transition>
       </b-col>
       <b-col md="4" class="d-flex justify-content-center align-items-end" style="min-height: 230px">
@@ -19,17 +23,17 @@
           </transition>
           <div class="mb-3 mt-3">
             <span class="text-white font-size-sm">
-              1 {{ tokenFrom.symbol }} =
+              1 {{ token1Symbol }} =
               <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span>
               <span v-else>
                 <font-awesome-icon icon="circle-notch" spin />
               </span>
-              {{ tokenTo.symbol }}
+              {{ simpleReward }}
             </span>
           </div>
           <div class="d-flex justify-content-center">
             <b-btn
-              @click="initConvert()"
+              @click="toggleMain()"
               variant="success"
               v-ripple
               class="px-4 py-2 d-block"
@@ -48,8 +52,12 @@
       </b-col>
       <b-col md="4">
         <transition name="slide-fade-up" mode="out-in">
-          <hero-convert-relay v-if="!ltr" key="rtl" direction="to" />
-          <hero-convert-relay v-else key="ltr" direction="to" />
+          <token-amount-input
+            :amount.sync="token2Amount"
+            :symbol="token2Symbol"
+            :balance="token2UserBalance"
+            :img="token2Img"
+          />
         </transition>
       </b-col>
     </b-row>
@@ -64,12 +72,18 @@
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import HeroConvertRelay from "@/components/convert/HeroConvertRelay.vue";
+import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
+import { fetchTokenMeta } from "@/api/helpers";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
 import ModalSelectAll from "@/components/modals/ModalSelectAll.vue";
 import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue";
 import ModalSelectToken from "@/components/modals/ModalSelectToken.vue";
 import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
+import { calculateReturn } from "bancorx";
+import { split, Asset } from "eos-common";
+import { multiContract } from "../../api/multiContractTx";
+import { transfer } from "../../store/modules/transfer";
 
 @Component({
   components: {
@@ -77,7 +91,8 @@ import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
     ModalSelectAll,
     ModalSelectToken,
     ModalConvertLiquidity,
-    HeroConvertRelay
+    HeroConvertRelay,
+    TokenAmountInput
   }
 })
 export default class HeroConvert extends Vue {
@@ -87,73 +102,101 @@ export default class HeroConvert extends Vue {
   rateLoading = false;
   numeral = numeral;
   spinning = false;
+  loadingTokens = false;
+  token1Amount = "";
+  token2Amount = "";
+  token1Img =
+    "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
+  token2Img =
+    "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
 
   // computed
-  get isAuthenticated() {
-    if (vxm.eosTransit.walletState)
-      return vxm.eosTransit.walletState.authenticated;
-    else return false;
+
+
+  get token1Symbol() {
+    return vxm.relay.token1SymbolName;
   }
 
-  get heroAction() {
-    return vxm.general.heroAction;
+  get token1Balance() {
+    return vxm.relay.token1Balance;
+  }
+
+  get token1UserBalance() {
+    return vxm.relay.token1UserBalance;
+  }
+
+  get token2UserBalance() {
+    return vxm.relay.token2UserBalance;
+  }
+
+  get token1Contract() {
+    return vxm.relay.token1Contract;
+  }
+
+  get token2Contract() {
+    return vxm.relay.token2Contract;
+  }
+
+  get token2Symbol() {
+    return vxm.relay.token2SymbolName;
+  }
+
+  get token2Balance() {
+    return vxm.relay.token2Balance;
+  }
+
+  get hasLaunched() {
+    return vxm.relay.launched;
   }
 
   get currentRoute() {
     return this.$route.name;
   }
 
-  set heroAction(val) {
-    vxm.general.setHeroAction(val);
+  get simpleReward() {
+    const token1 = split(this.token1Balance);
+    const token2 = split(this.token2Balance);
+    const oneAmount = Math.pow(10, token1.symbol.precision);
+    const reward = calculateReturn(
+      token1,
+      token2,
+      new Asset(oneAmount, token1.symbol)
+    );
+    return `${reward.toNumber().toFixed(4)} ${reward.symbol.code()}`;
   }
 
-  get debouncedState() {
-    return vxm.convert.debouncedState;
+  updatePercentage(amount: number) {
+    console.log("Received", amount);
   }
 
-  get tokenFrom() {
-    return vxm.liquidity.fromToken;
-  }
+  async toggleMain() {
+    const token1RelayBalance = split(this.token1Balance);
+    const token2RelayBalance = split(this.token2Balance);
+    const token1NumberAmount =
+      Math.pow(10, token1RelayBalance.symbol.precision) *
+      Number(this.token1Amount);
+    const token1Asset = new Asset(
+      token1NumberAmount,
+      token1RelayBalance.symbol
+    );
+    const token2NumberAmount =
+      Math.pow(10, token2RelayBalance.symbol.precision) *
+      Number(this.token2Amount);
+    const token2Asset = new Asset(
+      token2NumberAmount,
+      token2RelayBalance.symbol
+    );
 
-  get tokenTo() {
-    return vxm.liquidity.toToken;
-  }
-
-  get amount() {
-    return vxm.liquidity.amount;
-  }
-
-  get minReturn() {
-    return vxm.liquidity.minReturn;
-  }
-
-  get tokens() {
-    return vxm.tokens.eosTokens;
-  }
-
-  get loadingTokens() {
-    return vxm.liquidity.rateLoading;
-  }
-
-  async conversionRate() {
-    this.rateLoading = true;
-    let amount = this.amount;
-    if (amount === "") {
-      amount = "1";
-      const minReturn = await bancorx.calcRate(
-        vxm.liquidity.fromToken.symbol,
-        vxm.liquidity.toToken.symbol,
-        amount
-      );
-      this.rate = this.numeral(
-        parseFloat(minReturn) / parseFloat(amount)
-      ).format("0,0.0000");
-    } else
-      this.rate = this.numeral(
-        parseFloat(this.minReturn) / parseFloat(amount)
-      ).format("0,0.0000");
-
-    this.rateLoading = false;
+    await multiContract.addLiquidity(this.$route.params.account, [
+      {
+        contract: this.token1Contract,
+        amount: token1Asset
+      },
+      {
+        contract: this.token2Contract,
+        amount: token2Asset
+      }
+    ]);
   }
 
   // methods
@@ -161,31 +204,25 @@ export default class HeroConvert extends Vue {
     this.ltr = !this.ltr;
     this.spinning = true;
     setTimeout(() => {
-      this.spinning = false
-    }, 1500)
+      this.spinning = false;
+    }, 1000);
     vxm.liquidity.swapSelection();
     vxm.liquidity.calcMinReturn();
   }
 
-  initConvert() {
-    if (!this.isAuthenticated) this.$bvModal.show("modal-login");
-    else {
-      vxm.convert.initConversion("from");
-      this.$bvModal.show("modal-select-relay");
-    }
+  async fetchTokenMeta() {
+    const [token1, token2] = await Promise.all([
+      fetchTokenMeta(this.token1Contract, this.token1Symbol),
+      fetchTokenMeta(this.token2Contract, this.token2Symbol)
+    ]);
+    this.token1Img = token1.logo;
+    this.token2Img = token2.logo;
   }
 
-  @Watch("minReturn")
-  async onStateChange(val: any, oldVal: any) {
-    await this.conversionRate();
-  }
-
-  @Watch("tokenFrom")
-  async onTokenChange(val: any, oldVal: any) {
-    await this.conversionRate();
-  }
   async created() {
-    await this.conversionRate();
+    // await vxm.relay.initSymbol(this.$route.params.account);
+    console.log('Hero Relay created', 'Token1 is', this.token1Contract, 'token2 is', this.token2Contract)
+    this.fetchTokenMeta();
   }
 }
 </script>

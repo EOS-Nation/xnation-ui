@@ -9,7 +9,7 @@ import { Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
 import { baseApi } from '@/api/BaseApi'
 import HeroWallet from '@/components/hero/HeroWallet.vue'
-import * as bancorx from 'bancorx'
+import { relays } from 'bancorx'
 import { TokenPrice } from '@/types/bancor'
 
 const numeral = require('numeral')
@@ -44,7 +44,7 @@ export default class Wallet extends Vue {
 
   async getRelays() {
     for (const token of this.tokens) {
-      const resp = await bancorx.relays[token.code]
+      const resp = await relays[token.code]
       if (resp) this.relays.push(resp)
     }
     this.getBalances()

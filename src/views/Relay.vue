@@ -107,12 +107,12 @@
                     >
                       <font-awesome-icon icon="hand-holding-usd" />
                     </b-button>
-                    <b-button
+                    <!-- <b-button
                       size="sm"
                       v-if="!reserve.balance.split(' ')[0]"
                       @click="deleteReserve(reserve)"
                       variant="danger"
-                    >
+                    > -->
                       <font-awesome-icon icon="trash-alt" />
                     </b-button>
                   </td>
@@ -201,6 +201,14 @@ export default class Token extends Vue {
 
   // methods
   async created() {
+    if (!this.$route.params.isDraft) {
+      const relayFound = await vxm.relay.initSymbol(this.$route.params.account)
+      if (!relayFound) {
+        this.$router.push({
+          name: "Relays",
+        });
+      }
+    }
     vxm.general.setHeroAction("relay");
     this.fetchData();
   }
@@ -227,7 +235,7 @@ export default class Token extends Vue {
 
   async fetchData() {
     this.loading = true;
-    await Promise.all([this.fetchReserves(), this.fetchSettings()]);
+    // await Promise.all([this.fetchReserves(), this.fetchSettings()]);
     this.loading = false;
   }
 
@@ -270,12 +278,12 @@ export default class Token extends Vue {
       owner,
       stake_enabled
     } = await tableApi.getSettingsMulti(this.$route.params.account);
-    this.currency = currency;
-    this.enabled = Boolean(enabled);
+    this.currency = currency.code();
+    this.enabled = enabled;
     this.fee = fee;
-    this.launched = Boolean(launched);
+    this.launched = launched;
     this.owner = owner;
-    this.stakeEnabled = Boolean(stake_enabled);
+    this.stakeEnabled = stake_enabled;
   }
 
   async toggleReserve(reserve: ReserveInstance) {

@@ -1,5 +1,23 @@
 import { vxm } from "@/store";
+import { Symbol, Asset, split } from 'eos-common'
+import { rpc } from './rpc'
 import { JsonRpc } from 'eosjs'
+
+interface ConverterTable {
+  currency: Symbol;
+  owner: string;
+  enabled: boolean;
+  launched: boolean;
+  stake_enabled: boolean;
+  fee: number;
+}
+
+interface ReserveTable {
+  contract: string;
+  ratio: number;
+  sale_enabled: boolean;
+  balance: Asset;
+}
 
 class TableWrapper {
 
@@ -12,7 +30,7 @@ class TableWrapper {
   }
 
 
-  public async getReservesMulti(symbol: string) {
+  public async getReservesMulti(symbol: string): Promise<ReserveTable[]> {
     const table = await this.rpc.get_table_rows({
       code: this.multiContract,
       table: "reserves",
@@ -20,18 +38,34 @@ class TableWrapper {
       limit: 10
     });
 
-    return table.rows;
+    return table.rows.map((row: any) => {
+      return {
+        contract: row.contract,
+        ratio: row.ratio,
+        sale_enabled: Boolean(row.sale_enabled),
+        balance: split(row.balance)
+      }
+    })
   }
 
-  public async getSettingsMulti(symbol: string) {
+  public async getSettingsMulti(symbol: string): Promise<ConverterTable> {
     const table = await this.rpc.get_table_rows({
       code: this.multiContract,
       table: "converters",
       scope: symbol,
       limit: 1
     });
-
-    return table.rows[0]
+    if (table.rows.length == 0) throw new Error("Converter does not exist");
+    const { currency, owner, enabled, launched, stake_enabled, fee } = table.rows[0]
+    const [precision, symbolName] = currency.split(',')
+    return {
+      currency: new Symbol(symbolName, precision),
+      owner,
+      enabled: Boolean(enabled),
+      launched: Boolean(launched),
+      stake_enabled: Boolean(stake_enabled),
+      fee
+    }
   }
 
   public async getReserves(contractName: string, scope = contractName): Promise<{
@@ -71,4 +105,4 @@ class TableWrapper {
 }
 
 
-export const tableApi = new TableWrapper('welovebancor', vxm.eosTransit.accessContext.eosRpc);
+export const tableApi = new TableWrapper('welovebancor', rpc);

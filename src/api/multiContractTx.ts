@@ -1,6 +1,7 @@
 import { vxm } from "@/store/";
 import { multiContractAction, SemiAction } from "../contracts/multi";
-import { ReserveInstance } from '@/types/bancor';
+import { ReserveInstance } from "@/types/bancor";
+import { TokenAmount } from "bancorx/build/interfaces";
 
 interface Action {
   account: string;
@@ -38,8 +39,11 @@ class MultiContractTx {
   }
 
   deleteReserve(symbolCode: string, currency: string): Promise<TxResponse> {
-    const action = multiContractAction.delreserve(symbolCode, currency) as SemiAction;
-    return this.tx([action])
+    const action = multiContractAction.delreserve(
+      symbolCode,
+      currency
+    ) as SemiAction;
+    return this.tx([action]);
   }
 
   toggleReserve(symbolCode: string, reserve: ReserveInstance) {
@@ -47,7 +51,13 @@ class MultiContractTx {
     const [amount, symbol] = balance.split(" ");
     const precision = amount.split(".")[1].length;
 
-    const action = multiContractAction.setreserve(symbolCode, `${precision},${symbol}`, contract, !sale_enabled, ratio) as SemiAction
+    const action = multiContractAction.setreserve(
+      symbolCode,
+      `${precision},${symbol}`,
+      contract,
+      !sale_enabled,
+      ratio
+    ) as SemiAction;
     return this.tx([action]);
   }
 
@@ -59,23 +69,38 @@ class MultiContractTx {
     ratio: number
   ): Promise<TxResponse> {
     const adjustedRatio = ratio * 10000;
-    const action = multiContractAction.setreserve(symbolCode, symbol, tokenContract, saleEnabled, adjustedRatio) as SemiAction
+    const action = multiContractAction.setreserve(
+      symbolCode,
+      symbol,
+      tokenContract,
+      saleEnabled,
+      adjustedRatio
+    ) as SemiAction;
     return this.tx([action]);
   }
 
   updateOwner(symbolCode: string, owner: string): Promise<TxResponse> {
-    const action = multiContractAction.updateowner(symbolCode, owner) as SemiAction
+    const action = multiContractAction.updateowner(
+      symbolCode,
+      owner
+    ) as SemiAction;
     return this.tx([action]);
   }
 
   fund(quantity: string) {
-    const action = multiContractAction.fund(this.getAuth()[0].actor, quantity) as SemiAction
-    return this.tx([action])
+    const action = multiContractAction.fund(
+      this.getAuth()[0].actor,
+      quantity
+    ) as SemiAction;
+    return this.tx([action]);
   }
 
   enableConversion(symbolCode: string, enabled: boolean): Promise<TxResponse> {
-    const action = multiContractAction.enablecnvrt(symbolCode, enabled) as SemiAction
-    return this.tx([action])
+    const action = multiContractAction.enablecnvrt(
+      symbolCode,
+      enabled
+    ) as SemiAction;
+    return this.tx([action]);
   }
 
   createRelay(
@@ -84,7 +109,6 @@ class MultiContractTx {
     initialSupply: number,
     maxSupply: number
   ): Promise<TxResponse> {
-
     const owner = this.getAuth()[0].actor;
 
     const action = multiContractAction.create(
@@ -115,6 +139,31 @@ class MultiContractTx {
     ]);
   }
 
+  addLiquidity(
+    symbolCode: string,
+    tokens: TokenAmount[],
+    launched: boolean = true
+  ) {
+    return this.tx(this.addLiquidityActions(symbolCode, tokens, launched))
+  }
+
+  addLiquidityActions(
+    symbolCode: string,
+    tokens: TokenAmount[],
+    launched: boolean = true
+  ) {
+    return tokens.map((token: TokenAmount) => ({
+      account: token.contract,
+      name: `transfer`,
+      data: {
+        from: this.getAuth()[0].actor,
+        to: this.contractName,
+        quantity: token.amount.toString(),
+        memo: `${launched ? "fund" : "setup"};${symbolCode}`
+      }
+    }));
+  }
+
   fundTransfer(
     tokenContract: string,
     amountString: string,
@@ -133,10 +182,7 @@ class MultiContractTx {
       }
     ]);
   }
-
-
 }
-
 
 const getAuth: GetAuth = () => {
   const wallet = vxm.eosTransit.wallet;
@@ -148,7 +194,7 @@ const getAuth: GetAuth = () => {
       permission: wallet.auth.permission
     }
   ];
-}
+};
 
 export const multiContract = new MultiContractTx(
   "welovebancor",

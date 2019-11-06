@@ -8,7 +8,7 @@ import { eosTransit, EosTransitModule } from "./modules/eosTransit";
 import { transfer, TransferModule } from "./modules/transfer";
 import { wallet, walletModule } from "./modules/wallet";
 import { liquidity, LiquidityModule } from "./modules/liquidity";
-import { newRelay, NewRelayModule } from "./modules/newRelay";
+import { relay, RelayModule } from "./modules/relay";
 
 Vue.use(Vuex);
 
@@ -21,7 +21,7 @@ export const store = new Vuex.Store({
     transfer,
     wallet,
     liquidity,
-    newRelay
+    relay
   },
   strict: process.env.NODE_ENV !== "production"
 });
@@ -40,5 +40,5 @@ export const vxm = {
     store,
     LiquidityModule
   ) as LiquidityModule,
-  newRelay: NewRelayModule.CreateProxy(store, NewRelayModule) as NewRelayModule
+  relay: RelayModule.CreateProxy(store, RelayModule) as RelayModule
 };

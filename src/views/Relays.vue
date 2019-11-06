@@ -279,9 +279,9 @@ export default class Relays extends Vue {
 
   createSmartTokenSymbol(ticker1: string, ticker2: string) {
     const maxSymbolLength = 7;
-    if (ticker1.length + ticker2.length <= maxSymbolLength)
+    if (ticker1.length + ticker2.length <= maxSymbolLength) {
       return ticker1 + ticker2;
-    else {
+    } else {
       return ticker1 + ticker2[0] + ticker2[2] + ticker2[3];
     }
   }
@@ -292,31 +292,22 @@ export default class Relays extends Vue {
       this.tokenSymbol
     );
 
-    await multiContract.createRelay(
+    // ToDo: Make sure a relay doesn't already exist, if so redirect.
+    const relayAlreadyExists = false;
+    if (relayAlreadyExists) throw new Error("Relay already exists, I should point this out to the user.")
+    
+    vxm.relay.draftNewRelay({
       smartTokenSymbol,
-      Number(4),
-      Number(1000),
-      Number(10000000000)
-    );
-    await multiContract.setReserve(
-      smartTokenSymbol,
-      `10,BNT`,
-      "bntbntbntbnt",
-      true,
-      50
-    );
-    await multiContract.setReserve(
-      smartTokenSymbol,
-      `${this.tokenPrecision},${this.tokenSymbol}`,
-      this.tokenContract,
-      true,
-      50
-    );
+      precision: this.tokenPrecision,
+      symbolName: this.tokenSymbol,
+      tokenContract: this.tokenContract
+    })
+    console.log('Draft was set')
 
     vxm.general.setHeroAction("relay");
     this.$router.push({
       name: "Relay",
-      params: { account: this.tokenSymbol }
+      params: { account: smartTokenSymbol, isDraft: 'yes' }
     });
   }
 
