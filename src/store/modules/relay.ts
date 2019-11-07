@@ -13,9 +13,11 @@ interface TraditionalReserves {
   token1SymbolName: string;
   token1Balance: string;
   token1Contract: string;
+  token1Enabled: boolean;
   token2SymbolName: string;
   token2Balance: string;
   token2Contract: string;
+  token2Enabled: boolean;
 }
 
 @Module({ namespacedPath: "relay/" })
@@ -23,9 +25,11 @@ export class RelayModule extends VuexModule {
   @getter token1SymbolName: string = "";
   @getter token1Balance: string = "";
   @getter token1Contract: string = "";
+  @getter token1Enabled: boolean = false;
   @getter token2SymbolName: string = "";
   @getter token2Balance: string = "";
   @getter token2Contract: string = "";
+  @getter token2Enabled: boolean = false;
   @getter relayExists: boolean = false;
   @getter smartTokenSymbol: string = "";
   @getter owner: string = "";
@@ -58,8 +62,14 @@ export class RelayModule extends VuexModule {
     this.token2SymbolName = "BNT";
     this.token2Balance = "0.0000000000 BNT";
     this.token2Contract = "bntbntbntbnt";
+  }
 
+  @mutation setToken1Enabled(status: boolean) {
+    this.token1Enabled = status;
+  }
 
+  @mutation setToken2Enabled(status: boolean) {
+    this.token2Enabled = status;
   }
 
   @mutation setUserBalances(balances: any) {
@@ -101,8 +111,8 @@ export class RelayModule extends VuexModule {
     console.log('received at the store', {token1Balance, token2Balance})
   }
 
-  @mutation relayDoesNotExist() {
-    this.relayExists = false;
+  @mutation setRelayExistence(status: boolean) {
+    this.relayExists = status;
   }
 
   @mutation setReserves(data: TraditionalReserves) {
@@ -110,17 +120,21 @@ export class RelayModule extends VuexModule {
       token1SymbolName,
       token1Balance,
       token1Contract,
+      token1Enabled,
       token2SymbolName,
       token2Balance,
-      token2Contract
+      token2Contract,
+      token2Enabled
     } = data;
 
     this.token1SymbolName = token1SymbolName;
     this.token1Balance = token1Balance;
     this.token1Contract = token1Contract;
+    this.token1Enabled = token1Enabled
     this.token2SymbolName = token2SymbolName;
     this.token2Balance = token2Balance;
     this.token2Contract = token2Contract;
+    this.token2Enabled = token2Enabled
   }
 
   @mutation setTokenSymbol(tokenSymbol: string) {
@@ -131,7 +145,7 @@ export class RelayModule extends VuexModule {
     this.loading = false;
   }
 
-  @action async refreshReserves() {
+  @action async refreshReserves(): Promise<void> {
     const reserves = await tableApi.getReservesMulti(this.smartTokenSymbol);
 
     const isTraditionalRelay =
@@ -155,9 +169,11 @@ export class RelayModule extends VuexModule {
       token1SymbolName: token1.balance.symbol.code(),
       token1Balance: token1.balance.toString(),
       token1Contract: token1.contract,
+      token1Enabled: token1.sale_enabled,
       token2SymbolName: token2.balance.symbol.code(),
       token2Balance: token2.balance.toString(),
-      token2Contract: token2.contract
+      token2Contract: token2.contract,
+      token2Enabled: token2.sale_enabled
     });
     this.stopLoading();
   }
@@ -174,12 +190,13 @@ export class RelayModule extends VuexModule {
     this.setTokenSymbol(symbol);
     try {
       const settings = await tableApi.getSettingsMulti(symbol);
+      this.setRelayExistence(true);
       this.setSettings(settings);
       await this.refreshReserves();
       return true;
     } catch (e) {
       // Assume relay does not exist
-      this.relayDoesNotExist();
+      this.setRelayExistence(false);
       console.log("Relay does not exist");
       return false;
     }

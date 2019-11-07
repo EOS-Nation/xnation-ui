@@ -1,24 +1,15 @@
 <template>
   <div>
     <div>
-      <img
-        class="img-avatar img-avatar-thumb cursor"
-        :src="
-            img
-        "
-        alt="Token Logo"
-      />
+      <img class="img-avatar  img-avatar-thumb cursor border-colouring" :src="img" alt="Token Logo" />
       <div class="font-size-lg text-white mt-3 mb-3 cursor">{{ symbol }}</div>
       <b-input-group class="mt-1">
-        <b-form-input
-          type="number"
-          :value="amount"
-          @update="onTextUpdate"
-          class="form-control-alt"
-          placeholder="Enter Amount"
-        ></b-form-input>
+        <b-form-input type="number" :value="amount" @update="onTextUpdate" class="form-control-alt" placeholder="Enter Amount"></b-form-input>
         <b-input-group-append>
           <b-button>{{ symbol }}</b-button>
+          <b-button v-if="toggle" :variant="status ? 'success' : 'danger'" @click="toggleStatus">
+            <font-awesome-icon icon="power-off" />
+          </b-button>
         </b-input-group-append>
       </b-input-group>
       <div>
@@ -63,6 +54,8 @@ export default class TokenAmountInput extends Vue {
   @Prop(String) img!: string;
   @Prop(String) readonly symbol!: string;
   @Prop(Boolean) loadingBalance: boolean = false;
+  @Prop(Boolean) status?: boolean
+  @Prop(Boolean) toggle?: boolean
 
   // data
   numeral = numeral;
@@ -79,12 +72,18 @@ export default class TokenAmountInput extends Vue {
     this.$emit("update:amount", input);
   }
 
+  toggleStatus() {
+    this.$emit("toggle");
+  }
+
   // Lifecycle hooks
-  async created() {}
-  mounted() {}
-  updated() {}
-  destroyed() {}
+  async created() { }
+  mounted() { }
+  updated() { }
+  destroyed() { }
 }
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+
+</style>

@@ -78,7 +78,7 @@
                 <tr v-for="(reserve, index) in reserves" :key="index">
                   <td class="text-center d-none d-md-table-cell" v-text="index + 1"></td>
                   <td class="d-flex justify-content-start align-items-center">
-                    <!-- <img
+                     <!--<img
                     class="img-avatar img-avatar-thumb img-avatar32"
                     :src="token.img"
                     alt="Token Logo"
@@ -135,7 +135,7 @@ import HeroActions from "@/components/hero/HeroActions.vue";
 import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
 import { ReserveInstance } from "../types/bancor";
-// import numeral from 'numeral'
+
 const numeral = require("numeral");
 const { ContentLoader } = require("vue-content-loader");
 

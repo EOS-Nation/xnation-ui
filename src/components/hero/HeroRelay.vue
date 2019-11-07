@@ -3,61 +3,48 @@
     <b-row>
       <b-col md="4">
         <transition name="slide-fade-down" mode="out-in">
-          <token-amount-input
-            :amount.sync="token1Amount"
-            :symbol="token1Symbol"
-            :balance="token1UserBalance"
-            :img="token1Img"
-          />
+          <token-amount-input toggle :status="token1Enabled" v-on:toggle="token1Enabled = !token1Enabled" :amount.sync="token1Amount" :symbol="token1Symbol" :balance="token1UserBalance" :img="token1Img" />
         </transition>
       </b-col>
       <b-col md="4" class="d-flex justify-content-center align-items-end" style="min-height: 230px">
         <div>
           <transition name="fade" mode="out-in">
-            <font-awesome-icon
-              icon="exchange-alt"
-              class="fa-2x text-white cursor"
-              :spin="spinning"
-              @click="swapTokens()"
-            />
+            <font-awesome-icon icon="exchange-alt" class="fa-2x text-white cursor" :spin="spinning" @click="swapTokens()" />
           </transition>
           <div class="mb-3 mt-3">
-            <span class="text-white font-size-sm">
+            <div class="text-white font-size-sm">
               1 {{ token1Symbol }} =
               <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span>
               <span v-else>
                 <font-awesome-icon icon="circle-notch" spin />
               </span>
               {{ simpleReward }}
-            </span>
+            </div>
+            <div v-if="!relayExists" class="text-white font-size-sm">
+              Fee: {{ fee }} %
+            </div>
           </div>
           <div class="d-flex justify-content-center">
-            <b-btn
-              @click="toggleMain()"
-              variant="success"
-              v-ripple
-              class="px-4 py-2 d-block"
-              :disabled="loadingTokens || minReturn === ''"
-            >
-              <font-awesome-icon
-                :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
-                :spin="loadingTokens"
-                fixed-width
-                class="mr-2"
-              />
-              <span class="font-w700">{{ 'Add Liquidity' }}</span>
+            <b-btn @click="toggleMain()" v-if="!relayExists" variant="success" v-ripple class="px-4 py-2 d-block" :disabled="loadingTokens || minReturn === ''">
+              <font-awesome-icon :icon="loadingTokens ? 'circle-notch' : 'plus'" :spin="loadingTokens" fixed-width class="mr-2" />
+              <span class="font-w700">Create Relay</span>
             </b-btn>
+            <b-dropdown v-else button @click="toggleMain" variant="success" split text="Add Liquidity" class="m-2" size="lg">
+              <template v-slot:button-content>
+                <font-awesome-icon :icon="loadingTokens ? 'circle-notch' : 'sync-alt'" :spin="loadingTokens" fixed-width class="mr-2" />
+                <span class="font-w700">{{ 'Add Liquidity' }}</span>
+              </template>
+              <b-dropdown-item-button>Remove Liquidity</b-dropdown-item-button>
+              <b-dropdown-item href="#">Update Fee</b-dropdown-item>
+              <b-dropdown-divider></b-dropdown-divider>
+              <b-dropdown-item-button variant="warning" @click="toggleRelay">Pause Relay</b-dropdown-item-button>
+            </b-dropdown>
           </div>
         </div>
       </b-col>
       <b-col md="4">
         <transition name="slide-fade-up" mode="out-in">
-          <token-amount-input
-            :amount.sync="token2Amount"
-            :symbol="token2Symbol"
-            :balance="token2UserBalance"
-            :img="token2Img"
-          />
+          <token-amount-input toggle :status="token2Enabled" v-on:toggle="token2Enabled = !token2Enabled" :amount.sync="token2Amount" :symbol="token2Symbol" :balance="token2UserBalance" :img="token2Img" />
         </transition>
       </b-col>
     </b-row>
@@ -106,9 +93,9 @@ export default class HeroConvert extends Vue {
   token1Amount = "";
   token2Amount = "";
   token1Img =
-    "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
+  "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
   token2Img =
-    "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
+  "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
 
   // computed
 
@@ -129,8 +116,24 @@ export default class HeroConvert extends Vue {
     return vxm.relay.token2UserBalance;
   }
 
+  get token1Enabled() {
+    return vxm.relay.token1Enabled;
+  }
+
+  get token2Enabled() {
+    return vxm.relay.token2Enabled;
+  }
+
   get token1Contract() {
     return vxm.relay.token1Contract;
+  }
+
+  get relayExists() {
+    return vxm.relay.relayExists;
+  }
+
+  get fee() {
+    return vxm.relay.fee
   }
 
   get token2Contract() {
@@ -153,6 +156,14 @@ export default class HeroConvert extends Vue {
     return this.$route.name;
   }
 
+  set token1Enabled(status: boolean) {
+    vxm.relay.setToken1Enabled(status)
+  }
+
+  set token2Enabled(status: boolean) {
+    vxm.relay.setToken2Enabled(status)
+  }
+
   get simpleReward() {
     const token1 = split(this.token1Balance);
     const token2 = split(this.token2Balance);
@@ -167,6 +178,11 @@ export default class HeroConvert extends Vue {
 
   updatePercentage(amount: number) {
     console.log("Received", amount);
+  }
+
+  async toggleRelay() {
+    await multiContract.enableConversion(this.$route.params.account, !vxm.relay.enabled);
+    await vxm.relay.refreshReserves();
   }
 
   async toggleMain() {
@@ -231,16 +247,23 @@ export default class HeroConvert extends Vue {
 .slide-fade-up-enter-active {
   transition: all 0.3s ease;
 }
+
 .slide-fade-up-leave-active {
   transition: all 0.3s cubic-bezier(1, 0.5, 0.8, 1);
 }
+
 .slide-fade-up-enter
-    /* .slide-fade-leave-active below version 2.1.8 */ {
+/* .slide-fade-leave-active below version 2.1.8 */
+
+{
   transform: translateY(75px);
   opacity: 0;
 }
+
 .slide-fade-up-leave-to
-  /* .slide-fade-leave-active below version 2.1.8 */ {
+/* .slide-fade-leave-active below version 2.1.8 */
+
+{
   transform: translateY(-75px);
   opacity: 0;
 }
@@ -248,16 +271,23 @@ export default class HeroConvert extends Vue {
 .slide-fade-down-enter-active {
   transition: all 0.3s ease;
 }
+
 .slide-fade-down-leave-active {
   transition: all 0.3s cubic-bezier(1, 0.5, 0.8, 1);
 }
+
 .slide-fade-down-enter
-  /* .slide-fade-leave-active below version 2.1.8 */ {
+/* .slide-fade-leave-active below version 2.1.8 */
+
+{
   transform: translateY(-75px);
   opacity: 0;
 }
+
 .slide-fade-down-leave-to
-  /* .slide-fade-leave-active below version 2.1.8 */ {
+/* .slide-fade-leave-active below version 2.1.8 */
+
+{
   transform: translateY(75px);
   opacity: 0;
 }
@@ -266,7 +296,12 @@ export default class HeroConvert extends Vue {
 .fade-leave-active {
   transition: opacity 0.5s;
 }
-.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+
+.fade-enter,
+.fade-leave-to
+/* .fade-leave-active below version 2.1.8 */
+
+{
   opacity: 0;
 }
 </style>
