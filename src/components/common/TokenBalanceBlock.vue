@@ -34,7 +34,7 @@ export default class TokenBalanceBlock extends Vue {
   get isAuthenticated() {
     return vxm.eosTransit.isAuthenticated
   }
-  async created() {}
+  async created() { }
 }
 </script>
 
