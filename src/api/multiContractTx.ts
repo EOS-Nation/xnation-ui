@@ -2,6 +2,9 @@ import { vxm } from "@/store/";
 import { multiContractAction, SemiAction } from "../contracts/multi";
 import { ReserveInstance } from "@/types/bancor";
 import { TokenAmount } from "bancorx/build/interfaces";
+import { rpc } from "./rpc";
+import { JsonRpc } from "eosjs";
+import { tableApi, TableWrapper, ReserveTable } from "./TableWrapper";
 
 interface Action {
   account: string;
@@ -16,18 +19,28 @@ interface Auth {
   actor: string;
   permission: string;
 }
+
 type GetAuth = () => Auth[];
+
 type TriggerTx = (actions: Action[]) => Promise<TxResponse>;
 
 class MultiContractTx {
   contractName: string;
   getAuth: GetAuth;
   triggerTx: TriggerTx;
+  rpc: JsonRpc;
+  table: TableWrapper;
 
-  constructor(contractName: string, getAuth: GetAuth, triggerTx: TriggerTx) {
+  constructor(
+    contractName: string,
+    getAuth: GetAuth,
+    triggerTx: TriggerTx,
+    tableApi
+  ) {
     this.contractName = contractName;
     this.getAuth = getAuth;
     this.triggerTx = triggerTx;
+    this.table = tableApi;
   }
 
   async tx(actions: SemiAction[]) {
@@ -46,17 +59,19 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
-  toggleReserve(symbolCode: string, reserve: ReserveInstance) {
-    const { balance, ratio, sale_enabled, contract } = reserve;
-    const [amount, symbol] = balance.split(" ");
-    const precision = amount.split(".")[1].length;
+  async toggleReserve(symbolCode: string, reserveSymbol: Symbol) {
+    const reserves = await this.table.getReservesMulti(symbolCode);
+    const singleReserve: ReserveTable = reserves.find((reserve: ReserveTable) =>
+      reserve.balance.symbol.isEqual(reserveSymbol)
+    );
 
     const action = multiContractAction.setreserve(
       symbolCode,
-      `${precision},${symbol}`,
-      contract,
-      !sale_enabled,
-      ratio
+      `${singleReserve.balance.symbol
+        .precision},${singleReserve.balance.symbol.code()}`,
+      singleReserve.contract,
+      !singleReserve.sale_enabled,
+      singleReserve.ratio
     ) as SemiAction;
     return this.tx([action]);
   }
@@ -144,7 +159,7 @@ class MultiContractTx {
     tokens: TokenAmount[],
     launched: boolean = true
   ) {
-    return this.tx(this.addLiquidityActions(symbolCode, tokens, launched))
+    return this.tx(this.addLiquidityActions(symbolCode, tokens, launched));
   }
 
   addLiquidityActions(
@@ -199,5 +214,6 @@ const getAuth: GetAuth = () => {
 export const multiContract = new MultiContractTx(
   "welovebancor",
   getAuth,
-  vxm.eosTransit.tx
+  vxm.eosTransit.tx,
+  tableApi
 );

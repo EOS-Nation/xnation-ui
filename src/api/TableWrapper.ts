@@ -12,14 +12,14 @@ interface ConverterTable {
   fee: number;
 }
 
-interface ReserveTable {
+export interface ReserveTable {
   contract: string;
   ratio: number;
   sale_enabled: boolean;
   balance: Asset;
 }
 
-class TableWrapper {
+export class TableWrapper {
 
   multiContract: string;
   rpc: JsonRpc;
