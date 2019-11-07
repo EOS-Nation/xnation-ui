@@ -96,9 +96,9 @@
                   </td>
                   <td class="text-right">
                     <!-- <b-btn @click="fund(reserve)" size="sm" variant="success" class="mr-1"> -->
-                    <b-button size="sm" @click="toggleReserve(reserve)" variant="warning">
+                    <!--<b-button size="sm" @click="toggleReserve(reserve)" variant="warning">
                       <font-awesome-icon icon="power-off" />
-                    </b-button>
+                    </b-button>-->
                     <b-button
                       size="sm"
                       @click="selectedFund(reserve)"
@@ -286,13 +286,13 @@ export default class Token extends Vue {
     this.stakeEnabled = stake_enabled;
   }
 
-  async toggleReserve(reserve: ReserveInstance) {
-    console.log({ reserve })
-    await multiContract.toggleReserve(this.$route.params.account, reserve);
+  // async toggleReserve(reserve: ReserveInstance) {
+  //   console.log({ reserve })
+  //   await multiContract.toggleReserve(this.$route.params.account, reserve);
 
-    await wait(1000);
-    this.fetchReserves();
-  }
+  //   await wait(1000);
+  //   this.fetchReserves();
+  // }
 
   async fetchReserves() {
     try {

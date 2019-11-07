@@ -20,7 +20,7 @@
               </span>
               {{ simpleReward }}
             </div>
-            <div v-if="!relayExists" class="text-white font-size-sm">
+            <div v-if="relayExists" class="text-white font-size-sm">
               Fee: {{ fee }} %
             </div>
           </div>

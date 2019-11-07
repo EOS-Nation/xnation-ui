@@ -35,7 +35,7 @@ class MultiContractTx {
     contractName: string,
     getAuth: GetAuth,
     triggerTx: TriggerTx,
-    tableApi
+    tableApi: TableWrapper
   ) {
     this.contractName = contractName;
     this.getAuth = getAuth;
