@@ -1,42 +1,5 @@
 <template>
   <div>
-    <b-modal @ok="addReserve" id="my-modal" title="Create a Reserve">
-      <div>
-        <b-form-group id="fieldset-1" label="Symbol" label-for="input-1">
-          <b-form-input id="input-1" placeholder="EOS" v-model="newSymbolName" trim></b-form-input>
-        </b-form-group>
-        <b-form-group id="fieldset-1" label="Token Contract" label-for="input-1">
-          <b-form-input id="input-1" placeholder="eosio.token" v-model="newContract" trim></b-form-input>
-        </b-form-group>
-        <b-form-group
-          id="fieldset-1"
-          :description="precisionExample"
-          label="Precision"
-          label-for="input-1"
-        >
-          <b-form-input
-            id="input-1"
-            placeholder="4"
-            type="number"
-            v-model="newSymbolPrecision"
-            trim
-          ></b-form-input>
-        </b-form-group>
-        <b-form-group id="fieldset-1" label="% Ratio" label-for="input-1">
-          <b-form-input id="input-1" type="number" v-model="newRatio" placeholder="50" trim></b-form-input>
-        </b-form-group>
-        <b-form-group id="fieldset-1" label="Enabled" label-for="input-1">
-          <b-form-checkbox id="checkbox-1" v-model="newEnabled" name="checkbox-1" />
-        </b-form-group>
-      </div>
-    </b-modal>
-    <b-modal @ok="fund" id="fund-modal" title="Fund a Reserve">
-      <div>
-        <b-form-group id="fieldset-1" :label="fundLabel" label-for="input-1">
-          <b-form-input id="input-1" placeholder="1000" v-model="fundAmount" trim></b-form-input>
-        </b-form-group>
-      </div>
-    </b-modal>
     <hero-actions />
     <div class="d-none d-md-block content content-boxed">
       <div class="block">
@@ -46,80 +9,10 @@
             <small>- EOS</small>
           </h3>
           <div class="block-options">
-            <b-button v-if="canAddReserve" size="sm" v-b-modal="'my-modal'">Add Reserve</b-button>
+            <b-button size="sm">Test</b-button>
           </div>
         </div>
         <div class="block-content px-0 px-md-3">
-          <b-button
-            @click="toggleRelay"
-            size="sm"
-          >{{ this.enabled ? 'Disable Relay' : 'Enable Relay'}}</b-button>
-          <b-button @click="buySmartTokens" v-if="this.enabled" size="sm">Buy Smart Tokens</b-button>
-          <table class="table table-striped table-vcenter">
-            <thead>
-              <tr>
-                <th class="text-center d-none d-md-table-cell" style="width: 55px;">#</th>
-                <th class="cursor text-left">Relay Balance</th>
-                <th class="d-none d-md-table-cell">Contract</th>
-                <th class="cursor text-center" style="min-width: 150px;">Ratio</th>
-                <th class="cursor text-right" style="min-width: 150px;">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-if="loading">
-                <tr v-for="i in 15" :key="i">
-                  <th class="text-center">{{ i }}</th>
-                  <td colspan="8">
-                    <content-loader :height="10" :width="1000" :speed="5"></content-loader>
-                  </td>
-                </tr>
-              </template>
-              <template v-else>
-                <tr v-for="(reserve, index) in reserves" :key="index">
-                  <td class="text-center d-none d-md-table-cell" v-text="index + 1"></td>
-                  <td class="d-flex justify-content-start align-items-center">
-                     <!--<img
-                    class="img-avatar img-avatar-thumb img-avatar32"
-                    :src="token.img"
-                    alt="Token Logo"
-                    />-->
-                    {{ reserve.balance }}
-                  </td>
-                  <td class="d-none d-md-table-cell">
-                    <span class="text-muted font-size-sm">{{ reserve.contract }}</span>
-                  </td>
-                  <td
-                    class="text-center font-w700"
-                  >{{ numeral(reserve.ratio / 1000000).format('0.00%') }}</td>
-                  <td class="text-right">
-                    <font-awesome-icon :icon="reserve.sale_enabled ? 'check' : 'times'" />
-                  </td>
-                  <td class="text-right">
-                    <!-- <b-btn @click="fund(reserve)" size="sm" variant="success" class="mr-1"> -->
-                    <!--<b-button size="sm" @click="toggleReserve(reserve)" variant="warning">
-                      <font-awesome-icon icon="power-off" />
-                    </b-button>-->
-                    <b-button
-                      size="sm"
-                      @click="selectedFund(reserve)"
-                      variant="success"
-                      v-b-modal="'fund-modal'"
-                    >
-                      <font-awesome-icon icon="hand-holding-usd" />
-                    </b-button>
-                    <!-- <b-button
-                      size="sm"
-                      v-if="!reserve.balance.split(' ')[0]"
-                      @click="deleteReserve(reserve)"
-                      variant="danger"
-                    > -->
-                      <font-awesome-icon icon="trash-alt" />
-                    </b-button>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
