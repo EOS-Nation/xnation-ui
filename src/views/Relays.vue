@@ -1,8 +1,5 @@
 <template>
   <div>
-    <hero-actions />
-    <!-- Page Content -->
-    <div></div>
     <div class="content content-boxed">
       <b-modal @ok="createRelay" id="my-modal" title="Create a Relay">
         <p class="my-4">Token to list on Bancor</p>
@@ -155,7 +152,6 @@ import { vxm } from "@/store";
 import axios from "axios";
 import * as bancorx from "@/assets/_ts/bancorx";
 import SortIcons from "@/components/common/SortIcons.vue";
-import HeroActions from "@/components/hero/HeroActions.vue";
 import { TokenPrice } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
 import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
@@ -166,7 +162,6 @@ const debounce = require("lodash.debounce");
 
 @Component({
   components: {
-    HeroActions,
     SortIcons
   }
 })

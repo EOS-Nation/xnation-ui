@@ -1,7 +1,7 @@
 <template>
   <div>
     <div>
-      <img @click="pressed" class="img-avatar  img-avatar-thumb cursor border-colouring" :src="img" alt="Token Logo" />
+      <img @click="pressed" class="img-avatar img-avatar-thumb cursor border-colouring" :src="img" alt="Token Logo" />
       <div @click="pressed" class="font-size-lg text-white mt-3 mb-3 cursor">{{ symbol }}</div>
       <b-input-group class="mt-1">
         <b-form-input type="number" :value="amount" @update="onTextUpdate" class="form-control-alt" placeholder="Enter Amount"></b-form-input>

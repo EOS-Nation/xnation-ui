@@ -6,6 +6,8 @@ import Token from '@/views/Token.vue'
 import Tokens from '@/views/Tokens.vue'
 import Relays from '@/views/Relays.vue'
 import Relay from '@/views/Relay.vue'
+import HeroActions from '@/components/hero/HeroActions.vue'
+import Navigation from '@/components/layout/Navigation.vue'
 
 Vue.use(Router)
 
@@ -32,7 +34,11 @@ export default new Router({
     {
       path: '/',
       name: 'Tokens',
-      component: Tokens
+      components: {
+        Nav: Navigation,
+        default: Tokens,
+        Hero: HeroActions
+      }
     },
     {
       path: '/token/:symbol',
@@ -43,7 +49,11 @@ export default new Router({
     {
       path: '/relays',
       name: 'Relays',
-      component: Relays
+      components: {
+        Nav: Navigation,
+        default: Relays,
+        Hero: HeroActions
+      }
     },
     {
       path: '/relay/:account',

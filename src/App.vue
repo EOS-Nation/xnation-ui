@@ -1,15 +1,17 @@
 <template>
   <div id="page-container" class="page-header-fixed page-header-dark">
     <!-- Header -->
-    <navigation />
+    <router-view name="Nav"></router-view>
+
     <!-- END Header -->
 
     <!-- Main Container -->
     <main id="main-container" class="bg-primary">
       <!-- Main Content -->
-      <transition name="fade" mode="out-in">
-        <router-view />
-      </transition>
+      <!--<transition name="fade" mode="out-in">-->
+      <router-view name="Hero"></router-view>
+      <router-view></router-view>
+      <!--</transition>-->
       <!-- END Main Content -->
     </main>
     <!-- END Main Container -->
@@ -19,14 +21,12 @@
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
-import Navigation from '@/components/layout/Navigation.vue'
 import ModalLogin from '@/components/modals/ModalLogin.vue'
 import { vxm } from '@/store/'
 import { WalletProvider } from 'eos-transit'
 
 @Component({
   components: {
-    Navigation,
     ModalLogin
   }
 })
@@ -48,7 +48,12 @@ export default class App extends Vue {
 .fade-leave-active {
   transition: opacity 0.5s;
 }
-.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+
+.fade-enter,
+.fade-leave-to
+/* .fade-leave-active below version 2.1.8 */
+
+{
   opacity: 0;
 }
 </style>

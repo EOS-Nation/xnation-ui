@@ -1,6 +1,5 @@
 <template>
   <div>
-    <hero-actions />
     <!-- Page Content -->
     <div class="d-none d-md-block content content-boxed">
       <tokens-table />
@@ -16,11 +15,9 @@
 import { Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
 import TokensTable from '@/components/tables/TokensTable.vue'
-import HeroActions from '@/components/hero/HeroActions.vue'
 
 @Component({
   components: {
-    HeroActions,
     TokensTable
   }
 })
