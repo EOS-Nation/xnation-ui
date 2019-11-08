@@ -2,7 +2,7 @@ import { vxm } from "@/store/";
 import { multiContractAction, SemiAction } from "../contracts/multi";
 import { ReserveInstance } from "@/types/bancor";
 import { TokenAmount } from "bancorx/build/interfaces";
-import { Symbol } from 'eos-common';
+import { Symbol } from "eos-common";
 import { rpc } from "./rpc";
 import { JsonRpc } from "eosjs";
 import { tableApi, TableWrapper, ReserveTable } from "./TableWrapper";
@@ -59,12 +59,15 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
-  async toggleReserve(symbolCode: string, reserveSymbol: Symbol): Promise<TxResponse> {
+  async toggleReserve(
+    symbolCode: string,
+    reserveSymbol: Symbol
+  ): Promise<TxResponse> {
     const reserves = await this.table.getReservesMulti(symbolCode);
     const singleReserve = reserves.find((reserve: ReserveTable) =>
       reserve.balance.symbol.isEqual(reserveSymbol)
     );
-    if (!singleReserve) throw new Error("Failed to find reserve")
+    if (!singleReserve) throw new Error("Failed to find reserve");
     const action = multiContractAction.setreserve(
       symbolCode,
       `${singleReserve.balance.symbol
@@ -76,13 +79,13 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
-  setReserve(
+  setReserveAction(
     symbolCode: string,
     symbol: string,
     tokenContract: string,
     saleEnabled: boolean,
     ratio: number
-  ): Promise<TxResponse> {
+  ): SemiAction {
     const adjustedRatio = ratio * 10000;
     const action = multiContractAction.setreserve(
       symbolCode,
@@ -90,6 +93,23 @@ class MultiContractTx {
       tokenContract,
       saleEnabled,
       adjustedRatio
+    ) as SemiAction;
+    return action;
+  }
+
+  setReserve(
+    symbolCode: string,
+    symbol: string,
+    tokenContract: string,
+    saleEnabled: boolean,
+    ratio: number
+  ): Promise<TxResponse> {
+    const action = this.setReserveAction(
+      symbolCode,
+      symbol,
+      tokenContract,
+      saleEnabled,
+      ratio
     ) as SemiAction;
     return this.tx([action]);
   }
@@ -143,7 +163,7 @@ class MultiContractTx {
     return this.tx([
       {
         account: tokenContract,
-        name: 'transfer',
+        name: "transfer",
         data: {
           from: this.getAuth()[0].actor,
           to: this.contractName,
@@ -153,7 +173,6 @@ class MultiContractTx {
       }
     ]);
   }
-
 
   // Creates a relay, adds liquidity and immediately
   // hits enableconvrt action regardless of whether or not it should run
@@ -167,22 +186,38 @@ class MultiContractTx {
     maxSupply: number = 10000000000,
     precision: number = 4
   ) {
-
     const createRelayAction = multiContractAction.create(
       this.getAuth()[0].actor,
       `${initialSupply.toFixed(precision)} ${symbolCode}`,
       `${maxSupply.toFixed(precision)} ${symbolCode}`
     ) as SemiAction;
 
-    const addLiquidityActions = this.addLiquidityActions(symbolCode, reserves, false);
+    const setReserveActions = reserves.map((reserve: TokenAmount) =>
+      this.setReserveAction(
+        symbolCode,
+        `${reserve.amount.symbol.precision},${reserve.amount.symbol.code()}`,
+        reserve.contract,
+        true,
+        50
+      )
+    );
+    const addLiquidityActions = this.addLiquidityActions(
+      symbolCode,
+      reserves,
+      false
+    );
     const enableRelayAction = this.enableConversion(symbolCode, true);
 
-    const actions: any[] = [createRelayAction, ...addLiquidityActions, enableRelayAction];
+    const actions: any[] = [
+      createRelayAction,
+      ...addLiquidityActions,
+      enableRelayAction
+    ];
     if (!active) {
-      actions.push(this.enableConversion(symbolCode, false))
+      actions.push(this.enableConversion(symbolCode, false));
     }
 
-    return this.tx(actions)
+    return this.tx(actions);
   }
 
   addLiquidity(
