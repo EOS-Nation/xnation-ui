@@ -3,7 +3,15 @@
     <b-row>
       <b-col md="4">
         <transition name="slide-fade-down" mode="out-in">
-          <token-amount-input :toggle="relayExists" :status="token1Enabled" v-on:toggle="token1Enabled = !token1Enabled" :amount.sync="token1Amount" :symbol="token1Symbol" :balance="token1UserBalance" :img="token1Img" />
+          <token-amount-input 
+            @toggle="token1Enabled = !token1Enabled"
+            :toggle="relayExists"
+            :status="token1Enabled"
+            :amount.sync="token1Amount"
+            :symbol="token1Symbol"
+            :balance="token1UserBalance"
+            :img="token1Img"
+          />
         </transition>
       </b-col>
       <b-col md="4" class="d-flex justify-content-center align-items-end" style="min-height: 230px">
