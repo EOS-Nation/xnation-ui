@@ -2,6 +2,7 @@ import { vxm } from "@/store/";
 import { multiContractAction, SemiAction } from "../contracts/multi";
 import { ReserveInstance } from "@/types/bancor";
 import { TokenAmount } from "bancorx/build/interfaces";
+import { Symbol } from 'eos-common';
 import { rpc } from "./rpc";
 import { JsonRpc } from "eosjs";
 import { tableApi, TableWrapper, ReserveTable } from "./TableWrapper";
@@ -28,7 +29,6 @@ class MultiContractTx {
   contractName: string;
   getAuth: GetAuth;
   triggerTx: TriggerTx;
-  rpc: JsonRpc;
   table: TableWrapper;
 
   constructor(
@@ -59,12 +59,12 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
-  async toggleReserve(symbolCode: string, reserveSymbol: Symbol) {
+  async toggleReserve(symbolCode: string, reserveSymbol: Symbol): Promise<TxResponse> {
     const reserves = await this.table.getReservesMulti(symbolCode);
-    const singleReserve: ReserveTable = reserves.find((reserve: ReserveTable) =>
+    const singleReserve = reserves.find((reserve: ReserveTable) =>
       reserve.balance.symbol.isEqual(reserveSymbol)
     );
-
+    if (!singleReserve) throw new Error("Failed to find reserve")
     const action = multiContractAction.setreserve(
       symbolCode,
       `${singleReserve.balance.symbol
@@ -143,7 +143,7 @@ class MultiContractTx {
     return this.tx([
       {
         account: tokenContract,
-        name: `transfer`,
+        name: 'transfer',
         data: {
           from: this.getAuth()[0].actor,
           to: this.contractName,
@@ -152,6 +152,37 @@ class MultiContractTx {
         }
       }
     ]);
+  }
+
+
+  // Creates a relay, adds liquidity and immediately
+  // hits enableconvrt action regardless of whether or not it should run
+  // purely to put it in 'launched' mode to ensure further liquidity is
+  // correctly imbursed
+  kickStartRelay(
+    symbolCode: string,
+    reserves: TokenAmount[],
+    active: boolean = true,
+    initialSupply: number = 1000,
+    maxSupply: number = 10000000000,
+    precision: number = 4
+  ) {
+
+    const createRelayAction = multiContractAction.create(
+      this.getAuth()[0].actor,
+      `${initialSupply.toFixed(precision)} ${symbolCode}`,
+      `${maxSupply.toFixed(precision)} ${symbolCode}`
+    ) as SemiAction;
+
+    const addLiquidityActions = this.addLiquidityActions(symbolCode, reserves, false);
+    const enableRelayAction = this.enableConversion(symbolCode, true);
+
+    const actions: any[] = [createRelayAction, ...addLiquidityActions, enableRelayAction];
+    if (!active) {
+      actions.push(this.enableConversion(symbolCode, false))
+    }
+
+    return this.tx(actions)
   }
 
   addLiquidity(

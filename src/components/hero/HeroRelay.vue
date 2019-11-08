@@ -3,7 +3,7 @@
     <b-row>
       <b-col md="4">
         <transition name="slide-fade-down" mode="out-in">
-          <token-amount-input toggle :status="token1Enabled" v-on:toggle="token1Enabled = !token1Enabled" :amount.sync="token1Amount" :symbol="token1Symbol" :balance="token1UserBalance" :img="token1Img" />
+          <token-amount-input :toggle="relayExists" :status="token1Enabled" v-on:toggle="token1Enabled = !token1Enabled" :amount.sync="token1Amount" :symbol="token1Symbol" :balance="token1UserBalance" :img="token1Img" />
         </transition>
       </b-col>
       <b-col md="4" class="d-flex justify-content-center align-items-end" style="min-height: 230px">
@@ -25,7 +25,7 @@
             </div>
           </div>
           <div class="d-flex justify-content-center">
-            <b-btn @click="toggleMain()" v-if="!relayExists" variant="success" v-ripple class="px-4 py-2 d-block" :disabled="loadingTokens || minReturn === ''">
+            <b-btn @click="toggleMain" v-if="!relayExists" variant="success" v-ripple class="px-4 py-2 d-block" :disabled="loadingTokens || minReturn === ''">
               <font-awesome-icon :icon="loadingTokens ? 'circle-notch' : 'plus'" :spin="loadingTokens" fixed-width class="mr-2" />
               <span class="font-w700">Create Relay</span>
             </b-btn>
@@ -44,7 +44,7 @@
       </b-col>
       <b-col md="4">
         <transition name="slide-fade-up" mode="out-in">
-          <token-amount-input toggle :status="token2Enabled" v-on:toggle="token2Enabled = !token2Enabled" :amount.sync="token2Amount" :symbol="token2Symbol" :balance="token2UserBalance" :img="token2Img" />
+          <token-amount-input :toggle="relayExists" :status="token2Enabled" v-on:toggle="token2Enabled = !token2Enabled" :amount.sync="token2Amount" :symbol="token2Symbol" :balance="token2UserBalance" :img="token2Img" />
         </transition>
       </b-col>
     </b-row>
@@ -203,7 +203,7 @@ export default class HeroConvert extends Vue {
       token2RelayBalance.symbol
     );
 
-    await multiContract.addLiquidity(this.$route.params.account, [
+    const reserves = [
       {
         contract: this.token1Contract,
         amount: token1Asset
@@ -212,18 +212,23 @@ export default class HeroConvert extends Vue {
         contract: this.token2Contract,
         amount: token2Asset
       }
-    ]);
+    ]
+
+    if (this.relayExists) {
+      await multiContract.addLiquidity(this.$route.params.account, reserves);
+    } else {
+      await multiContract.kickStartRelay(this.$route.params.account, reserves, true)
+    }
+
   }
 
   // methods
   swapTokens() {
-    this.ltr = !this.ltr;
     this.spinning = true;
     setTimeout(() => {
       this.spinning = false;
     }, 1000);
-    vxm.liquidity.swapSelection();
-    vxm.liquidity.calcMinReturn();
+    // vxm.relay.swapSelection();
   }
 
   async fetchTokenMeta() {

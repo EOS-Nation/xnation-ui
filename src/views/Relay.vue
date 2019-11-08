@@ -181,9 +181,7 @@ export default class Token extends Vue {
   }
 
   get isAuthenticated() {
-    if (vxm.eosTransit.walletState)
-      return vxm.eosTransit.walletState.authenticated;
-    else return false;
+    return vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
   }
 
   get fundLabel() {
@@ -286,20 +284,11 @@ export default class Token extends Vue {
     this.stakeEnabled = stake_enabled;
   }
 
-  // async toggleReserve(reserve: ReserveInstance) {
-  //   console.log({ reserve })
-  //   await multiContract.toggleReserve(this.$route.params.account, reserve);
-
-  //   await wait(1000);
-  //   this.fetchReserves();
-  // }
-
   async fetchReserves() {
     try {
       const reserves = await tableApi.getReservesMulti(
         this.$route.params.account
       );
-      console.log(reserves);
       this.reserves = reserves;
     } catch (e) {
       console.log(e);
