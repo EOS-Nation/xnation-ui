@@ -1,6 +1,5 @@
 <template>
   <div>
-    <hero-actions />
     <div class="d-none d-md-block content content-boxed">
       <div class="block">
         <div class="block-header">

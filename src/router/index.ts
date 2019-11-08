@@ -51,7 +51,11 @@ export default new Router({
     {
       path: '/relay/:account',
       name: 'Relay',
-      component: Relay,
+      components: {
+        Nav: Navigation,
+        default: Relay,
+        Hero: HeroActions
+      },
       props: true
     },
     {
