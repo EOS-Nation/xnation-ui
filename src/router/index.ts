@@ -2,7 +2,6 @@ import Vue from 'vue'
 import Router from 'vue-router'
 import Wallet from '@/views/Wallet.vue'
 import WalletAccount from '@/views/WalletAccount.vue'
-import Token from '@/views/Token.vue'
 import Tokens from '@/views/Tokens.vue'
 import Relays from '@/views/Relays.vue'
 import Relay from '@/views/Relay.vue'
@@ -39,12 +38,6 @@ export default new Router({
         default: Tokens,
         Hero: HeroActions
       }
-    },
-    {
-      path: '/token/:symbol',
-      name: 'Token',
-      component: Token,
-      props: true
     },
     {
       path: '/relays',
