@@ -61,12 +61,18 @@ export default new Router({
     {
       path: '/wallet',
       name: 'Wallet',
-      component: Wallet
+      components: {
+        Nav: Navigation,
+        default: Wallet
+      }
     },
     {
       path: '/wallet/:account',
       name: 'WalletAccount',
-      component: WalletAccount,
+      components: {
+        Nav: Navigation,
+        default: WalletAccount
+      },
       props: true
     }
   ]

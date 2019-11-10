@@ -20,10 +20,10 @@
 <script lang="ts">
 import { Watch, Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
-import HeroConvert from '@/components/hero/HeroConvert.vue'
-import HeroTransfer from '@/components/hero/HeroTransfer.vue'
-import HeroLiquidity from '@/components/hero/HeroLiquidity.vue'
-import HeroRelay from '@/components/hero/HeroRelay.vue'
+import HeroConvert from '@/components/hero/sub/HeroConvert.vue'
+import HeroTransfer from '@/components/hero/sub/HeroTransfer.vue'
+import HeroLiquidity from '@/components/hero/sub/HeroLiquidity.vue'
+import HeroRelay from '@/components/hero/sub/HeroRelay.vue'
 
 @Component({
   components: {
@@ -34,7 +34,6 @@ import HeroRelay from '@/components/hero/HeroRelay.vue'
   }
 })
 export default class HeroActions extends Vue {
-  // data
 
   get currentHero() {
     switch(vxm.general.heroAction) {

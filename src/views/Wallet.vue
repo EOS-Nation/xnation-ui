@@ -32,9 +32,7 @@ export default class Wallet extends Vue {
   }
 
   get isAuthenticated() {
-    if (vxm.eosTransit.walletState)
-      return vxm.eosTransit.walletState.authenticated
-    else return false
+    return vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
   }
 
   // methods

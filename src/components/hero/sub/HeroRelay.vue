@@ -85,8 +85,7 @@ import ModalSelectToken from "@/components/modals/ModalSelectToken.vue";
 import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
 import { calculateReturn } from "bancorx";
 import { split, Asset } from "eos-common";
-import { multiContract } from "../../api/multiContractTx";
-import { transfer } from "../../store/modules/transfer";
+import { multiContract } from "@/api/multiContractTx";
 
 @Component({
   components: {
@@ -190,10 +189,6 @@ export default class HeroConvert extends Vue {
       new Asset(oneAmount, token1.symbol)
     );
     return `${reward.toNumber().toFixed(4)} ${reward.symbol.code()}`;
-  }
-
-  updatePercentage(amount: number) {
-    console.log("Received", amount);
   }
 
   async toggleRelay() {
