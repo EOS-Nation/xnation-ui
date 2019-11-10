@@ -3,8 +3,7 @@
     <b-row>
       <b-col md="4">
         <transition name="slide-fade-down" mode="out-in">
-          <hero-convert-relay v-if="ltr" key="ltr" direction="from" />
-          <hero-convert-relay v-else key="rtl" direction="from" />
+          <hero-convert-relay :key="ltr ? 'ltr' : 'rtl'" direction="from" />
         </transition>
       </b-col>
       <b-col
@@ -66,8 +65,7 @@
       </b-col>
       <b-col md="4">
         <transition name="slide-fade-up" mode="out-in">
-          <hero-convert-relay v-if="!ltr" key="rtl" direction="to" />
-          <hero-convert-relay v-else key="ltr" direction="to" />
+          <hero-convert-relay :key="ltr ? 'ltr' : 'rtl'" direction="to" />
         </transition>
       </b-col>
     </b-row>

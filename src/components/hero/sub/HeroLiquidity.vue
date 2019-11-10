@@ -19,27 +19,21 @@
         <div>
           <transition name="fade" mode="out-in">
             <font-awesome-icon
-              v-if="heroAction === 'liq-add'"
+              :key="heroAction === 'liq-add' ? 'ltr' : 'rtl'"
               icon="exchange-alt"
               class="fa-2x text-white cursor"
-              key="ltr"
-              @click="swapTokens()"
-            />
-            <font-awesome-icon
-              v-else
-              icon="exchange-alt"
-              class="fa-2x text-white cursor"
-              key="rtl"
               @click="swapTokens()"
             />
           </transition>
           <div class="mb-3 mt-3">
             <span class="text-white font-size-sm"
               >1 {{ tokenFrom.symbol }} =
-              <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span
-              ><span v-else><font-awesome-icon icon="circle-notch" spin/></span>
-              {{ tokenTo.symbol }}</span
-            >
+              <span v-if="loading">
+                <font-awesome-icon icon="circle-notch" spin/>
+              </span>
+              <span v-else>{{ rate }}</span>
+              {{ tokenTo.symbol }}
+              </span>
           </div>
           <div class="d-flex justify-content-center">
             <b-btn
@@ -50,15 +44,8 @@
               :disabled="loadingTokens || minReturn === ''"
             >
               <font-awesome-icon
-                v-if="loadingTokens"
-                icon="circle-notch"
-                spin
-                fixed-width
-                class="mr-2"
-              />
-              <font-awesome-icon
-                v-else
-                icon="sync-alt"
+                :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
+                :spin="loading"
                 fixed-width
                 class="mr-2"
               />
@@ -123,6 +110,10 @@ export default class HeroLiquidity extends Vue {
     if (vxm.eosTransit.walletState)
       return vxm.eosTransit.walletState.authenticated
     else return false
+  }
+
+  get loading() {
+    return this.rateLoading || this.loadingTokens
   }
 
   get heroAction() {
