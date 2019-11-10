@@ -1,10 +1,10 @@
 <template>
   <div>
     <div class="content content-boxed">
-      <b-modal @ok="createRelay" id="create-modal" title="Create a Relay">
+      <b-modal @ok="createRelay" id="create-modal" :ok-disabled="!tokenExists" title="Create a Relay">
         <p class="my-4">Token to list on Bancor</p>
         <div>
-          <b-img v-if="tokenLogo" :src="tokenLogo" />
+          <b-img class="img-avatar center img-avatar-thumb" :src="imageUrl" />
           <b-form-group
             id="fieldset-1"
             label="Symbol"
@@ -16,10 +16,6 @@
           <b-form-group id="fieldset-1" label="Token Contract" label-for="input-1">
             <b-form-input id="input-1" v-model="tokenContract" placeholder="eosio.token" trim></b-form-input>
           </b-form-group>
-          <font-awesome-icon
-            :icon="tokenExists === null ? 'question': tokenExists ? 'check' : 'times'"
-            fixed-width
-          />
           <p v-if="tokenExists === false">Failed to find token.</p>
         </div>
       </b-modal>
@@ -196,11 +192,14 @@ export default class Relays extends Vue {
   tokenExists: boolean | null = null;
   tokenLogo: string = "";
 
+  get imageUrl() {
+    return this.tokenLogo || `https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png`
+  }
+
   // computed
   get wallet() {
     return vxm.eosTransit.wallet;
   }
-
 
   get relaySelect() {
     return vxm.liquidity.relaySelect;
