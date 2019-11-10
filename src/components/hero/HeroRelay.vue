@@ -52,7 +52,15 @@
       </b-col>
       <b-col md="4">
         <transition name="slide-fade-up" mode="out-in">
-          <token-amount-input :toggle="relayExists" :status="token2Enabled" v-on:toggle="token2Enabled = !token2Enabled" :amount.sync="token2Amount" :symbol="token2Symbol" :balance="token2UserBalance" :img="token2Img" />
+          <token-amount-input 
+            :toggle="relayExists" 
+            @toggle="token2Enabled = !token2Enabled" 
+            :status="token2Enabled" 
+            amount.sync="token2Amount" 
+            :symbol="token2Symbol" 
+            :balance="token2UserBalance" 
+            :img="token2Img" 
+          />
         </transition>
       </b-col>
     </b-row>

@@ -17,7 +17,6 @@
             </b-button>
           </b-input-group-append>
         </b-input-group>
-        <percentages v-if="false" :balance="balance" :amount.sync="amount" />
       </div>
     </div>
     <div class="d-flex align-items-center p-4">
@@ -34,27 +33,6 @@
             </b-button>
           </b-input-group-append>
         </b-input-group>
-        <div>
-          <span class="text-white font-size-sm" style="min-height: 50px">
-            <div>
-              Available:
-              <span v-if="loadingBalance">
-                <font-awesome-icon icon="circle-notch" class="text-white" spin />
-              </span>
-              <span v-else>{{ numeral(balanceBnt).format('0,0[.][0000]') }}
-              </span>
-            </div>
-            <div v-if="false && balanceBnt > 0 && direction === 'from'" class="text-white-50 cursor">
-              <span @click="setPercentage(10)">10%</span>
-              -
-              <span @click="setPercentage(25)">25%</span>
-              -
-              <span @click="setPercentage(50)">50%</span>
-              -
-              <span @click="setPercentage(100)">100%</span>
-            </div>
-          </span>
-        </div>
       </div>
     </div>
   </div>
