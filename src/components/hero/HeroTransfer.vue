@@ -80,7 +80,6 @@
 <script lang="ts">
 import { Watch, Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
-import HeroConvertToken from '@/components/convert/HeroConvertToken.vue'
 import * as bancorx from '@/assets/_ts/bancorx'
 import numeral from 'numeral'
 import ModalSelectAll from '@/components/modals/ModalSelectAll.vue'
@@ -92,7 +91,6 @@ import ModalTransferToken from '@/components/modals/ModalTransferToken.vue'
     ModalSelectAll,
     ModalTransferToken,
     HeroConvertRelay,
-    HeroConvertToken
   }
 })
 export default class HeroTransfer extends Vue {
