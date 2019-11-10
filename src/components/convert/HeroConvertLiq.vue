@@ -2,24 +2,14 @@
   <div>
     <div class="d-flex align-items-center p-4">
       <div class="cursor" @click="openSelectTokenModal">
-        <img
-          class="img-avatar img-avatar-thumb"
-          :src="
-              token.img
-          "
-          alt="Token Logo"
-        />
+        <img class="img-avatar img-avatar-thumb" :src="token.img" alt="Token Logo" />
       </div>
       <div class="ml-4 text-left">
         <h3 @click="openSelectTokenModal" class="mb-0 mt-0 text-white cursor">
           {{ token.symbol }} AAAAA
         </h3>
         <b-input-group class="mt-1">
-          <b-form-input
-            :v-model="direction === 'from' ? amount : minReturn"
-            class="form-control-alt"
-            placeholder="Enter Amount"
-          ></b-form-input>
+          <b-form-input :v-model="direction === 'from' ? amount : minReturn" class="form-control-alt" placeholder="Enter Amount"></b-form-input>
           <b-input-group-append>
             <b-button @click="openSelectTokenModal">
               {{ token.symbol }}
@@ -27,51 +17,17 @@
             </b-button>
           </b-input-group-append>
         </b-input-group>
-        <div>
-          <span class="text-white font-size-sm" style="min-height: 50px">
-            <div>
-              Available:
-              <span v-if="loadingBalance">
-                <font-awesome-icon
-                  icon="circle-notch"
-                  class="text-white"
-                  spin
-                />
-              </span>
-              <span v-else>{{ numeral(balance).format('0,0[.][0000]') }}</span>
-            </div>
-            <div
-              v-if="false && balance > 0 && direction === 'from'"
-              class="text-white-50 cursor"
-            >
-              <span @click="setPercentage(10)">10%</span>
-              -
-              <span @click="setPercentage(25)">25%</span>
-              -
-              <span @click="setPercentage(50)">50%</span>
-              -
-              <span @click="setPercentage(100)">100%</span>
-            </div>
-          </span>
-        </div>
+        <percentages v-if="false" :balance="balance" :amount.sync="amount" />
       </div>
     </div>
     <div class="d-flex align-items-center p-4">
       <div>
-        <img
-          class="img-avatar img-avatar-thumb"
-          src="https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png"
-          alt="Token Logo"
-        />
+        <img class="img-avatar img-avatar-thumb" src="https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png" alt="Token Logo" />
       </div>
       <div class="ml-4 text-left">
         <h3 class="mb-0 mt-0 text-white">BNT</h3>
         <b-input-group class="mt-1">
-          <b-form-input
-            v-model="amountBnt"
-            class="form-control-alt"
-            placeholder="Enter Amount"
-          ></b-form-input>
+          <b-form-input v-model="amountBnt" class="form-control-alt" placeholder="Enter Amount"></b-form-input>
           <b-input-group-append>
             <b-button>
               BNT
@@ -83,20 +39,12 @@
             <div>
               Available:
               <span v-if="loadingBalance">
-                <font-awesome-icon
-                  icon="circle-notch"
-                  class="text-white"
-                  spin
-                />
+                <font-awesome-icon icon="circle-notch" class="text-white" spin />
               </span>
-              <span v-else>{{
-                numeral(balanceBnt).format('0,0[.][0000]')
-              }}</span>
+              <span v-else>{{ numeral(balanceBnt).format('0,0[.][0000]') }}
+              </span>
             </div>
-            <div
-              v-if="false && balanceBnt > 0 && direction === 'from'"
-              class="text-white-50 cursor"
-            >
+            <div v-if="false && balanceBnt > 0 && direction === 'from'" class="text-white-50 cursor">
               <span @click="setPercentage(10)">10%</span>
               -
               <span @click="setPercentage(25)">25%</span>
@@ -118,10 +66,13 @@ import { vxm } from '@/store'
 import debounce from 'lodash.debounce'
 import numeral from 'numeral'
 import { TokenInfo } from '@/assets/_ts/bancorx'
+import Percentages from './Percentages.vue';
 import * as bancorx from '@/assets/_ts/bancorx'
 
 @Component({
-  components: {}
+  components: {
+    Percentages
+  }
 })
 export default class HeroConvertLiq extends Vue {
   // props
@@ -237,6 +188,7 @@ export default class HeroConvertLiq extends Vue {
   }
 
   get balance() {
+    return `5.0000`
     let balance: any
     if (this.isAuthenticated) {
       balance = vxm.wallet.tokenBalances.find((t: any) => {
@@ -322,9 +274,9 @@ export default class HeroConvertLiq extends Vue {
       }
     }, 1000)
   }
-  mounted() {}
-  updated() {}
-  destroyed() {}
+  mounted() { }
+  updated() { }
+  destroyed() { }
 }
 </script>
 
