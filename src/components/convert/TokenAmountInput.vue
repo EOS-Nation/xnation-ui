@@ -6,7 +6,11 @@
       <b-input-group class="mt-1">
         <b-form-input type="number" :value="amount" @update="onTextUpdate" class="form-control-alt" placeholder="Enter Amount"></b-form-input>
         <b-input-group-append>
-          <b-button>{{ symbol }}</b-button>
+          <b-button v-if="dropdown" @click="dropdownEvent">
+            {{ symbol }}
+            <font-awesome-icon icon="angle-down" />
+          </b-button>
+          <b-button v-else>{{ symbol }}</b-button>
           <b-button v-if="toggle" :variant="status ? 'success' : 'danger'" @click="toggleStatus">
             <font-awesome-icon icon="power-off" />
           </b-button>
@@ -24,9 +28,12 @@ import debounce from "lodash.debounce";
 import numeral from "numeral";
 import { TokenInfo } from "@/assets/_ts/bancorx";
 import * as bancorx from "@/assets/_ts/bancorx";
+import Percentages from './Percentages.vue'
 
 @Component({
-  components: {}
+  components: {
+    Percentages
+  }
 })
 export default class TokenAmountInput extends Vue {
   // props
@@ -37,6 +44,7 @@ export default class TokenAmountInput extends Vue {
   @Prop(Boolean) loadingBalance: boolean = false;
   @Prop(Boolean) status?: boolean
   @Prop(Boolean) toggle?: boolean
+  @Prop(Boolean) dropdown: boolean
 
   // data
   numeral = numeral;
@@ -59,6 +67,10 @@ export default class TokenAmountInput extends Vue {
 
   pressed() {
     this.$emit('click');
+  }
+
+  dropdownEvent() {
+    this.$emit("dropdown")
   }
 
   // Lifecycle hooks
