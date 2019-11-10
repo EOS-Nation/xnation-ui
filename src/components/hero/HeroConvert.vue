@@ -15,17 +15,9 @@
         <div>
           <transition name="fade" mode="out-in">
             <font-awesome-icon
-              v-if="ltr"
               icon="exchange-alt"
               class="fa-2x text-white cursor"
-              key="ltr"
-              @click="swapTokens()"
-            />
-            <font-awesome-icon
-              v-else
-              icon="exchange-alt"
-              class="fa-2x text-white cursor"
-              key="rtl"
+              :key="ltr ? 'ltr' : 'rtl'"
               @click="swapTokens()"
             />
           </transition>
@@ -46,15 +38,8 @@
               :disabled="loadingTokens || minReturn === ''"
             >
               <font-awesome-icon
-                v-if="loadingTokens"
-                icon="circle-notch"
-                spin
-                fixed-width
-                class="mr-2"
-              />
-              <font-awesome-icon
-                v-else
-                icon="sync-alt"
+                :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
+                :spin="loadingTokens"
                 fixed-width
                 class="mr-2"
               />
@@ -122,9 +107,7 @@ export default class HeroConvert extends Vue {
 
   // computed
   get isAuthenticated() {
-    if (vxm.eosTransit.walletState)
-      return vxm.eosTransit.walletState.authenticated
-    else return false
+    return vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
   }
 
   get heroAction() {
