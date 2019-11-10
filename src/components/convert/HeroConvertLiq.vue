@@ -1,33 +1,9 @@
 <template>
   <div>
-    <token-amount-input 
-      v-if="direction === 'from'"
-      small
-      :amount.sync="amount"
-      @click="openSelectTokenModal"
-      dropdown
-      @dropdown="openSelectTokenModal"
-      :symbol="token.symbol"
-      :img="token.img"
-    />
-    <token-amount-input 
-      v-else
-      small
-      :amount.sync="minReturn"
-      @click="openSelectTokenModal"
-      dropdown
-      @dropdown="openSelectTokenModal"
-      :symbol="token.symbol"
-      :img="token.img"
-    />
+    <token-amount-input v-if="direction === 'from'" small :amount.sync="amount" @click="openSelectTokenModal" dropdown @dropdown="openSelectTokenModal" :symbol="token.symbol" :img="token.img" />
+    <token-amount-input v-else small :amount.sync="minReturn" @click="openSelectTokenModal" dropdown @dropdown="openSelectTokenModal" :symbol="token.symbol" :img="token.img" />
 
-    <token-amount-input 
-      small
-      :amount.sync="amountBnt"
-      @click="openSelectTokenModal"
-      symbol="BNT"
-      img="https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png"
-    />
+    <token-amount-input small :amount.sync="amountBnt" @click="openSelectTokenModal" symbol="BNT" img="https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png" />
 
   </div>
 </template>
@@ -201,37 +177,31 @@ export default class HeroConvertLiq extends Vue {
       this.debouncedState = 'loading'
       if (this.direction === 'from') {
         vxm.liquidity.calcDualConversion()
-        this.$ga.event(
-          vxm.liquidity.fromToken.symbol,
-          'calculate',
-          vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-        )
       } else {
         vxm.liquidity.calcDualRemoveInverse()
-        this.$ga.event(
-          vxm.liquidity.fromToken.symbol,
-          'calculateInverse',
-          vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-        )
       }
+
+      this.$ga.event(
+        vxm.liquidity.fromToken.symbol,
+        this.direction === 'from' ? 'calculate' : 'calculateInverse',
+        vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
+      )
     }, 1000)
+
     this.debouncedCalcBntReturn = debounce(() => {
       this.debouncedState = 'loading'
       if (this.direction === 'from') {
         vxm.liquidity.calcDualBntConversion()
-        this.$ga.event(
-          vxm.liquidity.fromToken.symbol,
-          'calculate',
-          vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-        )
       } else {
         vxm.liquidity.calcDualRemoveBntConversion()
-        this.$ga.event(
-          vxm.liquidity.fromToken.symbol,
-          'calculateInverse',
-          vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-        )
       }
+
+      this.$ga.event(
+        vxm.liquidity.fromToken.symbol,
+        this.direction === 'from' ? 'calculate' : 'calculateInverse',
+        vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
+      )
+
     }, 1000)
   }
   mounted() { }
