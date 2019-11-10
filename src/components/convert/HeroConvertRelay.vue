@@ -53,8 +53,7 @@ export default class HeroConvertRelay extends Vue {
   }
 
   get token(): TokenInfo {
-    if (this.direction === 'from') return vxm.liquidity.fromToken
-    else return vxm.liquidity.toToken
+    return this.direction === 'from' ? vxm.liquidity.fromToken : vxm.liquidity.toToken
   }
 
   get tokens() {

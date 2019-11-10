@@ -65,8 +65,7 @@ export default class HeroConvertLiq extends Vue {
   }
 
   get token(): TokenInfo {
-    if (this.direction === 'from') return vxm.liquidity.fromToken
-    else return vxm.liquidity.toToken
+    return this.direction === 'from' ? vxm.liquidity.fromToken : vxm.liquidity.toToken
   }
 
   get tokens() {
@@ -154,15 +153,7 @@ export default class HeroConvertLiq extends Vue {
     this.$bvModal.show('modal-select-token')
   }
 
-  setPercentage(p: number) {
-    this.amount = bancorx.tokenPrecision(
-      this.token.symbol,
-      ((parseFloat(this.balance) * p) / 100).toString()
-    )
-  }
-
   get balance() {
-    return `5.0000`
     let balance: any
     if (this.isAuthenticated) {
       balance = vxm.wallet.tokenBalances.find((t: any) => {
@@ -201,11 +192,6 @@ export default class HeroConvertLiq extends Vue {
   async onTokenChange(val: any, oldVal: any) {
     // this.availableBalance = await this.loadBalance()
     vxm.liquidity.calcMinReturn()
-  }
-
-  @Watch('isAuthenticated')
-  async onAuthChange(val: any, oldVal: any) {
-    // this.availableBalance = await this.loadBalance()
   }
 
   // Lifecycle hooks

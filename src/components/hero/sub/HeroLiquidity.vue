@@ -3,71 +3,49 @@
     <b-row>
       <b-col md="4" class="d-flex align-items-center">
         <transition name="slide-fade-down" mode="out-in">
-          <hero-convert-liq
-            v-if="heroAction === 'liq-add'"
-            key="ltr"
-            direction="from"
-          />
+          <hero-convert-liq v-if="heroAction === 'liq-add'" key="ltr" direction="from" />
           <hero-convert-relay v-else key="rtl" direction="from" />
         </transition>
       </b-col>
-      <b-col
-        md="4"
-        class="d-flex justify-content-center align-items-end"
-        style="min-height: 230px"
-      >
+      <b-col md="4" class="d-flex justify-content-center align-items-end" style="min-height: 230px">
         <div>
           <transition name="fade" mode="out-in">
-            <font-awesome-icon
-              :key="heroAction === 'liq-add' ? 'ltr' : 'rtl'"
-              icon="exchange-alt"
-              class="fa-2x text-white cursor"
-              @click="swapTokens()"
+            <font-awesome-icon 
+              :key="heroAction === 'liq-add' ? 'ltr' : 'rtl'" 
+              icon="exchange-alt" 
+              class="fa-2x text-white cursor" 
+              @click="swapTokens()" 
             />
           </transition>
           <div class="mb-3 mt-3">
-            <span class="text-white font-size-sm"
-              >1 {{ tokenFrom.symbol }} =
+            <span class="text-white font-size-sm">1 {{ tokenFrom.symbol }} =
               <span v-if="loading">
                 <font-awesome-icon icon="circle-notch" spin/>
               </span>
               <span v-else>{{ rate }}</span>
               {{ tokenTo.symbol }}
-              </span>
+            </span>
           </div>
           <div class="d-flex justify-content-center">
-            <b-btn
-              @click="initConvert()"
-              variant="success"
-              v-ripple
-              class="px-4 py-2 d-block"
+            <b-btn 
+              @click="initConvert()" 
+              variant="success" 
+              v-ripple 
+              class="px-4 py-2 d-block" 
               :disabled="loadingTokens || minReturn === ''"
             >
-              <font-awesome-icon
-                :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
-                :spin="loading"
-                fixed-width
-                class="mr-2"
-              />
+              <font-awesome-icon :icon="loadingTokens ? 'circle-notch' : 'sync-alt'" :spin="loading" fixed-width class="mr-2" />
               <span class="font-w700">CONVERT</span>
             </b-btn>
           </div>
-          <span
-            @click="heroAction = 'convert'"
-            class="cursor font-size-sm text-white-50"
-          >
-            <font-awesome-icon icon="long-arrow-alt-right" fixed-width />
-            SINGLE Liquidity
+          <span @click="heroAction = 'convert'" class="cursor font-size-sm text-white-50">
+            <font-awesome-icon icon="long-arrow-alt-right" fixed-width /> SINGLE Liquidity
           </span>
         </div>
       </b-col>
       <b-col md="4" class="d-flex align-items-center">
         <transition name="slide-fade-up" mode="out-in">
-          <hero-convert-liq
-            v-if="heroAction !== 'liq-add'"
-            key="rtl"
-            direction="to"
-          />
+          <hero-convert-liq v-if="heroAction !== 'liq-add'" key="rtl" direction="to" />
           <hero-convert-relay v-else key="ltr" direction="to" />
         </transition>
       </b-col>
@@ -217,16 +195,23 @@ export default class HeroLiquidity extends Vue {
 .slide-fade-up-enter-active {
   transition: all 0.3s ease;
 }
+
 .slide-fade-up-leave-active {
   transition: all 0.3s cubic-bezier(1, 0.5, 0.8, 1);
 }
+
 .slide-fade-up-enter
-    /* .slide-fade-leave-active below version 2.1.8 */ {
+/* .slide-fade-leave-active below version 2.1.8 */
+
+{
   transform: translateY(75px);
   opacity: 0;
 }
+
 .slide-fade-up-leave-to
-  /* .slide-fade-leave-active below version 2.1.8 */ {
+/* .slide-fade-leave-active below version 2.1.8 */
+
+{
   transform: translateY(-75px);
   opacity: 0;
 }
@@ -234,16 +219,23 @@ export default class HeroLiquidity extends Vue {
 .slide-fade-down-enter-active {
   transition: all 0.3s ease;
 }
+
 .slide-fade-down-leave-active {
   transition: all 0.3s cubic-bezier(1, 0.5, 0.8, 1);
 }
+
 .slide-fade-down-enter
-  /* .slide-fade-leave-active below version 2.1.8 */ {
+/* .slide-fade-leave-active below version 2.1.8 */
+
+{
   transform: translateY(-75px);
   opacity: 0;
 }
+
 .slide-fade-down-leave-to
-  /* .slide-fade-leave-active below version 2.1.8 */ {
+/* .slide-fade-leave-active below version 2.1.8 */
+
+{
   transform: translateY(75px);
   opacity: 0;
 }
@@ -252,7 +244,12 @@ export default class HeroLiquidity extends Vue {
 .fade-leave-active {
   transition: opacity 0.5s;
 }
-.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+
+.fade-enter,
+.fade-leave-to
+/* .fade-leave-active below version 2.1.8 */
+
+{
   opacity: 0;
 }
 </style>
