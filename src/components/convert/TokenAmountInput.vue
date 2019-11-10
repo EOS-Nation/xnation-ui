@@ -1,5 +1,26 @@
 <template>
-  <div>
+  <div v-if="small" class="d-flex align-items-center p-4">
+    <div class="cursor" @click="dropdownEvent">
+      <img class="img-avatar img-avatar-thumb" :src="img" alt="Token Logo" />
+    </div>
+    <div class="ml-4 text-left">
+      <h3 @click="dropdownEvent" class="mb-0 mt-0 text-white cursor">
+        {{ symbol }}
+      </h3>
+      <b-input-group class="mt-1">
+        <b-form-input :value="amount" @update="onTextUpdate" class="form-control-alt" placeholder="Enter Amount"></b-form-input>
+        <b-input-group-append>
+          <b-button v-if="dropdown" @click="dropdownEvent">
+            {{ symbol }}
+            <font-awesome-icon icon="angle-down" />
+          </b-button>
+          <b-button v-else>{{ symbol }}</b-button>
+        </b-input-group-append>
+      </b-input-group>
+    </div>
+  </div>
+
+  <div v-else>
     <div>
       <img @click="pressed" class="img-avatar img-avatar-thumb cursor border-colouring" :src="img" alt="Token Logo" />
       <div @click="pressed" class="font-size-lg text-white mt-3 mb-3 cursor">{{ symbol }}</div>
@@ -25,7 +46,6 @@
 import { Prop, Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import debounce from "lodash.debounce";
-import numeral from "numeral";
 import { TokenInfo } from "@/assets/_ts/bancorx";
 import * as bancorx from "@/assets/_ts/bancorx";
 import Percentages from './Percentages.vue'
@@ -44,10 +64,10 @@ export default class TokenAmountInput extends Vue {
   @Prop(Boolean) loadingBalance: boolean = false;
   @Prop(Boolean) status?: boolean
   @Prop(Boolean) toggle?: boolean
-  @Prop(Boolean) dropdown: boolean
+  @Prop(Boolean) dropdown?: boolean
+  @Prop(Boolean) small?: boolean
 
   // data
-  numeral = numeral;
 
   // computed
 

@@ -1,6 +1,18 @@
 <template>
   <token-amount-input
-    :amount.sync="direction === 'from' ? amount : minReturn"
+    v-if="direction === 'from'"
+    :amount.sync="amount"
+    :balance="balance"
+    :img="token.img"
+    :symbol="token.symbol"
+    @click="openSelectTokenModal"
+    dropdown
+    @dropdown="openSelectTokenModal"
+   />
+
+  <token-amount-input
+    v-else
+    :amount.sync="minReturn"
     :balance="balance"
     :img="token.img"
     :symbol="token.symbol"
@@ -74,6 +86,7 @@ export default class HeroConvertRelay extends Vue {
   }
 
   set amount(val) {
+    console.log('amount:' ,val)
     if (val) {
       vxm.liquidity.setAmount(val)
       vxm.liquidity.setRateLoading(true)
@@ -91,6 +104,7 @@ export default class HeroConvertRelay extends Vue {
   }
 
   set minReturn(val) {
+    console.log('minReturn:' ,val)
     if (val) {
       vxm.liquidity.setMinReturn(val)
       vxm.liquidity.setRateLoading(true)

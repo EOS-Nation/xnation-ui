@@ -1,40 +1,34 @@
 <template>
   <div>
-    <div class="d-flex align-items-center p-4">
-      <div class="cursor" @click="openSelectTokenModal">
-        <img class="img-avatar img-avatar-thumb" :src="token.img" alt="Token Logo" />
-      </div>
-      <div class="ml-4 text-left">
-        <h3 @click="openSelectTokenModal" class="mb-0 mt-0 text-white cursor">
-          {{ token.symbol }} AAAAA
-        </h3>
-        <b-input-group class="mt-1">
-          <b-form-input :v-model="direction === 'from' ? amount : minReturn" class="form-control-alt" placeholder="Enter Amount"></b-form-input>
-          <b-input-group-append>
-            <b-button @click="openSelectTokenModal">
-              {{ token.symbol }}
-              <font-awesome-icon icon="angle-down" />
-            </b-button>
-          </b-input-group-append>
-        </b-input-group>
-      </div>
-    </div>
-    <div class="d-flex align-items-center p-4">
-      <div>
-        <img class="img-avatar img-avatar-thumb" src="https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png" alt="Token Logo" />
-      </div>
-      <div class="ml-4 text-left">
-        <h3 class="mb-0 mt-0 text-white">BNT</h3>
-        <b-input-group class="mt-1">
-          <b-form-input v-model="amountBnt" class="form-control-alt" placeholder="Enter Amount"></b-form-input>
-          <b-input-group-append>
-            <b-button>
-              BNT
-            </b-button>
-          </b-input-group-append>
-        </b-input-group>
-      </div>
-    </div>
+    <token-amount-input 
+      v-if="direction === 'from'"
+      small
+      :amount.sync="amount"
+      @click="openSelectTokenModal"
+      dropdown
+      @dropdown="openSelectTokenModal"
+      :symbol="token.symbol"
+      :img="token.img"
+    />
+    <token-amount-input 
+      v-else
+      small
+      :amount.sync="minReturn"
+      @click="openSelectTokenModal"
+      dropdown
+      @dropdown="openSelectTokenModal"
+      :symbol="token.symbol"
+      :img="token.img"
+    />
+
+    <token-amount-input 
+      small
+      :amount.sync="amountBnt"
+      @click="openSelectTokenModal"
+      symbol="BNT"
+      img="https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png"
+    />
+
   </div>
 </template>
 
@@ -46,10 +40,12 @@ import numeral from 'numeral'
 import { TokenInfo } from '@/assets/_ts/bancorx'
 import Percentages from './Percentages.vue';
 import * as bancorx from '@/assets/_ts/bancorx'
+import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 
 @Component({
   components: {
-    Percentages
+    Percentages,
+    TokenAmountInput
   }
 })
 export default class HeroConvertLiq extends Vue {
