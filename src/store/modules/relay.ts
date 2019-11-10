@@ -175,6 +175,10 @@ export class RelayModule extends VuexModule {
       token2Contract: token2.contract,
       token2Enabled: token2.sale_enabled
     });
+    await this.fetchUserBalances([
+      [token1.contract, token1.balance.symbol.code()],
+      [token2.contract, token2.balance.symbol.code()]
+    ]);
     this.stopLoading();
   }
 

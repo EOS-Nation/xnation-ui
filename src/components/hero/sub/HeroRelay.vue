@@ -56,7 +56,7 @@
             :toggle="relayExists" 
             @toggle="token2Enabled = !token2Enabled" 
             :status="token2Enabled" 
-            amount.sync="token2Amount" 
+            :amount.sync="token2Amount" 
             :symbol="token2Symbol" 
             :balance="token2UserBalance" 
             :img="token2Img" 
@@ -86,6 +86,7 @@ import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
 import { calculateReturn } from "bancorx";
 import { split, Asset } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
+import wait from 'waait'
 
 @Component({
   components: {
@@ -193,7 +194,8 @@ export default class HeroConvert extends Vue {
 
   async toggleRelay() {
     await multiContract.enableConversion(this.$route.params.account, !vxm.relay.enabled);
-    await vxm.relay.refreshReserves();
+    await wait(700)
+    vxm.relay.initSymbol(this.$route.params.account);
   }
 
   async toggleMain() {
@@ -225,10 +227,17 @@ export default class HeroConvert extends Vue {
       }
     ]
 
-    if (this.relayExists) {
-      await multiContract.addLiquidity(this.$route.params.account, reserves);
-    } else {
-      await multiContract.kickStartRelay(this.$route.params.account, reserves, true)
+    try {
+      if (this.relayExists) {
+        await multiContract.addLiquidity(this.$route.params.account, reserves);
+      } else {
+        await multiContract.kickStartRelay(this.$route.params.account, reserves, true)
+      }
+  
+      await wait(700)
+      vxm.relay.initSymbol(this.$route.params.account)
+    } catch(e) {
+      console.warn('Error creating transaction', e)
     }
 
   }
@@ -252,7 +261,7 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-    // await vxm.relay.initSymbol(this.$route.params.account);
+    await vxm.relay.initSymbol(this.$route.params.account);
     console.log('Hero Relay created', 'Token1 is', this.token1Contract, 'token2 is', this.token2Contract)
     this.fetchTokenMeta();
   }

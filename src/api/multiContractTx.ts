@@ -130,8 +130,16 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
-  enableConversion(symbolCode: string, enabled: boolean): Promise<TxResponse> {
+  enableConversionAction(symbolCode: string, enabled: boolean) {
     const action = multiContractAction.enablecnvrt(
+      symbolCode,
+      enabled
+    ) as SemiAction;
+    return action
+  }
+
+  enableConversion(symbolCode: string, enabled: boolean): Promise<TxResponse> {
+    const action = this.enableConversionAction(
       symbolCode,
       enabled
     ) as SemiAction;
@@ -206,17 +214,19 @@ class MultiContractTx {
       reserves,
       false
     );
-    const enableRelayAction = this.enableConversion(symbolCode, true);
+    const enableRelayAction = this.enableConversionAction(symbolCode, true);
 
     const actions: any[] = [
       createRelayAction,
+      ...setReserveActions,
       ...addLiquidityActions,
       enableRelayAction
     ];
     if (!active) {
-      actions.push(this.enableConversion(symbolCode, false));
+      actions.push(this.enableConversionAction(symbolCode, false));
     }
 
+    console.log(actions, 'were actions')
     return this.tx(actions);
   }
 
