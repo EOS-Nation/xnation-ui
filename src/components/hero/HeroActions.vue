@@ -10,13 +10,7 @@
     <div class="bg-primary-dark-op">
       <div class="content content-boxed text-center p-5">
         <transition name="slide-fade-down" mode="out-in">
-          <hero-liquidity
-            v-if="'liq-remove' === heroAction || heroAction === 'liq-add'"
-            key="liquidity"
-          />
-          <hero-convert v-if="heroAction === 'convert'" key="convert" />
-          <hero-transfer v-if="heroAction === 'transfer'" key="transfer" />
-          <hero-relay v-if="heroAction === 'relay'" key="relay" />
+          <component :is="currentHero"></component>
         </transition>
       </div>
     </div>
@@ -42,20 +36,21 @@ import HeroRelay from '@/components/hero/HeroRelay.vue'
 export default class HeroActions extends Vue {
   // data
 
-  // computed
-  get loadingTokens() {
-    return vxm.tokens.loadingTokens
+  get currentHero() {
+    switch(vxm.general.heroAction) {
+      case 'liq-remove':
+      case 'liq-add':
+        return `hero-liquidity`;
+      case `transfer`:
+        return `hero-transfer`
+      case `relay`:
+        return `hero-relay`
+      case `convert`:
+      default:
+        return `hero-convert`
+    }
   }
 
-  get heroAction() {
-    return vxm.general.heroAction
-  }
-
-  // methods
-  @Watch('tokenFrom')
-  async onTokenChange(val: any, oldVal: any) {
-    // await this.conversionRate()
-  }
 }
 </script>
 
