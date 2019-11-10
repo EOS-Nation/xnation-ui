@@ -1,65 +1,13 @@
 <template>
-  <div>
-    <div>
-      <img
-        class="img-avatar img-avatar-thumb cursor"
-        :src="
-            token.img
-        "
-        alt="Token Logo"
-        @click="openSelectTokenModal()"
-      />
-      <div
-        @click="openSelectTokenModal()"
-        class="font-size-lg text-white mt-3 mb-3 cursor"
-      >
-        {{ token.symbol }}
-      </div>
-      <b-input-group class="mt-1">
-        <b-form-input
-          v-if="direction === 'from'"
-          v-model="amount"
-          class="form-control-alt"
-          placeholder="Enter Amount"
-        ></b-form-input>
-        <b-form-input
-          v-else
-          v-model="minReturn"
-          class="form-control-alt"
-          placeholder="Enter Amount"
-        ></b-form-input>
-        <b-input-group-append>
-          <b-button @click="openSelectTokenModal()">
-            {{ token.symbol }}
-            <font-awesome-icon icon="angle-down" />
-          </b-button>
-        </b-input-group-append>
-      </b-input-group>
-      <div>
-        <span class="text-white font-size-sm" style="min-height: 50px">
-          <div>
-            Available:
-            <span v-if="loadingBalance">
-              <font-awesome-icon icon="circle-notch" class="text-white" spin />
-            </span>
-            <span v-else>{{ numeral(balance).format('0,0[.][0000]') }}</span>
-          </div>
-          <div
-            v-if="balance > 0 && direction === 'from'"
-            class="text-white-50 cursor"
-          >
-            <span @click="setPercentage(10)">10%</span>
-            -
-            <span @click="setPercentage(25)">25%</span>
-            -
-            <span @click="setPercentage(50)">50%</span>
-            -
-            <span @click="setPercentage(100)">100%</span>
-          </div>
-        </span>
-      </div>
-    </div>
-  </div>
+  <token-amount-input
+    :amount.sync="direction === 'from' ? amount : minReturn"
+    :balance="balance"
+    :img="token.img"
+    :symbol="token.symbol"
+    @click="openSelectTokenModal"
+    dropdown
+    @dropdown="openSelectTokenModal"
+   />
 </template>
 
 <script lang="ts">
@@ -69,9 +17,13 @@ import debounce from 'lodash.debounce'
 import numeral from 'numeral'
 import { TokenInfo } from '@/assets/_ts/bancorx'
 import * as bancorx from '@/assets/_ts/bancorx'
+import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
+
 
 @Component({
-  components: {}
+  components: {
+    TokenAmountInput
+  }
 })
 export default class HeroConvertRelay extends Vue {
   // props
