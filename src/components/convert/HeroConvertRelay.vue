@@ -171,13 +171,7 @@ export default class HeroConvertRelay extends Vue {
 
   @Watch('token')
   async onTokenChange(val: any, oldVal: any) {
-    // this.availableBalance = await this.loadBalance()
     vxm.liquidity.calcMinReturn()
-  }
-
-  @Watch('isAuthenticated')
-  async onAuthChange(val: any, oldVal: any) {
-    // this.availableBalance = await this.loadBalance()
   }
 
   // Lifecycle hooks
@@ -188,22 +182,18 @@ export default class HeroConvertRelay extends Vue {
       if (this.direction === 'from') {
         if (this.heroAction === 'liq-remove')
           vxm.liquidity.calcDualRemoveConversion()
-        // else if (this.heroAction === 'liq-remove') vxm.liquidity.calcDualRemove()
         else vxm.liquidity.calcMinReturn()
-        this.$ga.event(
-          vxm.liquidity.fromToken.symbol,
-          'calculate',
-          vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-        )
       } else {
         if (this.heroAction === 'liq-add') vxm.liquidity.calcDualInverse()
         else vxm.liquidity.calcAmount()
-        this.$ga.event(
-          vxm.liquidity.fromToken.symbol,
-          'calculateInverse',
-          vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-        )
       }
+
+      this.$ga.event(
+        vxm.liquidity.fromToken.symbol,
+        this.direction === 'from' ? 'calculate' : 'calculateInverse',
+        vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
+      )
+
     }, 1000)
   }
   mounted() {}
