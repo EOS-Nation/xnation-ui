@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="content content-boxed">
-      <b-modal @ok="createRelay" id="my-modal" title="Create a Relay">
+      <b-modal @ok="createRelay" id="create-modal" title="Create a Relay">
         <p class="my-4">Token to list on Bancor</p>
         <div>
           <b-img v-if="tokenLogo" :src="tokenLogo" />
@@ -31,7 +31,7 @@
             <small>Relays</small>
           </h3>
           <div class="block-options">
-            <b-button size="sm" v-b-modal="'my-modal'">Create</b-button>
+            <b-button size="sm" v-b-modal="'create-modal'">Create</b-button>
             <b-input-group size="sm">
               <b-input-group-text slot="prepend" class="bg-body border-0 text-muted">
                 <font-awesome-icon
