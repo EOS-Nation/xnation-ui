@@ -24,13 +24,15 @@ import HeroConvert from '@/components/hero/sub/HeroConvert.vue'
 import HeroTransfer from '@/components/hero/sub/HeroTransfer.vue'
 import HeroLiquidity from '@/components/hero/sub/HeroLiquidity.vue'
 import HeroRelay from '@/components/hero/sub/HeroRelay.vue'
+import HeroCreate from '@/components/hero/sub/HeroCreate.vue'
 
 @Component({
   components: {
     HeroConvert,
     HeroTransfer,
     HeroLiquidity,
-    HeroRelay
+    HeroRelay,
+    HeroCreate
   }
 })
 export default class HeroActions extends Vue {
@@ -44,6 +46,8 @@ export default class HeroActions extends Vue {
         return `hero-transfer`
       case `relay`:
         return `hero-relay`
+      case `create`:
+        return `hero-create`
       case `convert`:
       default:
         return `hero-convert`

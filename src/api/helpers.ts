@@ -70,14 +70,18 @@ let tokenMeta: TokenMeta[] = [
 
 let shouldDownload = true;
 
+export const cacheMetaData = async() => {
+  const res = await axios.get(tokenMetaDataEndpoint);
+  tokenMeta = [...res.data.filter((meta: TokenMeta) => meta.chain == 'eos'), ...tokenMeta];
+  shouldDownload = false;
+}
+
 export const fetchTokenMeta = async (
   contract: string,
   symbol: string
 ): Promise<TokenMeta> => {
   if (shouldDownload) {
-    const res = await axios.get(tokenMetaDataEndpoint);
-    tokenMeta = [...res.data.filter((meta: TokenMeta) => meta.chain == 'eos'), ...tokenMeta];
-    shouldDownload = false;
+    await cacheMetaData()
   }
   const metaData = tokenMeta.find(
     (tokenMeta: any) =>

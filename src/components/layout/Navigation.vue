@@ -143,11 +143,12 @@ export default class Navigation extends Vue {
   }
 
   async createRelay() {
-    this.$router.push({
-      name: "Relays"
-    })
-    await wait()
-    this.$root.$emit('bv::show::modal', 'create-modal', '#focusThisOnClose')
+    vxm.general.setHeroAction('create')
+    // this.$router.push({
+      // name: "Relays"
+    // })
+    // await wait()
+    // this.$root.$emit('bv::show::modal', 'create-modal', '#focusThisOnClose')
   }
 
   // methods

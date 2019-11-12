@@ -53,7 +53,7 @@ export default new Router({
       name: 'Relay',
       components: {
         Nav: Navigation,
-        default: Relay,
+        default: Relays,
         Hero: HeroActions
       },
       props: true
