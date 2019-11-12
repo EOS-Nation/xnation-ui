@@ -1,96 +1,90 @@
 <template>
   <hero-wrapper>
     <div>
-    <b-row>
-      <b-col md="4">
-        <transition name="slide-fade-down" mode="out-in">
-          <hero-convert-relay :key="ltr ? 'ltr' : 'rtl'" direction="from" />
-        </transition>
-      </b-col>
-      <b-col
-        md="4"
-        class="d-flex justify-content-center align-items-end"
-        style="min-height: 230px"
-      >
-        <div>
-          <transition name="fade" mode="out-in">
-            <font-awesome-icon
-              icon="exchange-alt"
-              class="fa-2x text-white cursor"
-              :key="ltr ? 'ltr' : 'rtl'"
-              @click="swapTokens()"
-            />
+      <b-row>
+        <b-col md="4">
+          <transition name="slide-fade-down" mode="out-in">
+            <hero-convert-relay :key="ltr ? 'ltr' : 'rtl'" direction="from" />
           </transition>
-          <div class="mb-3 mt-3">
-            <span class="text-white font-size-sm"
-              >1 {{ tokenFrom.symbol }} =
-              <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span
-              ><span v-else><font-awesome-icon icon="circle-notch" spin/></span>
-              {{ tokenTo.symbol }}</span
-            >
-          </div>
-          <div class="d-flex justify-content-center">
-            <b-btn
-              @click="initConvert()"
-              variant="success"
-              v-ripple
-              class="px-4 py-2 d-block"
-              :disabled="loadingTokens || minReturn === ''"
-            >
+        </b-col>
+        <b-col
+          md="4"
+          class="d-flex justify-content-center align-items-end"
+          style="min-height: 230px"
+        >
+          <div>
+            <transition name="fade" mode="out-in">
               <font-awesome-icon
-                :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
-                :spin="loadingTokens"
-                fixed-width
-                class="mr-2"
+                icon="exchange-alt"
+                class="fa-2x text-white cursor"
+                :key="ltr ? 'ltr' : 'rtl'"
+                @click="swapTokens()"
               />
-              <span class="font-w700">CONVERT</span>
-            </b-btn>
+            </transition>
+            <div class="mb-3 mt-3">
+              <span class="text-white font-size-sm">
+                1 {{ tokenFrom.symbol }} =
+                <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span>
+                <span v-else>
+                  <font-awesome-icon icon="circle-notch" spin />
+                </span>
+                {{ tokenTo.symbol }}
+              </span>
+            </div>
+            <div class="d-flex justify-content-center">
+              <b-btn
+                @click="initConvert()"
+                variant="success"
+                v-ripple
+                class="px-4 py-2 d-block"
+                :disabled="loadingTokens || minReturn === ''"
+              >
+                <font-awesome-icon
+                  :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
+                  :spin="loadingTokens"
+                  fixed-width
+                  class="mr-2"
+                />
+                <span class="font-w700">CONVERT</span>
+              </b-btn>
+            </div>
+            <span
+              v-if="this.currentRoute !== 'Relays'"
+              @click="navTransfer"
+              class="cursor font-size-sm text-white-50"
+            >
+              <font-awesome-icon icon="long-arrow-alt-right" fixed-width />TRANSFER
+            </span>
+            <span v-else @click="heroAction = 'liq-add'" class="cursor font-size-sm text-white-50">
+              <font-awesome-icon icon="long-arrow-alt-right" fixed-width />DUAL Liquidity
+            </span>
           </div>
-          <span
-            v-if="this.currentRoute !== 'Relays'"
-            @click="navTransfer"
-            class="cursor font-size-sm text-white-50"
-          >
-            <font-awesome-icon icon="long-arrow-alt-right" fixed-width />
-            TRANSFER
-          </span>
-          <span
-            v-else
-            @click="heroAction = 'liq-add'"
-            class="cursor font-size-sm text-white-50"
-          >
-            <font-awesome-icon icon="long-arrow-alt-right" fixed-width />
-            DUAL Liquidity
-          </span>
-        </div>
-      </b-col>
-      <b-col md="4">
-        <transition name="slide-fade-up" mode="out-in">
-          <hero-convert-relay :key="ltr ? 'ltr' : 'rtl'" direction="to" />
-        </transition>
-      </b-col>
-    </b-row>
-    <modal-select-all />
-    <modal-select-token />
-    <modal-select-relays />
-    <modal-convert-liquidity />
-  </div>
+        </b-col>
+        <b-col md="4">
+          <transition name="slide-fade-up" mode="out-in">
+            <hero-convert-relay :key="ltr ? 'ltr' : 'rtl'" direction="to" />
+          </transition>
+        </b-col>
+      </b-row>
+      <modal-select-all />
+      <modal-select-token />
+      <modal-select-relays />
+      <modal-convert-liquidity />
+    </div>
   </hero-wrapper>
 </template>
 
 <script lang="ts">
-import { Watch, Component, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store'
-import HeroConvertRelay from '@/components/convert/HeroConvertRelay.vue'
-import * as bancorx from '@/assets/_ts/bancorx'
-import numeral from 'numeral'
-import ModalSelectAll from '@/components/modals/ModalSelectAll.vue'
-import ModalConvertLiquidity from '@/components/modals/ModalConvertLiquidity.vue'
-import ModalSelectToken from '@/components/modals/ModalSelectToken.vue'
-import ModalSelectRelays from '@/components/modals/ModalSelectRelays.vue'
-import HeroWrapper from '@/components/hero/HeroWrapper.vue'
-
-
+import { Watch, Component, Vue } from "vue-property-decorator";
+import { vxm } from "@/store";
+import HeroConvertRelay from "@/components/convert/HeroConvertRelay.vue";
+import * as bancorx from "@/assets/_ts/bancorx";
+import numeral from "numeral";
+import ModalSelectAll from "@/components/modals/ModalSelectAll.vue";
+import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue";
+import ModalSelectToken from "@/components/modals/ModalSelectToken.vue";
+import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
+import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 
 @Component({
   components: {
@@ -104,125 +98,126 @@ import HeroWrapper from '@/components/hero/HeroWrapper.vue'
 })
 export default class HeroConvert extends Vue {
   // data
-  ltr = true
-  rate = ''
-  rateLoading = false
-  numeral = numeral
+  ltr = true;
+  rate = "";
+  rateLoading = false;
+  numeral = numeral;
 
   // computed
   get isAuthenticated() {
-    return vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
+    return (
+      vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
+    );
   }
 
   get heroAction() {
-    return vxm.general.heroAction
+    return vxm.general.heroAction;
   }
 
   get currentRoute() {
-    return this.$route.name
+    return this.$route.name;
   }
 
   set heroAction(val) {
-    vxm.general.setHeroAction(val)
+    vxm.general.setHeroAction(val);
   }
 
   get debouncedState() {
-    return vxm.convert.debouncedState
+    return vxm.convert.debouncedState;
   }
 
   get tokenFrom() {
-    return vxm.liquidity.fromToken
+    return vxm.liquidity.fromToken;
   }
 
   get tokenTo() {
-    return vxm.liquidity.toToken
+    return vxm.liquidity.toToken;
   }
 
   get amount() {
-    return vxm.liquidity.amount
+    return vxm.liquidity.amount;
   }
 
   get minReturn() {
-    return vxm.liquidity.minReturn
+    return vxm.liquidity.minReturn;
   }
 
   get tokens() {
-    return vxm.tokens.eosTokens
+    return vxm.tokens.eosTokens;
   }
 
   get loadingTokens() {
-    return vxm.liquidity.rateLoading
+    return vxm.liquidity.rateLoading;
   }
 
   async conversionRate() {
-    this.rateLoading = true
-    let amount = this.amount
-    if (amount === '') {
-      amount = '1'
+    this.rateLoading = true;
+    let amount = this.amount;
+    if (amount === "") {
+      amount = "1";
       const minReturn = await bancorx.calcRate(
         vxm.liquidity.fromToken.symbol,
         vxm.liquidity.toToken.symbol,
         amount
-      )
+      );
       this.rate = this.numeral(
         parseFloat(minReturn) / parseFloat(amount)
-      ).format('0,0.0000')
+      ).format("0,0.0000");
     } else
       this.rate = this.numeral(
         parseFloat(this.minReturn) / parseFloat(amount)
-      ).format('0,0.0000')
+      ).format("0,0.0000");
 
-    this.rateLoading = false
+    this.rateLoading = false;
   }
 
   // methods
   swapTokens() {
-    this.ltr = !this.ltr
-    vxm.liquidity.swapSelection()
-    vxm.liquidity.calcMinReturn()
+    this.ltr = !this.ltr;
+    vxm.liquidity.swapSelection();
+    vxm.liquidity.calcMinReturn();
   }
 
   initConvert() {
-    if (!this.isAuthenticated) this.$bvModal.show('modal-login')
+    if (!this.isAuthenticated) this.$bvModal.show("modal-login");
     else {
-      vxm.convert.initConversion('from')
-      this.$bvModal.show('modal-convert-token')
+      vxm.convert.initConversion("from");
+      this.$bvModal.show("modal-convert-token");
     }
   }
 
-  @Watch('minReturn')
+  @Watch("minReturn")
   async onStateChange(val: any, oldVal: any) {
-    await this.conversionRate()
+    await this.conversionRate();
   }
 
-  @Watch('tokenFrom')
+  @Watch("tokenFrom")
   async onTokenChange(val: any, oldVal: any) {
-    await this.conversionRate()
+    await this.conversionRate();
   }
-
 
   setFromToken(symbolName: string) {
-      const tokenInfo = bancorx.getTokenInfo(symbolName)
-      if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo)
+    const tokenInfo = bancorx.getTokenInfo(symbolName);
+    if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo);
   }
 
   @Watch("$route")
   listen(to: any) {
-    this.setFromToken(to.params.symbolName)
+    this.setFromToken(to.params.symbolName);
   }
 
   navTransfer() {
     this.$router.push({
-      name: "Transfer",                              
+      name: "Transfer",
       params: {
         symbolName: this.$route.params.symbolName || "EOS"
       }
-    })
+    });
   }
 
   async created() {
-    this.setFromToken(this.$route.params.symbolName || "EOS")
-    await this.conversionRate()
+    this.setFromToken(this.$route.params.symbolName || "EOS");
+    await this.conversionRate();
   }
 }
 </script>
