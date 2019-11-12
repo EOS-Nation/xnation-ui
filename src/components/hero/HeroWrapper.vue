@@ -8,7 +8,7 @@
     "
   >
     <div class="bg-primary-dark-op">
-      <div class="content content-boxed text-center p-5">
+      <div class="content content-boxed text-center p-5 main">
         <transition name="slide-fade-down" mode="out-in">
           <slot></slot>
         </transition>
@@ -25,6 +25,11 @@ export default class HeroWrapper extends Vue {}
 </script>
 
 <style scoped lang="scss">
+
+.main {
+  height: 360px;
+}
+
 .slide-fade-up-enter-active {
   transition: all 0.3s ease;
 }
