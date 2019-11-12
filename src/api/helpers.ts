@@ -32,7 +32,7 @@ export const getBalance = async(
   // @ts-ignore
   const account = vxm.eosTransit.wallet.auth.accountName
   const tableResult = await eosRpc.get_currency_balance(contract, account, symbolName);
-  if (tableResult.length == 0) return `0.0000 ${symbolName}` 
+  if (tableResult.length == 0) return `0.0000 ${symbolName}`
   return tableResult[0]
 }
 

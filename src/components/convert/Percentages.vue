@@ -34,9 +34,9 @@ import * as bancorx from "@/assets/_ts/bancorx";
 })
 export default class TokenAmountInput extends Vue {
     // props
-    @Prop(String) balance!: string;
-    @Prop(Boolean) loading: boolean = false;
-    @Prop(String) amount!: string;
+    @Prop(String) balance!: number;
+    @Prop(Boolean) loading?: boolean;
+    @Prop(String) amount!: number;
 
     // data
     numeral = numeral;

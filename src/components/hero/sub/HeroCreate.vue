@@ -1,48 +1,112 @@
 <template>
   <hero-wrapper>
     <div>
-      <b-row>
-        <b-col md="12">
-          <h1 class="text-white">List a Token</h1>
-        </b-col>
-      </b-row>
-      <b-row>
-        <b-col md="4">
-          <transition name="slide-fade-down" mode="out-in">
-            <div>
-              <h3 class="text-white">Token Contract</h3>
-              <b-form-input id="input-1" v-model="tokenContract" placeholder="eosio.token" trim></b-form-input>
-            </div>
-          </transition>
-        </b-col>
-        <b-col md="4" class="justify-content-center align-items-center" style="min-height: 230px">
-          <transition name="fade" mode="out-in">
-            <span>
-              <h3 class="invisible">TECHDEBT</h3>
-              <font-awesome-icon
-                class="fa-2x text-white cursor"
-                v-if="loading"
-                icon="circle-notch"
-                spin
+      <div v-if="step == 1">
+        <b-row>
+          <b-col md="12">
+            <h1 class="text-white">List a Token</h1>
+          </b-col>
+        </b-row>
+        <b-row>
+          <b-col md="4">
+            <transition name="slide-fade-down" mode="out-in">
+              <div>
+                <h3 class="text-white">Token Contract</h3>
+                <b-form-input id="input-1" v-model="token1Contract" placeholder="eosio.token" trim></b-form-input>
+              </div>
+            </transition>
+          </b-col>
+          <b-col md="4" class="justify-content-center align-items-center" style="min-height: 230px">
+            <transition name="fade" mode="out-in">
+              <span>
+                <h3 class="invisible">TECHDEBT</h3>
+                <font-awesome-icon
+                  class="fa-2x text-white cursor"
+                  v-if="loading"
+                  icon="circle-notch"
+                  spin
+                />
+                <font-awesome-icon
+                  class="fa-2x text-white cursor align-self-center"
+                  v-else
+                  icon="question"
+                />
+                <div class="text-white" v-if="failedToFindToken">Failed to find token</div>
+              </span>
+            </transition>
+          </b-col>
+          <b-col md="4">
+            <transition name="slide-fade-up" mode="out-in">
+              <div>
+                <h3 class="text-white">Token Symbol</h3>
+                <b-form-input id="input-1" v-model="token1SymbolName" placeholder="EOS" trim></b-form-input>
+              </div>
+            </transition>
+          </b-col>
+        </b-row>
+      </div>
+      <div v-else>
+        <b-row>
+          <b-col md="4">
+            <transition name="slide-fade-down" mode="out-in">
+              <token-amount-input
+                :amount.sync="token1Amount"
+                :symbol="token1SymbolName"
+                :balance="token1UserBalance"
+                :img="token1Img"
+                :loadingBalance="balancesLoading"
               />
-              <font-awesome-icon
-                class="fa-2x text-white cursor align-self-center"
-                v-else
-                icon="question"
-              />
-              <div class="text-white" v-if="failedToFindToken">Failed to find token</div>
-            </span>
-          </transition>
-        </b-col>
-        <b-col md="4">
-          <transition name="slide-fade-up" mode="out-in">
+            </transition>
+          </b-col>
+          <b-col
+            md="4"
+            class="d-flex justify-content-center align-items-end"
+            style="min-height: 230px"
+          >
             <div>
-              <h3 class="text-white">Token Symbol</h3>
-              <b-form-input id="input-1" v-model="tokenSymbol" placeholder="EOS" trim></b-form-input>
+              <transition name="fade" mode="out-in">
+                <font-awesome-icon
+                  icon="exchange-alt"
+                  class="fa-2x text-white cursor"
+                  @click="swapTokens"
+                />
+              </transition>
+              <div class="mb-3 mt-3">
+                <div class="text-white font-size-sm">
+                  1 {{ token1SymbolName }} =
+                  <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span>
+                  <span v-else>
+                    <font-awesome-icon icon="circle-notch" spin />
+                  </span>
+                  {{ token2SymbolName }}
+                </div>
+              </div>
+              <div class="d-flex justify-content-center">
+                <b-btn @click="createRelay" variant="success" v-ripple class="px-4 py-2 d-block">
+                  <font-awesome-icon
+                    :icon="loadingTokens ? 'circle-notch' : 'plus'"
+                    :spin="loadingTokens"
+                    fixed-width
+                    class="mr-2"
+                  />
+                  <span class="font-w700">Create Relay</span>
+                </b-btn>
+              </div>
             </div>
-          </transition>
-        </b-col>
-      </b-row>
+          </b-col>
+          <b-col md="4">
+            <transition name="slide-fade-up" mode="out-in">
+              <token-amount-input
+                :amount.sync="token2Amount"
+                :symbol="token2SymbolName"
+                :balance="token2UserBalance"
+                :img="token2Img"
+                :loadingBalance="balancesLoading"
+              />
+            </transition>
+          </b-col>
+        </b-row>
+      </div>
     </div>
   </hero-wrapper>
 </template>
@@ -52,27 +116,53 @@ import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
+import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
+import { getBalance } from "@/api/helpers";
 
 const debounce = require("lodash.debounce");
 
 @Component({
   components: {
-    HeroWrapper
+    HeroWrapper,
+    TokenAmountInput
   }
 })
 export default class HeroConvert extends Vue {
-  public debouncedSuggestPrecision: any;
+  public debouncedCheckToken: any;
 
-  tokenSymbol = "";
-  tokenContract = "";
+  token1Amount = "";
+  token1SymbolName = "";
+  token1SymbolPrecision = "";
+  token1UserBalance = 0;
+  token1Img = "";
+  token1Contract = "";
+
+  token2Amount = "";
+  token2SymbolName = "BNT";
+  token2SymbolPrecision = "10";
+  token2UserBalance = 0;
+  token2Img = "";
+  token2Contract = "bntbntbntbnt";
+
   failedToFindToken = false;
   loading = false;
+  balancesLoading = true
+  step = 1;
 
-  @Watch("tokenSymbol")
-  @Watch("tokenContract")
+  rateLoading = false;
+  loadingTokens = false;
+
+  get rate() {
+    const reward = Number(this.token2Amount) / Number(this.token1Amount)
+    return reward ? reward.toFixed(4) : '?'
+  }
+
+
+  @Watch("token1SymbolName")
+  @Watch("token1Contract")
   onContractChange() {
-    if (this.tokenSymbol && this.tokenContract) {
-      this.debouncedSuggestPrecision();
+    if (this.token1SymbolName && this.token1Contract) {
+      this.debouncedCheckToken();
     }
   }
 
@@ -85,13 +175,21 @@ export default class HeroConvert extends Vue {
     }
   }
 
+  swapTokens() {}
+
+  async toggleRelay() {}
+
+  async createRelay() {
+    console.log("I should now be creating the relay");
+  }
+
   async fetchPrecision(
     tokenContract: string,
     tokenSymbolName: string
   ): Promise<number> {
     const { max_supply } = await fetchTokenStats(
-      this.tokenContract,
-      this.tokenSymbol
+      tokenContract,
+      tokenSymbolName
     );
     return max_supply.symbol.precision;
   }
@@ -106,52 +204,67 @@ export default class HeroConvert extends Vue {
     });
   }
 
-  async suggestPrecision() {
-    const contractName = this.tokenContract;
-    const symbol = this.tokenSymbol;
+  async tokenIsValid() {
+    // ToDo
+    // Check a reserve doesn't already exist with the network token
+
+    // Preload token images
+    const [token1Meta, token2Meta] = await Promise.all([
+      fetchTokenMeta(this.token1Contract, this.token1SymbolName),
+      fetchTokenMeta(this.token2Contract, this.token2SymbolName)
+    ]);
+
+    await Promise.all([
+      this.fetchImage(token1Meta.logo),
+      this.fetchImage(token2Meta.logo)
+    ]);
+
+    this.token1Img = token1Meta.logo;
+    this.token2Img = token2Meta.logo;
+
+    this.step = 2;
+    this.loading = false;
+
+    this.fetchUserBalances();
+  }
+
+  async fetchUserBalances() {
+    this.balancesLoading = true
+    const [token1Balance, token2Balance] = await Promise.all([
+      getBalance(this.token1Contract, this.token1SymbolName),
+      getBalance(this.token2Contract, this.token2SymbolName)
+    ]);
+
+    this.token1UserBalance = Number(token1Balance.split(' ')[0]);
+    this.token2UserBalance = Number(token2Balance.split(' ')[0]);
+    this.balancesLoading = false
+  }
+
+  async checkTokenIsValid() {
+    const contractName = this.token1Contract;
+    const symbol = this.token1SymbolName;
     this.loading = true;
 
     try {
-      const precision = await this.fetchPrecision(
-        this.tokenContract,
-        this.tokenSymbol
-      );
+      const precision = await this.fetchPrecision(contractName, symbol);
       this.failedToFindToken = false;
+      this.token1SymbolPrecision = String(precision);
+      this.tokenIsValid();
 
-      const smartTokenSymbol = this.createSmartTokenSymbol(
-        "BNT",
-        this.tokenSymbol
-      );
+      const smartTokenSymbol = this.createSmartTokenSymbol("BNT", symbol);
 
-      // ToDo: Make sure a relay doesn't already exist, if so redirect.
-      const relayAlreadyExists = false;
-      if (relayAlreadyExists)
-        throw new Error(
-          "Relay already exists, I should point this out to the user."
-        );
+      // vxm.relay.draftNewRelay({
+      //   smartTokenSymbol,
+      //   precision: String(precision),
+      //   symbolName: symbol,
+      //   tokenContract: contractName
+      // });
 
-      try {
-        const metaData = await fetchTokenMeta(
-          this.tokenContract,
-          this.tokenSymbol
-        );
-        await this.fetchImage(metaData.logo);
-      } catch (e) {}
-
-      this.loading = false;
-
-      vxm.relay.draftNewRelay({
-        smartTokenSymbol,
-        precision: String(precision),
-        symbolName: symbol,
-        tokenContract: contractName
-      });
-
-      vxm.general.setHeroAction("relay");
-      this.$router.push({
-        name: "Relay",
-        params: { account: smartTokenSymbol, isDraft: "yes" }
-      });
+      // vxm.general.setHeroAction("relay");
+      // this.$router.push({
+      //   name: "Relay",
+      //   params: { account: smartTokenSymbol, isDraft: "yes" }
+      // });
     } catch (e) {
       this.failedToFindToken = true;
       this.loading = false;
@@ -159,8 +272,8 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-    this.debouncedSuggestPrecision = debounce(() => {
-      this.suggestPrecision();
+    this.debouncedCheckToken = debounce(() => {
+      this.checkTokenIsValid();
     }, 500);
   }
 }

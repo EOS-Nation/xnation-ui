@@ -37,7 +37,7 @@
           </b-button>
         </b-input-group-append>
       </b-input-group>
-      <percentages :balance="balance" :amount.sync="amount" />
+      <percentages :balance="balance" :amount.sync="amount" :loading="loadingBalance" />
     </div>
   </div>
 </template>
@@ -57,11 +57,11 @@ import Percentages from './Percentages.vue'
 })
 export default class TokenAmountInput extends Vue {
   // props
-  @Prop(String) amount!: string;
+  @Prop(String) amount!: number;
   @Prop(String) balance!: string;
   @Prop(String) img!: string;
   @Prop(String) readonly symbol!: string;
-  @Prop(Boolean) loadingBalance: boolean = false;
+  @Prop(Boolean) loadingBalance?: boolean;
   @Prop(Boolean) status?: boolean
   @Prop(Boolean) toggle?: boolean
   @Prop(Boolean) dropdown?: boolean
@@ -72,13 +72,14 @@ export default class TokenAmountInput extends Vue {
   // computed
 
   // method
-  setPercentage(percentage: number) {
-    const numberAmount = Number(this.balance) * (percentage / 100);
-    this.$emit("update:amount", String(numberAmount));
+
+  @Watch("amount")
+  listen() {
+    this.$emit("update:amount", String(this.amount));
   }
 
   onTextUpdate(input: string) {
-    this.$emit("update:amount", input);
+    this.amount = Number(input);
   }
 
   toggleStatus() {
