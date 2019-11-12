@@ -46,10 +46,11 @@
         </b-row>
       </div>
       <div v-else>
-        <b-row>
+        <b-row :class="flipped && 'd-flex flex-row-reverse'">
           <b-col md="4">
             <transition name="slide-fade-down" mode="out-in">
               <token-amount-input
+                :key="flipped ? 'token1' : 'token1-'"
                 :amount.sync="token1Amount"
                 :symbol="token1SymbolName"
                 :balance="token1UserBalance"
@@ -68,24 +69,24 @@
                 <font-awesome-icon
                   icon="exchange-alt"
                   class="fa-2x text-white cursor"
+                  :key="flipped ? 'arrows' : 'arrows-'"
                   @click="swapTokens"
                 />
               </transition>
               <div class="mb-3 mt-3">
-                <div class="text-white font-size-sm">
-                  1 {{ token1SymbolName }} =
-                  <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span>
-                  <span v-else>
-                    <font-awesome-icon icon="circle-notch" spin />
-                  </span>
-                  {{ token2SymbolName }}
-                </div>
+                <div class="text-white font-size-sm">{{ simpleValue }}</div>
               </div>
               <div class="d-flex justify-content-center">
-                <b-btn @click="createRelay" variant="success" v-ripple class="px-4 py-2 d-block">
+                <b-btn
+                  @click="createRelay"
+                  variant="success"
+                  :disabled="!createRelayEnabled"
+                  v-ripple
+                  class="px-4 py-2 d-block"
+                >
                   <font-awesome-icon
-                    :icon="loadingTokens ? 'circle-notch' : 'plus'"
-                    :spin="loadingTokens"
+                    :icon="loading ? 'circle-notch' : 'plus'"
+                    :spin="loading"
                     fixed-width
                     class="mr-2"
                   />
@@ -97,6 +98,7 @@
           <b-col md="4">
             <transition name="slide-fade-up" mode="out-in">
               <token-amount-input
+                :key="flipped ? 'token2' : 'token2-'"
                 :amount.sync="token2Amount"
                 :symbol="token2SymbolName"
                 :balance="token2UserBalance"
@@ -118,6 +120,9 @@ import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import { getBalance } from "@/api/helpers";
+import { multiContract } from "@/api/multiContractTx";
+import { Asset, Symbol } from "eos-common";
+import wait from 'waait'
 
 const debounce = require("lodash.debounce");
 
@@ -129,6 +134,9 @@ const debounce = require("lodash.debounce");
 })
 export default class HeroConvert extends Vue {
   public debouncedCheckToken: any;
+
+  flipped = false;
+  smartTokenSymbol = ''
 
   token1Amount = "";
   token1SymbolName = "";
@@ -146,22 +154,47 @@ export default class HeroConvert extends Vue {
 
   failedToFindToken = false;
   loading = false;
-  balancesLoading = true
+  balancesLoading = true;
   step = 1;
 
   rateLoading = false;
   loadingTokens = false;
 
   get rate() {
-    const reward = Number(this.token2Amount) / Number(this.token1Amount)
-    return reward ? reward.toFixed(4) : '?'
+    const reward = Number(this.token2Amount) / Number(this.token1Amount);
+    return reward ? reward.toFixed(4) : "?";
   }
 
+  get simpleValue() {
+    const baseSymbol = this.flipped
+      ? this.token2SymbolName
+      : this.token1SymbolName;
+    const baseAmount = this.flipped ? this.token1Amount : this.token2Amount;
+    const oppositeSymbol = this.flipped
+      ? this.token1SymbolName
+      : this.token2SymbolName;
+    const oppositeAmount = this.flipped ? this.token2Amount : this.token1Amount;
+    const reward = Number(baseAmount) / Number(oppositeAmount);
+    return Number.isFinite(reward) && reward > 0
+      ? `1 ${baseSymbol} = ${reward.toFixed(4)} ${oppositeSymbol}`
+      : `1 ${baseSymbol} = ?`;
+  }
+
+  get createRelayEnabled() {
+    const token1 = Number(this.token1Amount);
+    const token2 = Number(this.token2Amount);
+    return (
+      this.token1UserBalance >= token1 &&
+      this.token2UserBalance >= token2 &&
+      token1 > 0 &&
+      token2 > 0
+    );
+  }
 
   @Watch("token1SymbolName")
   @Watch("token1Contract")
   onContractChange() {
-    if (this.token1SymbolName && this.token1Contract) {
+    if (this.token1SymbolName && this.token1Contract && this.step == 1) {
       this.debouncedCheckToken();
     }
   }
@@ -175,12 +208,53 @@ export default class HeroConvert extends Vue {
     }
   }
 
-  swapTokens() {}
-
-  async toggleRelay() {}
+  swapTokens() {
+    this.flipped = !this.flipped;
+  }
 
   async createRelay() {
-    console.log("I should now be creating the relay");
+    this.loading = true
+
+    const token1Asset = new Asset(
+      Math.pow(10, Number(this.token1SymbolPrecision)) * Number(this.token1Amount),
+      new Symbol(this.token1SymbolName, Number(this.token1SymbolPrecision))
+    );
+    const token2Asset = new Asset(
+      Math.pow(10, Number(this.token2SymbolPrecision)) * Number(this.token2Amount),
+      new Symbol(this.token2SymbolName, Number(this.token2SymbolPrecision))
+    );
+    const reserves = [
+      {
+        contract: this.token1Contract,
+        amount: token1Asset
+      },
+      {
+        contract: this.token2Contract,
+        amount: token2Asset
+      }
+    ];
+
+    try {
+      await multiContract.kickStartRelay(
+        this.smartTokenSymbol,
+        reserves,
+        true
+      );
+  
+      await wait(800)
+  
+      this.$router.push({
+        name: 'Relay',
+        params: {
+          symbolName: this.smartTokenSymbol
+        }
+      })
+      
+    } catch(e) {
+      // Push notification...? 
+    }
+
+    this.loading = false
   }
 
   async fetchPrecision(
@@ -229,15 +303,15 @@ export default class HeroConvert extends Vue {
   }
 
   async fetchUserBalances() {
-    this.balancesLoading = true
+    this.balancesLoading = true;
     const [token1Balance, token2Balance] = await Promise.all([
       getBalance(this.token1Contract, this.token1SymbolName),
       getBalance(this.token2Contract, this.token2SymbolName)
     ]);
 
-    this.token1UserBalance = Number(token1Balance.split(' ')[0]);
-    this.token2UserBalance = Number(token2Balance.split(' ')[0]);
-    this.balancesLoading = false
+    this.token1UserBalance = Number(token1Balance.split(" ")[0]);
+    this.token2UserBalance = Number(token2Balance.split(" ")[0]);
+    this.balancesLoading = false;
   }
 
   async checkTokenIsValid() {
@@ -251,7 +325,7 @@ export default class HeroConvert extends Vue {
       this.token1SymbolPrecision = String(precision);
       this.tokenIsValid();
 
-      const smartTokenSymbol = this.createSmartTokenSymbol("BNT", symbol);
+      this.smartTokenSymbol = this.createSmartTokenSymbol("BNT", symbol);
 
       // vxm.relay.draftNewRelay({
       //   smartTokenSymbol,
