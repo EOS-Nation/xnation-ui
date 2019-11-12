@@ -100,7 +100,6 @@ export default class Token extends Vue {
       }
     }
     vxm.general.setHeroAction("relay");
-    this.fetchData();
   }
 
   selectedFund(reserve: any) {
@@ -110,7 +109,6 @@ export default class Token extends Vue {
   async buySmartTokens() {
     await multiContract.fund("0.0050 BNTEOSS");
     await wait(1000);
-    this.fetchData();
   }
 
   async toggleRelay() {
@@ -120,14 +118,8 @@ export default class Token extends Vue {
     );
 
     await wait(1000);
-    this.fetchData();
   }
 
-  async fetchData() {
-    this.loading = true;
-    // await Promise.all([this.fetchReserves(), this.fetchSettings()]);
-    this.loading = false;
-  }
 
   async deleteReserve(reserve: any) {
     const { balance, ratio, sale_enabled, contract } = reserve;
@@ -137,7 +129,6 @@ export default class Token extends Vue {
     await multiContract.deleteReserve(this.$route.params.account, symbol);
     this.fundAmount = "";
     await wait(1000);
-    this.fetchData();
   }
 
   async fund() {
@@ -156,7 +147,6 @@ export default class Token extends Vue {
 
     this.fundAmount = "";
     await wait(1000);
-    this.fetchData();
   }
 
   async fetchSettings() {

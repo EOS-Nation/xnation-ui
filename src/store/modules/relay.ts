@@ -175,10 +175,12 @@ export class RelayModule extends VuexModule {
       token2Contract: token2.contract,
       token2Enabled: token2.sale_enabled
     });
-    await this.fetchUserBalances([
-      [token1.contract, token1.balance.symbol.code()],
-      [token2.contract, token2.balance.symbol.code()]
-    ]);
+    try {
+      await this.fetchUserBalances([
+        [token1.contract, token1.balance.symbol.code()],
+        [token2.contract, token2.balance.symbol.code()]
+      ]);
+    } catch {}
     this.stopLoading();
   }
 
@@ -191,14 +193,17 @@ export class RelayModule extends VuexModule {
   }
 
   @action async initSymbol(symbol: string) {
+    console.log(symbol, 'was received at initSymbol')
     this.setTokenSymbol(symbol);
     try {
       const settings = await tableApi.getSettingsMulti(symbol);
+      console.log('setting to true')
       this.setRelayExistence(true);
       this.setSettings(settings);
       await this.refreshReserves();
       return true;
     } catch (e) {
+      console.log(e)
       // Assume relay does not exist
       this.setRelayExistence(false);
       console.log("Relay does not exist");

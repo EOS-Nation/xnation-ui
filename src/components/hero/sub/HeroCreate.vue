@@ -132,8 +132,6 @@ export default class HeroConvert extends Vue {
 
       this.loading = false;
 
-
-
       vxm.relay.draftNewRelay({
         smartTokenSymbol,
         precision: String(precision),

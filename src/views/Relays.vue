@@ -394,6 +394,11 @@ export default class Relays extends Vue {
   // methods
   async created() {
     vxm.general.setHeroAction("liq-add");
+    if (this.$route.params.account) {
+      await vxm.relay.initSymbol(this.$route.params.account)
+      vxm.general.setHeroAction("relay");
+    } 
+    
     // this.relays = await vxm.liquidity.loadRelayTokens()
     this.debouncedGetSearch = debounce(() => {
       this.searchTokens();
