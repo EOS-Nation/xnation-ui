@@ -1,10 +1,7 @@
 import { vxm } from "@/store/";
 import { multiContractAction, SemiAction } from "../contracts/multi";
-import { ReserveInstance } from "@/types/bancor";
 import { TokenAmount } from "bancorx/build/interfaces";
 import { Symbol } from "eos-common";
-import { rpc } from "./rpc";
-import { JsonRpc } from "eosjs";
 import { tableApi, TableWrapper, ReserveTable } from "./TableWrapper";
 
 interface Action {
