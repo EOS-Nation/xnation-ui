@@ -1,5 +1,6 @@
 <template>
-  <div>
+  <hero-wrapper>
+    <div>
     <b-row>
       <b-col md="4">
         <transition name="slide-fade-down" mode="out-in">
@@ -47,7 +48,7 @@
           </div>
           <span
             v-if="this.currentRoute !== 'Relays'"
-            @click="heroAction = 'transfer'"
+            @click="navTransfer"
             class="cursor font-size-sm text-white-50"
           >
             <font-awesome-icon icon="long-arrow-alt-right" fixed-width />
@@ -74,6 +75,7 @@
     <modal-select-relays />
     <modal-convert-liquidity />
   </div>
+  </hero-wrapper>
 </template>
 
 <script lang="ts">
@@ -86,6 +88,9 @@ import ModalSelectAll from '@/components/modals/ModalSelectAll.vue'
 import ModalConvertLiquidity from '@/components/modals/ModalConvertLiquidity.vue'
 import ModalSelectToken from '@/components/modals/ModalSelectToken.vue'
 import ModalSelectRelays from '@/components/modals/ModalSelectRelays.vue'
+import HeroWrapper from '@/components/hero/HeroWrapper.vue'
+
+
 
 @Component({
   components: {
@@ -93,6 +98,7 @@ import ModalSelectRelays from '@/components/modals/ModalSelectRelays.vue'
     ModalSelectAll,
     ModalSelectToken,
     ModalConvertLiquidity,
+    HeroWrapper,
     HeroConvertRelay
   }
 })
@@ -193,7 +199,29 @@ export default class HeroConvert extends Vue {
   async onTokenChange(val: any, oldVal: any) {
     await this.conversionRate()
   }
+
+
+  setFromToken(symbolName: string) {
+      const tokenInfo = bancorx.getTokenInfo(symbolName)
+      if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo)
+  }
+
+  @Watch("$route")
+  listen(to: any) {
+    this.setFromToken(to.params.symbolName)
+  }
+
+  navTransfer() {
+    this.$router.push({
+      name: "Transfer",                              
+      params: {
+        symbolName: this.$route.params.symbolName || "EOS"
+      }
+    })
+  }
+
   async created() {
+    this.setFromToken(this.$route.params.symbolName || "EOS")
     await this.conversionRate()
   }
 }

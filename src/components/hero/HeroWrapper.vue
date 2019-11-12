@@ -21,11 +21,7 @@
 import { Watch, Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
 
-export default class HeroWrapper extends Vue {
-
-
-
-}
+export default class HeroWrapper extends Vue {}
 </script>
 
 <style scoped lang="scss">

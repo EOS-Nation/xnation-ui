@@ -4,8 +4,8 @@ import Wallet from '@/views/Wallet.vue'
 import WalletAccount from '@/views/WalletAccount.vue'
 import Tokens from '@/views/Tokens.vue'
 import Relays from '@/views/Relays.vue'
-import Relay from '@/views/Relay.vue'
 import HeroActions from '@/components/hero/HeroActions.vue'
+import HeroConvert from '@/components/hero/sub/HeroConvert.vue'
 import HeroTransfer from '@/components/hero/sub/HeroTransfer.vue'
 import Navigation from '@/components/layout/Navigation.vue'
 
@@ -37,8 +37,18 @@ export default new Router({
       components: {
         Nav: Navigation,
         default: Tokens,
-        Hero: HeroActions
+        Hero: HeroConvert
       }
+    },
+    {
+      path: '/:symbolName',
+      name: 'Token',
+      components: {
+        Nav: Navigation,
+        default: Tokens,
+        Hero: HeroConvert
+      },
+      props: true
     },
     {
       path: '/transfer/:symbolName',

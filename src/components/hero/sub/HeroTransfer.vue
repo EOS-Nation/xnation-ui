@@ -1,5 +1,6 @@
 <template>
   <hero-wrapper>
+    <div>
     <b-row>
       <b-col md="4" class="text-center">
         <hero-convert-relay direction="from" />
@@ -16,7 +17,7 @@
               <span class="font-w700">TRANSFER</span>
             </b-btn>
           </div>
-          <span @click="heroAction = 'convert'" class="cursor font-size-sm text-white-50">
+          <span @click="navConvert" class="cursor font-size-sm text-white-50">
             <font-awesome-icon icon="exchange-alt" fixed-width />CONVERT
           </span>
         </div>
@@ -46,6 +47,7 @@
     </b-row>
     <modal-select-all />
     <modal-transfer-token />
+    </div>
   </hero-wrapper>
 </template>
 
@@ -207,7 +209,17 @@ export default class HeroTransfer extends Vue {
     this.availableBalance = await this.loadBalance()
   }
 
+  navConvert() {
+    this.$router.push({
+      name: 'Token',
+      params: {
+        symbolName: this.$route.params.symbolName || 'EOS'
+      }
+    })
+  }
+
   async created() {
+    this.setFromToken(this.$route.params.symbolName)
     this.loadHistory()
     this.availableBalance = await this.loadBalance()
   }
