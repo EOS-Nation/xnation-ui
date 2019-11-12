@@ -54,6 +54,16 @@
           Relays
         </b-btn>
         <b-btn
+          :to="{ name: 'Create' }"
+          variant="primary"
+          size="sm"
+          exact
+          class="mr-2"
+        >
+          <font-awesome-icon icon="plus" fixed-width class="mr-1" />
+          Create
+        </b-btn>
+        <b-btn
           v-if="!isAuthenticated"
           :to="{ name: 'Wallet' }"
           variant="primary"
@@ -70,16 +80,6 @@
           exact
         >
           <font-awesome-icon icon="wallet" fixed-width /> Wallet
-        </b-btn>
-        <b-btn
-          @click="createRelay"
-          variant="primary"
-          size="sm"
-          exact
-          class="mr-2"
-        >
-          <font-awesome-icon icon="plus" fixed-width class="mr-1" />
-          Create
         </b-btn>
       </div>
       <!-- END Center Section -->
@@ -142,13 +142,10 @@ export default class Navigation extends Vue {
     else return false
   }
 
-  async createRelay() {
-    vxm.general.setHeroAction('create')
-    // this.$router.push({
-      // name: "Relays"
-    // })
-    // await wait()
-    // this.$root.$emit('bv::show::modal', 'create-modal', '#focusThisOnClose')
+  createRelay() {
+    this.$router.push({
+      name: "Create"
+    })
   }
 
   // methods

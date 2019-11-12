@@ -1,74 +1,109 @@
 <template>
-  <div>
-    <b-row>
-      <b-col md="4">
-        <transition name="slide-fade-down" mode="out-in">
-          <token-amount-input 
-            @toggle="token1Enabled = !token1Enabled"
-            :toggle="relayExists"
-            :status="token1Enabled"
-            :amount.sync="token1Amount"
-            :symbol="token1Symbol"
-            :balance="token1UserBalance"
-            :img="token1Img"
-          />
-        </transition>
-      </b-col>
-      <b-col md="4" class="d-flex justify-content-center align-items-end" style="min-height: 230px">
-        <div>
-          <transition name="fade" mode="out-in">
-            <font-awesome-icon icon="exchange-alt" class="fa-2x text-white cursor" :spin="spinning" @click="swapTokens()" />
+  <hero-wrapper>
+    <div>
+      <b-row>
+        <b-col md="4">
+          <transition name="slide-fade-down" mode="out-in">
+            <token-amount-input
+              @toggle="token1Enabled = !token1Enabled"
+              :toggle="relayExists"
+              :status="token1Enabled"
+              :amount.sync="token1Amount"
+              :symbol="token1Symbol"
+              :balance="token1UserBalance"
+              :img="token1Img"
+            />
           </transition>
-          <div class="mb-3 mt-3">
-            <div class="text-white font-size-sm">
-              1 {{ token1Symbol }} =
-              <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span>
-              <span v-else>
-                <font-awesome-icon icon="circle-notch" spin />
-              </span>
-              {{ simpleReward }}
+        </b-col>
+        <b-col
+          md="4"
+          class="d-flex justify-content-center align-items-end"
+          style="min-height: 230px"
+        >
+          <div>
+            <transition name="fade" mode="out-in">
+              <font-awesome-icon
+                icon="exchange-alt"
+                class="fa-2x text-white cursor"
+                :spin="spinning"
+                @click="swapTokens()"
+              />
+            </transition>
+            <div class="mb-3 mt-3">
+              <div class="text-white font-size-sm">
+                1 {{ token1Symbol }} =
+                <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span>
+                <span v-else>
+                  <font-awesome-icon icon="circle-notch" spin />
+                </span>
+                {{ simpleReward }}
+              </div>
+              <div v-if="relayExists" class="text-white font-size-sm">Fee: {{ fee }} %</div>
             </div>
-            <div v-if="relayExists" class="text-white font-size-sm">
-              Fee: {{ fee }} %
+            <div class="d-flex justify-content-center">
+              <b-btn
+                @click="toggleMain"
+                v-if="!relayExists"
+                variant="success"
+                v-ripple
+                class="px-4 py-2 d-block"
+                :disabled="loadingTokens || minReturn === ''"
+              >
+                <font-awesome-icon
+                  :icon="loadingTokens ? 'circle-notch' : 'plus'"
+                  :spin="loadingTokens"
+                  fixed-width
+                  class="mr-2"
+                />
+                <span class="font-w700">Create Relay</span>
+              </b-btn>
+              <b-dropdown
+                v-else
+                button
+                @click="toggleMain"
+                variant="success"
+                split
+                text="Add Liquidity"
+                class="m-2"
+                size="lg"
+              >
+                <template v-slot:button-content>
+                  <font-awesome-icon
+                    :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
+                    :spin="loadingTokens"
+                    fixed-width
+                    class="mr-2"
+                  />
+                  <span class="font-w700">{{ 'Add Liquidity' }}</span>
+                </template>
+                <b-dropdown-item-button>Remove Liquidity</b-dropdown-item-button>
+                <b-dropdown-item href="#">Update Fee</b-dropdown-item>
+                <b-dropdown-divider></b-dropdown-divider>
+                <b-dropdown-item-button variant="warning" @click="toggleRelay">Pause Relay</b-dropdown-item-button>
+              </b-dropdown>
             </div>
           </div>
-          <div class="d-flex justify-content-center">
-            <b-btn @click="toggleMain" v-if="!relayExists" variant="success" v-ripple class="px-4 py-2 d-block" :disabled="loadingTokens || minReturn === ''">
-              <font-awesome-icon :icon="loadingTokens ? 'circle-notch' : 'plus'" :spin="loadingTokens" fixed-width class="mr-2" />
-              <span class="font-w700">Create Relay</span>
-            </b-btn>
-            <b-dropdown v-else button @click="toggleMain" variant="success" split text="Add Liquidity" class="m-2" size="lg">
-              <template v-slot:button-content>
-                <font-awesome-icon :icon="loadingTokens ? 'circle-notch' : 'sync-alt'" :spin="loadingTokens" fixed-width class="mr-2" />
-                <span class="font-w700">{{ 'Add Liquidity' }}</span>
-              </template>
-              <b-dropdown-item-button>Remove Liquidity</b-dropdown-item-button>
-              <b-dropdown-item href="#">Update Fee</b-dropdown-item>
-              <b-dropdown-divider></b-dropdown-divider>
-              <b-dropdown-item-button variant="warning" @click="toggleRelay">Pause Relay</b-dropdown-item-button>
-            </b-dropdown>
-          </div>
-        </div>
-      </b-col>
-      <b-col md="4">
-        <transition name="slide-fade-up" mode="out-in">
-          <token-amount-input 
-            :toggle="relayExists" 
-            @toggle="token2Enabled = !token2Enabled" 
-            :status="token2Enabled" 
-            :amount.sync="token2Amount" 
-            :symbol="token2Symbol" 
-            :balance="token2UserBalance" 
-            :img="token2Img" 
-          />
-        </transition>
-      </b-col>
-    </b-row>
-    <modal-select-all />
-    <modal-select-token />
-    <modal-select-relays />
-    <modal-convert-liquidity />
-  </div>
+        </b-col>
+        <b-col md="4">
+          <transition name="slide-fade-up" mode="out-in">
+            <token-amount-input
+              :toggle="relayExists"
+              @toggle="token2Enabled = !token2Enabled"
+              :status="token2Enabled"
+              :amount.sync="token2Amount"
+              :symbol="token2Symbol"
+              :balance="token2UserBalance"
+              :img="token2Img"
+            />
+          </transition>
+        </b-col>
+      </b-row>
+      <modal-select-all />
+      <modal-select-token />
+      <modal-select-relays />
+      <modal-convert-liquidity />
+    </div>
+  </hero-wrapper>
 </template>
 
 <script lang="ts">
@@ -86,7 +121,8 @@ import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
 import { calculateReturn } from "bancorx";
 import { split, Asset } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
-import wait from 'waait'
+import wait from "waait";
+import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 
 @Component({
   components: {
@@ -95,7 +131,8 @@ import wait from 'waait'
     ModalSelectToken,
     ModalConvertLiquidity,
     HeroConvertRelay,
-    TokenAmountInput
+    TokenAmountInput,
+    HeroWrapper
   }
 })
 export default class HeroConvert extends Vue {
@@ -109,12 +146,11 @@ export default class HeroConvert extends Vue {
   token1Amount = "";
   token2Amount = "";
   token1Img =
-  "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
+    "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
   token2Img =
-  "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
+    "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
 
   // computed
-
 
   get token1Symbol() {
     return vxm.relay.token1SymbolName;
@@ -149,7 +185,7 @@ export default class HeroConvert extends Vue {
   }
 
   get fee() {
-    return vxm.relay.fee
+    return vxm.relay.fee;
   }
 
   get token2Contract() {
@@ -173,11 +209,11 @@ export default class HeroConvert extends Vue {
   }
 
   set token1Enabled(status: boolean) {
-    vxm.relay.setToken1Enabled(status)
+    vxm.relay.setToken1Enabled(status);
   }
 
   set token2Enabled(status: boolean) {
-    vxm.relay.setToken2Enabled(status)
+    vxm.relay.setToken2Enabled(status);
   }
 
   get simpleReward() {
@@ -193,8 +229,11 @@ export default class HeroConvert extends Vue {
   }
 
   async toggleRelay() {
-    await multiContract.enableConversion(this.$route.params.account, !vxm.relay.enabled);
-    await wait(700)
+    await multiContract.enableConversion(
+      this.$route.params.account,
+      !vxm.relay.enabled
+    );
+    await wait(700);
     vxm.relay.initSymbol(this.$route.params.account);
   }
 
@@ -225,21 +264,24 @@ export default class HeroConvert extends Vue {
         contract: this.token2Contract,
         amount: token2Asset
       }
-    ]
+    ];
 
     try {
       if (this.relayExists) {
         await multiContract.addLiquidity(this.$route.params.account, reserves);
       } else {
-        await multiContract.kickStartRelay(this.$route.params.account, reserves, true)
+        await multiContract.kickStartRelay(
+          this.$route.params.account,
+          reserves,
+          true
+        );
       }
-  
-      await wait(700)
-      vxm.relay.initSymbol(this.$route.params.account)
-    } catch(e) {
-      console.warn('Error creating transaction', e)
-    }
 
+      await wait(700);
+      vxm.relay.initSymbol(this.$route.params.account);
+    } catch (e) {
+      console.warn("Error creating transaction", e);
+    }
   }
 
   // methods
@@ -260,9 +302,17 @@ export default class HeroConvert extends Vue {
     this.token2Img = token2.logo;
   }
 
-  async created() {
+  @Watch("$route")
+  listen(to: any) {
+    this.setSmartSymbol(to.params.symbolName);
+  }
+
+  async setSmartSymbol(smartSymbol: string) {
     await vxm.relay.initSymbol(this.$route.params.account);
-    console.log('Hero Relay created', 'Token1 is', this.token1Contract, 'token2 is', this.token2Contract)
+  }
+
+  async created() {
+    this.setSmartSymbol(this.$route.params.symbolName);
     this.fetchTokenMeta();
   }
 }
@@ -280,7 +330,7 @@ export default class HeroConvert extends Vue {
 .slide-fade-up-enter
 /* .slide-fade-leave-active below version 2.1.8 */
 
-{
+ {
   transform: translateY(75px);
   opacity: 0;
 }
@@ -288,7 +338,7 @@ export default class HeroConvert extends Vue {
 .slide-fade-up-leave-to
 /* .slide-fade-leave-active below version 2.1.8 */
 
-{
+ {
   transform: translateY(-75px);
   opacity: 0;
 }
@@ -304,7 +354,7 @@ export default class HeroConvert extends Vue {
 .slide-fade-down-enter
 /* .slide-fade-leave-active below version 2.1.8 */
 
-{
+ {
   transform: translateY(-75px);
   opacity: 0;
 }
@@ -312,7 +362,7 @@ export default class HeroConvert extends Vue {
 .slide-fade-down-leave-to
 /* .slide-fade-leave-active below version 2.1.8 */
 
-{
+ {
   transform: translateY(75px);
   opacity: 0;
 }
@@ -326,7 +376,7 @@ export default class HeroConvert extends Vue {
 .fade-leave-to
 /* .fade-leave-active below version 2.1.8 */
 
-{
+ {
   opacity: 0;
 }
 </style>

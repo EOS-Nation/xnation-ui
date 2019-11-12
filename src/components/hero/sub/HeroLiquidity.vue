@@ -1,4 +1,5 @@
 <template>
+  <hero-wrapper>
   <div>
     <b-row>
       <b-col md="4" class="d-flex align-items-center">
@@ -54,6 +55,7 @@
     <modal-select-token />
     <modal-convert-liquidity />
   </div>
+  </hero-wrapper>
 </template>
 
 <script lang="ts">
@@ -66,6 +68,8 @@ import ModalSelectRelays from '@/components/modals/ModalSelectRelays.vue'
 import ModalConvertLiquidity from '@/components/modals/ModalConvertLiquidity.vue'
 import HeroConvertLiq from '@/components/convert/HeroConvertLiq.vue'
 import ModalSelectToken from '@/components/modals/ModalSelectToken.vue'
+import HeroWrapper from "@/components/hero/HeroWrapper.vue";
+
 
 @Component({
   components: {
@@ -73,7 +77,8 @@ import ModalSelectToken from '@/components/modals/ModalSelectToken.vue'
     ModalConvertLiquidity,
     ModalSelectRelays,
     HeroConvertRelay,
-    HeroConvertLiq
+    HeroConvertLiq,
+    HeroWrapper
   }
 })
 export default class HeroLiquidity extends Vue {

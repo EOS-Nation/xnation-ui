@@ -1,13 +1,4 @@
 <template>
-  <div
-    class="bg-image"
-    :style="
-      'background-image: url(' +
-        require('@/assets/media/photos/bg01.jpg') +
-        ');'
-    "
-  >
-    <div class="hero bg-primary-dark-op">
       <div class="content content-full text-center">
         <form v-on:submit.prevent="searchAccount()">
           <b-row class="items-push mt-5 d-flex justify-content-center">
@@ -47,8 +38,6 @@
           </b-row>
         </form>
       </div>
-    </div>
-  </div>
 </template>
 
 <script lang="ts">
@@ -62,13 +51,6 @@ export default class HeroWallet extends Vue {
 
   // data
   search = ''
-
-  // computed
-  get isAuthenticated() {
-    if (vxm.eosTransit.walletState)
-      return vxm.eosTransit.walletState.authenticated
-    else return false
-  }
 
   // methods
   searchAccount() {

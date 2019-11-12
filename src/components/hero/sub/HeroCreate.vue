@@ -1,59 +1,64 @@
 <template>
-  <div>
-    <b-row>
-      <b-col md="12">
-        <h1 class="text-white">List a Token</h1>
-      </b-col>
-    </b-row>
-    <b-row>
-      <b-col md="4">
-        <transition name="slide-fade-down" mode="out-in">
-          <div>
-            <h3 class="text-white">Token Contract</h3>
-            <b-form-input id="input-1" v-model="tokenContract" placeholder="eosio.token" trim></b-form-input>
-          </div>
-        </transition>
-      </b-col>
-      <b-col md="4" class="justify-content-center align-items-center" style="min-height: 230px">
-        <transition name="fade" mode="out-in">
-          <span>
-            <h3 class="invisible">TECHDEBT</h3>
-            <font-awesome-icon
-              class="fa-2x text-white cursor"
-              v-if="loading"
-              icon="circle-notch"
-              spin
-            />
-            <font-awesome-icon
-              class="fa-2x text-white cursor align-self-center"
-              v-else
-              icon="question"
-            />
-            <div class="text-white" v-if="failedToFindToken">Failed to find token</div>
-          </span>
-        </transition>
-      </b-col>
-      <b-col md="4">
-        <transition name="slide-fade-up" mode="out-in">
-          <div>
-            <h3 class="text-white">Token Symbol</h3>
-            <b-form-input id="input-1" v-model="tokenSymbol" placeholder="EOS" trim></b-form-input>
-          </div>
-        </transition>
-      </b-col>
-    </b-row>
-  </div>
+  <hero-wrapper>
+    <div>
+      <b-row>
+        <b-col md="12">
+          <h1 class="text-white">List a Token</h1>
+        </b-col>
+      </b-row>
+      <b-row>
+        <b-col md="4">
+          <transition name="slide-fade-down" mode="out-in">
+            <div>
+              <h3 class="text-white">Token Contract</h3>
+              <b-form-input id="input-1" v-model="tokenContract" placeholder="eosio.token" trim></b-form-input>
+            </div>
+          </transition>
+        </b-col>
+        <b-col md="4" class="justify-content-center align-items-center" style="min-height: 230px">
+          <transition name="fade" mode="out-in">
+            <span>
+              <h3 class="invisible">TECHDEBT</h3>
+              <font-awesome-icon
+                class="fa-2x text-white cursor"
+                v-if="loading"
+                icon="circle-notch"
+                spin
+              />
+              <font-awesome-icon
+                class="fa-2x text-white cursor align-self-center"
+                v-else
+                icon="question"
+              />
+              <div class="text-white" v-if="failedToFindToken">Failed to find token</div>
+            </span>
+          </transition>
+        </b-col>
+        <b-col md="4">
+          <transition name="slide-fade-up" mode="out-in">
+            <div>
+              <h3 class="text-white">Token Symbol</h3>
+              <b-form-input id="input-1" v-model="tokenSymbol" placeholder="EOS" trim></b-form-input>
+            </div>
+          </transition>
+        </b-col>
+      </b-row>
+    </div>
+  </hero-wrapper>
 </template>
 
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
+import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 
 const debounce = require("lodash.debounce");
 
 @Component({
-  components: {}
+  components: {
+    HeroWrapper
+  }
 })
 export default class HeroConvert extends Vue {
   public debouncedSuggestPrecision: any;
@@ -80,7 +85,10 @@ export default class HeroConvert extends Vue {
     }
   }
 
-  async fetchPrecision(tokenContract: string, tokenSymbolName: string): Promise<number> {
+  async fetchPrecision(
+    tokenContract: string,
+    tokenSymbolName: string
+  ): Promise<number> {
     const { max_supply } = await fetchTokenStats(
       this.tokenContract,
       this.tokenSymbol
@@ -92,10 +100,10 @@ export default class HeroConvert extends Vue {
     return new Promise((resolve, reject) => {
       let img = new Image();
       img.onload = () => {
-        resolve()
-      }
-      img.src = imageUrl
-    })
+        resolve();
+      };
+      img.src = imageUrl;
+    });
   }
 
   async suggestPrecision() {
@@ -127,8 +135,8 @@ export default class HeroConvert extends Vue {
           this.tokenContract,
           this.tokenSymbol
         );
-        await this.fetchImage(metaData.logo)
-      } catch(e) {}
+        await this.fetchImage(metaData.logo);
+      } catch (e) {}
 
       this.loading = false;
 

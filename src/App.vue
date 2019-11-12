@@ -24,13 +24,11 @@ import { Component, Vue } from 'vue-property-decorator'
 import ModalLogin from '@/components/modals/ModalLogin.vue'
 import { vxm } from '@/store/'
 import { WalletProvider } from 'eos-transit'
-import HeroActions from '@/components/hero/HeroActions.vue'
 
 
 @Component({
   components: {
     ModalLogin,
-    HeroActions
   }
 })
 export default class App extends Vue {

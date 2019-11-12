@@ -4,9 +4,11 @@ import Wallet from '@/views/Wallet.vue'
 import WalletAccount from '@/views/WalletAccount.vue'
 import Tokens from '@/views/Tokens.vue'
 import Relays from '@/views/Relays.vue'
-import HeroActions from '@/components/hero/HeroActions.vue'
 import HeroConvert from '@/components/hero/sub/HeroConvert.vue'
 import HeroTransfer from '@/components/hero/sub/HeroTransfer.vue'
+import HeroRelay from '@/components/hero/sub/HeroRelay.vue'
+import HeroCreate from '@/components/hero/sub/HeroCreate.vue'
+import HeroLiquidity from '@/components/hero/sub/HeroLiquidity.vue'
 import Navigation from '@/components/layout/Navigation.vue'
 
 Vue.use(Router)
@@ -66,7 +68,7 @@ export default new Router({
       components: {
         Nav: Navigation,
         default: Relays,
-        Hero: HeroActions
+        Hero: HeroLiquidity
       }
     },
     {
@@ -75,7 +77,7 @@ export default new Router({
       components: {
         Nav: Navigation,
         default: Relays,
-        Hero: HeroActions
+        Hero: HeroRelay
       },
       props: true
     },
@@ -92,9 +94,19 @@ export default new Router({
       name: 'WalletAccount',
       components: {
         Nav: Navigation,
+        Hero: HeroTransfer,
         default: WalletAccount
       },
       props: true
+    },
+    {
+      path: '/relays/create',
+      name: 'Create',
+      components: {
+        Nav: Navigation,
+        default: Relays,
+        Hero: HeroCreate
+      }
     }
   ]
 })

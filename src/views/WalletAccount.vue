@@ -1,7 +1,5 @@
 <template>
   <div>
-    <hero-actions />
-    <!-- Page Content -->
     <div class="content content-boxed">
       <b-row>
         <b-col md="4" lg="3">
@@ -194,14 +192,12 @@ import {  baseApi } from '@/api/BaseApi'
 import * as bancorx from '@/assets/_ts/bancorx'
 import { TokenPrice } from '@/types/bancor'
 import SortIcons from '@/components/common/SortIcons.vue'
-import HeroActions from '@/components/hero/HeroActions.vue'
 import numeral from 'numeral'
 import { TokenInfo } from '@/assets/_ts/bancorx'
 import { bancorApi } from '../api/bancor'
 
 @Component({
   components: {
-    HeroActions,
     SortIcons
   }
 })

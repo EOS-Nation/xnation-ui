@@ -1,25 +1,6 @@
 <template>
   <div>
     <div class="content content-boxed">
-      <b-modal @ok="createRelay" id="create-modal" :ok-disabled="!tokenExists" title="Create a Relay">
-        <p class="my-4">Token to list on Bancor</p>
-        <div>
-          <b-img class="img-avatar center img-avatar-thumb" :src="imageUrl" />
-          <b-form-group
-            id="fieldset-1"
-            label="Symbol"
-            description="New Token Symbol"
-            label-for="input-1"
-          >
-            <b-form-input id="input-1" placeholder="EOS" v-model="tokenSymbol" trim></b-form-input>
-          </b-form-group>
-          <b-form-group id="fieldset-1" label="Token Contract" label-for="input-1">
-            <b-form-input id="input-1" v-model="tokenContract" placeholder="eosio.token" trim></b-form-input>
-          </b-form-group>
-          <p v-if="tokenExists === false">Failed to find token.</p>
-        </div>
-      </b-modal>
-
       <div class="block">
         <div class="block-header">
           <h3 class="block-title">
@@ -27,7 +8,7 @@
             <small>Relays</small>
           </h3>
           <div class="block-options">
-            <b-button size="sm" v-b-modal="'create-modal'">Create</b-button>
+            <b-button size="sm" @click="create">Create</b-button>
             <b-input-group size="sm">
               <b-input-group-text slot="prepend" class="bg-body border-0 text-muted">
                 <font-awesome-icon
@@ -271,38 +252,10 @@ export default class Relays extends Vue {
     this.currentSort = s;
   }
 
-  createSmartTokenSymbol(ticker1: string, ticker2: string) {
-    const maxSymbolLength = 7;
-    if (ticker1.length + ticker2.length <= maxSymbolLength) {
-      return ticker1 + ticker2;
-    } else {
-      return ticker1 + ticker2[0] + ticker2[2] + ticker2[3];
-    }
-  }
-
-  async createRelay() {
-    const smartTokenSymbol = this.createSmartTokenSymbol(
-      "BNT",
-      this.tokenSymbol
-    );
-
-    // ToDo: Make sure a relay doesn't already exist, if so redirect.
-    const relayAlreadyExists = false;
-    if (relayAlreadyExists) throw new Error("Relay already exists, I should point this out to the user.")
-    
-    vxm.relay.draftNewRelay({
-      smartTokenSymbol,
-      precision: this.tokenPrecision,
-      symbolName: this.tokenSymbol,
-      tokenContract: this.tokenContract
-    })
-    console.log('Draft was set')
-
-    vxm.general.setHeroAction("relay");
+  create() {
     this.$router.push({
-      name: "Relay",
-      params: { account: smartTokenSymbol, isDraft: 'yes' }
-    });
+      name: 'Create'
+    })
   }
 
   async updateTokens() {
