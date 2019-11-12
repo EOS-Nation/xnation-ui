@@ -9,9 +9,7 @@
     <main id="main-container" class="bg-primary">
       <!-- Main Content -->
       <!--<transition name="fade" mode="out-in">-->
-      <hero-actions>
-        <router-view name="Hero"></router-view>
-      </hero-actions>
+      <router-view name="Hero"></router-view>
       <router-view></router-view>
       <!--</transition>-->
       <!-- END Main Content -->

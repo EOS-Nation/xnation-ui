@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <hero-wrapper>
     <b-row>
       <b-col md="4" class="text-center">
         <hero-convert-relay direction="from" />
@@ -46,7 +46,7 @@
     </b-row>
     <modal-select-all />
     <modal-transfer-token />
-  </div>
+  </hero-wrapper>
 </template>
 
 <script lang="ts">
@@ -57,9 +57,11 @@ import numeral from 'numeral'
 import ModalSelectAll from '@/components/modals/ModalSelectAll.vue'
 import HeroConvertRelay from '@/components/convert/HeroConvertRelay.vue'
 import ModalTransferToken from '@/components/modals/ModalTransferToken.vue'
+import HeroWrapper from '@/components/hero/HeroWrapper.vue'
 
 @Component({
   components: {
+    HeroWrapper,
     ModalSelectAll,
     ModalTransferToken,
     HeroConvertRelay,
