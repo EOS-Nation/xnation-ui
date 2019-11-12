@@ -9,7 +9,9 @@
     <main id="main-container" class="bg-primary">
       <!-- Main Content -->
       <!--<transition name="fade" mode="out-in">-->
-      <router-view name="Hero"></router-view>
+      <hero-actions>
+        <router-view name="Hero"></router-view>
+      </hero-actions>
       <router-view></router-view>
       <!--</transition>-->
       <!-- END Main Content -->
@@ -24,10 +26,13 @@ import { Component, Vue } from 'vue-property-decorator'
 import ModalLogin from '@/components/modals/ModalLogin.vue'
 import { vxm } from '@/store/'
 import { WalletProvider } from 'eos-transit'
+import HeroActions from '@/components/hero/HeroActions.vue'
+
 
 @Component({
   components: {
-    ModalLogin
+    ModalLogin,
+    HeroActions
   }
 })
 export default class App extends Vue {

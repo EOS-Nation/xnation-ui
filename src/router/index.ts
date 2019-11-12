@@ -6,6 +6,7 @@ import Tokens from '@/views/Tokens.vue'
 import Relays from '@/views/Relays.vue'
 import Relay from '@/views/Relay.vue'
 import HeroActions from '@/components/hero/HeroActions.vue'
+import HeroTransfer from '@/components/hero/sub/HeroTransfer.vue'
 import Navigation from '@/components/layout/Navigation.vue'
 
 Vue.use(Router)
@@ -38,6 +39,16 @@ export default new Router({
         default: Tokens,
         Hero: HeroActions
       }
+    },
+    {
+      path: '/transfer/:symbolName',
+      name: 'Transfer',
+      components: {
+        Nav: Navigation,
+        default: Tokens,
+        Hero: HeroTransfer
+      },
+      props: true
     },
     {
       path: '/relays',

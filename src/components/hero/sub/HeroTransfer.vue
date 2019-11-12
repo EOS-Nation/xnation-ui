@@ -4,48 +4,26 @@
       <b-col md="4" class="text-center">
         <hero-convert-relay direction="from" />
       </b-col>
-      <b-col
-        md="4"
-        class="d-flex justify-content-center align-items-end"
-        style="min-height: 230px"
-      >
+      <b-col md="4" class="d-flex justify-content-center align-items-end" style="min-height: 230px">
         <div>
-          <font-awesome-icon
-            icon="long-arrow-alt-right"
-            class="fa-2x text-white"
-          />
+          <font-awesome-icon icon="long-arrow-alt-right" class="fa-2x text-white" />
           <div class="mb-3 mt-3">
             <span class="text-white font-size-sm">Value: {{ usdValue }}</span>
           </div>
           <div class="d-flex justify-content-center">
-            <b-btn
-              @click="initTransfer()"
-              variant="info"
-              v-ripple
-              class="px-4 py-2 d-block"
-            >
-              <font-awesome-icon
-                icon="long-arrow-alt-right"
-                fixed-width
-                class="mr-2"
-              />
+            <b-btn @click="initTransfer()" variant="info" v-ripple class="px-4 py-2 d-block">
+              <font-awesome-icon icon="long-arrow-alt-right" fixed-width class="mr-2" />
               <span class="font-w700">TRANSFER</span>
             </b-btn>
           </div>
-          <span
-            @click="heroAction = 'convert'"
-            class="cursor font-size-sm text-white-50"
-          >
-            <font-awesome-icon icon="exchange-alt" fixed-width />
-            CONVERT
+          <span @click="heroAction = 'convert'" class="cursor font-size-sm text-white-50">
+            <font-awesome-icon icon="exchange-alt" fixed-width />CONVERT
           </span>
         </div>
       </b-col>
       <b-col md="4">
         <div>
-          <div class="font-size-lg text-white">
-            Recipient
-          </div>
+          <div class="font-size-lg text-white">Recipient</div>
           <b-form-input
             v-model="recipient"
             class="form-control-alt mt-2"
@@ -53,22 +31,16 @@
             list="contacts"
           ></b-form-input>
           <datalist id="contacts">
-            <option v-for="(contact, index) in contactHistory" :key="index">{{
+            <option v-for="(contact, index) in contactHistory" :key="index">
+              {{
               contact
-            }}</option>
+              }}
+            </option>
           </datalist>
         </div>
         <div class="mt-2">
-          <div class="text-white">
-            Memo
-          </div>
-          <b-form-textarea
-            v-model="memo"
-            placeholder="optional"
-            class="mt-2"
-            rows="2"
-            max-rows="4"
-          ></b-form-textarea>
+          <div class="text-white">Memo</div>
+          <b-form-textarea v-model="memo" placeholder="optional" class="mt-2" rows="2" max-rows="4"></b-form-textarea>
         </div>
       </b-col>
     </b-row>
@@ -78,7 +50,7 @@
 </template>
 
 <script lang="ts">
-import { Watch, Component, Vue } from 'vue-property-decorator'
+import { Watch, Component, Vue, Prop } from 'vue-property-decorator'
 import { vxm } from '@/store'
 import * as bancorx from '@/assets/_ts/bancorx'
 import numeral from 'numeral'
@@ -99,6 +71,8 @@ export default class HeroTransfer extends Vue {
   loadingBalance = false
   numeral = numeral
   contactHistory: string[] = []
+  @Prop(String) symbolName!: string;
+
 
   // computed
   get isAuthenticated() {
@@ -158,12 +132,23 @@ export default class HeroTransfer extends Vue {
   get memo() {
     return vxm.transfer.memo
   }
+
   set memo(val) {
     vxm.transfer.setMemo(val)
   }
 
   get usdValue() {
     return numeral(0).format('$0,0.00')
+  }
+
+  setFromToken(symbolName: string) {
+      const tokenInfo = bancorx.getTokenInfo(symbolName)
+      if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo)
+  }
+
+  @Watch("$route")
+  listen(to: any) {
+    this.setFromToken(to.params.symbolName)
   }
 
   // methods

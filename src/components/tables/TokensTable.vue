@@ -265,10 +265,17 @@ export default class TokensTable extends Vue {
       left: 0,
       behavior: 'smooth'
     })
-    const tokenInfo = bancorx.getTokenInfo(symbol)
-    if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo)
-    else console.error('Failed to find token information for symbol', symbol)
-    vxm.general.setHeroAction(action)
+    if (action == 'transfer') {
+      this.$router.push({
+        name: 'Transfer',
+        params: { symbolName: symbol }
+      })
+    } else { 
+      const tokenInfo = bancorx.getTokenInfo(symbol)
+      if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo)
+      else console.error('Failed to find token information for symbol', symbol)
+      vxm.general.setHeroAction(action)
+    }
   }
 
   searchTokens() {
