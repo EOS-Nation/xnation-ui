@@ -1,8 +1,8 @@
 import axios from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
-import { Asset, split } from "eos-common";
-import { EosAccount } from "bancorx/build/interfaces";
+import { Asset, split, Symbol } from "eos-common";
+import { EosAccount, nRelay } from "bancorx/build/interfaces";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
 
@@ -98,20 +98,20 @@ export const fetchTokenMeta = async (
   return metaData;
 };
 
-export const fetchRelays = async (): Promise<any[]> => {
+export const fetchRelays = async (): Promise<nRelay[]> => {
+  const contractName = "welovebancor";
   const { scopes } = await client.stateTableScopes(
-    "welovebancor",
+    contractName,
     "converters"
   );
-  console.log(scopes, "were the scopes");
   const rawConverters = await client.stateTablesForScopes(
-    "welovebancor",
+    contractName,
     scopes,
     "converters"
   );
   const polishedConverters = rawConverters.tables;
   const rawReserves = await client.stateTablesForScopes(
-    "welovebancor",
+    contractName,
     scopes,
     "reserves"
   );
@@ -131,5 +131,21 @@ export const fetchRelays = async (): Promise<any[]> => {
       };
     });
 
-  return flatRelays;
+  const relays: nRelay[] = flatRelays.map((flatRelay): any => {
+    const [precision, symbolName] = flatRelay.settings.currency.split(',')
+    return {
+      reserves: flatRelay.reserves.map(({ contract, balance }: any) => ({
+        contract,
+        symbol: new Symbol(balance.split(' ')[1] , Number(balance.split(' ')[0].split('.')[1].length))
+      })),
+      contract: "welovebancor",
+      isMultiContract: true,
+      smartToken: {
+        contract: 'labelaarbaro',
+        symbol: new Symbol(symbolName, Number(precision))
+      }
+    }
+  })
+
+  return relays;
 };
