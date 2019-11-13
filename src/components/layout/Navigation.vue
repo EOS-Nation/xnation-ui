@@ -57,6 +57,7 @@
           :to="{ name: 'Create' }"
           variant="primary"
           size="sm"
+          :disabled="!isAuthenticated"
           exact
           class="mr-2"
         >
