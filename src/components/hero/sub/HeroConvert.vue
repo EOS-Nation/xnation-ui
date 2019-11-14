@@ -85,7 +85,7 @@ import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue
 import ModalSelectToken from "@/components/modals/ModalSelectToken.vue";
 import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
-import { fetchRelays } from "@/api/helpers"
+import { fetchRelays, parseTokens, fetchTokenMeta } from "@/api/helpers"
 
 @Component({
   components: {
@@ -220,6 +220,10 @@ export default class HeroConvert extends Vue {
     this.setFromToken(this.$route.params.symbolName || "EOS");
     const data = await fetchRelays()
     console.log(data, 'were the scopes')
+    const x = await parseTokens(data)
+    console.log(x, 'was x')
+    const tokenMeta = await Promise.all(x.map(x => fetchTokenMeta(x.contract, x.symbol.code())))
+    console.log(tokenMeta)
     await this.conversionRate();
   }
 }

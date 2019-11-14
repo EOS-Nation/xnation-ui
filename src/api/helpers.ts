@@ -2,7 +2,7 @@ import axios from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
 import { Asset, split, Symbol } from "eos-common";
-import { EosAccount, nRelay } from "bancorx/build/interfaces";
+import { EosAccount, nRelay, TokenSymbol } from "bancorx/build/interfaces";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
 
@@ -149,3 +149,13 @@ export const fetchRelays = async (): Promise<nRelay[]> => {
 
   return relays;
 };
+
+const getOppositeSymbol = (symbol: Symbol) => {
+  return function(relay: nRelay) {
+    return relay.reserves.find(reserve => !reserve.symbol.isEqual(symbol))
+  }
+}
+
+export const parseTokens = (relays: nRelay[], networkToken = new Symbol('BNT', 10)) => {
+  return relays.map(getOppositeSymbol(networkToken))
+}
