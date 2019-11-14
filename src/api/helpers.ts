@@ -138,7 +138,7 @@ export const fetchRelays = async (): Promise<nRelay[]> => {
         contract,
         symbol: new Symbol(balance.split(' ')[1] , Number(balance.split(' ')[0].split('.')[1].length))
       })),
-      contract: contractName,
+      contract: "welovebancor",
       isMultiContract: true,
       smartToken: {
         contract: 'labelaarbaro',
