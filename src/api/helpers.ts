@@ -118,20 +118,20 @@ export const fetchRelays = async (): Promise<nRelay[]> => {
   const polishedReserves = rawReserves.tables;
 
   const flatRelays = polishedReserves
-    .filter(reserveTable => reserveTable.rows.length == 2)
-    .map(reserveTable => {
+    .filter((reserveTable: any) => reserveTable.rows.length == 2)
+    .map((reserveTable: any) => {
       // @ts-ignore
       const { json, key } = polishedConverters.find(
-        converter => converter.scope == reserveTable.scope
+        (converter: any) => converter.scope == reserveTable.scope
       )!.rows[0];
       return {
         key,
         settings: json,
-        reserves: reserveTable.rows.map(reserve => reserve.json)
+        reserves: reserveTable.rows.map((reserve: any) => reserve.json)
       };
     });
 
-  const relays: nRelay[] = flatRelays.map((flatRelay): any => {
+  const relays: nRelay[] = flatRelays.map((flatRelay: any) => {
     const [precision, symbolName] = flatRelay.settings.currency.split(',')
     return {
       reserves: flatRelay.reserves.map(({ contract, balance }: any) => ({
