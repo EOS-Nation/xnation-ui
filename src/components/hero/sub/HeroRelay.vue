@@ -172,7 +172,7 @@ export default class HeroConvert extends Vue {
   numeral = numeral;
   spinning = false;
   loadingTokens = false;
-  newFee = ""
+  newFee = "";
   token1Amount = "";
   token2Amount = "";
   token1Symbol = "";
@@ -310,7 +310,6 @@ export default class HeroConvert extends Vue {
     setTimeout(() => {
       this.spinning = false;
     }, 1000);
-    // vxm.relay.swapSelection();
   }
 
   async fetchTokenMeta() {
@@ -324,8 +323,10 @@ export default class HeroConvert extends Vue {
 
   async fetchRelay(symbolName: string) {
     // Fetch relay information
-    const settings = await tableApi.getSettingsMulti(symbolName);
-    const reserves = await tableApi.getReservesMulti(symbolName);
+    const [settings, reserves] = await Promise.all([
+      tableApi.getSettingsMulti(symbolName),
+      tableApi.getReservesMulti(symbolName)
+    ]);
     const sortedReserves = reserves.sort((a, b) =>
       a.contract === "bntbntbntbnt" && a.balance.symbol.code() === "BNT"
         ? 1
@@ -343,7 +344,7 @@ export default class HeroConvert extends Vue {
     this.token2Contract = token2.contract;
     this.token2Symbol = token2.balance.symbol.code();
     this.token2Precision = token2.balance.symbol.precision;
-    this.fee = String(settings.fee);
+    this.fee = String(settings.fee / 1000000);
     this.owner = settings.owner;
     this.enabled = settings.enabled;
 
@@ -355,7 +356,18 @@ export default class HeroConvert extends Vue {
 
   async setFee() {
     console.log("fee set triggered", this.newFee);
-    
+    try {
+      await multiContract.updateFee(
+        this.$route.params.account,
+        Number(this.newFee)
+      );
+      this.fee = this.newFee
+      await wait(700);
+      this.fetchRelay(this.$route.params.account);
+    } catch (e) {
+
+    }
+
   }
 
   async fetchUserBalances() {
