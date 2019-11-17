@@ -67,8 +67,9 @@ class MultiContractTx {
     if (!singleReserve) throw new Error("Failed to find reserve");
     const action = multiContractAction.setreserve(
       symbolCode,
-      `${singleReserve.balance.symbol
-        .precision},${singleReserve.balance.symbol.code()}`,
+      `${
+        singleReserve.balance.symbol.precision
+      },${singleReserve.balance.symbol.code()}`,
       singleReserve.contract,
       !singleReserve.sale_enabled,
       singleReserve.ratio
@@ -111,6 +112,14 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
+  updateFee(symbolCode: string, percent: number): Promise<TxResponse> {
+    const action = multiContractAction.updatefee(
+      symbolCode,
+      percent * 1000000
+    ) as SemiAction;
+    return this.tx([action])
+  }
+
   updateOwner(symbolCode: string, owner: string): Promise<TxResponse> {
     const action = multiContractAction.updateowner(
       symbolCode,
@@ -132,7 +141,7 @@ class MultiContractTx {
       symbolCode,
       enabled
     ) as SemiAction;
-    return action
+    return action;
   }
 
   enableConversion(symbolCode: string, enabled: boolean): Promise<TxResponse> {
@@ -223,7 +232,7 @@ class MultiContractTx {
       actions.push(this.enableConversionAction(symbolCode, false));
     }
 
-    console.log(actions, 'were actions')
+    console.log(actions, "were actions");
     return this.tx(actions);
   }
 

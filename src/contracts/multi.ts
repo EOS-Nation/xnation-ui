@@ -82,6 +82,16 @@ class MultiContractAction {
     });
   }
 
+  updatefee(currency: string, fee: number) {
+    return this.addAccountProperty({
+      name: 'updatefee',
+      data: {
+        currency,
+        fee
+      }
+    })
+  }
+
   create(
     owner: string,
     initial_supply: string,
