@@ -32,7 +32,7 @@
             <font-awesome-icon icon="angle-down" />
           </b-button>
           <b-button v-else>{{ symbol }}</b-button>
-          <b-button v-if="toggle" :variant="status ? 'success' : 'danger'" @click="toggleStatus">
+          <b-button v-if="toggle" :variant="status ? 'success' : 'danger'" @click="toggleStatus" v-b-tooltip.hover :title="status ? 'Sale is Enabled' : 'Sale is Disabled'">
             <font-awesome-icon icon="power-off" />
           </b-button>
         </b-input-group-append>

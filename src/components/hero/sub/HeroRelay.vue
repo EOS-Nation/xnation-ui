@@ -1,12 +1,24 @@
 <template>
   <hero-wrapper>
     <div>
+      <b-modal id="bv-modal-example" title="Update Fee" @ok="setFee">
+        <div class="d-block text-center">
+          <b-input-group append="%" class="mb-2 mr-sm-2 mb-sm-0">
+            <b-input
+              id="fee"
+              placeholder="2"
+              type="number"
+              v-model="newFee"
+            ></b-input>
+          </b-input-group>
+        </div>
+      </b-modal>
       <b-row>
         <b-col md="4">
           <transition name="slide-fade-down" mode="out-in">
             <token-amount-input
-              @toggle="token1Enabled = !token1Enabled"
-              :toggle="relayExists"
+              @toggle="toggleToken(1)"
+              :toggle="isAdmin"
               :status="token1Enabled"
               :amount.sync="token1Amount"
               :symbol="token1Symbol"
@@ -38,48 +50,63 @@
                 </span>
                 {{ simpleReward }}
               </div>
-              <div v-if="relayExists" class="text-white font-size-sm">Fee: {{ fee }} %</div>
+              <div class="text-white font-size-sm">Fee: {{ fee }} %</div>
             </div>
             <div class="d-flex justify-content-center">
-              <b-btn
-                @click="toggleMain"
-                v-if="!relayExists"
-                variant="success"
-                v-ripple
-                class="px-4 py-2 d-block"
-                :disabled="loadingTokens || minReturn === ''"
-              >
-                <font-awesome-icon
-                  :icon="loadingTokens ? 'circle-notch' : 'plus'"
-                  :spin="loadingTokens"
-                  fixed-width
-                  class="mr-2"
-                />
-                <span class="font-w700">Create Relay</span>
-              </b-btn>
               <b-dropdown
-                v-else
                 button
+                :disabled="!isAuthenticated"
                 @click="toggleMain"
                 variant="success"
                 split
-                text="Add Liquidity"
                 class="m-2"
                 size="lg"
               >
                 <template v-slot:button-content>
                   <font-awesome-icon
-                    :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
+                    :icon="
+                      loadingTokens
+                        ? 'circle-notch'
+                        : !enabled
+                        ? 'play'
+                        : buttonFlipped
+                        ? 'arrow-down'
+                        : 'arrow-up'
+                    "
                     :spin="loadingTokens"
                     fixed-width
                     class="mr-2"
                   />
-                  <span class="font-w700">{{ 'Add Liquidity' }}</span>
+                  <span class="font-w700">{{
+                    !enabled
+                      ? "Resume Relay"
+                      : buttonFlipped
+                      ? "Remove Liquidity"
+                      : "Add Liquidity"
+                  }}</span>
                 </template>
-                <b-dropdown-item-button>Remove Liquidity</b-dropdown-item-button>
-                <b-dropdown-item href="#">Update Fee</b-dropdown-item>
-                <b-dropdown-divider></b-dropdown-divider>
-                <b-dropdown-item-button variant="warning" @click="toggleRelay">Pause Relay</b-dropdown-item-button>
+                <b-dropdown-item-button
+                  v-if="enabled"
+                  @click="buttonFlipped = !buttonFlipped"
+                  >{{
+                    buttonFlipped ? "Add Liquidity" : "Remove Liquidity"
+                  }}</b-dropdown-item-button
+                >
+                <b-dropdown-divider
+                  v-if="isAdmin && enabled"
+                ></b-dropdown-divider>
+                <b-dropdown-item-button
+                  v-if="isAdmin"
+                  @click="$bvModal.show('bv-modal-example')"
+                  >Update Fee</b-dropdown-item-button
+                >
+                <b-dropdown-item-button
+                  v-if="isAdmin && enabled"
+                  variant="warning"
+                  @click="toggleRelay"
+                >
+                  Pause Relay
+                </b-dropdown-item-button>
               </b-dropdown>
             </div>
           </div>
@@ -87,8 +114,8 @@
         <b-col md="4">
           <transition name="slide-fade-up" mode="out-in">
             <token-amount-input
-              :toggle="relayExists"
-              @toggle="token2Enabled = !token2Enabled"
+              @toggle="toggleToken(2)"
+              :toggle="isAdmin"
               :status="token2Enabled"
               :amount.sync="token2Amount"
               :symbol="token2Symbol"
@@ -119,10 +146,12 @@ import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue
 import ModalSelectToken from "@/components/modals/ModalSelectToken.vue";
 import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
 import { calculateReturn } from "bancorx";
-import { split, Asset } from "eos-common";
+import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
+import { tableApi } from "@/api/TableWrapper";
+import { getBalance } from "@/api/helpers";
 
 @Component({
   components: {
@@ -143,8 +172,25 @@ export default class HeroConvert extends Vue {
   numeral = numeral;
   spinning = false;
   loadingTokens = false;
+  newFee = ""
   token1Amount = "";
   token2Amount = "";
+  token1Symbol = "";
+  token1Balance = "";
+  token1Enabled = false;
+  token2Balance = "";
+  token1Contract = "";
+  token1UserBalance = "";
+  token2Symbol = "";
+  token2Contract = "";
+  token2UserBalance = "";
+  token1Precision = 0;
+  token2Precision = 0;
+  token2Enabled = false;
+  enabled = false;
+  owner = "";
+  fee = "";
+  buttonFlipped = false;
   token1Img =
     "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
   token2Img =
@@ -152,71 +198,41 @@ export default class HeroConvert extends Vue {
 
   // computed
 
-  get token1Symbol() {
-    return vxm.relay.token1SymbolName;
+  async toggleToken(tokenNo: number) {
+    const symbol =
+      tokenNo == 1
+        ? new Symbol(this.token1Symbol, this.token1Precision)
+        : new Symbol(this.token2Symbol, this.token2Precision);
+
+    try {
+      await multiContract.toggleReserve(this.$route.params.account, symbol);
+      if (tokenNo == 1) {
+        this.token1Enabled = !this.token1Enabled;
+      } else {
+        this.token2Enabled = !this.token2Enabled;
+      }
+      await wait(700);
+    } catch (e) {
+      // handle error
+    }
+    this.fetchRelay(this.$route.params.account);
   }
 
-  get token1Balance() {
-    return vxm.relay.token1Balance;
+  get isAuthenticated() {
+    return (
+      vxm.eosTransit.isAuthenticated && vxm.eosTransit.wallet.auth.accountName
+    );
   }
 
-  get token1UserBalance() {
-    return vxm.relay.token1UserBalance;
-  }
-
-  get token2UserBalance() {
-    return vxm.relay.token2UserBalance;
-  }
-
-  get token1Enabled() {
-    return vxm.relay.token1Enabled;
-  }
-
-  get token2Enabled() {
-    return vxm.relay.token2Enabled;
-  }
-
-  get token1Contract() {
-    return vxm.relay.token1Contract;
-  }
-
-  get relayExists() {
-    return vxm.relay.relayExists;
-  }
-
-  get fee() {
-    return vxm.relay.fee;
-  }
-
-  get token2Contract() {
-    return vxm.relay.token2Contract;
-  }
-
-  get token2Symbol() {
-    return vxm.relay.token2SymbolName;
-  }
-
-  get token2Balance() {
-    return vxm.relay.token2Balance;
-  }
-
-  get hasLaunched() {
-    return vxm.relay.launched;
-  }
-
-  get currentRoute() {
-    return this.$route.name;
-  }
-
-  set token1Enabled(status: boolean) {
-    vxm.relay.setToken1Enabled(status);
-  }
-
-  set token2Enabled(status: boolean) {
-    vxm.relay.setToken2Enabled(status);
+  get isAdmin() {
+    return (
+      this.isAuthenticated &&
+      this.owner == vxm.eosTransit.wallet.auth.accountName
+    );
   }
 
   get simpleReward() {
+    if (!this.token1Balance && !this.token2Balance) return "";
     const token1 = split(this.token1Balance);
     const token2 = split(this.token2Balance);
     const oneAmount = Math.pow(10, token1.symbol.precision);
@@ -229,33 +245,46 @@ export default class HeroConvert extends Vue {
   }
 
   async toggleRelay() {
-    await multiContract.enableConversion(
-      this.$route.params.account,
-      !vxm.relay.enabled
-    );
-    await wait(700);
-    vxm.relay.initSymbol(this.$route.params.account);
+    try {
+      await multiContract.enableConversion(
+        this.$route.params.account,
+        !this.enabled
+      );
+      this.enabled = !this.enabled;
+      await wait(700);
+      this.fetchRelay(this.$route.params.account);
+    } catch (e) {}
   }
 
   async toggleMain() {
-    const token1RelayBalance = split(this.token1Balance);
-    const token2RelayBalance = split(this.token2Balance);
+    if (this.enabled) {
+      if (this.buttonFlipped) {
+        this.removeLiquidity();
+      } else {
+        this.addLiquidity();
+      }
+    } else {
+      this.toggleRelay();
+    }
+  }
+
+  async removeLiquidity() {}
+
+  async addLiquidity() {
     const token1NumberAmount =
-      Math.pow(10, token1RelayBalance.symbol.precision) *
-      Number(this.token1Amount);
+      Math.pow(10, this.token1Precision) * Number(this.token1Amount);
     const token1Asset = new Asset(
       token1NumberAmount,
-      token1RelayBalance.symbol
+      new Symbol(this.token1Symbol, this.token1Precision)
     );
     const token2NumberAmount =
-      Math.pow(10, token2RelayBalance.symbol.precision) *
-      Number(this.token2Amount);
+      Math.pow(10, this.token2Precision) * Number(this.token2Amount);
     const token2Asset = new Asset(
       token2NumberAmount,
-      token2RelayBalance.symbol
+      new Symbol(this.token2Symbol, this.token2Precision)
     );
 
-    const reserves = [
+    const tokens = [
       {
         contract: this.token1Contract,
         amount: token1Asset
@@ -267,18 +296,9 @@ export default class HeroConvert extends Vue {
     ];
 
     try {
-      if (this.relayExists) {
-        await multiContract.addLiquidity(this.$route.params.account, reserves);
-      } else {
-        await multiContract.kickStartRelay(
-          this.$route.params.account,
-          reserves,
-          true
-        );
-      }
-
+      await multiContract.addLiquidity(this.$route.params.account, tokens);
       await wait(700);
-      vxm.relay.initSymbol(this.$route.params.account);
+      this.fetchRelay(this.$route.params.account);
     } catch (e) {
       console.warn("Error creating transaction", e);
     }
@@ -302,18 +322,63 @@ export default class HeroConvert extends Vue {
     this.token2Img = token2.logo;
   }
 
-  @Watch("$route")
-  listen(to: any) {
-    this.setSmartSymbol(to.params.symbolName);
+  async fetchRelay(symbolName: string) {
+    // Fetch relay information
+    const settings = await tableApi.getSettingsMulti(symbolName);
+    const reserves = await tableApi.getReservesMulti(symbolName);
+    const sortedReserves = reserves.sort((a, b) =>
+      a.contract === "bntbntbntbnt" && a.balance.symbol.code() === "BNT"
+        ? 1
+        : -1
+    );
+
+    const [token1, token2] = sortedReserves;
+    this.token1Contract = token1.contract;
+    this.token1Symbol = token1.balance.symbol.code();
+    this.token1Precision = token1.balance.symbol.precision;
+    this.token1Balance = token1.balance.toString();
+    this.token1Enabled = token1.sale_enabled;
+    this.token2Enabled = token2.sale_enabled;
+    this.token2Balance = token2.balance.toString();
+    this.token2Contract = token2.contract;
+    this.token2Symbol = token2.balance.symbol.code();
+    this.token2Precision = token2.balance.symbol.precision;
+    this.fee = String(settings.fee);
+    this.owner = settings.owner;
+    this.enabled = settings.enabled;
+
+    // @ts-ignore
+    // @ts-ignore
+    this.fetchTokenMeta();
+    if (vxm.eosTransit.isAuthenticated) this.fetchUserBalances();
   }
 
-  async setSmartSymbol(smartSymbol: string) {
-    await vxm.relay.initSymbol(this.$route.params.account);
+  async setFee() {
+    console.log("fee set triggered", this.newFee);
+    
+  }
+
+  async fetchUserBalances() {
+    const [token1Balance, token2Balance] = await Promise.all([
+      getBalance(this.token1Contract, this.token1Symbol),
+      getBalance(this.token2Contract, this.token2Symbol)
+    ]);
+    this.token1UserBalance = token1Balance;
+    this.token2UserBalance = token2Balance;
+  }
+
+  @Watch("isAuthenticated")
+  onAuthChange(val: any) {
+    if (val) this.fetchUserBalances();
+  }
+
+  @Watch("$route")
+  listen(to: any) {
+    this.fetchRelay(to.params.account);
   }
 
   async created() {
-    this.setSmartSymbol(this.$route.params.symbolName);
-    this.fetchTokenMeta();
+    this.fetchRelay(this.$route.params.account);
   }
 }
 </script>

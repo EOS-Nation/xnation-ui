@@ -81,7 +81,7 @@ export class TableWrapper {
       limit: 2
     });
 
-    return table.rows;
+    return table.rows
   }
 
   public async getSettings(contractName: string, scope = contractName): Promise<{
