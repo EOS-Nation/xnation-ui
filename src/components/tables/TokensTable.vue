@@ -44,18 +44,6 @@
               </th>
               <th class="d-none d-md-table-cell"></th>
               <th
-                @click="sort('c24h')"
-                class="cursor text-center"
-                style="min-width: 150px;"
-              >
-                <sort-icons
-                  :currentSort="currentSort"
-                  :currentSortDir="currentSortDir"
-                  category="c24h"
-                />
-                24h Change
-              </th>
-              <th
                 @click="sort('price')"
                 class="cursor text-center"
                 style="min-width: 150px;"
@@ -66,18 +54,6 @@
                   category="price"
                 />
                 Price USD
-              </th>
-              <th
-                @click="sort('v24h')"
-                class="cursor text-right"
-                style="min-width: 150px;"
-              >
-                <sort-icons
-                  :currentSort="currentSort"
-                  :currentSortDir="currentSortDir"
-                  category="v24h"
-                />
-                24h Volume
               </th>
               <th
                 @click="sort('liqDepth')"
@@ -107,30 +83,22 @@
               </tr>
             </template>
             <template v-else>
-              <tr v-for="(token, index) in sortedTokens" :key="index">
+              <tr v-for="(token, index) in newTokens" :key="index">
                 <td
                   class="text-center d-none d-md-table-cell"
                   v-text="index + 1"
                 ></td>
                 <td class="d-flex justify-content-start align-items-center">
                   <img
+                    v-b-tooltip.hover :title="true ? 'Sale is Enabled' : 'Sale is Disabled'"
                     class="img-avatar img-avatar-thumb img-avatar32"
-                    :src="token.img"
+                    :src="token.logo"
                     alt="Token Logo"
                   />
                   {{ token.symbol }}
                 </td>
                 <td class="d-none d-md-table-cell">
                   <span class="text-muted font-size-sm">{{ token.name }}</span>
-                </td>
-                <td
-                  class="text-center font-w700"
-                  :class="{
-                    'text-danger': token.c24h < 0,
-                    'text-success': token.c24h > 0
-                  }"
-                >
-                  {{ numeral(token.c24h).format('0,0.00') }}%
                 </td>
                 <td class="text-center font-w700">
                   <span v-if="token.price < 1">{{
@@ -140,11 +108,8 @@
                     numeral(token.price).format('$0,0.00')
                   }}</span>
                 </td>
-                <td class="text-right">
-                  {{ numeral(token.v24h).format('$0,0') }}
-                </td>
                 <td class="text-right d-none d-md-table-cell">
-                  {{ numeral(token.liqDepth * ethPrice).format('$0,0') }}
+                  {{ numeral(token.liqDepth).format('$0,0.00') }}
                 </td>
                 <td class="text-right">
                   <b-btn
@@ -237,6 +202,10 @@ export default class TokensTable extends Vue {
   get searchedTokens() {
     if (this.searchResults.length > 0) return this.searchResults
     else return this.tokens
+  }
+
+  get newTokens() {
+    return vxm.relays.tokens
   }
 
   get sortedTokens() {

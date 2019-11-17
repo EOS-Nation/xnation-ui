@@ -68,7 +68,7 @@ export default new Router({
       components: {
         Nav: Navigation,
         default: Relays,
-        Hero: HeroLiquidity
+        Hero: HeroRelay
       }
     },
     {

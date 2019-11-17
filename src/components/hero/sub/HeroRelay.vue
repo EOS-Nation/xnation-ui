@@ -17,6 +17,7 @@
         <b-col md="4">
           <transition name="slide-fade-down" mode="out-in">
             <token-amount-input
+              :key="token1Symbol"
               @toggle="toggleToken(1)"
               :toggle="isAdmin"
               :status="token1Enabled"
@@ -116,6 +117,7 @@
             <token-amount-input
               @toggle="toggleToken(2)"
               :toggle="isAdmin"
+              :key="token2Symbol"
               :status="token2Enabled"
               :amount.sync="token2Amount"
               :symbol="token2Symbol"
@@ -167,6 +169,7 @@ import { getBalance } from "@/api/helpers";
 export default class HeroConvert extends Vue {
   // data
   ltr = true;
+  focusedSymbol = ""
   rate = "";
   rateLoading = false;
   numeral = numeral;
@@ -205,7 +208,7 @@ export default class HeroConvert extends Vue {
         : new Symbol(this.token2Symbol, this.token2Precision);
 
     try {
-      await multiContract.toggleReserve(this.$route.params.account, symbol);
+      await multiContract.toggleReserve(this.focusedSymbol, symbol);
       if (tokenNo == 1) {
         this.token1Enabled = !this.token1Enabled;
       } else {
@@ -215,7 +218,7 @@ export default class HeroConvert extends Vue {
     } catch (e) {
       // handle error
     }
-    this.fetchRelay(this.$route.params.account);
+    this.fetchRelay();
   }
 
   get isAuthenticated() {
@@ -247,12 +250,12 @@ export default class HeroConvert extends Vue {
   async toggleRelay() {
     try {
       await multiContract.enableConversion(
-        this.$route.params.account,
+        this.focusedSymbol,
         !this.enabled
       );
       this.enabled = !this.enabled;
       await wait(700);
-      this.fetchRelay(this.$route.params.account);
+      this.fetchRelay();
     } catch (e) {}
   }
 
@@ -296,9 +299,9 @@ export default class HeroConvert extends Vue {
     ];
 
     try {
-      await multiContract.addLiquidity(this.$route.params.account, tokens);
+      await multiContract.addLiquidity(this.focusedSymbol, tokens);
       await wait(700);
-      this.fetchRelay(this.$route.params.account);
+      this.fetchRelay();
     } catch (e) {
       console.warn("Error creating transaction", e);
     }
@@ -321,7 +324,8 @@ export default class HeroConvert extends Vue {
     this.token2Img = token2.logo;
   }
 
-  async fetchRelay(symbolName: string) {
+  async fetchRelay() {
+    const symbolName = this.focusedSymbol
     // Fetch relay information
     const [settings, reserves] = await Promise.all([
       tableApi.getSettingsMulti(symbolName),
@@ -349,7 +353,6 @@ export default class HeroConvert extends Vue {
     this.enabled = settings.enabled;
 
     // @ts-ignore
-    // @ts-ignore
     this.fetchTokenMeta();
     if (vxm.eosTransit.isAuthenticated) this.fetchUserBalances();
   }
@@ -358,12 +361,12 @@ export default class HeroConvert extends Vue {
     console.log("fee set triggered", this.newFee);
     try {
       await multiContract.updateFee(
-        this.$route.params.account,
+        this.focusedSymbol,
         Number(this.newFee)
       );
       this.fee = this.newFee
       await wait(700);
-      this.fetchRelay(this.$route.params.account);
+      this.fetchRelay();
     } catch (e) {
 
     }
@@ -384,13 +387,18 @@ export default class HeroConvert extends Vue {
     if (val) this.fetchUserBalances();
   }
 
+  @Watch("focusedSymbol")
+  onSymbolChange() {
+    this.fetchRelay()
+  }
+
   @Watch("$route")
   listen(to: any) {
-    this.fetchRelay(to.params.account);
+    this.focusedSymbol = to.params.account;
   }
 
   async created() {
-    this.fetchRelay(this.$route.params.account);
+    this.focusedSymbol = this.$route.params.account || vxm.relays.relays[0].settings.currency.split(',')[1]
   }
 }
 </script>

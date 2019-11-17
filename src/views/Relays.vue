@@ -42,7 +42,7 @@
                     :currentSort="currentSort"
                     :currentSortDir="currentSortDir"
                     category="contract"
-                  />Contract
+                  />Owner
                 </th>
                 <th @click="sort('ratio1')" class="cursor text-center">
                   <sort-icons
@@ -50,13 +50,6 @@
                     :currentSortDir="currentSortDir"
                     category="ratio1"
                   />Ratio
-                </th>
-                <th @click="sort('v24h')" class="cursor text-right">
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="v24h"
-                  />Volume 24h
                 </th>
                 <th @click="sort('liqDepth')" class="cursor text-right">
                   <sort-icons
@@ -76,12 +69,14 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(token, index) in sortedTokens" :key="index">
+              <tr v-for="(token, index) in newTokens" :key="index">
                 <td class="text-center" v-text="index + 1"></td>
                 <td class="text-left font-w700" style="width: 180px">
                   <img
+                    v-for="reserve in token.reserves"
+                    :key="reserve.symbol"
                     class="img-avatar img-avatar-thumb img-avatar32 mr-3"
-                    :src="token.img"
+                    :src="reserve.logo"
                     alt="Token Logo"
                   />
                   {{ token.symbol }}
@@ -89,20 +84,24 @@
                 <td>
                   <span class="text-muted font-size-sm">
                     {{
-                    token.name
+                    token.settings.currency.split(',')[1]
                     }}
                   </span>
                 </td>
-                <td class="text-center font-w700">{{ token.contract }}</td>
-                <td class="text-center font-w700">{{ token.ratio1 }} - {{ token.ratio2 }}</td>
-                <td class="text-right font-w700">{{ numeral(token.v24h).format('$0,0') }}</td>
+                <td class="text-center font-w700">{{ token.settings.owner }}</td>
+                <td class="text-center font-w700">50 - 50</td>
                 <td
                   class="text-right font-w700"
-                >{{ numeral(token.liqDepth * ethPrice).format('$0,0') }}</td>
-                <td class="text-right font-w700">{{ token.fee }}%</td>
+                >{{ numeral(token.liqDepth).format('$0,0.00') }}</td>
+                <td class="text-right font-w700">{{ token.settings.fee / 1000000 }}%</td>
                 <td class="text-right">
                   <b-btn
-                    @click="initAction('convert', token.symbol)"
+                    @click="$router.push({
+                      name: 'Relay',
+                      params: {
+                        account: token.settings.currency.split(',')[1]
+                      }
+                    })"
                     size="sm"
                     variant="success"
                     class="mr-1"
@@ -195,6 +194,11 @@ export default class Relays extends Vue {
     else return this.tokens;
   }
 
+  get newTokens() {
+    console.log(vxm.relays.relays)
+    return vxm.relays.relays
+  }
+
   get sortedTokens() {
     let tokens = this.searchedTokens;
     return tokens.sort((a: any, b: any) => {
@@ -258,45 +262,6 @@ export default class Relays extends Vue {
     })
   }
 
-  async updateTokens() {
-    let res = await vxm.tokens.getTokens();
-    vxm.tokens.setTokens({ eos: res, eth: [] });
-    let relayDb = bancorx.getTokenDb(false);
-
-    this.tokens = await Promise.all(
-      relayDb
-        .filter(({ counterSymbol }) => counterSymbol !== "BNT")
-        .map(async r => {
-          const token = bancorx.getTokenInfo(r.counterSymbol);
-          const tokenPrice = res.find((t: TokenPrice) => {
-            // @ts-ignore
-            return t.code === token.symbol;
-          });
-          // @ts-ignore
-          const [reserve1, reserve2] = await tableApi.getReserves(
-            // @ts-ignore
-            token.relayContract
-          );
-          // @ts-ignore
-          const { fee } = await tableApi.getSettings(token.relayContract);
-          return {
-            // @ts-ignore
-            symbol: r.symbol,
-            name: r.name,
-            img: r.img,
-            ratio1: reserve1.ratio / 10000,
-            ratio2: reserve2.ratio / 10000,
-            fee: fee / 10000,
-            v24h: tokenPrice.volume24h.USD,
-            // @ts-ignore
-            contract: token.relayContract,
-            liqDepth: tokenPrice.liquidityDepth,
-            tokenPrice: tokenPrice
-          };
-        })
-    );
-    return res;
-  }
 
   @Watch("tokenSymbol")
   @Watch("tokenContract")
@@ -359,8 +324,6 @@ export default class Relays extends Vue {
     this.debouncedSuggestPrecision = debounce(() => {
       this.suggestPrecision();
     }, 500);
-    await vxm.tokens.getEthPrice();
-    await this.updateTokens();
   }
 }
 </script>
