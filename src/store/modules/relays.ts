@@ -140,7 +140,7 @@ export class RelaysModule extends VuexModule {
         reserves: relay.reserves
           .map(reserve => ({
             ...reserve,
-            logo: this.tokenMeta.find((tokenMeta: TokenMeta) => tokenMeta.symbol == reserve.symbol).logo
+            logo: this.tokenMeta.find((tokenMeta: TokenMeta) => tokenMeta.symbol == reserve.symbol)!.logo || 'https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png'
           }))
       }))
   }

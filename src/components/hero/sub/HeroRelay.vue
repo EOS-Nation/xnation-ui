@@ -223,6 +223,7 @@ export default class HeroConvert extends Vue {
 
   get isAuthenticated() {
     return (
+      // @ts-ignore
       vxm.eosTransit.isAuthenticated && vxm.eosTransit.wallet.auth.accountName
     );
   }
@@ -230,6 +231,7 @@ export default class HeroConvert extends Vue {
   get isAdmin() {
     return (
       this.isAuthenticated &&
+      // @ts-ignore
       this.owner == vxm.eosTransit.wallet.auth.accountName
     );
   }
