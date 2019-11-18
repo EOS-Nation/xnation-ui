@@ -19,6 +19,7 @@
             <token-amount-input
               :key="token1Symbol"
               @toggle="toggleToken(1)"
+              @onUpdate="onTokenAmountChange(1)"
               :toggle="isAdmin"
               :status="token1Enabled"
               :amount.sync="token1Amount"
@@ -116,6 +117,7 @@
           <transition name="slide-fade-up" mode="out-in">
             <token-amount-input
               @toggle="toggleToken(2)"
+              @onUpdate="onTokenAmountChange(2)"
               :toggle="isAdmin"
               :key="token2Symbol"
               :status="token2Enabled"
@@ -258,6 +260,28 @@ export default class HeroConvert extends Vue {
     } catch (e) {}
   }
 
+  async onTokenAmountChange(selectedToken: number) {
+    this.rateLoading = true;
+    const isToken1 = selectedToken == 1;
+    const [token, bnt] = await tableApi.getReservesMulti(this.focusedSymbol);
+
+    const suggestedDeposit = isToken1
+      ? new Asset(
+          Number(this.token1Amount) * Math.pow(10, this.token1Precision),
+          new Symbol(this.token1Symbol, this.token1Precision)
+        )
+      : new Asset(
+          Number(this.token2Amount) * Math.pow(10, this.token2Precision),
+          new Symbol(this.token2Symbol, this.token2Precision)
+        );
+
+    const percentageIncrease = suggestedDeposit.toNumber() / (isToken1 ? token.balance.toNumber() : bnt.balance.toNumber())
+
+
+    this.rateLoading = false;
+    this[isToken1 ? "token2Amount" : "token1Amount"] = String((isToken1 ? bnt.balance.toNumber() : token.balance.toNumber()) * percentageIncrease);
+  }
+
   async toggleMain() {
     if (this.enabled) {
       if (this.buttonFlipped) {
@@ -378,10 +402,12 @@ export default class HeroConvert extends Vue {
   async checkBankBalance() {
     if (this.isAuthenticated) {
       const balances = await getBankBalance();
-      balances.reverse().forEach(
-        async ({ quantity, symbl }) =>
-          await multiContract.withdraw(symbl, split(quantity))
-      );
+      balances
+        .reverse()
+        .forEach(
+          async ({ quantity, symbl }) =>
+            await multiContract.withdraw(symbl, split(quantity))
+        );
     }
   }
 
@@ -404,9 +430,7 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-    this.focusedSymbol =
-      this.$route.params.account ||
-      "BNTEOSS"
+    this.focusedSymbol = this.$route.params.account || "BNTEOSS";
     this.checkBankBalance();
   }
 }

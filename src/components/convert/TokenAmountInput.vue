@@ -86,7 +86,7 @@ export default class TokenAmountInput extends Vue {
 
   onTextUpdate(input: string) {
     this.$emit("update:amount", input);
-
+    this.$emit("onUpdate");
     // this.amount = input;
   }
 
