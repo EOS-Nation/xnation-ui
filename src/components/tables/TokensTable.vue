@@ -4,7 +4,7 @@
     <div class="block-header">
       <h3 class="block-title">All Tokens <small> - EOS</small></h3>
       <div class="block-options">
-        <b-input-group size="sm">
+        <!-- <b-input-group size="sm">
           <b-input-group-text
             slot="prepend"
             class="bg-body border-0 text-muted"
@@ -14,13 +14,13 @@
               fixed-width
               :class="{ 'fa-blink': searchState === 'keyboard' }"
             />
-          </b-input-group-text>
+          </b-input-group-text> -->
           <b-form-input
             class="form-control form-control-alt"
             v-model="tokenSearch"
             placeholder="Search Token"
           ></b-form-input>
-        </b-input-group>
+        <!-- </b-input-group> -->
       </div>
     </div>
     <div class="block-content px-0 px-md-3">

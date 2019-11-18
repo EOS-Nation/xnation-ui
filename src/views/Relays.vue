@@ -8,24 +8,11 @@
             <small>Relays</small>
           </h3>
           <div class="block-options">
-            <b-button size="sm" @click="create">Create</b-button>
-            <b-input-group size="sm">
-              <b-input-group-text
-                slot="prepend"
-                class="bg-body border-0 text-muted"
-              >
-                <font-awesome-icon
-                  :icon="['fas', searchState]"
-                  fixed-width
-                  :class="{ 'fa-blink': searchState === 'keyboard' }"
-                />
-              </b-input-group-text>
-              <b-form-input
-                class="form-control form-control-alt"
-                v-model="tokenSearch"
-                placeholder="Search Token"
-              ></b-form-input>
-            </b-input-group>
+            <b-form-input
+              class="form-control form-control-alt"
+              v-model="tokenSearch"
+              placeholder="Search Token"
+            ></b-form-input>
           </div>
         </div>
         <div class="block-content">
@@ -254,7 +241,6 @@ export default class Relays extends Vue {
     if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo);
     vxm.general.setHeroAction(action);
   }
-
 
   searchTokens() {
     // @ts-ignore
