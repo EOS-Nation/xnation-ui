@@ -141,14 +141,14 @@ export default class HeroConvert extends Vue {
   token1Amount = "";
   token1SymbolName = "";
   token1SymbolPrecision = "";
-  token1UserBalance = 0;
+  token1UserBalance = "";
   token1Img = "";
   token1Contract = "";
 
   token2Amount = "";
   token2SymbolName = "BNT";
   token2SymbolPrecision = "10";
-  token2UserBalance = 0;
+  token2UserBalance = "";
   token2Img = "";
   token2Contract = "bntbntbntbnt";
 
@@ -184,8 +184,8 @@ export default class HeroConvert extends Vue {
     const token1 = Number(this.token1Amount);
     const token2 = Number(this.token2Amount);
     return (
-      this.token1UserBalance >= token1 &&
-      this.token2UserBalance >= token2 &&
+      Number(this.token1UserBalance) >= token1 &&
+      Number(this.token2UserBalance) >= token2 &&
       token1 > 0 &&
       token2 > 0
     );
@@ -309,8 +309,8 @@ export default class HeroConvert extends Vue {
       getBalance(this.token2Contract, this.token2SymbolName)
     ]);
 
-    this.token1UserBalance = Number(token1Balance.split(" ")[0]);
-    this.token2UserBalance = Number(token2Balance.split(" ")[0]);
+    this.token1UserBalance = token1Balance.split(" ")[0];
+    this.token2UserBalance = token2Balance.split(" ")[0];
     this.balancesLoading = false;
   }
 

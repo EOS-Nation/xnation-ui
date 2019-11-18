@@ -48,8 +48,7 @@ export default class TokenAmountInput extends Vue {
 
     // method
     setPercentage(percentage: number) {
-        const numberAmount = Number(this.balance) * (percentage / 100);
-        this.$emit("update:amount", String(numberAmount));
+        this.$emit("percentUpdate", String(percentage));
     }
 
     // Lifecycle hooks
