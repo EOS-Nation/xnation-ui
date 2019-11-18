@@ -43,16 +43,6 @@ export default new Router({
       }
     },
     {
-      path: '/:symbolName',
-      name: 'Token',
-      components: {
-        Nav: Navigation,
-        default: Tokens,
-        Hero: HeroConvert
-      },
-      props: true
-    },
-    {
       path: '/transfer/:symbolName',
       name: 'Transfer',
       components: {
@@ -107,6 +97,16 @@ export default new Router({
         default: Relays,
         Hero: HeroCreate
       }
+    },
+    {
+      path: '/:symbolName',
+      name: 'Token',
+      components: {
+        Nav: Navigation,
+        default: Tokens,
+        Hero: HeroConvert
+      },
+      props: true
     }
   ]
 })

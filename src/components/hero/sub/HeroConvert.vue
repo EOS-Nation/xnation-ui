@@ -219,16 +219,8 @@ export default class HeroConvert extends Vue {
   async created() {
 
     this.setFromToken(this.$route.params.symbolName || "EOS");
-    const x = await vxm.relays.fetchRelays()
-    console.log(x, 'was the x')
-    // const data = await fetchRelays()
-    // console.log(data, 'were the scopes')
-    // const x = await parseTokens(data)
-    // console.log(x, 'was x')
-    // const tokenMeta = await Promise.all(x.map(x => fetchTokenMeta(x.contract, x.symbol.code())))
-    // console.log(tokenMeta)
-
-    await this.conversionRate();
+    vxm.relays.fetchRelays()
+    this.conversionRate();
   }
 }
 </script>
