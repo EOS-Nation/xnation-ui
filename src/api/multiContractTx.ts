@@ -1,7 +1,7 @@
 import { vxm } from "@/store/";
 import { multiContractAction, SemiAction } from "../contracts/multi";
 import { TokenAmount } from "bancorx/build/interfaces";
-import { Symbol } from "eos-common";
+import { Symbol, Asset } from "eos-common";
 import { tableApi, TableWrapper, ReserveTable } from "./TableWrapper";
 
 interface Action {
@@ -117,7 +117,7 @@ class MultiContractTx {
       symbolCode,
       percent * 1000000
     ) as SemiAction;
-    return this.tx([action])
+    return this.tx([action]);
   }
 
   updateOwner(symbolCode: string, owner: string): Promise<TxResponse> {
@@ -234,6 +234,23 @@ class MultiContractTx {
 
     console.log(actions, "were actions");
     return this.tx(actions);
+  }
+
+  withdrawAction(symbolCode: string, amount: Asset) {
+    const owner = this.getAuth()[0].actor;
+
+    const action = multiContractAction.withdraw(
+      owner,
+      amount.toString(),
+      symbolCode
+    ) as SemiAction;
+    console.log(action, "was the action");
+    return action;
+  }
+
+
+  withdraw(symbolCode: string, amount: Asset) {
+    return this.tx([this.withdrawAction(symbolCode, amount)]);
   }
 
   addLiquidity(

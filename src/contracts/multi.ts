@@ -52,6 +52,17 @@ class MultiContractAction {
     });
   }
 
+  withdraw(sender: string, quantity: string, converter_currency_code: string) {
+    return this.addAccountProperty({
+      name: 'withdraw',
+      data: {
+        sender,
+        quantity,
+        converter_currency_code
+      }
+    })
+  }
+
   updateowner(currency: string, owner: string): BareAction | SemiAction {
     return this.addAccountProperty({
       name: "updateowner",

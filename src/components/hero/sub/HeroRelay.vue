@@ -153,7 +153,7 @@ import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { tableApi } from "@/api/TableWrapper";
-import { getBalance } from "@/api/helpers";
+import { getBalance, getBankBalance } from "@/api/helpers";
 
 @Component({
   components: {
@@ -169,7 +169,7 @@ import { getBalance } from "@/api/helpers";
 export default class HeroConvert extends Vue {
   // data
   ltr = true;
-  focusedSymbol = ""
+  focusedSymbol = "";
   rate = "";
   rateLoading = false;
   numeral = numeral;
@@ -251,10 +251,7 @@ export default class HeroConvert extends Vue {
 
   async toggleRelay() {
     try {
-      await multiContract.enableConversion(
-        this.focusedSymbol,
-        !this.enabled
-      );
+      await multiContract.enableConversion(this.focusedSymbol, !this.enabled);
       this.enabled = !this.enabled;
       await wait(700);
       this.fetchRelay();
@@ -327,7 +324,7 @@ export default class HeroConvert extends Vue {
   }
 
   async fetchRelay() {
-    const symbolName = this.focusedSymbol
+    const symbolName = this.focusedSymbol;
     // Fetch relay information
     const [settings, reserves] = await Promise.all([
       tableApi.getSettingsMulti(symbolName),
@@ -362,17 +359,11 @@ export default class HeroConvert extends Vue {
   async setFee() {
     console.log("fee set triggered", this.newFee);
     try {
-      await multiContract.updateFee(
-        this.focusedSymbol,
-        Number(this.newFee)
-      );
-      this.fee = this.newFee
+      await multiContract.updateFee(this.focusedSymbol, Number(this.newFee));
+      this.fee = this.newFee;
       await wait(700);
       this.fetchRelay();
-    } catch (e) {
-
-    }
-
+    } catch (e) {}
   }
 
   async fetchUserBalances() {
@@ -384,14 +375,27 @@ export default class HeroConvert extends Vue {
     this.token2UserBalance = token2Balance;
   }
 
+  async checkBankBalance() {
+    if (this.isAuthenticated) {
+      const balances = await getBankBalance();
+      balances.reverse().forEach(
+        async ({ quantity, symbl }) =>
+          await multiContract.withdraw(symbl, split(quantity))
+      );
+    }
+  }
+
   @Watch("isAuthenticated")
   onAuthChange(val: any) {
-    if (val) this.fetchUserBalances();
+    if (val) {
+      this.fetchUserBalances();
+      this.checkBankBalance();
+    }
   }
 
   @Watch("focusedSymbol")
   onSymbolChange() {
-    this.fetchRelay()
+    this.fetchRelay();
   }
 
   @Watch("$route")
@@ -400,7 +404,10 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-    this.focusedSymbol = this.$route.params.account || vxm.relays.relays[0].settings.currency.split(',')[1]
+    this.focusedSymbol =
+      this.$route.params.account ||
+      vxm.relays.relays[0].settings.currency.split(",")[1];
+    this.checkBankBalance();
   }
 }
 </script>

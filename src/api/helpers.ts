@@ -98,6 +98,14 @@ export const fetchTokenMeta = async (
   return metaData;
 };
 
+export const getBankBalance = async(): Promise<{id: number; quantity: string; symbl: string}[]> => {
+  // @ts-ignore
+  const account = vxm.eosTransit.wallet.auth.accountName
+  const res = await client.stateTable("welovebancor", account, 'accounts')
+  // @ts-ignore
+  return res.rows.map(row => row.json)
+}
+
 export const fetchRelays = async (): Promise<nRelay[]> => {
   const contractName = "welovebancor";
   const { scopes } = await client.stateTableScopes(
