@@ -8,7 +8,7 @@
                 </span>
                 <span v-else>{{ formattedBalance }}</span>
             </div>
-            <div v-if="balance > 0" class="text-white-50 cursor">
+            <div v-if="Number(balance.split(' ')[0]) > 0" class="text-white-50 cursor">
                 <span @click="setPercentage(10)">10%</span>
                 -
                 <span @click="setPercentage(25)">25%</span>
@@ -34,7 +34,7 @@ import * as bancorx from "@/assets/_ts/bancorx";
 })
 export default class TokenAmountInput extends Vue {
     // props
-    @Prop(String) balance!: number;
+    @Prop(String) balance!: string;
     @Prop(Boolean) loading?: boolean;
     @Prop(String) amount!: number;
 
@@ -43,7 +43,7 @@ export default class TokenAmountInput extends Vue {
 
     // computed
     get formattedBalance() {
-        return numeral(this.balance).format('0,0[.][0000]')
+        return numeral(this.balance).format(Number(this.balance.split(' ')[0]) > 0.0001 ? '0,0[.][0000]' : '0,0[.][000000000]')
     }
 
     // method

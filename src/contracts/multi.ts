@@ -73,11 +73,11 @@ class MultiContractAction {
     });
   }
 
-  fund(owner: string, quantity: string): BareAction | SemiAction {
+  fund(sender: string, quantity: string): BareAction | SemiAction {
     return this.addAccountProperty({
       name: "fund",
       data: {
-        owner,
+        sender,
         quantity
       }
     });

@@ -24,7 +24,7 @@
               :status="token1Enabled"
               :amount.sync="token1Amount"
               :symbol="token1Symbol"
-              :balance="token1UserBalance"
+              :balance="displayedToken1Balance"
               :img="token1Img"
             />
           </transition>
@@ -123,7 +123,7 @@
               :status="token2Enabled"
               :amount.sync="token2Amount"
               :symbol="token2Symbol"
-              :balance="token2UserBalance"
+              :balance="displayedToken2Balance"
               :img="token2Img"
             />
           </transition>
@@ -142,7 +142,7 @@ import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import HeroConvertRelay from "@/components/convert/HeroConvertRelay.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
-import { fetchTokenMeta } from "@/api/helpers";
+import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
 import ModalSelectAll from "@/components/modals/ModalSelectAll.vue";
@@ -192,6 +192,8 @@ export default class HeroConvert extends Vue {
   token1Precision = 0;
   token2Precision = 0;
   token2Enabled = false;
+  smartSupply = "";
+  smartUserBalance = "";
   enabled = false;
   owner = "";
   fee = "";
@@ -202,6 +204,39 @@ export default class HeroConvert extends Vue {
     "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
 
   // computed
+  get displayedToken1Balance() {
+    return this.buttonFlipped
+      ? this.token1SmartBalance
+      : this.token1UserBalance
+  }
+
+  get displayedToken2Balance() {
+    return this.buttonFlipped
+      ? this.token2SmartBalance
+      : this.token2UserBalance
+  }
+
+
+  get token1SmartBalance() {
+    const smartUserBalance = split(this.smartUserBalance);
+    const smartSupply = split(this.smartSupply);
+    const percent = smartUserBalance.amount / smartSupply.amount;
+    const token1Balance = split(this.token1Balance)
+    const maxWithdraw = token1Balance.toNumber() * percent
+
+    return new Asset(maxWithdraw * Math.pow(10, smartUserBalance.symbol.precision), smartUserBalance.symbol).toString()
+  }
+
+  get token2SmartBalance() {
+    const smartUserBalance = split(this.smartUserBalance);
+    const smartSupply = split(this.smartSupply);
+    const percent = smartUserBalance.amount / smartSupply.amount;
+    const token2Balance = split(this.token2Balance)
+    const maxWithdraw = token2Balance.toNumber() * percent
+    return new Asset(maxWithdraw * Math.pow(10, smartUserBalance.symbol.precision), smartUserBalance.symbol).toString()
+  }
+
+
 
   async toggleToken(tokenNo: number) {
     const symbol =
@@ -275,11 +310,27 @@ export default class HeroConvert extends Vue {
           new Symbol(this.token2Symbol, this.token2Precision)
         );
 
-    const percentageIncrease = suggestedDeposit.toNumber() / (isToken1 ? token.balance.toNumber() : bnt.balance.toNumber())
+    const percentageIncrease =
+      suggestedDeposit.toNumber() /
+      (isToken1 ? token.balance.toNumber() : bnt.balance.toNumber());
 
+    const number = isToken1 ? bnt.balance.toNumber() : token.balance.toNumber();
+    const result = number * percentageIncrease;
+    const newAsset = new Asset(
+      result *
+        Math.pow(
+          10,
+          isToken1
+            ? bnt.balance.symbol.precision
+            : token.balance.symbol.precision
+        ),
+      isToken1 ? bnt.balance.symbol : token.balance.symbol
+    );
 
     this.rateLoading = false;
-    this[isToken1 ? "token2Amount" : "token1Amount"] = String((isToken1 ? bnt.balance.toNumber() : token.balance.toNumber()) * percentageIncrease);
+    this[isToken1 ? "token2Amount" : "token1Amount"] = String(
+      newAsset.toNumber().toFixed(newAsset.symbol.precision)
+    );
   }
 
   async toggleMain() {
@@ -294,7 +345,24 @@ export default class HeroConvert extends Vue {
     }
   }
 
-  async removeLiquidity() {}
+  async removeLiquidity() {
+    console.log("Remove liquidity toggled");
+    const userBalance = split(
+      await getBalance("labelaarbaro", this.focusedSymbol)
+    );
+
+    const amountRequested = new Asset(
+      Number(this.token1Amount) * Math.pow(10, this.token1Precision),
+      new Symbol(this.token1Symbol, this.token1Precision)
+    );
+    const smartSupply = split(this.smartSupply)
+
+    const percentageRequested = amountRequested.toDecimal().div(smartSupply.toDecimal())
+    const entitledAmount = percentageRequested.times(smartSupply.toDecimal())
+    const entitledAsset = new Asset(entitledAmount.toNumber() * Math.pow(10, smartSupply.symbol.precision), smartSupply.symbol)
+
+    await multiContract.removeLiquidity(entitledAsset, "labelaarbaro");
+  }
 
   async addLiquidity() {
     const token1NumberAmount =
@@ -321,8 +389,19 @@ export default class HeroConvert extends Vue {
       }
     ];
 
+    const buyingAmount = token1Asset;
+    const token1Balance = split(this.token1Balance)
+    const percent = buyingAmount.toNumber() / token1Balance.toNumber()
+
+    const smartSupply = split(this.smartSupply);
+    
+    const entitled = smartSupply.toNumber() * percent
+    const entitledAsset = new Asset(entitled / 2 * 0.99 * Math.pow(10, smartSupply.symbol.precision), smartSupply.symbol)
+
+
     try {
       await multiContract.addLiquidity(this.focusedSymbol, tokens);
+      await multiContract.fund(entitledAsset.toString())
       await wait(700);
       this.fetchRelay();
     } catch (e) {
@@ -350,10 +429,13 @@ export default class HeroConvert extends Vue {
   async fetchRelay() {
     const symbolName = this.focusedSymbol;
     // Fetch relay information
-    const [settings, reserves] = await Promise.all([
+    const [settings, reserves, smartStats] = await Promise.all([
       tableApi.getSettingsMulti(symbolName),
-      tableApi.getReservesMulti(symbolName)
+      tableApi.getReservesMulti(symbolName),
+      fetchTokenStats("labelaarbaro", this.focusedSymbol)
     ]);
+
+    this.smartSupply = smartStats.supply.toString();
     const sortedReserves = reserves.sort((a, b) =>
       a.contract === "bntbntbntbnt" && a.balance.symbol.code() === "BNT"
         ? 1
@@ -391,12 +473,14 @@ export default class HeroConvert extends Vue {
   }
 
   async fetchUserBalances() {
-    const [token1Balance, token2Balance] = await Promise.all([
+    const [token1Balance, token2Balance, smartUserBalance] = await Promise.all([
       getBalance(this.token1Contract, this.token1Symbol),
-      getBalance(this.token2Contract, this.token2Symbol)
+      getBalance(this.token2Contract, this.token2Symbol),
+      getBalance("labelaarbaro", this.focusedSymbol)
     ]);
     this.token1UserBalance = token1Balance;
     this.token2UserBalance = token2Balance;
+    this.smartUserBalance = smartUserBalance;
   }
 
   async checkBankBalance() {

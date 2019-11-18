@@ -10,7 +10,10 @@
           <div class="block-options">
             <b-button size="sm" @click="create">Create</b-button>
             <b-input-group size="sm">
-              <b-input-group-text slot="prepend" class="bg-body border-0 text-muted">
+              <b-input-group-text
+                slot="prepend"
+                class="bg-body border-0 text-muted"
+              >
                 <font-awesome-icon
                   :icon="['fas', searchState]"
                   fixed-width
@@ -30,7 +33,12 @@
             <thead>
               <tr>
                 <th class="text-center" style="width: 50px;">#</th>
-                <th @click="sort('symbol')" colspan="2" class="cursor" style="min-width: 260px;">
+                <th
+                  @click="sort('symbol')"
+                  colspan="2"
+                  class="cursor"
+                  style="min-width: 260px;"
+                >
                   <sort-icons
                     :currentSort="currentSort"
                     :currentSortDir="currentSortDir"
@@ -83,32 +91,33 @@
                 </td>
                 <td>
                   <span class="text-muted font-size-sm">
-                    {{
-                    token.settings.currency.split(',')[1]
-                    }}
+                    {{ token.settings.currency.split(",")[1] }}
                   </span>
                 </td>
-                <td class="text-center font-w700">{{ token.settings.owner }}</td>
+                <td class="text-center font-w700">
+                  {{ token.settings.owner }}
+                </td>
                 <td class="text-center font-w700">50 - 50</td>
-                <td
-                  class="text-right font-w700"
-                >{{ numeral(token.liqDepth).format('$0,0.00') }}</td>
-                <td class="text-right font-w700">{{ token.settings.fee / 1000000 }}%</td>
+                <td class="text-right font-w700">
+                  {{ numeral(token.liqDepth).format("$0,0.00") }}
+                </td>
+                <td class="text-right font-w700">
+                  {{ token.settings.fee / 1000000 }}%
+                </td>
                 <td class="text-right">
                   <b-btn
-                    @click="$router.push({
-                      name: 'Relay',
-                      params: {
-                        account: token.settings.currency.split(',')[1]
-                      }
-                    })"
+                    @click="goToRelay(token.settings.currency.split(',')[1])"
                     size="sm"
                     variant="success"
                     class="mr-1"
                   >
                     <font-awesome-icon icon="exchange-alt" />
                   </b-btn>
-                  <b-btn @click="initAction('transfer', token.symbol)" size="sm" variant="info">
+                  <b-btn
+                    @click="initAction('transfer', token.symbol)"
+                    size="sm"
+                    variant="info"
+                  >
                     <font-awesome-icon icon="arrow-right" />
                   </b-btn>
                 </td>
@@ -173,7 +182,10 @@ export default class Relays extends Vue {
   tokenLogo: string = "";
 
   get imageUrl() {
-    return this.tokenLogo || `https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png`
+    return (
+      this.tokenLogo ||
+      `https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png`
+    );
   }
 
   // computed
@@ -195,8 +207,7 @@ export default class Relays extends Vue {
   }
 
   get newTokens() {
-    console.log(vxm.relays.relays)
-    return vxm.relays.relays
+    return vxm.relays.relays;
   }
 
   get sortedTokens() {
@@ -218,6 +229,21 @@ export default class Relays extends Vue {
     });
   }
 
+  goToRelay(symbolCode: string) {
+    window.scroll({
+      top: 0,
+      left: 0,
+      behavior: "smooth"
+    });
+
+    this.$router.push({
+      name: "Relay",
+      params: {
+        account: symbolCode
+      }
+    });
+  }
+
   initAction(action: "convert" | "transfer", symbol: string) {
     window.scroll({
       top: 0,
@@ -229,15 +255,6 @@ export default class Relays extends Vue {
     vxm.general.setHeroAction(action);
   }
 
-  get isAuthenticated() {
-    return (
-      vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
-    );
-  }
-
-  get tokenDb() {
-    return vxm.tokens.tokenDb;
-  }
 
   searchTokens() {
     // @ts-ignore
@@ -258,10 +275,9 @@ export default class Relays extends Vue {
 
   create() {
     this.$router.push({
-      name: 'Create'
-    })
+      name: "Create"
+    });
   }
-
 
   @Watch("tokenSymbol")
   @Watch("tokenContract")
@@ -311,9 +327,8 @@ export default class Relays extends Vue {
 
   // methods
   async created() {
-    console.log('relays created')
-    vxm.relays.fetchRelays()
-    
+    vxm.relays.fetchRelays();
+
     // this.relays = await vxm.liquidity.loadRelayTokens()
     this.debouncedGetSearch = debounce(() => {
       this.searchTokens();

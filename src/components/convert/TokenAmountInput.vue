@@ -79,15 +79,14 @@ export default class TokenAmountInput extends Vue {
   }
 
   updatePercent(percentage: string) {
-    const newAmount = Number(this.balance) * Number(percentage) / 100
+    const newAmount = Number(this.balance.split(' ')[0]) * Number(percentage) / 100
     this.$emit("update:amount", String(newAmount))
-
+    this.$emit("onUpdate");
   }
 
   onTextUpdate(input: string) {
     this.$emit("update:amount", input);
     this.$emit("onUpdate");
-    // this.amount = input;
   }
 
   toggleStatus() {
