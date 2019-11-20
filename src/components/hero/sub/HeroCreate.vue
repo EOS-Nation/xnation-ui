@@ -327,18 +327,6 @@ export default class HeroConvert extends Vue {
 
       this.smartTokenSymbol = this.createSmartTokenSymbol("BNT", symbol);
 
-      // vxm.relay.draftNewRelay({
-      //   smartTokenSymbol,
-      //   precision: String(precision),
-      //   symbolName: symbol,
-      //   tokenContract: contractName
-      // });
-
-      // vxm.general.setHeroAction("relay");
-      // this.$router.push({
-      //   name: "Relay",
-      //   params: { account: smartTokenSymbol, isDraft: "yes" }
-      // });
     } catch (e) {
       this.failedToFindToken = true;
       this.loading = false;

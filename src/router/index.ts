@@ -8,7 +8,6 @@ import HeroConvert from '@/components/hero/sub/HeroConvert.vue'
 import HeroTransfer from '@/components/hero/sub/HeroTransfer.vue'
 import HeroRelay from '@/components/hero/sub/HeroRelay.vue'
 import HeroCreate from '@/components/hero/sub/HeroCreate.vue'
-import HeroLiquidity from '@/components/hero/sub/HeroLiquidity.vue'
 import Navigation from '@/components/layout/Navigation.vue'
 
 Vue.use(Router)
