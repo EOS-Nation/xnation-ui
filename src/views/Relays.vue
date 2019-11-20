@@ -64,7 +64,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(token, index) in newTokens" :key="index">
+              <tr v-for="(token, index) in tokens" :key="index">
                 <td class="text-center" v-text="index + 1"></td>
                 <td class="text-left font-w700" style="width: 180px">
                   <img
@@ -72,7 +72,7 @@
                     :key="reserve.symbol"
                     class="img-avatar img-avatar-thumb img-avatar32 mr-3"
                     :src="reserve.logo"
-                    alt="Token Logo"
+                    :alt="`${reserve.symbol} Token Logo`"
                   />
                   {{ token.symbol }}
                 </td>
@@ -142,8 +142,6 @@ export default class Relays extends Vue {
 
   // data
   numeral = numeral;
-  relays: any = [];
-  tokens: any = [];
   private tokenSearch: String = "";
   private searchOptions = {
     shouldSort: true,
@@ -160,40 +158,15 @@ export default class Relays extends Vue {
   public debouncedSuggestPrecision: any;
   private currentSort = "v24h";
   private currentSortDir = "desc";
-  modal: boolean = true;
-  state: any;
-  tokenSymbol: any = null;
-  tokenPrecision: any = 4;
-  tokenContract: any = null;
-  tokenExists: boolean | null = null;
-  tokenLogo: string = "";
 
-  get imageUrl() {
-    return (
-      this.tokenLogo ||
-      `https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png`
-    );
-  }
 
   // computed
-  get wallet() {
-    return vxm.eosTransit.wallet;
-  }
-
-  get relaySelect() {
-    return vxm.liquidity.relaySelect;
-  }
-
-  get ethPrice() {
-    return vxm.tokens.ethPrice;
-  }
 
   get searchedTokens() {
-    if (this.searchResults.length > 0) return this.searchResults;
-    else return this.tokens;
+    return this.searchResults.length > 0 ? this.searchResults : this.tokens
   }
 
-  get newTokens() {
+  get tokens() {
     return vxm.relays.relays;
   }
 
@@ -259,48 +232,6 @@ export default class Relays extends Vue {
     this.currentSort = s;
   }
 
-  create() {
-    this.$router.push({
-      name: "Create"
-    });
-  }
-
-  @Watch("tokenSymbol")
-  @Watch("tokenContract")
-  onContractChange() {
-    if (this.tokenSymbol && this.tokenContract) {
-      this.debouncedSuggestPrecision();
-    }
-  }
-
-  async suggestPrecision() {
-    const contractName = this.tokenContract;
-    const symbol = this.tokenSymbol;
-
-    try {
-      const { max_supply } = await fetchTokenStats(
-        this.tokenContract,
-        this.tokenSymbol
-      );
-      const precision = max_supply.symbol.precision;
-      this.tokenPrecision = precision;
-      this.tokenExists = true;
-      try {
-        const metaData = await fetchTokenMeta(
-          this.tokenContract,
-          this.tokenSymbol
-        );
-        this.tokenLogo = metaData.logo;
-      } catch {
-        this.tokenLogo = "";
-      }
-    } catch (e) {
-      console.warn(e);
-      this.tokenExists = false;
-      this.tokenLogo = "";
-    }
-  }
-
   @Watch("tokenSearch")
   async onSearchChange(val: any, oldVal: any) {
     if (val !== "") {
@@ -315,12 +246,8 @@ export default class Relays extends Vue {
   async created() {
     vxm.relays.fetchRelays();
 
-    // this.relays = await vxm.liquidity.loadRelayTokens()
     this.debouncedGetSearch = debounce(() => {
       this.searchTokens();
-    }, 500);
-    this.debouncedSuggestPrecision = debounce(() => {
-      this.suggestPrecision();
     }, 500);
   }
 }
