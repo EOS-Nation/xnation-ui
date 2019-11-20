@@ -22,25 +22,7 @@ import TokensTable from '@/components/tables/TokensTable.vue'
   }
 })
 export default class Token extends Vue {
-  // prop
-  // data
 
-  // computed
-  get wallet() {
-    return vxm.eosTransit.wallet
-  }
-
-  get direction() {
-    return vxm.convert.convertDirection
-  }
-
-  get isAuthenticated() {
-    if (vxm.eosTransit.walletState)
-      return vxm.eosTransit.walletState.authenticated
-    else return false
-  }
-
-  // methods
   async created() {
     vxm.general.setHeroAction('convert')
   }

@@ -187,10 +187,6 @@ export default class TokensTable extends Vue {
   private tokens: any = []
 
   // computed
-  get eosTokens() {
-    return vxm.tokens.eosTokens
-  }
-
   get ethPrice() {
     return vxm.tokens.ethPrice
   }
