@@ -215,6 +215,7 @@ export class RelaysModule extends VuexModule {
           isMultiContract: true,
           contract: this.contractName,
           settings: {
+            // @ts-ignore
             ...json,
             contract: this.smartTokenContract
           },
