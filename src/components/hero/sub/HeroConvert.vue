@@ -4,8 +4,17 @@
       <b-row>
         <b-col md="4">
           <transition name="slide-fade-down" mode="out-in">
-            <hero-convert-relay :key="ltr ? 'ltr' : 'rtl'" direction="from" />
-          </transition>
+  <token-amount-input
+    :amount.sync="token1Amount"
+    :balance="token1Balance"
+    :img="token1Img"
+    :symbol="token1Symbol"
+    dropdown
+    @dropdown="modal = true"
+    @click="modal = true"
+   />         
+   
+    </transition>
         </b-col>
         <b-col
           md="4"
@@ -66,9 +75,7 @@
           </transition>
         </b-col>
       </b-row>
-      <modal-select-all />
-      <modal-select-token />
-      <modal-select-relays />
+      <modal-select :modalShow.sync="modal" :tokens="tokens" @onSelect="derp" />
       <modal-convert-liquidity />
     </div>
   </hero-wrapper>
@@ -80,18 +87,16 @@ import { vxm } from "@/store";
 import HeroConvertRelay from "@/components/convert/HeroConvertRelay.vue";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
-import ModalSelectAll from "@/components/modals/ModalSelectAll.vue";
 import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue";
-import ModalSelectToken from "@/components/modals/ModalSelectToken.vue";
-import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
+import ModalSelect from "@/components/modals/ModalSelect.vue";
+import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { fetchRelays, parseTokens, fetchTokenMeta } from "@/api/helpers"
 
 @Component({
   components: {
-    ModalSelectRelays,
-    ModalSelectAll,
-    ModalSelectToken,
+    TokenAmountInput,
+    ModalSelect,
     ModalConvertLiquidity,
     HeroWrapper,
     HeroConvertRelay
@@ -103,6 +108,17 @@ export default class HeroConvert extends Vue {
   rate = "";
   rateLoading = false;
   numeral = numeral;
+  modal = false;
+
+  token1Amount = ''
+  token1Balance = ''
+  token1Img = 'https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png'
+  token1Symbol = 'EOS'
+
+  token2Amount = ''
+  token2Balance = ''
+  token2Img = 'https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png'
+  token2Symbol = 'EOS'
 
   // computed
   get isAuthenticated() {
@@ -144,11 +160,16 @@ export default class HeroConvert extends Vue {
   }
 
   get tokens() {
-    return vxm.tokens.eosTokens;
+    return vxm.relays.tokens;
   }
 
   get loadingTokens() {
     return vxm.liquidity.rateLoading;
+  }
+
+  derp(symbol: string) {
+    console.log('token selection should be', symbol)
+    this.modal = false
   }
 
   async conversionRate() {
