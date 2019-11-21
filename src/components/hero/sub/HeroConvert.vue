@@ -4,17 +4,17 @@
       <b-row>
         <b-col md="4">
           <transition name="slide-fade-down" mode="out-in">
-  <token-amount-input
-    :amount.sync="token1Amount"
-    :balance="token1Balance"
-    :img="token1Img"
-    :symbol="token1Symbol"
-    dropdown
-    @dropdown="modal = true"
-    @click="modal = true"
-   />         
-   
-    </transition>
+            <token-amount-input
+              :key="token1Symbol"
+              :amount.sync="token1Amount"
+              :balance="token1Balance"
+              :img="token1Img"
+              :symbol="token1Symbol"
+              dropdown
+              @dropdown="promptModal(1)"
+              @click="promptModal(1)"
+            />
+          </transition>
         </b-col>
         <b-col
           md="4"
@@ -62,20 +62,41 @@
               @click="navTransfer"
               class="cursor font-size-sm text-white-50"
             >
-              <font-awesome-icon icon="long-arrow-alt-right" fixed-width />TRANSFER
+              <font-awesome-icon
+                icon="long-arrow-alt-right"
+                fixed-width
+              />TRANSFER
             </span>
-            <span v-else @click="heroAction = 'liq-add'" class="cursor font-size-sm text-white-50">
-              <font-awesome-icon icon="long-arrow-alt-right" fixed-width />DUAL Liquidity
+            <span
+              v-else
+              @click="heroAction = 'liq-add'"
+              class="cursor font-size-sm text-white-50"
+            >
+              <font-awesome-icon icon="long-arrow-alt-right" fixed-width />DUAL
+              Liquidity
             </span>
           </div>
         </b-col>
         <b-col md="4">
           <transition name="slide-fade-up" mode="out-in">
-            <hero-convert-relay :key="ltr ? 'ltr' : 'rtl'" direction="to" />
+            <token-amount-input
+              :key="token2Symbol"
+              :amount.sync="token2Amount"
+              :balance="token2Balance"
+              :img="token2Img"
+              :symbol="token2Symbol"
+              dropdown
+              @dropdown="promptModal(2)"
+              @click="promptModal(2)"
+            />
           </transition>
         </b-col>
       </b-row>
-      <modal-select :modalShow.sync="modal" :tokens="tokens" @onSelect="derp" />
+      <modal-select
+        :modalShow.sync="modal"
+        :tokens="tokens"
+        @onSelect="selectedToken"
+      />
       <modal-convert-liquidity />
     </div>
   </hero-wrapper>
@@ -91,7 +112,7 @@ import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue
 import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
-import { fetchRelays, parseTokens, fetchTokenMeta } from "@/api/helpers"
+import { fetchRelays, parseTokens, fetchTokenMeta } from "@/api/helpers";
 
 @Component({
   components: {
@@ -110,15 +131,18 @@ export default class HeroConvert extends Vue {
   numeral = numeral;
   modal = false;
 
-  token1Amount = ''
-  token1Balance = ''
-  token1Img = 'https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png'
-  token1Symbol = 'EOS'
+  promptedTokenNumber = 0;
+  token1Amount = "";
+  token1Balance = "";
+  token1Img =
+    "";
+  token1Symbol = "";
 
-  token2Amount = ''
-  token2Balance = ''
-  token2Img = 'https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png'
-  token2Symbol = 'EOS'
+  token2Amount = "";
+  token2Balance = "";
+  token2Img =
+    "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png";
+  token2Symbol = "BNT";
 
   // computed
   get isAuthenticated() {
@@ -167,9 +191,21 @@ export default class HeroConvert extends Vue {
     return vxm.liquidity.rateLoading;
   }
 
-  derp(symbol: string) {
-    console.log('token selection should be', symbol)
-    this.modal = false
+  promptModal(tokenNumber: number) {
+    this.promptedTokenNumber = tokenNumber;
+    this.modal = true;
+  }
+
+  selectedToken(selectedSymbol: string) {
+    this.modal = false;
+    const { symbol, logo } = this.tokens.find(token => token.symbol == selectedSymbol)!
+    if (this.promptedTokenNumber == 1) {
+      this.token1Img = logo
+      this.token1Symbol = symbol
+    } else {
+      this.token2Img = logo;
+      this.token2Symbol = symbol;
+    }
   }
 
   async conversionRate() {
@@ -219,8 +255,9 @@ export default class HeroConvert extends Vue {
   }
 
   setFromToken(symbolName: string) {
-    const tokenInfo = bancorx.getTokenInfo(symbolName);
-    if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo);
+    const { symbol, logo} = this.tokens.find(token => token.symbol == symbolName)!
+    this.token1Symbol = symbol
+    this.token1Img = logo;
   }
 
   @Watch("$route")
@@ -238,9 +275,8 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-
     this.setFromToken(this.$route.params.symbolName || "EOS");
-    vxm.relays.fetchRelays()
+    vxm.relays.fetchRelays();
     this.conversionRate();
   }
 }
