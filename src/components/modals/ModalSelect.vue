@@ -1,5 +1,5 @@
 <template>
-  <b-modal v-model="visible" size="lg" centered hide-footer>
+  <b-modal :visible="modalShow" size="lg" @change="onChange"  centered hide-footer>
     <template slot="modal-title">
       Select Token
     </template>
@@ -67,6 +67,9 @@ export default class ModalSelect extends Vue {
     @Prop(Array) tokens!: any[] 
     visible = false
 
+  onChange(value: boolean) {
+    this.$emit("update:modalShow", value)
+  }
 
   // data
   private tokenSearch: String = ''
@@ -88,15 +91,6 @@ export default class ModalSelect extends Vue {
   get searchedTokens() {
     if (this.searchResults.length > 0) return this.searchResults
     else return this.relayBalances
-  }
-
-  @Watch("modalShow")
-  onChange(val: boolean) {
-    if (val) {
-      this.visible = true;
-    } else {
-      this.visible = false;
-    }
   }
 
   // methods
