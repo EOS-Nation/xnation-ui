@@ -1,11 +1,11 @@
 <template>
   <hero-wrapper>
     <div>
-      <b-row>
+      <b-row :class="flipped && 'd-flex flex-row-reverse'">
         <b-col md="4">
           <transition name="slide-fade-down" mode="out-in">
             <token-amount-input
-              :key="token1Symbol"
+              :key="flipped ? 'token1' : 'token1-'"
               :amount.sync="token1Amount"
               :balance="token1Balance"
               :img="token1Img"
@@ -27,22 +27,20 @@
                 icon="exchange-alt"
                 class="fa-2x text-white cursor"
                 :key="ltr ? 'ltr' : 'rtl'"
-                @click="swapTokens()"
+                @click="swapTokens"
               />
             </transition>
             <div class="mb-3 mt-3">
-              <span class="text-white font-size-sm">
-                1 {{ tokenFrom.symbol }} =
-                <span v-if="!rateLoading && !loadingTokens">{{ rate }}</span>
-                <span v-else>
+              <span v-if="loading">
                   <font-awesome-icon icon="circle-notch" spin />
                 </span>
-                {{ tokenTo.symbol }}
+              <span v-else class="text-white font-size-sm">
+                {{ simpleReward }}
               </span>
             </div>
             <div class="d-flex justify-content-center">
               <b-btn
-                @click="initConvert()"
+                @click="initConvert"
                 variant="success"
                 v-ripple
                 class="px-4 py-2 d-block"
@@ -58,7 +56,6 @@
               </b-btn>
             </div>
             <span
-              v-if="this.currentRoute !== 'Relays'"
               @click="navTransfer"
               class="cursor font-size-sm text-white-50"
             >
@@ -67,20 +64,12 @@
                 fixed-width
               />TRANSFER
             </span>
-            <span
-              v-else
-              @click="heroAction = 'liq-add'"
-              class="cursor font-size-sm text-white-50"
-            >
-              <font-awesome-icon icon="long-arrow-alt-right" fixed-width />DUAL
-              Liquidity
-            </span>
           </div>
         </b-col>
         <b-col md="4">
           <transition name="slide-fade-up" mode="out-in">
             <token-amount-input
-              :key="token2Symbol"
+              :key="flipped ? 'token2' : 'token2-'"
               :amount.sync="token2Amount"
               :balance="token2Balance"
               :img="token2Img"
@@ -128,14 +117,15 @@ export default class HeroConvert extends Vue {
   ltr = true;
   rate = "";
   rateLoading = false;
+  loading = false;
   numeral = numeral;
   modal = false;
+  flipped = false;
 
   promptedTokenNumber = 0;
   token1Amount = "";
   token1Balance = "";
-  token1Img =
-    "";
+  token1Img = "";
   token1Symbol = "";
 
   token2Amount = "";
@@ -157,10 +147,6 @@ export default class HeroConvert extends Vue {
 
   get currentRoute() {
     return this.$route.name;
-  }
-
-  set heroAction(val) {
-    vxm.general.setHeroAction(val);
   }
 
   get debouncedState() {
@@ -198,10 +184,12 @@ export default class HeroConvert extends Vue {
 
   selectedToken(selectedSymbol: string) {
     this.modal = false;
-    const { symbol, logo } = this.tokens.find(token => token.symbol == selectedSymbol)!
+    const { symbol, logo } = this.tokens.find(
+      token => token.symbol == selectedSymbol
+    )!;
     if (this.promptedTokenNumber == 1) {
-      this.token1Img = logo
-      this.token1Symbol = symbol
+      this.token1Img = logo;
+      this.token1Symbol = symbol;
     } else {
       this.token2Img = logo;
       this.token2Symbol = symbol;
@@ -231,9 +219,7 @@ export default class HeroConvert extends Vue {
 
   // methods
   swapTokens() {
-    this.ltr = !this.ltr;
-    vxm.liquidity.swapSelection();
-    vxm.liquidity.calcMinReturn();
+    this.flipped = !this.flipped;
   }
 
   initConvert() {
@@ -244,20 +230,11 @@ export default class HeroConvert extends Vue {
     }
   }
 
-  @Watch("minReturn")
-  async onStateChange(val: any, oldVal: any) {
-    await this.conversionRate();
-  }
-
-  @Watch("tokenFrom")
-  async onTokenChange(val: any, oldVal: any) {
-    await this.conversionRate();
-  }
-
   setFromToken(symbolName: string) {
     const { symbol, logo} = this.tokens.find(token => token.symbol == symbolName)!
     this.token1Symbol = symbol
     this.token1Img = logo;
+    this.loading = false;
   }
 
   @Watch("$route")
@@ -275,8 +252,8 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
+    await vxm.relays.fetchRelays();
     this.setFromToken(this.$route.params.symbolName || "EOS");
-    vxm.relays.fetchRelays();
     this.conversionRate();
   }
 }
