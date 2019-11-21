@@ -35,7 +35,7 @@
                   <font-awesome-icon icon="circle-notch" class="text-white" spin />
                 </span>
               <span v-else class="text-white font-size-sm">
-                {{ simpleReward }}
+                {{ flipped ? token1SimpleReward : token2SimpleReward }}
               </span>
             </div>
             <div class="d-flex justify-content-center">
@@ -135,21 +135,21 @@ export default class HeroConvert extends Vue {
   token1Img = "";
   token1Symbol = "";
 
+
   token2Amount = "";
   token2Balance = "";
   token2Img =
     "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png";
   token2Symbol = "BNT";
 
+  token1SimpleReward = ''
+  token2SimpleReward = ''
+
   // computed
   get isAuthenticated() {
     return (
       vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
     );
-  }
-
-  get simpleReward() {
-    return 'fewfwe'
   }
 
   get amount() {
@@ -241,8 +241,16 @@ export default class HeroConvert extends Vue {
     });
   }
 
+  async loadSimpleRewards() {
+    this.loading = true;
+    
+
+    this.loading = false;
+  }
+
   async created() {
     this.setFromToken(this.$route.params.symbolName || "EOS");
+    this.loadSimpleRewards()
     this.conversionRate();
   }
 }
