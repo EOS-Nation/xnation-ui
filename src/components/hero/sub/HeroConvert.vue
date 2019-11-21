@@ -32,7 +32,7 @@
             </transition>
             <div class="mb-3 mt-3">
               <span v-if="loading">
-                  <font-awesome-icon icon="circle-notch" spin />
+                  <font-awesome-icon icon="circle-notch" class="text-white" spin />
                 </span>
               <span v-else class="text-white font-size-sm">
                 {{ simpleReward }}
@@ -102,8 +102,15 @@ import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { fetchRelays, parseTokens, fetchTokenMeta } from "@/api/helpers";
+import wait from 'waait'
 
 @Component({
+  beforeRouteEnter: async (to, from, next) => {
+    if (vxm.relays.tokens.length == 0) {
+      await vxm.relays.fetchRelays();
+    }
+    next()
+  },
   components: {
     TokenAmountInput,
     ModalSelect,
@@ -117,7 +124,7 @@ export default class HeroConvert extends Vue {
   ltr = true;
   rate = "";
   rateLoading = false;
-  loading = false;
+  loading = true;
   numeral = numeral;
   modal = false;
   flipped = false;
@@ -141,24 +148,8 @@ export default class HeroConvert extends Vue {
     );
   }
 
-  get heroAction() {
-    return vxm.general.heroAction;
-  }
-
-  get currentRoute() {
-    return this.$route.name;
-  }
-
-  get debouncedState() {
-    return vxm.convert.debouncedState;
-  }
-
-  get tokenFrom() {
-    return vxm.liquidity.fromToken;
-  }
-
-  get tokenTo() {
-    return vxm.liquidity.toToken;
+  get simpleReward() {
+    return 'fewfwe'
   }
 
   get amount() {
@@ -234,7 +225,6 @@ export default class HeroConvert extends Vue {
     const { symbol, logo} = this.tokens.find(token => token.symbol == symbolName)!
     this.token1Symbol = symbol
     this.token1Img = logo;
-    this.loading = false;
   }
 
   @Watch("$route")
@@ -252,7 +242,6 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-    await vxm.relays.fetchRelays();
     this.setFromToken(this.$route.params.symbolName || "EOS");
     this.conversionRate();
   }
