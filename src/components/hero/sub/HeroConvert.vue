@@ -5,7 +5,7 @@
         <b-col md="4">
           <transition name="slide-fade-down" mode="out-in">
             <token-amount-input
-              :key="flipped ? 'token1' : 'token1-'"
+              :key="fromTokenSymbol"
               :amount.sync="token1Amount"
               :balance="token1Balance"
               :img="token1Img"
@@ -13,6 +13,7 @@
               dropdown
               @dropdown="promptModal(1)"
               @click="promptModal(1)"
+              @onUpdate="tokenAmountChange(1)"
             />
           </transition>
         </b-col>
@@ -32,10 +33,14 @@
             </transition>
             <div class="mb-3 mt-3">
               <span v-if="loading">
-                  <font-awesome-icon icon="circle-notch" class="text-white" spin />
-                </span>
+                <font-awesome-icon
+                  icon="circle-notch"
+                  class="text-white"
+                  spin
+                />
+              </span>
               <span v-else class="text-white font-size-sm">
-                {{ flipped ? token1SimpleReward : token2SimpleReward }}
+                {{ flipped ? token2SimpleReward : token1SimpleReward }}
               </span>
             </div>
             <div class="d-flex justify-content-center">
@@ -44,7 +49,7 @@
                 variant="success"
                 v-ripple
                 class="px-4 py-2 d-block"
-                :disabled="loadingTokens || minReturn === ''"
+                :disabled="!isAuthenticated"
               >
                 <font-awesome-icon
                   :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
@@ -69,7 +74,7 @@
         <b-col md="4">
           <transition name="slide-fade-up" mode="out-in">
             <token-amount-input
-              :key="flipped ? 'token2' : 'token2-'"
+              :key="toTokenSymbol"
               :amount.sync="token2Amount"
               :balance="token2Balance"
               :img="token2Img"
@@ -77,6 +82,7 @@
               dropdown
               @dropdown="promptModal(2)"
               @click="promptModal(2)"
+              @onUpdate="tokenAmountChange(2)"
             />
           </transition>
         </b-col>
@@ -102,14 +108,17 @@ import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { fetchRelays, parseTokens, fetchTokenMeta } from "@/api/helpers";
-import wait from 'waait'
+import { bancorCalculator } from "@/api/bancorCalculator";
+import wait from "waait";
+import { split, Asset, Symbol } from "eos-common";
+import { multiContract } from "../../../api/multiContractTx";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
     if (vxm.relays.tokens.length == 0) {
       await vxm.relays.fetchRelays();
     }
-    next()
+    next();
   },
   components: {
     TokenAmountInput,
@@ -135,15 +144,14 @@ export default class HeroConvert extends Vue {
   token1Img = "";
   token1Symbol = "";
 
-
   token2Amount = "";
   token2Balance = "";
   token2Img =
     "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png";
   token2Symbol = "BNT";
 
-  token1SimpleReward = ''
-  token2SimpleReward = ''
+  token1SimpleReward = "";
+  token2SimpleReward = "";
 
   // computed
   get isAuthenticated() {
@@ -178,12 +186,14 @@ export default class HeroConvert extends Vue {
     const { symbol, logo } = this.tokens.find(
       token => token.symbol == selectedSymbol
     )!;
-    if (this.promptedTokenNumber == 1) {
-      this.token1Img = logo;
-      this.token1Symbol = symbol;
+    const fromTokenChanged = this.identifyToken(this.promptedTokenNumber);
+    console.log('modal', fromTokenChanged ? 'from token changed': 'toToken changed')
+    if (fromTokenChanged) {
+      this.fromTokenImg = logo;
+      this.fromTokenSymbol = symbol;
     } else {
-      this.token2Img = logo;
-      this.token2Symbol = symbol;
+      this.toTokenImg = logo;
+      this.toTokenSymbol = symbol;
     }
   }
 
@@ -213,17 +223,35 @@ export default class HeroConvert extends Vue {
     this.flipped = !this.flipped;
   }
 
-  initConvert() {
-    if (!this.isAuthenticated) this.$bvModal.show("modal-login");
-    else {
-      vxm.convert.initConversion("from");
-      this.$bvModal.show("modal-convert-token");
-    }
+  async initConvert() {
+    const fromToken = vxm.relays.tokens.find(
+      token => token.symbol == this.fromTokenSymbol
+    )!;
+    const toToken = vxm.relays.tokens.find(
+      token => token.symbol == this.toTokenSymbol
+    )!;
+
+    const amountAsset = new Asset(
+      Number(this.fromTokenAmount) * Math.pow(10, fromToken.precision),
+      new Symbol(fromToken.symbol, fromToken.precision)
+    );
+
+    const memo = await bancorCalculator.composeMemo(
+      new Symbol(fromToken.symbol, fromToken.precision),
+      new Symbol(toToken.symbol, toToken.precision),
+      "0.00000001",
+      "thekellygang"
+    );
+
+    await multiContract.convert(fromToken.contract, amountAsset, memo);
+    await vxm.relays.fetchRelays();
   }
 
   setFromToken(symbolName: string) {
-    const { symbol, logo} = this.tokens.find(token => token.symbol == symbolName)!
-    this.token1Symbol = symbol
+    const { symbol, logo } = this.tokens.find(
+      token => token.symbol == symbolName
+    )!;
+    this.token1Symbol = symbol;
     this.token1Img = logo;
   }
 
@@ -241,16 +269,158 @@ export default class HeroConvert extends Vue {
     });
   }
 
+  get fromTokenSymbol() {
+    return this.flipped ? this.token2Symbol : this.token1Symbol;
+  }
+
+  get toTokenSymbol() {
+    return this.flipped ? this.token1Symbol : this.token2Symbol;
+  }
+
+  get fromTokenImg() {
+    return this.flipped ? this.token2Img : this.token1Img;
+  }
+
+  get toTokenImg() {
+    return this.flipped ? this.token1Img : this.token2Img;
+  }
+
+  get fromTokenAmount() {
+    return this.flipped ? this.token2Amount : this.token1Amount;
+  }
+
+  get toTokenAmount() {
+    return this.flipped ? this.token1Amount : this.token2Amount;
+  }
+
+  set fromTokenSymbol(symbol: string) {
+    this[this.flipped ? "token2Symbol" : "token1Symbol"] = symbol;
+  }
+
+  set toTokenSymbol(symbol: string) {
+    this[this.flipped ? "token1Symbol" : "token2Symbol"] = symbol;
+  }
+
+  set fromTokenImg(url: string) {
+    this[this.flipped ? "token2Img" : "token1Img"] = url;
+  }
+
+  set toTokenImg(url: string) {
+    this[this.flipped ? "token1Img" : "token2Img"] = url;
+  }
+
+  set toTokenAmount(amount: string) {
+    this[this.flipped ? "token1Amount" : "token2Amount"] = amount;
+  }
+
+  set fromTokenAmount(amount: string) {
+    this[this.flipped ? "token2Amount" : "token1Amount"] = amount;
+  }
+
+  identifyToken(numberSelection: number): boolean {
+    if (this.flipped && numberSelection == 1) {
+      return false;
+    } else if (!this.flipped && numberSelection == 1) {
+      return true;
+    } else if (this.flipped && numberSelection == 2) {
+      return true;
+    } else if (!this.flipped && numberSelection == 2) {
+      return false;
+    } else {
+      throw new Error("Failed to identify token!");
+    }
+  }
+
+  async tokenAmountChange(numberSelection: number) {
+    // Which token just changed? From or To?
+    const fromTokenChanged = this.identifyToken(numberSelection);
+    const fromToken = vxm.relays.tokens.find(
+      token => token.symbol == this.fromTokenSymbol
+    )!;
+    const toToken = vxm.relays.tokens.find(
+      token => token.symbol == this.toTokenSymbol
+    )!;
+    console.log({ fromToken, toToken });
+
+    if (fromTokenChanged) {
+      const amount = Number(this.fromTokenAmount);
+      console.log(
+        "I should be estimating return of",
+        amount,
+        this.fromTokenSymbol
+      );
+
+      try {
+        const reward = await bancorCalculator.estimateReturn(
+          new Asset(
+            amount * Math.pow(10, fromToken.precision),
+            new Symbol(fromToken.symbol, fromToken.precision)
+          ),
+          new Symbol(toToken.symbol, toToken.precision)
+        );
+        this.toTokenAmount = String(reward.toNumber());
+      } catch (e) {
+        console.log("Error thrown in bancorCalculator", e);
+      }
+    } else {
+      const amount = Number(this.toTokenAmount);
+      console.log("I should be estimating cost...", amount, this.toTokenSymbol);
+      const reward = await bancorCalculator.estimateCost(
+        new Asset(
+          amount * Math.pow(10, toToken.precision),
+          new Symbol(toToken.symbol, toToken.precision)
+        ),
+        new Symbol(fromToken.symbol, fromToken.precision)
+      );
+      console.log("setting", String(reward.toString()));
+      this.fromTokenAmount = String(reward.toNumber());
+    }
+  }
+
+  @Watch("token1Symbol")
+  @Watch("token2Symbol")
+  tokenChange() {
+    this.loadSimpleRewards();
+  }
+
   async loadSimpleRewards() {
     this.loading = true;
-    
+
+    const token1 = vxm.relays.tokens.find(
+      token => token.symbol == this.token1Symbol
+    )!;
+    const token2 = vxm.relays.tokens.find(
+      token => token.symbol == this.token2Symbol
+    )!;
+
+    const fromToken1 = await bancorCalculator.estimateReturn(
+      new Asset(
+        1 * Math.pow(10, token1.precision),
+        new Symbol(token1.symbol, token1.precision)
+      ),
+      new Symbol(token2.symbol, token2.precision)
+    );
+    this.token1SimpleReward = `1 ${
+      this.token1Symbol
+    } = ${fromToken1.toString()}`;
+
+    const fromToken2 = await bancorCalculator.estimateReturn(
+      new Asset(
+        1 * Math.pow(10, token2.precision),
+        new Symbol(token2.symbol, token2.precision)
+      ),
+      new Symbol(token1.symbol, token1.precision)
+    );
+    this.token2SimpleReward = `1 ${
+      this.token2Symbol
+    } = ${fromToken2.toString()}`;
 
     this.loading = false;
   }
 
   async created() {
-    this.setFromToken(this.$route.params.symbolName || "EOS");
-    this.loadSimpleRewards()
+    this.setFromToken(this.$route.params.symbolName || vxm.relays.tokens[0].symbol);
+    this.loadSimpleRewards();
     this.conversionRate();
   }
 }

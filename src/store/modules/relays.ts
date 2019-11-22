@@ -188,7 +188,6 @@ export class RelaysModule extends VuexModule {
         };
       });
 
-    console.log(x, 'is the good');
     return x;
   }
 
