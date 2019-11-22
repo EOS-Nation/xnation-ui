@@ -158,6 +158,12 @@ import { tableApi } from "@/api/TableWrapper";
 import { getBalance, getBankBalance } from "@/api/helpers";
 
 @Component({
+  beforeRouteEnter: async (to, from, next) => {
+    if (vxm.relays.relays.length == 0) {
+      await vxm.relays.fetchRelays();
+    }
+    next();
+  },
   components: {
     ModalSelectRelays,
     ModalSelectAll,
@@ -514,8 +520,8 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-    this.focusedSymbol = this.$route.params.account || "BNTEOSS";
-    this.checkBankBalance();
+    this.focusedSymbol = this.$route.params.account || vxm.relays.relays[0].settings.currency.split(',')[1];
+    // this.checkBankBalance();
   }
 }
 </script>
