@@ -18,9 +18,7 @@
           <transition name="slide-fade-down" mode="out-in">
             <token-amount-input
               :key="token1Symbol"
-              @toggle="toggleToken(1)"
               @onUpdate="onTokenAmountChange(1)"
-              :toggle="isAdmin"
               :status="token1Enabled"
               :amount.sync="token1Amount"
               :symbol="token1Symbol"
@@ -116,9 +114,7 @@
         <b-col md="4">
           <transition name="slide-fade-up" mode="out-in">
             <token-amount-input
-              @toggle="toggleToken(2)"
               @onUpdate="onTokenAmountChange(2)"
-              :toggle="isAdmin"
               :key="token2Symbol"
               :status="token2Enabled"
               :amount.sync="token2Amount"
@@ -240,28 +236,6 @@ export default class HeroConvert extends Vue {
     const token2Balance = split(this.token2Balance)
     const maxWithdraw = token2Balance.toNumber() * percent
     return new Asset(maxWithdraw * Math.pow(10, smartUserBalance.symbol.precision), smartUserBalance.symbol).toString()
-  }
-
-
-
-  async toggleToken(tokenNo: number) {
-    const symbol =
-      tokenNo == 1
-        ? new Symbol(this.token1Symbol, this.token1Precision)
-        : new Symbol(this.token2Symbol, this.token2Precision);
-
-    try {
-      await multiContract.toggleReserve(this.focusedSymbol, symbol);
-      if (tokenNo == 1) {
-        this.token1Enabled = !this.token1Enabled;
-      } else {
-        this.token2Enabled = !this.token2Enabled;
-      }
-      await wait(700);
-    } catch (e) {
-      // handle error
-    }
-    this.fetchRelay();
   }
 
   get isAuthenticated() {
