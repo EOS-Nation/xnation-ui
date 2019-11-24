@@ -231,19 +231,33 @@ export default class HeroConvert extends Vue {
       token => token.symbol == this.toTokenSymbol
     )!;
 
-    const amountAsset = new Asset(
+    const fromAmountAsset = new Asset(
       Number(this.fromTokenAmount) * Math.pow(10, fromToken.precision),
       new Symbol(fromToken.symbol, fromToken.precision)
     );
 
+    const toAmountAsset = new Asset(
+      Number(this.toTokenAmount) * Math.pow(10, toToken.precision),
+      new Symbol(toToken.symbol, toToken.precision)
+    );
+
+
+    const minimumReturn = new Asset(toAmountAsset.amount * 0.98, toAmountAsset.symbol);
     const memo = await bancorCalculator.composeMemo(
       new Symbol(fromToken.symbol, fromToken.precision),
       new Symbol(toToken.symbol, toToken.precision),
-      "0.00000001",
-      "thekellygang"
+      minimumReturn.toString().split(' ')[0],
+      // @ts-ignore
+      vxm.eosTransit.wallet.auth.accountName
     );
 
-    await multiContract.convert(fromToken.contract, amountAsset, memo);
+    try {
+      await multiContract.convert(fromToken.contract, fromAmountAsset, memo);
+      this.fromTokenAmount = ""
+      this.toTokenAmount = ""
+    } catch(e) {
+      console.warn('TX Error:', e)
+    }
     await vxm.relays.fetchRelays();
   }
 

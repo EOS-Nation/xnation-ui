@@ -113,10 +113,6 @@ class MultiContractTx {
   }
   
   convert(tokenContract: string, amount: Asset, memo: string) {
-    const manual = "0.0000010000 BNT"
-
-    console.log(amount.toString() == manual ? "they matched" : "they didn't match", 'wass the asset')
-
     const action = {
       account: tokenContract,
       name: 'transfer',
