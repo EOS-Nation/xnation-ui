@@ -148,6 +148,7 @@ export class RelaysModule extends VuexModule {
   get tokens(): PrettyToken[] {
     if (!this.initComplete) return [];
     const x = this.relaysList
+      .filter(relay => relay.settings.enabled)
       .map(relay => relay.reserves)
       .map(reserves => {
         const [token, bnt] = reserves;
