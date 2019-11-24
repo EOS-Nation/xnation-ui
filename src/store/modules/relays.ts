@@ -129,19 +129,26 @@ export class RelaysModule extends VuexModule {
     this.usdPrice = usdPrice;
   }
 
+  get relay() {
+    return (symbolName: string) => {
+      return this.relays.find(relay => relay.settings.symbolName == symbolName)
+    }
+  }
+
   get relays() {
     return this.relaysList
       .map(relay => ({
         ...relay,
-        liqDepth: this.usdPrice * Number(relay.reserves[1].balance.split(" ")[0])
-      }))
-      .map(relay => ({
-        ...relay,
+        liqDepth: this.usdPrice * Number(relay.reserves[1].balance.split(" ")[0]),
         reserves: relay.reserves
           .map(reserve => ({
             ...reserve,
             logo: this.tokenMeta.find((tokenMeta: TokenMeta) => tokenMeta.symbol == reserve.symbol)!.logo || 'https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png'
-          }))
+          })),
+          settings: {
+            ...relay.settings,
+            symbolName: relay.settings.currency.split(',')[1]
+          }
       }))
   }
 

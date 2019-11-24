@@ -494,7 +494,7 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-    this.focusedSymbol = this.$route.params.account || vxm.relays.relays[0].settings.currency.split(',')[1];
+    this.focusedSymbol = this.$route.params.account || vxm.relays.relays[0].settings.symbolName
     // this.checkBankBalance();
   }
 }
