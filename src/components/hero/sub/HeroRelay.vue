@@ -396,53 +396,37 @@ export default class HeroConvert extends Vue {
     }, 1000);
   }
 
-  async fetchTokenMeta() {
-    const [token1, token2] = await Promise.all([
-      fetchTokenMeta(this.token1Contract, this.token1Symbol),
-      fetchTokenMeta(this.token2Contract, this.token2Symbol)
-    ]);
-    this.token1Img = token1.logo;
-    this.token2Img = token2.logo;
-  }
-
   async fetchRelay() {
     const symbolName = this.focusedSymbol;
-    // Fetch relay information
-    const [settings, reserves, smartStats] = await Promise.all([
-      tableApi.getSettingsMulti(symbolName),
-      tableApi.getReservesMulti(symbolName),
-      fetchTokenStats(process.env.VUE_APP_SMARTTOKENCONTRACT!, this.focusedSymbol)
-    ]);
-
-    this.smartSupply = smartStats.supply.toString();
-    const sortedReserves = reserves.sort((a, b) =>
-      a.contract === "bntbntbntbnt" && a.balance.symbol.code() === "BNT"
-        ? 1
-        : -1
-    );
-
-    const [token1, token2] = sortedReserves;
+    const relay = vxm.relays.relay(symbolName);
+    if (!relay) {
+      throw new Error(`Failed to find relay ${symbolName} in Relays module.`)
+    }
+    
+    const [token1, token2] = relay.reserves;
     this.token1Contract = token1.contract;
-    this.token1Symbol = token1.balance.symbol.code();
-    this.token1Precision = token1.balance.symbol.precision;
-    this.token1Balance = token1.balance.toString();
+    this.token1Symbol = token1.symbol;
+    this.token1Precision = token1.precision;
+    this.token1Balance = token1.balance;
     this.token1Enabled = token1.sale_enabled;
     this.token2Enabled = token2.sale_enabled;
-    this.token2Balance = token2.balance.toString();
+    this.token2Balance = token2.balance
     this.token2Contract = token2.contract;
-    this.token2Symbol = token2.balance.symbol.code();
-    this.token2Precision = token2.balance.symbol.precision;
-    this.fee = String(settings.fee / 1000000);
-    this.owner = settings.owner;
-    this.enabled = settings.enabled;
+    this.token2Symbol = token2.symbol;
+    this.token2Precision = token2.precision;
+    this.fee = String(relay.settings.fee / 1000000);
+    this.owner = relay.settings.owner;
+    this.enabled = relay.settings.enabled;
+    this.token1Img = token1.logo;
+    this.token2Img = token2.logo;
 
-    // @ts-ignore
-    this.fetchTokenMeta();
+    const smartStats = await fetchTokenStats(process.env.VUE_APP_SMARTTOKENCONTRACT!, this.focusedSymbol)
+    this.smartSupply = smartStats.supply.toString();
+
     if (vxm.eosTransit.isAuthenticated) this.fetchUserBalances();
   }
 
   async setFee() {
-    console.log("fee set triggered", this.newFee);
     try {
       await multiContract.updateFee(this.focusedSymbol, Number(this.newFee));
       this.fee = this.newFee;
@@ -463,15 +447,15 @@ export default class HeroConvert extends Vue {
   }
 
   async checkBankBalance() {
-    if (this.isAuthenticated) {
-      const balances = await getBankBalance();
-      balances
-        .reverse()
-        .forEach(
-          async ({ quantity, symbl }) =>
-            await multiContract.withdraw(symbl, split(quantity))
-        );
-    }
+    // if (this.isAuthenticated) {
+    //   const balances = await getBankBalance();
+    //   balances
+    //     .reverse()
+    //     .forEach(
+    //       async ({ quantity, symbl }) =>
+    //         // await multiContract.withdraw(symbl, split(quantity))
+    //     );
+    // }
   }
 
   @Watch("isAuthenticated")
@@ -494,7 +478,6 @@ export default class HeroConvert extends Vue {
 
   async created() {
     this.focusedSymbol = this.$route.params.account || vxm.relays.relays[0].settings.symbolName
-    // this.checkBankBalance();
   }
 }
 </script>

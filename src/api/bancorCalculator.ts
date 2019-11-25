@@ -71,8 +71,6 @@ class BancorCalculator {
       await this.fetchRelays()
     );
     const hydratedRelays = await this.hydrateRelays(relaysRequired);
-    console.log({ hydratedRelays });
-    console.log({ relaysRequired });
 
     const returnAmount = hydratedRelays.reduce((lastReward, relay) => {
       const fromReserveBalance = relay.reserves.find((reserve: TokenAmount) =>

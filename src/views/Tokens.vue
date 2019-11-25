@@ -24,7 +24,7 @@ import TokensTable from '@/components/tables/TokensTable.vue'
 export default class Token extends Vue {
 
   async created() {
-    vxm.general.setHeroAction('convert')
+    vxm.relays.fetchRelays();
   }
 }
 </script>
