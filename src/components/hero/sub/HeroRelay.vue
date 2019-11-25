@@ -4,12 +4,7 @@
       <b-modal id="bv-modal-example" title="Update Fee" @ok="setFee">
         <div class="d-block text-center">
           <b-input-group append="%" class="mb-2 mr-sm-2 mb-sm-0">
-            <b-input
-              id="fee"
-              placeholder="2"
-              type="number"
-              v-model="newFee"
-            ></b-input>
+            <b-input id="fee" placeholder="2" type="number" v-model="newFee"></b-input>
           </b-input-group>
         </div>
       </b-modal>
@@ -77,36 +72,31 @@
                     fixed-width
                     class="mr-2"
                   />
-                  <span class="font-w700">{{
+                  <span class="font-w700">
+                    {{
                     !enabled
-                      ? "Resume Relay"
-                      : buttonFlipped
-                      ? "Remove Liquidity"
-                      : "Add Liquidity"
-                  }}</span>
+                    ? "Resume Relay"
+                    : buttonFlipped
+                    ? "Remove Liquidity"
+                    : "Add Liquidity"
+                    }}
+                  </span>
                 </template>
-                <b-dropdown-item-button
-                  v-if="enabled"
-                  @click="buttonFlipped = !buttonFlipped"
-                  >{{
-                    buttonFlipped ? "Add Liquidity" : "Remove Liquidity"
-                  }}</b-dropdown-item-button
-                >
-                <b-dropdown-divider
-                  v-if="isAdmin && enabled"
-                ></b-dropdown-divider>
+                <b-dropdown-item-button v-if="enabled" @click="buttonFlipped = !buttonFlipped">
+                  {{
+                  buttonFlipped ? "Add Liquidity" : "Remove Liquidity"
+                  }}
+                </b-dropdown-item-button>
+                <b-dropdown-divider v-if="isAdmin && enabled"></b-dropdown-divider>
                 <b-dropdown-item-button
                   v-if="isAdmin"
                   @click="$bvModal.show('bv-modal-example')"
-                  >Update Fee</b-dropdown-item-button
-                >
+                >Update Fee</b-dropdown-item-button>
                 <b-dropdown-item-button
                   v-if="isAdmin && enabled"
                   variant="warning"
                   @click="toggleRelay"
-                >
-                  Pause Relay
-                </b-dropdown-item-button>
+                >Pause Relay</b-dropdown-item-button>
               </b-dropdown>
             </div>
           </div>
@@ -209,33 +199,38 @@ export default class HeroConvert extends Vue {
   get displayedToken1Balance() {
     return this.buttonFlipped
       ? this.token1SmartBalance
-      : this.token1UserBalance
+      : this.token1UserBalance;
   }
 
   get displayedToken2Balance() {
     return this.buttonFlipped
       ? this.token2SmartBalance
-      : this.token2UserBalance
+      : this.token2UserBalance;
   }
-
 
   get token1SmartBalance() {
     const smartUserBalance = split(this.smartUserBalance);
     const smartSupply = split(this.smartSupply);
     const percent = smartUserBalance.amount / smartSupply.amount;
-    const token1Balance = split(this.token1Balance)
-    const maxWithdraw = token1Balance.toNumber() * percent
+    const token1Balance = split(this.token1Balance);
+    const maxWithdraw = token1Balance.toNumber() * percent;
 
-    return new Asset(maxWithdraw * Math.pow(10, smartUserBalance.symbol.precision), smartUserBalance.symbol).toString()
+    return new Asset(
+      maxWithdraw * Math.pow(10, smartUserBalance.symbol.precision),
+      smartUserBalance.symbol
+    ).toString();
   }
 
   get token2SmartBalance() {
     const smartUserBalance = split(this.smartUserBalance);
     const smartSupply = split(this.smartSupply);
     const percent = smartUserBalance.amount / smartSupply.amount;
-    const token2Balance = split(this.token2Balance)
-    const maxWithdraw = token2Balance.toNumber() * percent
-    return new Asset(maxWithdraw * Math.pow(10, smartUserBalance.symbol.precision), smartUserBalance.symbol).toString()
+    const token2Balance = split(this.token2Balance);
+    const maxWithdraw = token2Balance.toNumber() * percent;
+    return new Asset(
+      maxWithdraw * Math.pow(10, smartUserBalance.symbol.precision),
+      smartUserBalance.symbol
+    ).toString();
   }
 
   get isAuthenticated() {
@@ -327,20 +322,31 @@ export default class HeroConvert extends Vue {
 
   async removeLiquidity() {
     const userBalance = split(
-      await getBalance(process.env.VUE_APP_SMARTTOKENCONTRACT!, this.focusedSymbol)
+      await getBalance(
+        process.env.VUE_APP_SMARTTOKENCONTRACT!,
+        this.focusedSymbol
+      )
     );
 
     const amountRequested = new Asset(
       Number(this.token1Amount) * Math.pow(10, this.token1Precision),
       new Symbol(this.token1Symbol, this.token1Precision)
     );
-    const smartSupply = split(this.smartSupply)
+    const smartSupply = split(this.smartSupply);
 
-    const percentageRequested = amountRequested.toDecimal().div(smartSupply.toDecimal())
-    const entitledAmount = percentageRequested.times(smartSupply.toDecimal())
-    const entitledAsset = new Asset(entitledAmount.toNumber() * Math.pow(10, smartSupply.symbol.precision), smartSupply.symbol)
+    const percentageRequested = amountRequested
+      .toDecimal()
+      .div(smartSupply.toDecimal());
+    const entitledAmount = percentageRequested.times(smartSupply.toDecimal());
+    const entitledAsset = new Asset(
+      entitledAmount.toNumber() * Math.pow(10, smartSupply.symbol.precision),
+      smartSupply.symbol
+    );
 
-    await multiContract.removeLiquidity(entitledAsset, process.env.VUE_APP_SMARTTOKENCONTRACT!);
+    await multiContract.removeLiquidity(
+      entitledAsset,
+      process.env.VUE_APP_SMARTTOKENCONTRACT!
+    );
   }
 
   async addLiquidity() {
@@ -369,18 +375,20 @@ export default class HeroConvert extends Vue {
     ];
 
     const buyingAmount = token1Asset;
-    const token1Balance = split(this.token1Balance)
-    const percent = buyingAmount.toNumber() / token1Balance.toNumber()
+    const token1Balance = split(this.token1Balance);
+    const percent = buyingAmount.toNumber() / token1Balance.toNumber();
 
     const smartSupply = split(this.smartSupply);
-    
-    const entitled = smartSupply.toNumber() * percent
-    const entitledAsset = new Asset(entitled / 2 * 0.99 * Math.pow(10, smartSupply.symbol.precision), smartSupply.symbol)
 
+    const entitled = smartSupply.toNumber() * percent;
+    const entitledAsset = new Asset(
+      (entitled / 2) * 0.99 * Math.pow(10, smartSupply.symbol.precision),
+      smartSupply.symbol
+    );
 
     try {
       await multiContract.addLiquidity(this.focusedSymbol, tokens);
-      await multiContract.fund(entitledAsset.toString())
+      await multiContract.fund(entitledAsset.toString());
       await wait(700);
       this.fetchRelay();
     } catch (e) {
@@ -400,9 +408,9 @@ export default class HeroConvert extends Vue {
     const symbolName = this.focusedSymbol;
     const relay = vxm.relays.relay(symbolName);
     if (!relay) {
-      throw new Error(`Failed to find relay ${symbolName} in Relays module.`)
+      throw new Error(`Failed to find relay ${symbolName} in Relays module.`);
     }
-    
+
     const [token1, token2] = relay.reserves;
     this.token1Contract = token1.contract;
     this.token1Symbol = token1.symbol;
@@ -410,7 +418,7 @@ export default class HeroConvert extends Vue {
     this.token1Balance = token1.balance;
     this.token1Enabled = token1.sale_enabled;
     this.token2Enabled = token2.sale_enabled;
-    this.token2Balance = token2.balance
+    this.token2Balance = token2.balance;
     this.token2Contract = token2.contract;
     this.token2Symbol = token2.symbol;
     this.token2Precision = token2.precision;
@@ -420,7 +428,10 @@ export default class HeroConvert extends Vue {
     this.token1Img = token1.logo;
     this.token2Img = token2.logo;
 
-    const smartStats = await fetchTokenStats(process.env.VUE_APP_SMARTTOKENCONTRACT!, this.focusedSymbol)
+    const smartStats = await fetchTokenStats(
+      process.env.VUE_APP_SMARTTOKENCONTRACT!,
+      this.focusedSymbol
+    );
     this.smartSupply = smartStats.supply.toString();
 
     if (vxm.eosTransit.isAuthenticated) this.fetchUserBalances();
@@ -444,6 +455,10 @@ export default class HeroConvert extends Vue {
     this.token1UserBalance = token1Balance;
     this.token2UserBalance = token2Balance;
     this.smartUserBalance = smartUserBalance;
+  }
+
+  get defaultFocusedSymbol() {
+    return vxm.relays.relays[0].settings.symbolName;
   }
 
   async checkBankBalance() {
@@ -473,11 +488,13 @@ export default class HeroConvert extends Vue {
 
   @Watch("$route")
   listen(to: any) {
-    this.focusedSymbol = to.params.account;
+    this.focusedSymbol = to.params.account || this.defaultFocusedSymbol;
   }
 
   async created() {
-    this.focusedSymbol = this.$route.params.account || vxm.relays.relays[0].settings.symbolName
+    this.focusedSymbol =
+      this.$route.params.account || this.defaultFocusedSymbol;
+    this.$bvModal.show('modal-tx')
   }
 }
 </script>

@@ -200,7 +200,6 @@ export class RelaysModule extends VuexModule {
   }
 
   @action async fetchRelays() {
-    console.log('fetching relays')
     if (this.scopes.length == 0) await this.init();
     const [rawConverters, rawReserves] = await Promise.all([
       client.stateTablesForScopes(this.contractName, this.scopes, "converters"),

@@ -122,7 +122,7 @@ import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import { getBalance } from "@/api/helpers";
 import { multiContract } from "@/api/multiContractTx";
 import { Asset, Symbol } from "eos-common";
-import wait from 'waait'
+import wait from "waait";
 
 const debounce = require("lodash.debounce");
 
@@ -136,7 +136,7 @@ export default class HeroConvert extends Vue {
   public debouncedCheckToken: any;
 
   flipped = false;
-  smartTokenSymbol = ''
+  smartTokenSymbol = "";
 
   token1Amount = "";
   token1SymbolName = "";
@@ -213,14 +213,16 @@ export default class HeroConvert extends Vue {
   }
 
   async createRelay() {
-    this.loading = true
+    this.loading = true;
 
     const token1Asset = new Asset(
-      Math.pow(10, Number(this.token1SymbolPrecision)) * Number(this.token1Amount),
+      Math.pow(10, Number(this.token1SymbolPrecision)) *
+        Number(this.token1Amount),
       new Symbol(this.token1SymbolName, Number(this.token1SymbolPrecision))
     );
     const token2Asset = new Asset(
-      Math.pow(10, Number(this.token2SymbolPrecision)) * Number(this.token2Amount),
+      Math.pow(10, Number(this.token2SymbolPrecision)) *
+        Number(this.token2Amount),
       new Symbol(this.token2SymbolName, Number(this.token2SymbolPrecision))
     );
     const reserves = [
@@ -235,26 +237,22 @@ export default class HeroConvert extends Vue {
     ];
 
     try {
-      await multiContract.kickStartRelay(
-        this.smartTokenSymbol,
-        reserves,
-        true
-      );
-  
-      await wait(800)
-  
+      await multiContract.kickStartRelay(this.smartTokenSymbol, reserves, true);
+      await wait(800);
+      await vxm.relays.fetchScopes();
+      await vxm.relays.fetchRelays();
+
       this.$router.push({
-        name: 'Relay',
+        name: "Relay",
         params: {
-          symbolName: this.smartTokenSymbol
+          account: this.smartTokenSymbol
         }
-      })
-      
-    } catch(e) {
-      // Push notification...? 
+      });
+    } catch (e) {
+      // Push notification...?
     }
 
-    this.loading = false
+    this.loading = false;
   }
 
   async fetchPrecision(
@@ -281,6 +279,24 @@ export default class HeroConvert extends Vue {
   async tokenIsValid() {
     // ToDo
     // Check a reserve doesn't already exist with the network token
+    const tokenRelayAlreadyExists = vxm.relays.relays.find(
+      relay => relay.reserves.some(reserve => reserve.symbol == this.token1SymbolName && reserve.contract == this.token1Contract)
+    );
+
+    if (tokenRelayAlreadyExists) {
+      this.$root.$bvToast.toast(`A relay with this token already exists`, {
+        variant: "warning",
+        title: "Heads up!"
+      });
+      this.$router.push({
+        name: "Relay",
+        params: {
+          account: tokenRelayAlreadyExists.settings.symbolName
+        }
+      });
+
+      return;
+    }
 
     // Preload token images
     const [token1Meta, token2Meta] = await Promise.all([
@@ -325,8 +341,26 @@ export default class HeroConvert extends Vue {
       this.token1SymbolPrecision = String(precision);
       this.tokenIsValid();
 
-      this.smartTokenSymbol = this.createSmartTokenSymbol("BNT", symbol);
-
+      const suggestedSmartTokenSymbol = this.createSmartTokenSymbol(
+        "BNT",
+        symbol
+      );
+      try {
+        await fetchTokenStats(
+          process.env.VUE_APP_SMARTTOKENCONTRACT!,
+          suggestedSmartTokenSymbol
+        );
+        throw new Error("Smart Token already exists");
+      } catch (e) {
+        if (e.message == "Smart Token already exists") {
+          console.log("Token I was suggesting already exists");
+          // handle this
+        } else if (e.message == "Token does not exist") {
+          this.smartTokenSymbol = suggestedSmartTokenSymbol;
+        } else {
+          throw new Error(e);
+        }
+      }
     } catch (e) {
       this.failedToFindToken = true;
       this.loading = false;
