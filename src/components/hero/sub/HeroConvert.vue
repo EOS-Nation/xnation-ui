@@ -111,7 +111,7 @@ import { fetchRelays, parseTokens, fetchTokenMeta } from "@/api/helpers";
 import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 import { split, Asset, Symbol } from "eos-common";
-import { multiContract } from "../../../api/multiContractTx";
+import { multiContract } from "@/api/multiContractTx";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
@@ -187,7 +187,6 @@ export default class HeroConvert extends Vue {
       token => token.symbol == selectedSymbol
     )!;
     const fromTokenChanged = this.identifyToken(this.promptedTokenNumber);
-    console.log('modal', fromTokenChanged ? 'from token changed': 'toToken changed')
     if (fromTokenChanged) {
       this.fromTokenImg = logo;
       this.fromTokenSymbol = symbol;
