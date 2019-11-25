@@ -121,4 +121,4 @@ export class TableWrapper {
   }
 }
 
-export const tableApi = new TableWrapper("welovebancor", rpc);
+export const tableApi = new TableWrapper(process.env.VUE_APP_MULTICONTRACT!, rpc);

@@ -119,4 +119,4 @@ class MultiContractAction {
   }
 }
 
-export const multiContractAction = new MultiContractAction("welovebancor");
+export const multiContractAction = new MultiContractAction(process.env.VUE_APP_MULTICONTRACT!);

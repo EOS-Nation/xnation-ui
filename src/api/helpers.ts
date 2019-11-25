@@ -101,13 +101,13 @@ export const fetchTokenMeta = async (
 export const getBankBalance = async(): Promise<{id: number; quantity: string; symbl: string}[]> => {
   // @ts-ignore
   const account = vxm.eosTransit.wallet.auth.accountName
-  const res = await client.stateTable("welovebancor", account, 'accounts')
+  const res = await client.stateTable(process.env.VUE_APP_MULTICONTRACT!, account, 'accounts')
   // @ts-ignore
   return res.rows.map(row => row.json)
 }
 
 export const fetchRelays = async (): Promise<nRelay[]> => {
-  const contractName = "welovebancor";
+  const contractName = process.env.VUE_APP_MULTICONTRACT!;
   const { scopes } = await client.stateTableScopes(
     contractName,
     "converters"
@@ -149,7 +149,7 @@ export const fetchRelays = async (): Promise<nRelay[]> => {
       contract: contractName,
       isMultiContract: true,
       smartToken: {
-        contract: 'labelaarbaro',
+        contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
         symbol: new Symbol(symbolName, Number(precision))
       }
     }

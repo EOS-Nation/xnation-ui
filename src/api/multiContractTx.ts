@@ -339,7 +339,7 @@ const getAuth: GetAuth = () => {
 };
 
 export const multiContract = new MultiContractTx(
-  "welovebancor",
+  process.env.VUE_APP_MULTICONTRACT!,
   getAuth,
   vxm.eosTransit.tx,
   tableApi

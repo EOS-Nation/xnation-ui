@@ -326,9 +326,8 @@ export default class HeroConvert extends Vue {
   }
 
   async removeLiquidity() {
-    console.log("Remove liquidity toggled");
     const userBalance = split(
-      await getBalance("labelaarbaro", this.focusedSymbol)
+      await getBalance(process.env.VUE_APP_SMARTTOKENCONTRACT!, this.focusedSymbol)
     );
 
     const amountRequested = new Asset(
@@ -341,7 +340,7 @@ export default class HeroConvert extends Vue {
     const entitledAmount = percentageRequested.times(smartSupply.toDecimal())
     const entitledAsset = new Asset(entitledAmount.toNumber() * Math.pow(10, smartSupply.symbol.precision), smartSupply.symbol)
 
-    await multiContract.removeLiquidity(entitledAsset, "labelaarbaro");
+    await multiContract.removeLiquidity(entitledAsset, process.env.VUE_APP_SMARTTOKENCONTRACT!);
   }
 
   async addLiquidity() {
@@ -412,7 +411,7 @@ export default class HeroConvert extends Vue {
     const [settings, reserves, smartStats] = await Promise.all([
       tableApi.getSettingsMulti(symbolName),
       tableApi.getReservesMulti(symbolName),
-      fetchTokenStats("labelaarbaro", this.focusedSymbol)
+      fetchTokenStats(process.env.VUE_APP_SMARTTOKENCONTRACT!, this.focusedSymbol)
     ]);
 
     this.smartSupply = smartStats.supply.toString();
@@ -456,7 +455,7 @@ export default class HeroConvert extends Vue {
     const [token1Balance, token2Balance, smartUserBalance] = await Promise.all([
       getBalance(this.token1Contract, this.token1Symbol),
       getBalance(this.token2Contract, this.token2Symbol),
-      getBalance("labelaarbaro", this.focusedSymbol)
+      getBalance(process.env.VUE_APP_SMARTTOKENCONTRACT!, this.focusedSymbol)
     ]);
     this.token1UserBalance = token1Balance;
     this.token2UserBalance = token2Balance;

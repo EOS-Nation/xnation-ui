@@ -100,8 +100,8 @@ interface PrettyToken extends Reserve {
 export class RelaysModule extends VuexModule {
   relaysList: PlainRelay[] = [];
   scopes: string[] = [];
-  contractName: string = "welovebancor";
-  smartTokenContract: string = "labelaarbaro";
+  contractName: string = process.env.VUE_APP_MULTICONTRACT!;
+  smartTokenContract: string = process.env.VUE_APP_SMARTTOKENCONTRACT!;
   tokenMeta: TokenMeta[] = [];
   usdPrice: number = 0;
   initComplete: boolean = false;
