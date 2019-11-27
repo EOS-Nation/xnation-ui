@@ -107,7 +107,7 @@ import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue
 import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
-import { fetchRelays, parseTokens, fetchTokenMeta } from "@/api/helpers";
+import { parseTokens, fetchTokenMeta } from "@/api/helpers";
 import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 import { split, Asset, Symbol } from "eos-common";
@@ -242,16 +242,18 @@ export default class HeroConvert extends Vue {
 
 
     const minimumReturn = new Asset(toAmountAsset.amount * 0.98, toAmountAsset.symbol);
+    const minimumReturnString = minimumReturn.toString().split(' ')[0];
     const memo = await bancorCalculator.composeMemo(
       new Symbol(fromToken.symbol, fromToken.precision),
       new Symbol(toToken.symbol, toToken.precision),
-      minimumReturn.toString().split(' ')[0],
+      minimumReturnString,
       // @ts-ignore
       vxm.eosTransit.wallet.auth.accountName
     );
 
     try {
-      await multiContract.convert(fromToken.contract, fromAmountAsset, memo);
+      const txResponse = await multiContract.convert(fromToken.contract, fromAmountAsset, memo);
+      console.log(JSON.stringify(txResponse))
       this.fromTokenAmount = ""
       this.toTokenAmount = ""
     } catch(e) {

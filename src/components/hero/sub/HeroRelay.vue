@@ -422,7 +422,7 @@ export default class HeroConvert extends Vue {
     this.token2Contract = token2.contract;
     this.token2Symbol = token2.symbol;
     this.token2Precision = token2.precision;
-    this.fee = String(relay.settings.fee / 1000000);
+    this.fee = String(relay.settings.fee / 10000);
     this.owner = relay.settings.owner;
     this.enabled = relay.settings.enabled;
     this.token1Img = token1.logo;
@@ -439,9 +439,9 @@ export default class HeroConvert extends Vue {
 
   async setFee() {
     try {
-      await multiContract.updateFee(this.focusedSymbol, Number(this.newFee));
+      await multiContract.updateFee(this.focusedSymbol, Number(this.newFee) / 100);
       this.fee = this.newFee;
-      await wait(700);
+      await wait(1200);
       this.fetchRelay();
     } catch (e) {}
   }

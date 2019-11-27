@@ -131,25 +131,27 @@ export class RelaysModule extends VuexModule {
 
   get relay() {
     return (symbolName: string) => {
-      return this.relays.find(relay => relay.settings.symbolName == symbolName)
-    }
+      return this.relays.find(relay => relay.settings.symbolName == symbolName);
+    };
   }
 
   get relays() {
-    return this.relaysList
-      .map(relay => ({
-        ...relay,
-        liqDepth: this.usdPrice * Number(relay.reserves[1].balance.split(" ")[0]),
-        reserves: relay.reserves
-          .map(reserve => ({
-            ...reserve,
-            logo: this.tokenMeta.find((tokenMeta: TokenMeta) => tokenMeta.symbol == reserve.symbol)!.logo || 'https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png'
-          })),
-          settings: {
-            ...relay.settings,
-            symbolName: relay.settings.currency.split(',')[1]
-          }
-      }))
+    return this.relaysList.map(relay => ({
+      ...relay,
+      liqDepth: this.usdPrice * Number(relay.reserves[1].balance.split(" ")[0]),
+      reserves: relay.reserves.map(reserve => ({
+        ...reserve,
+        logo:
+          this.tokenMeta.find(
+            (tokenMeta: TokenMeta) => tokenMeta.symbol == reserve.symbol
+          )!.logo ||
+          "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png"
+      })),
+      settings: {
+        ...relay.settings,
+        symbolName: relay.settings.currency.split(",")[1]
+      }
+    }));
   }
 
   get tokens(): PrettyToken[] {
@@ -163,13 +165,12 @@ export class RelaysModule extends VuexModule {
         // How much BNT does it cost to get 1 KARMA
         const bntAsset = split(bnt.balance);
         const tokenAsset = split(token.balance);
-        const desired = new Asset(
-          1,
-          tokenAsset.symbol
-        );
-        
+        const desired = new Asset(1, tokenAsset.symbol);
+
         // calculateCost of 1 KARMA
-        const cost = calculateCost(bntAsset, tokenAsset, desired).toNumber() * Math.pow(10, token.precision)
+        const cost =
+          calculateCost(bntAsset, tokenAsset, desired).toNumber() *
+          Math.pow(10, token.precision);
 
         return reserves.map(reserve => ({
           ...reserve,
@@ -201,48 +202,56 @@ export class RelaysModule extends VuexModule {
 
   @action async fetchRelays() {
     if (this.scopes.length == 0) await this.init();
-    const [rawConverters, rawReserves] = await Promise.all([
-      client.stateTablesForScopes(this.contractName, this.scopes, "converters"),
-      client.stateTablesForScopes(this.contractName, this.scopes, "reserves")
-    ]);
+    try {
+      const [rawConverters, rawReserves] = await Promise.all([
+        client.stateTablesForScopes(
+          this.contractName,
+          this.scopes,
+          "converters"
+        ),
+        client.stateTablesForScopes(this.contractName, this.scopes, "reserves")
+      ]);
 
-    const polishedConverters = rawConverters.tables;
-    const polishedReserves = rawReserves.tables;
+      const polishedConverters = rawConverters.tables;
+      const polishedReserves = rawReserves.tables;
 
-    //@ts-ignore
-    const cutDownRelays: PlainRelay[] = polishedReserves
-      .filter((reserveTable: any) => reserveTable.rows.length == 2)
-      .map((reserveTable: any) => {
-        // @ts-ignore
-        const { json, key } = polishedConverters.find(
-          (converter: any) => converter.scope == reserveTable.scope
-        )!.rows[0];
-        return {
-          key,
-          isMultiContract: true,
-          contract: this.contractName,
-          settings: {
-            // @ts-ignore
-            ...json,
-            contract: this.smartTokenContract
-          },
-          reserves: reserveTable.rows
-            .map((reserve: any) => reserve.json)
-            .map((reserve: any) => ({
-              ...reserve,
-              symbol: reserve.balance.split(" ")[1],
-              precision: Number(
-                reserve.balance.split(" ")[0].split(".")[1].length
+      //@ts-ignore
+      const cutDownRelays: PlainRelay[] = polishedReserves
+        .filter((reserveTable: any) => reserveTable.rows.length == 2)
+        .map((reserveTable: any) => {
+          // @ts-ignore
+          const { json, key } = polishedConverters.find(
+            (converter: any) => converter.scope == reserveTable.scope
+          )!.rows[0];
+          return {
+            key,
+            isMultiContract: true,
+            contract: this.contractName,
+            settings: {
+              // @ts-ignore
+              ...json,
+              contract: this.smartTokenContract
+            },
+            reserves: reserveTable.rows
+              .map((reserve: any) => reserve.json)
+              .map((reserve: any) => ({
+                ...reserve,
+                symbol: reserve.balance.split(" ")[1],
+                precision: Number(
+                  reserve.balance.split(" ")[0].split(".")[1].length
+                )
+              }))
+              .sort((a: any) =>
+                a.symbol == "BNT" && a.contract == "bntbntbntbnt" ? 1 : -1
               )
-            }))
-            .sort((a: any) =>
-              a.symbol == "BNT" && a.contract == "bntbntbntbnt" ? 1 : -1
-            )
-        };
-      });
+          };
+        });
 
-    this.setRelays(cutDownRelays);
-    return cutDownRelays;
+      this.setRelays(cutDownRelays);
+      return cutDownRelays;
+    } catch (e) {
+      console.error("Failed while fetching relays on vxm.relays", e);
+    }
   }
 
   @mutation setScopes(scopes: string[]) {
@@ -277,11 +286,19 @@ export class RelaysModule extends VuexModule {
   }
 
   @action async fetchScopes() {
-    const { scopes } = await client.stateTableScopes(
-      this.contractName,
-      "converters"
-    );
-    this.setScopes(scopes);
+    try {
+      const { scopes } = await client.stateTableScopes(
+        this.contractName,
+        "converters"
+      );
+      this.setScopes(scopes);
+    } catch (e) {
+      console.warn(
+        "Failed to find scopes on contract",
+        this.contractName,
+        "is there any converters set yet?"
+      );
+    }
   }
 }
 

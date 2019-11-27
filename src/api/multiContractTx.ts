@@ -301,7 +301,7 @@ class MultiContractTx {
         from: this.getAuth()[0].actor,
         to: this.contractName,
         quantity: token.amount.toString(),
-        memo: `${launched ? "fund" : "setup"};${symbolCode}`
+        memo: `fund;${symbolCode}`
       }
     }));
   }

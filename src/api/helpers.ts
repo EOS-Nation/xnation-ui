@@ -106,57 +106,60 @@ export const getBankBalance = async(): Promise<{id: number; quantity: string; sy
   return res.rows.map(row => row.json)
 }
 
-export const fetchRelays = async (): Promise<nRelay[]> => {
-  const contractName = process.env.VUE_APP_MULTICONTRACT!;
-  const { scopes } = await client.stateTableScopes(
-    contractName,
-    "converters"
-  );
-  const rawConverters = await client.stateTablesForScopes(
-    contractName,
-    scopes,
-    "converters"
-  );
-  const polishedConverters = rawConverters.tables;
-  const rawReserves = await client.stateTablesForScopes(
-    contractName,
-    scopes,
-    "reserves"
-  );
-  const polishedReserves = rawReserves.tables;
+// export const fetchRelays = async (): Promise<nRelay[]> => {
+//   console.log(`fetchRelays was called`)
+//   const contractName = process.env.VUE_APP_MULTICONTRACT!;
+//   const { scopes } = await client.stateTableScopes(
+//     contractName,
+//     "converters"
+//   );
+//   const rawConverters = await client.stateTablesForScopes(
+//     contractName,
+//     scopes,
+//     "converters"
+//   );
+//   const polishedConverters = rawConverters.tables;
+//   const rawReserves = await client.stateTablesForScopes(
+//     contractName,
+//     scopes,
+//     "reserves"
+//   );
+//   const polishedReserves = rawReserves.tables;
 
-  const flatRelays = polishedReserves
-    .filter((reserveTable: any) => reserveTable.rows.length == 2)
-    .map((reserveTable: any) => {
-      // @ts-ignore
-      const { json, key } = polishedConverters.find(
-        (converter: any) => converter.scope == reserveTable.scope
-      )!.rows[0];
-      return {
-        key,
-        settings: json,
-        reserves: reserveTable.rows.map((reserve: any) => reserve.json)
-      };
-    });
+//   const flatRelays = polishedReserves
+//     .filter((reserveTable: any) => reserveTable.rows.length == 2)
+//     .map((reserveTable: any) => {
+//       // @ts-ignore
+//       const { json, key } = polishedConverters.find(
+//         (converter: any) => converter.scope == reserveTable.scope
+//       )!.rows[0];
+//       return {
+//         key,
+//         settings: json,
+//         reserves: reserveTable.rows.map((reserve: any) => reserve.json)
+//       };
+//     });
 
-  const relays: nRelay[] = flatRelays.map((flatRelay: any) => {
-    const [precision, symbolName] = flatRelay.settings.currency.split(',')
-    return {
-      reserves: flatRelay.reserves.map(({ contract, balance }: any) => ({
-        contract,
-        symbol: new Symbol(balance.split(' ')[1] , Number(balance.split(' ')[0].split('.')[1].length))
-      })),
-      contract: contractName,
-      isMultiContract: true,
-      smartToken: {
-        contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
-        symbol: new Symbol(symbolName, Number(precision))
-      }
-    }
-  })
+//   const relays: nRelay[] = flatRelays.map((flatRelay: any) => {
+//     const [precision, symbolName] = flatRelay.settings.currency.split(',')
+//     return {
+//       reserves: flatRelay.reserves.map(({ contract, balance }: any) => ({
+//         contract,
+//         symbol: new Symbol(balance.split(' ')[1] , Number(balance.split(' ')[0].split('.')[1].length))
+//       })),
+//       contract: contractName,
+//       isMultiContract: true,
+//       smartToken: {
+//         contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
+//         symbol: new Symbol(symbolName, Number(precision))
+//       },
+//       fee: flatRelay.settings.fee / 100000000
+//     }
+//   })
 
-  return relays;
-};
+//   return relays;
+// };
+
 
 const getOppositeSymbol = (symbol: Symbol) => {
   return function(relay: nRelay) {

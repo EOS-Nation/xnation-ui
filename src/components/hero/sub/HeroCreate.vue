@@ -355,6 +355,7 @@ export default class HeroConvert extends Vue {
         if (e.message == "Smart Token already exists") {
           console.log("Token I was suggesting already exists");
           // handle this
+          this.smartTokenSymbol = suggestedSmartTokenSymbol.split('').reverse().slice(1).reverse().join('') + 'X'
         } else if (e.message == "Token does not exist") {
           this.smartTokenSymbol = suggestedSmartTokenSymbol;
         } else {
