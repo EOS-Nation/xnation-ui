@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": false,
   "scripts": {
+    "start": "npm run serve",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
@@ -19,7 +20,7 @@
     "@types/numeral": "0.0.26",
     "@types/showdown": "^1.9.3",
     "axios": "^0.19.0",
-    "bancorx": "^0.2.86",
+    "bancorx": "^0.2.92",
     "bootstrap": "^4.3.1",
     "bootstrap-vue": "^2.0.1",
     "core-js": "^2.6.9",

@@ -4,7 +4,12 @@
       <b-modal id="bv-modal-example" title="Update Fee" @ok="setFee">
         <div class="d-block text-center">
           <b-input-group append="%" class="mb-2 mr-sm-2 mb-sm-0">
-            <b-input id="fee" placeholder="2" type="number" v-model="newFee"></b-input>
+            <b-input
+              id="fee"
+              placeholder="2"
+              type="number"
+              v-model="newFee"
+            ></b-input>
           </b-input-group>
         </div>
       </b-modal>
@@ -74,29 +79,34 @@
                   />
                   <span class="font-w700">
                     {{
-                    !enabled
-                    ? "Resume Relay"
-                    : buttonFlipped
-                    ? "Remove Liquidity"
-                    : "Add Liquidity"
+                      !enabled
+                        ? "Resume Relay"
+                        : buttonFlipped
+                        ? "Remove Liquidity"
+                        : "Add Liquidity"
                     }}
                   </span>
                 </template>
-                <b-dropdown-item-button v-if="enabled" @click="buttonFlipped = !buttonFlipped">
-                  {{
-                  buttonFlipped ? "Add Liquidity" : "Remove Liquidity"
-                  }}
+                <b-dropdown-item-button
+                  v-if="enabled"
+                  @click="buttonFlipped = !buttonFlipped"
+                >
+                  {{ buttonFlipped ? "Add Liquidity" : "Remove Liquidity" }}
                 </b-dropdown-item-button>
-                <b-dropdown-divider v-if="isAdmin && enabled"></b-dropdown-divider>
+                <b-dropdown-divider
+                  v-if="isAdmin && enabled"
+                ></b-dropdown-divider>
                 <b-dropdown-item-button
                   v-if="isAdmin"
                   @click="$bvModal.show('bv-modal-example')"
-                >Update Fee</b-dropdown-item-button>
+                  >Update Fee</b-dropdown-item-button
+                >
                 <b-dropdown-item-button
                   v-if="isAdmin && enabled"
                   variant="warning"
                   @click="toggleRelay"
-                >Pause Relay</b-dropdown-item-button>
+                  >Pause Relay</b-dropdown-item-button
+                >
               </b-dropdown>
             </div>
           </div>
@@ -135,7 +145,7 @@ import ModalSelectAll from "@/components/modals/ModalSelectAll.vue";
 import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue";
 import ModalSelectToken from "@/components/modals/ModalSelectToken.vue";
 import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
-import { calculateReturn } from "bancorx";
+import { calculateReturn, calculateFundReturn, fund } from "bancorx";
 import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
@@ -380,15 +390,33 @@ export default class HeroConvert extends Vue {
 
     const smartSupply = split(this.smartSupply);
 
-    const entitled = smartSupply.toNumber() * percent;
-    const entitledAsset = new Asset(
-      (entitled / 2) * 0.99 * Math.pow(10, smartSupply.symbol.precision),
-      smartSupply.symbol
+    const returns = tokens.map(({ amount }, index) => {
+      const tokenBalance = split(index == 0 ? this.token1Balance : this.token2Balance)
+      console.log({
+        amount: amount.toString(),
+        tokenBalance: tokenBalance.toString(),
+        smartSupply: smartSupply.toString()
+      }, 'going to...')
+      const result = calculateFundReturn(
+        amount,
+        tokenBalance,
+        smartSupply
+      );
+      console.log(result.toString())
+      return result;
+    });
+    console.log(returns);
+    const lowestReturn = returns.reduce((acc, val) =>
+      val.amount <= acc.amount ? val : acc
+    );
+    console.log(
+      lowestReturn.toString(),
+      "is the lowest return we're trying to get."
     );
 
     try {
       await multiContract.addLiquidity(this.focusedSymbol, tokens);
-      await multiContract.fund(entitledAsset.toString());
+      await multiContract.fund(lowestReturn.toString());
       await wait(700);
       this.fetchRelay();
     } catch (e) {
@@ -439,7 +467,10 @@ export default class HeroConvert extends Vue {
 
   async setFee() {
     try {
-      await multiContract.updateFee(this.focusedSymbol, Number(this.newFee) / 100);
+      await multiContract.updateFee(
+        this.focusedSymbol,
+        Number(this.newFee) / 100
+      );
       this.fee = this.newFee;
       await wait(1200);
       this.fetchRelay();
@@ -494,7 +525,6 @@ export default class HeroConvert extends Vue {
   async created() {
     this.focusedSymbol =
       this.$route.params.account || this.defaultFocusedSymbol;
-    this.$bvModal.show('modal-tx')
   }
 }
 </script>

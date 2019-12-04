@@ -7,25 +7,21 @@ import {
   createPath,
   nRelay,
   composeMemo,
-  EosAccount,
   relaysToConverters,
   HydratedRelay,
   TokenSymbol,
   TokenAmount,
   calculateReserveToSmart,
-calculateSmartToReserve,
-chargeFee,
-  
+  calculateSmartToReserve,
+  chargeFee,
 } from "bancorx";
-
 
 const reserveToReserveHopping = (lastReward: Asset, relay: HydratedRelay) => {
   const fromReserveBalance = relay.reserves.find((reserve: TokenAmount) =>
     reserve.amount.symbol.isEqual(lastReward.symbol)
   )!;
   const toReserveBalance = relay.reserves.find(
-    (reserve: TokenAmount) =>
-      !reserve.amount.symbol.isEqual(lastReward.symbol)
+    (reserve: TokenAmount) => !reserve.amount.symbol.isEqual(lastReward.symbol)
   )!;
   const result = calculateReturn(
     fromReserveBalance.amount,
@@ -33,11 +29,15 @@ const reserveToReserveHopping = (lastReward: Asset, relay: HydratedRelay) => {
     lastReward
   );
   const feed = chargeFee(result, relay.fee, 2);
-  console.log(result.toString(), 'was the amount before fee', feed.toString(), 'is the after amount with a dec fee of', relay.fee)
+  console.log(
+    result.toString(),
+    "was the amount before fee",
+    feed.toString(),
+    "is the after amount with a dec fee of",
+    relay.fee
+  );
   return feed;
-}
-
-
+};
 
 class BancorCalculator {
   public async estimateCost(
@@ -92,41 +92,90 @@ class BancorCalculator {
   public async estimateReturn(amount: Asset, to: Symbol): Promise<Asset> {
     const relays = await this.fetchRelays();
 
-    const relaysRequired = createPath(
-      amount.symbol,
-      to,
-      relays
-    );
+    const relaysRequired = createPath(amount.symbol, to, relays);
 
-    const fromIsSmartToken = relaysRequired[0].smartToken.symbol == amount.symbol;
-    const toIsSmartToken = relaysRequired[relaysRequired.length - 1].smartToken.symbol == to;
+    const fromIsSmartToken =
+      relaysRequired[0].smartToken.symbol == amount.symbol;
+    const toIsSmartToken =
+      relaysRequired[relaysRequired.length - 1].smartToken.symbol == to;
     const hydratedRelays = await this.hydrateRelays(relaysRequired);
-    const converters = relaysToConverters(amount.symbol, relaysRequired)
+    const converters = relaysToConverters(amount.symbol, relaysRequired);
 
     if (fromIsSmartToken && toIsSmartToken) {
-      const fromSmartTokenSupply = await this.fetchSmartTokenSupply("labelaarbaro", amount.symbol.code())
-      const toSmartTokenSupply = await this.fetchSmartTokenSupply("labelaarbaro", to.code())
-      const firstTargetReserveBalance = hydratedRelays[0].reserves.find(reserve => reserve.amount.symbol.code() == converters[0].symbol)!.amount
-      const firstHopResult = calculateSmartToReserve(amount, firstTargetReserveBalance, fromSmartTokenSupply);
-      const lastTargetReserveBalance = hydratedRelays[hydratedRelays.length - 1].reserves.find(reserve => reserve.amount.symbol.code() == converters[converters.length -1].symbol)!.amount
-      const secondLastHopResult = hydratedRelays.splice(1).splice(-1).reduce(reserveToReserveHopping, firstHopResult)
+      const fromSmartTokenSupply = await this.fetchSmartTokenSupply(
+        "labelaarbaro",
+        amount.symbol.code()
+      );
+      const toSmartTokenSupply = await this.fetchSmartTokenSupply(
+        "labelaarbaro",
+        to.code()
+      );
+      const firstTargetReserveBalance = hydratedRelays[0].reserves.find(
+        reserve => reserve.amount.symbol.code() == converters[0].symbol
+      )!.amount;
+      const firstHopResult = calculateSmartToReserve(
+        amount,
+        firstTargetReserveBalance,
+        fromSmartTokenSupply
+      );
+      const lastTargetReserveBalance = hydratedRelays[
+        hydratedRelays.length - 1
+      ].reserves.find(
+        reserve =>
+          reserve.amount.symbol.code() ==
+          converters[converters.length - 1].symbol
+      )!.amount;
+      const secondLastHopResult = hydratedRelays
+        .splice(1)
+        .splice(-1)
+        .reduce(reserveToReserveHopping, firstHopResult);
 
-      return calculateReserveToSmart(secondLastHopResult, lastTargetReserveBalance, toSmartTokenSupply)
+      return calculateReserveToSmart(
+        secondLastHopResult,
+        lastTargetReserveBalance,
+        toSmartTokenSupply
+      );
     } else if (fromIsSmartToken && !toIsSmartToken) {
-      const fromSmartTokenSupply = await this.fetchSmartTokenSupply("labelaarbaro", amount.symbol.code())
-      const firstTargetReserveBalance = hydratedRelays[0].reserves.find(reserve => reserve.amount.symbol.code() == converters[0].symbol)!.amount
-      const firstHopResult = calculateSmartToReserve(amount, firstTargetReserveBalance, fromSmartTokenSupply);
-      return hydratedRelays.splice(1).reduce(reserveToReserveHopping, firstHopResult);
+      const fromSmartTokenSupply = await this.fetchSmartTokenSupply(
+        "labelaarbaro",
+        amount.symbol.code()
+      );
+      const firstTargetReserveBalance = hydratedRelays[0].reserves.find(
+        reserve => reserve.amount.symbol.code() == converters[0].symbol
+      )!.amount;
+      const firstHopResult = calculateSmartToReserve(
+        amount,
+        firstTargetReserveBalance,
+        fromSmartTokenSupply
+      );
+      return hydratedRelays
+        .splice(1)
+        .reduce(reserveToReserveHopping, firstHopResult);
     } else if (!fromIsSmartToken && toIsSmartToken) {
-      const toSmartTokenSupply = await this.fetchSmartTokenSupply("labelaarbaro", to.code())
-      const lastTargetReserveBalance = hydratedRelays[hydratedRelays.length - 1].reserves.find(reserve => reserve.amount.symbol.code() == converters[converters.length -1].symbol)!.amount
-      const secondLastHopResult = hydratedRelays.splice(-1).reduce(reserveToReserveHopping, amount);
-      return calculateReserveToSmart(secondLastHopResult, lastTargetReserveBalance, toSmartTokenSupply);
+      const toSmartTokenSupply = await this.fetchSmartTokenSupply(
+        "labelaarbaro",
+        to.code()
+      );
+      const lastTargetReserveBalance = hydratedRelays[
+        hydratedRelays.length - 1
+      ].reserves.find(
+        reserve =>
+          reserve.amount.symbol.code() ==
+          converters[converters.length - 1].symbol
+      )!.amount;
+      const secondLastHopResult = hydratedRelays
+        .splice(-1)
+        .reduce(reserveToReserveHopping, amount);
+      return calculateReserveToSmart(
+        secondLastHopResult,
+        lastTargetReserveBalance,
+        toSmartTokenSupply
+      );
     } else {
-      console.log("Should be a straight", amount.toString(), to)
-      const x = hydratedRelays.reduce(reserveToReserveHopping, amount)
-      console.log('Returning', x.toString())
-      return x
+      console.log("Should be a straight", amount.toString(), to);
+      const x = hydratedRelays.reduce(reserveToReserveHopping, amount);
+      console.log("Returning", x.toString());
+      return x;
     }
   }
 
