@@ -80,6 +80,7 @@ export class ConvertModule extends VuexModule {
     this.convertFrom = this.convertTo
     this.convertTo = newTo
   }
+  
   @mutation setDirection(direction: 'from' | 'to') {
     this.convertDirection = direction
   }
@@ -90,12 +91,15 @@ export class ConvertModule extends VuexModule {
     this.amount = ''
     this.minReturn = ''
   }
+
   @mutation setAmount(p: { d: 'from' | 'to'; amount: string }) {
     if (p.d === 'from') this.amount = p.amount
     else this.minReturn = p.amount
   }
+
   @mutation setDebouncedState(s: string) {
     this.debouncedState = s
   }
+
 }
 export const convert = ConvertModule.ExtractVuexModule(ConvertModule)

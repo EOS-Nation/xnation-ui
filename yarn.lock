@@ -669,6 +669,14 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
+"@dfuse/client@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@dfuse/client/-/client-0.3.0.tgz#36ce0ddceb8a14c2560c31a3ecfc708fbc443995"
+  integrity sha512-jE59uHDBMQkQcA3Jm3mGa2A6wp8irQ5ZbQeLV1aYk9pZHfcpE844TQTMcLR2IV4sFj2TipYbQczjLELXeNEgEg==
+  dependencies:
+    "@types/debug" "^0.0.31"
+    debug "^4.1.0"
+
 "@evocateur/libnpmaccess@^3.1.2":
   version "3.1.2"
   resolved "https://registry.yarnpkg.com/@evocateur/libnpmaccess/-/libnpmaccess-3.1.2.tgz#ecf7f6ce6b004e9f942b098d92200be4a4b1c845"
@@ -1649,6 +1657,11 @@
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/@types/anymatch/-/anymatch-1.3.1.tgz#336badc1beecb9dacc38bea2cf32adf627a8421a"
   integrity sha512-/+CRPXpBDpo2RK9C68N3b2cOvO0Cf5B9aPijHsoDQTHivnGSObdOF2BRQOYjojWTDy6nQvMjmqRXIxH55VjxxA==
+
+"@types/debug@^0.0.31":
+  version "0.0.31"
+  resolved "https://registry.yarnpkg.com/@types/debug/-/debug-0.0.31.tgz#bac8d8aab6a823e91deb7f79083b2a35fa638f33"
+  integrity sha512-LS1MCPaQKqspg7FvexuhmDbWUhE2yIJ+4AgVIyObfc06/UKZ8REgxGNjZc82wPLWmbeOm7S+gSsLgo75TanG4A==
 
 "@types/eslint-visitor-keys@^1.0.0":
   version "1.0.0"
@@ -2793,10 +2806,15 @@ balanced-match@^1.0.0:
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.0.tgz#89b4d199ab2bee49de164ea02b89ce462d71b767"
   integrity sha1-ibTRmasr7kneFk6gK4nORi1xt2c=
 
-bancorx@^0.2.6:
-  version "0.2.6"
-  resolved "https://registry.yarnpkg.com/bancorx/-/bancorx-0.2.6.tgz#057e2bce05b1b5310fe86b275d752b8bc4c64e83"
-  integrity sha512-TEH1xSfi4x+foPOVGrpI7q02AJbdt2RR3HNzJRemZYE8u3KIi79k+399QcZTVwRSeZSxwEe+d37w3osQAiUJLw==
+bancorx@^0.2.92:
+  version "0.2.92"
+  resolved "https://registry.yarnpkg.com/bancorx/-/bancorx-0.2.92.tgz#624b36403e999dd71f9312c799b410a918dc853b"
+  integrity sha512-NJcoCDfZ0YYEkmPL3JO+nDOF+48LqVA/o2aSJqNlMBVJoj2z1z28+QVUfCDdRi4C8ePqG5N6XHOJpr8r68pesA==
+  dependencies:
+    decimal.js "^10.2.0"
+    eos-common "^0.1.36"
+    underscore "^1.9.1"
+    waait "^1.0.5"
 
 base-x@^3.0.2:
   version "3.0.7"
@@ -4204,6 +4222,11 @@ decamelize@^1.1.0, decamelize@^1.1.1, decamelize@^1.1.2, decamelize@^1.2.0:
   resolved "https://registry.yarnpkg.com/decamelize/-/decamelize-1.2.0.tgz#f6534d15148269b20352e7bee26f501f9a191290"
   integrity sha1-9lNNFRSCabIDUue+4m9QH5oZEpA=
 
+decimal.js@10.x, decimal.js@^10.2.0:
+  version "10.2.0"
+  resolved "https://registry.yarnpkg.com/decimal.js/-/decimal.js-10.2.0.tgz#39466113a9e036111d02f82489b5fd6b0b5ed231"
+  integrity sha512-vDPw+rDgn3bZe1+F/pyEwb1oMG2XTlRVgAa6B4KccTEpYgF8w6eQllVbQcfIJnZyvzFtFpxnpGtx8dd7DJp/Rw==
+
 decode-uri-component@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/decode-uri-component/-/decode-uri-component-0.2.0.tgz#eb3913333458775cb84cd1a1fae062106bb87545"
@@ -4651,6 +4674,13 @@ env-paths@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/env-paths/-/env-paths-1.0.0.tgz#4168133b42bb05c38a35b1ae4397c8298ab369e0"
   integrity sha1-QWgTO0K7BcOKNbGuQ5fIKYqzaeA=
+
+eos-common@^0.1.36:
+  version "0.1.36"
+  resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.1.36.tgz#efdd0161f7daf89e02e42603dc6cb36678e403ca"
+  integrity sha512-CKKeQcqsItzoFwl/LdncrD4x4zFO8XTridqxHLETxy7b+Q2ULah5hdT23QE+ifFOvKSN1r8bAa5Yzahu+/VzkQ==
+  dependencies:
+    decimal.js "10.x"
 
 eos-transit-keycat-provider@^4.0.1:
   version "4.0.1"
@@ -11157,6 +11187,11 @@ umask@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/umask/-/umask-1.1.0.tgz#f29cebf01df517912bb58ff9c4e50fde8e33320d"
   integrity sha1-8pzr8B31F5ErtY/5xOUP3o4zMg0=
+
+underscore@^1.9.1:
+  version "1.9.1"
+  resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.9.1.tgz#06dce34a0e68a7babc29b365b8e74b8925203961"
+  integrity sha512-5/4etnCkd9c8gwgowi5/om/mYO5ajCaOgdzj/oW+0eQV9WxKBDZw5+ycmKmeaTXjInS/W0BzpGLo2xR2aBwZdg==
 
 unicode-canonical-property-names-ecmascript@^1.0.4:
   version "1.0.4"

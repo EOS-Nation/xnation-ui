@@ -35,9 +35,7 @@
           <token-balance-block
             :symbol="token.symbol"
             :balance="token.balance"
-            :img="
-                token.img
-            "
+            :img="token.img"
           />
         </b-col>
       </b-row>
@@ -46,13 +44,13 @@
 </template>
 
 <script lang="ts">
-import { Watch, Component, Prop, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store/'
-import { TokenPrice } from '@/types/bancor'
-import TokenBalanceBlock from '@/components/common/TokenBalanceBlock.vue'
-const debounce = require('lodash.debounce')
-import * as bancorx from '@/assets/_ts/bancorx'
-import { TokenInfo } from '@/assets/_ts/bancorx'
+import { Watch, Component, Prop, Vue } from "vue-property-decorator";
+import { vxm } from "@/store/";
+import { TokenPrice } from "@/types/bancor";
+import TokenBalanceBlock from "@/components/common/TokenBalanceBlock.vue";
+const debounce = require("lodash.debounce");
+import * as bancorx from "@/assets/_ts/bancorx";
+import { TokenInfo } from "@/assets/_ts/bancorx";
 
 @Component({
   components: { TokenBalanceBlock }
@@ -61,7 +59,7 @@ export default class ModalSelectToken extends Vue {
   // props
 
   // data
-  private tokenSearch: String = ''
+  private tokenSearch: String = "";
   private searchOptions = {
     shouldSort: true,
     threshold: 0.3,
@@ -69,53 +67,53 @@ export default class ModalSelectToken extends Vue {
     distance: 100,
     maxPatternLength: 24,
     minMatchCharLength: 1,
-    keys: ['symbol']
-  }
-  searchResults: any = []
-  private searchState: string = 'search'
-  public debouncedGetSearch: any
-  filter: string = 'Tokens'
-  relayBalances: any[] = []
+    keys: ["symbol"]
+  };
+  searchResults: any = [];
+  private searchState: string = "search";
+  public debouncedGetSearch: any;
+  filter: string = "Tokens";
+  relayBalances: any[] = [];
 
   // computed
   get relays() {
-    if (this.filter === 'All') return bancorx.getTokenDb()
-    else if (this.filter === 'Tokens') return bancorx.getTokenDb(true, false)
-    else if (this.filter === 'Relays') return bancorx.getTokenDb(false, true)
-    else return bancorx.getTokenDb()
+    if (this.filter === "All") return bancorx.getTokenDb();
+    else if (this.filter === "Tokens") return bancorx.getTokenDb(true, false);
+    else if (this.filter === "Relays") return bancorx.getTokenDb(false, true);
+    else return bancorx.getTokenDb();
   }
   get heroAction() {
-    return vxm.general.heroAction
+    return vxm.general.heroAction;
   }
 
   get direction() {
-    return vxm.liquidity.direction
+    return vxm.liquidity.direction;
   }
 
   get tokenBalances() {
-    return vxm.wallet.tokenBalances
+    return vxm.wallet.tokenBalances;
   }
 
   get searchedTokens() {
-    if (this.searchResults.length > 0) return this.searchResults
-    else return this.relayBalances
+    if (this.searchResults.length > 0) return this.searchResults;
+    else return this.relayBalances;
   }
 
   // methods
   setToken(symbol: string) {
-    const token = bancorx.getTokenInfo(symbol)
+    const token = bancorx.getTokenInfo(symbol);
     if (token) {
-      const relay = bancorx.getTokenInfo(token.counterSymbol)
+      const relay = bancorx.getTokenInfo(token.counterSymbol);
       if (relay) {
-        if (this.direction === 'from') {
-          vxm.liquidity.setFromToken(token)
-          vxm.liquidity.setToToken(relay)
+        if (this.direction === "from") {
+          vxm.liquidity.setFromToken(token);
+          vxm.liquidity.setToToken(relay);
         } else {
-          vxm.liquidity.setFromToken(relay)
-          vxm.liquidity.setToToken(token)
+          vxm.liquidity.setFromToken(relay);
+          vxm.liquidity.setToToken(token);
         }
-        this.$bvModal.hide('modal-select-token')
-        this.tokenSearch = ''
+        this.$bvModal.hide("modal-select-token");
+        this.tokenSearch = "";
       }
     }
   }
@@ -124,65 +122,65 @@ export default class ModalSelectToken extends Vue {
     // @ts-ignore
     this.$search(this.tokenSearch, this.relayBalances, this.searchOptions).then(
       (results: any) => {
-        this.searchResults = results
-        if (this.tokenSearch === '') this.searchState = 'search'
-        else this.searchState = 'check'
+        this.searchResults = results;
+        if (this.tokenSearch === "") this.searchState = "search";
+        else this.searchState = "check";
       }
-    )
+    );
   }
 
   setFilter(f: string) {
-    this.filter = f
-    this.mergeBalances()
+    this.filter = f;
+    this.mergeBalances();
   }
 
   mergeBalances() {
-    let array: any[] = []
+    let array: any[] = [];
     for (const relay of this.relays) {
       const balance = this.tokenBalances.find((t: any) => {
-        return t.symbol === relay.symbol
-      })
+        return t.symbol === relay.symbol;
+      });
       if (balance && balance.amount) {
         array.push({
           symbol: relay.symbol,
-          name: '',
+          name: "",
           img: relay.img,
           balance: balance.amount
-        })
+        });
       } else {
         array.push({
           symbol: relay.symbol,
-          name: '',
+          name: "",
           img: relay.img,
-          balance: '0'
-        })
+          balance: "0"
+        });
       }
     }
-    this.relayBalances = array
+    this.relayBalances = array;
   }
 
-  @Watch('tokenSearch')
+  @Watch("tokenSearch")
   async onSearchChange(val: any, oldVal: any) {
-    if (val !== '') {
-      this.searchState = 'keyboard'
-      this.debouncedGetSearch()
+    if (val !== "") {
+      this.searchState = "keyboard";
+      this.debouncedGetSearch();
     } else {
-      this.searchTokens()
+      this.searchTokens();
     }
   }
 
-  @Watch('tokenBalances')
+  @Watch("tokenBalances")
   async onBalanceChange(val: any, oldVal: any) {
-    this.mergeBalances()
+    this.mergeBalances();
   }
 
   // Lifecycle hooks
   mounted() {}
   created() {
-    this.mergeBalances()
+    this.mergeBalances();
     this.debouncedGetSearch = debounce(() => {
-      this.searchTokens()
-    }, 500)
+      this.searchTokens();
+    }, 500);
   }
   updated() {}
   destroyed() {}

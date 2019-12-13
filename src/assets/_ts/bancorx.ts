@@ -1,6 +1,5 @@
 import { vxm } from '@/store'
 import numeral from 'numeral'
-import { baseApi } from '@/api/BaseApi'
 /**
  * Bancor X
  *

@@ -7,7 +7,7 @@
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
-import { baseApi } from '@/api/BaseApi'
+import { bancorApi } from '@/api/bancor'
 import HeroWallet from '@/components/hero/HeroWallet.vue'
 import { relays } from 'bancorx'
 import { TokenPrice } from '@/types/bancor'
@@ -78,7 +78,7 @@ export default class Wallet extends Vue {
 
   async created() {
     try {
-      this.tokens = await baseApi.getTokens()
+      this.tokens = await bancorApi.getTokens()
       this.getRelays()
     } catch (e) {
       console.log(e)

@@ -188,13 +188,12 @@
 <script lang="ts">
 import { Prop, Watch, Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
-import {  baseApi } from '@/api/BaseApi'
+import { bancorApi } from '@/api/bancor'
 import * as bancorx from '@/assets/_ts/bancorx'
 import { TokenPrice } from '@/types/bancor'
 import SortIcons from '@/components/common/SortIcons.vue'
 import numeral from 'numeral'
 import { TokenInfo } from '@/assets/_ts/bancorx'
-import { bancorApi } from '../api/bancor'
 
 @Component({
   components: {
@@ -385,7 +384,7 @@ export default class WalletAccount extends Vue {
     }
   }
   async getTokens() {
-    this.tokens = await baseApi.getTokens()
+    this.tokens = await bancorApi.getTokens()
     vxm.tokens.setTokens({ eos: this.tokens, eth: [] })
     //vxm.convert.setToken({ t: this.tokens[0], d: 'from' })
     //vxm.convert.setToken({ t: this.tokens[1], d: 'to' })

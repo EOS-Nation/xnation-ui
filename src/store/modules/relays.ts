@@ -5,38 +5,12 @@ import {
   getter,
   Module
 } from "vuex-class-component";
-import { tableApi } from "@/api/TableWrapper";
-import { Asset, Symbol, split } from "eos-common";
-import { getBalance } from "@/api/helpers";
+import { Asset, split } from "eos-common";
 import { client } from "@/api/dFuse";
-import { nRelay } from "bancorx/build/interfaces";
-import { calculateReturn, calculateCost } from "bancorx";
+import { calculateCost } from "bancorx";
 import axios from "axios";
-import { baseApi } from "@/api/BaseApi";
-import { relay } from "./relay";
+import { bancorApi } from '@/api/bancor'
 
-const getOppositeToken = (symbol: FlatToken) => {
-  return function(relay: FlatRelay) {
-    return relay.reserves.find(
-      reserve =>
-        reserve.contract !== symbol.contract &&
-        reserve.symbol._code !== symbol.symbol._code
-    );
-  };
-};
-
-const parseTokens = (
-  relays: FlatRelay[],
-  networkToken: FlatToken = {
-    contract: "bntbntbntbnt",
-    symbol: {
-      precision: 10,
-      _code: "BNT"
-    }
-  }
-) => {
-  return relays.map(getOppositeToken(networkToken)) as FlatToken[];
-};
 
 interface FlatSymbol {
   _code: string;
@@ -46,13 +20,6 @@ interface FlatSymbol {
 interface FlatToken {
   contract: string;
   symbol: FlatSymbol;
-}
-
-interface FlatRelay {
-  contract: string;
-  isMultiContract: boolean;
-  reserves: FlatToken[];
-  smartToken: FlatToken;
 }
 
 interface TokenMeta {
@@ -121,7 +88,7 @@ export class RelaysModule extends VuexModule {
   }
 
   @action async fetchUsdPrice() {
-    this.setUsdPrice(Number(await baseApi.getRate("BNT", "USD")));
+    this.setUsdPrice(Number(await bancorApi.getRate("BNT", "USD")));
   }
 
   @mutation
@@ -156,18 +123,16 @@ export class RelaysModule extends VuexModule {
 
   get tokens(): PrettyToken[] {
     if (!this.initComplete) return [];
-    const x = this.relaysList
+    return this.relaysList
       .filter(relay => relay.settings.enabled)
       .map(relay => relay.reserves)
       .map(reserves => {
         const [token, bnt] = reserves;
         const liqDepth = this.usdPrice * Number(bnt.balance.split(" ")[0]);
-        // How much BNT does it cost to get 1 KARMA
         const bntAsset = split(bnt.balance);
         const tokenAsset = split(token.balance);
-        const desired = new Asset(1, tokenAsset.symbol);
 
-        // calculateCost of 1 KARMA
+        const desired = new Asset(1, tokenAsset.symbol);
         const cost =
           calculateCost(bntAsset, tokenAsset, desired).toNumber() *
           Math.pow(10, token.precision);
@@ -197,7 +162,7 @@ export class RelaysModule extends VuexModule {
         };
       });
 
-    return x;
+
   }
 
   @action async fetchRelays() {

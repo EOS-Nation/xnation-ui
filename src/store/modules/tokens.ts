@@ -6,7 +6,7 @@ import {
   Module
 } from 'vuex-class-component'
 import { TokenPrice } from '@/types/bancor'
-import { baseApi } from '@/api/BaseApi'
+import { bancorApi } from '@/api/bancor'
 
 import * as bancorx from '@/assets/_ts/bancorx'
 
@@ -29,13 +29,13 @@ export class TokensModule extends VuexModule {
   }
 
   @action async getEthPrice() {
-    const eth = await baseApi.getRate('ETH', 'USD');
+    const eth = await bancorApi.getRate('ETH', 'USD');
     this.setEth(eth)
   }
 
   // actions
   @action async getTokens() {
-    return baseApi.getTokens()
+    return bancorApi.getTokens()
   }
 
   // mutations

@@ -1,6 +1,13 @@
 import axios, { AxiosInstance } from "axios";
-import { BancorWrapper } from "./BaseApi";
-import { TokenPrice, IntegerAmount } from "@/types/bancor";
+import { TokenPrice, IntegerAmount, TokenDetail } from "@/types/bancor";
+
+export interface BancorWrapper {
+  getTokens(): Promise<TokenPrice[]>;
+  getToken(symbol: string): Promise<TokenDetail>;
+  getTokenTicker?(symbol: string): Promise<any>;
+  calculateCost(fromId: string, toId: string, amount: any): Promise<IntegerAmount>;
+  calculateReturn(fromId: string, toId: string, amount: any): Promise<IntegerAmount>;
+}
 
 export class BancorApi implements BancorWrapper {
   instance: AxiosInstance;

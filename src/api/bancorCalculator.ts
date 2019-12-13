@@ -1,4 +1,3 @@
-import { client } from "./dFuse";
 import { vxm } from "@/store";
 import { Asset, split, Symbol } from "eos-common";
 import {
@@ -29,13 +28,6 @@ const reserveToReserveHopping = (lastReward: Asset, relay: HydratedRelay) => {
     lastReward
   );
   const feed = chargeFee(result, relay.fee, 2);
-  console.log(
-    result.toString(),
-    "was the amount before fee",
-    feed.toString(),
-    "is the after amount with a dec fee of",
-    relay.fee
-  );
   return feed;
 };
 
@@ -44,12 +36,6 @@ class BancorCalculator {
     amountDesired: Asset,
     from: Symbol
   ): Promise<Asset> {
-    console.log(
-      "I have been asked to calculate the cost of",
-      amountDesired.toString(),
-      "coming from",
-      from.code()
-    );
     const reverseRelaysRequired = createPath(
       amountDesired.symbol,
       from,
@@ -67,17 +53,6 @@ class BancorCalculator {
           !reserve.amount.symbol.isEqual(lastCost.symbol)
       )!;
 
-      console.log(
-        fromReserveBalance.amount.toString(),
-        toReserveBalance.amount.toString()
-      );
-      console.log(
-        "I will be trying to calculate the cost with the following variables,",
-        toReserveBalance.amount.toString(),
-        fromReserveBalance.amount.toString(),
-        lastCost.toString()
-      );
-
       const result = calculateCost(
         toReserveBalance.amount,
         fromReserveBalance.amount,
@@ -85,7 +60,6 @@ class BancorCalculator {
       );
       return result;
     }, amountDesired);
-    console.log("And I have decided to return", costAmount.toString());
     return costAmount;
   }
 
@@ -103,11 +77,9 @@ class BancorCalculator {
 
     if (fromIsSmartToken && toIsSmartToken) {
       const fromSmartTokenSupply = await this.fetchSmartTokenSupply(
-        "labelaarbaro",
         amount.symbol.code()
       );
       const toSmartTokenSupply = await this.fetchSmartTokenSupply(
-        "labelaarbaro",
         to.code()
       );
       const firstTargetReserveBalance = hydratedRelays[0].reserves.find(
@@ -137,7 +109,6 @@ class BancorCalculator {
       );
     } else if (fromIsSmartToken && !toIsSmartToken) {
       const fromSmartTokenSupply = await this.fetchSmartTokenSupply(
-        "labelaarbaro",
         amount.symbol.code()
       );
       const firstTargetReserveBalance = hydratedRelays[0].reserves.find(
@@ -153,7 +124,6 @@ class BancorCalculator {
         .reduce(reserveToReserveHopping, firstHopResult);
     } else if (!fromIsSmartToken && toIsSmartToken) {
       const toSmartTokenSupply = await this.fetchSmartTokenSupply(
-        "labelaarbaro",
         to.code()
       );
       const lastTargetReserveBalance = hydratedRelays[
@@ -172,10 +142,7 @@ class BancorCalculator {
         toSmartTokenSupply
       );
     } else {
-      console.log("Should be a straight", amount.toString(), to);
-      const x = hydratedRelays.reduce(reserveToReserveHopping, amount);
-      console.log("Returning", x.toString());
-      return x;
+      return hydratedRelays.reduce(reserveToReserveHopping, amount);
     }
   }
 
@@ -213,7 +180,7 @@ class BancorCalculator {
     return hydratedRelays;
   }
 
-  async fetchSmartTokenSupply(contractName: string, symbolCode: string) {
+  async fetchSmartTokenSupply(symbolCode: string) {
     return new Asset(1, new Symbol("EOS", 4));
   }
 
