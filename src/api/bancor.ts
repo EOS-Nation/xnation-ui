@@ -9,15 +9,22 @@ export interface BancorWrapper {
   calculateReturn(fromId: string, toId: string, amount: any): Promise<IntegerAmount>;
 }
 
+enum Blockchain {
+  EOS,
+  ETH
+}
+
 export class BancorApi implements BancorWrapper {
   instance: AxiosInstance;
   photoBaseUrl: string;
+  blockchain: Blockchain;
 
-  constructor() {
+  constructor(blockchain: Blockchain) {
     this.instance = axios.create({
       baseURL: "https://api.bancor.network/0.1/"
     });
     this.photoBaseUrl = `https://storage.googleapis.com/bancor-prod-file-store/images/communities/`;
+    this.blockchain = blockchain;
   }
 
   private async request(endpoint: string, params: any) {
@@ -39,7 +46,7 @@ export class BancorApi implements BancorWrapper {
 
   public async getTokens(): Promise<TokenPrice[]> {
     const res = await this.request("currencies/tokens", {
-      blockchainType: "eos",
+      blockchainType: this.blockchain == Blockchain.EOS ? "eos" : "ethereum",
       fromCurrencyCode: "USD",
       includeTotal: true,
       limit: 150,
@@ -94,4 +101,4 @@ export class BancorApi implements BancorWrapper {
   }
 }
 
-export const bancorApi = new BancorApi();
+export const bancorApi = new BancorApi(Blockchain.EOS);
