@@ -16,9 +16,7 @@
           <h6 class="text-uppercase text-muted">Send</h6>
           <img
             class="img-avatar img-avatar-thumb mb-2"
-            :src="
-                convertFrom.img
-            "
+            :src="convertFrom.img"
             alt="Token Logo"
           />
           <h2 class="mb-2">{{ amount }} {{ convertFrom.symbol }}</h2>
@@ -28,9 +26,7 @@
           <div class="d-flex align-items-center">
             <img
               class="img-avatar img-avatar-thumb"
-              :src="
-                  convertFrom.img
-              "
+              :src="convertFrom.img"
               alt="Token Logo"
             />
             <div class="text-left ml-2">
@@ -71,9 +67,7 @@
           <h6 class="text-uppercase text-muted">Receive</h6>
           <img
             class="img-avatar img-avatar-thumb mb-2"
-            :src="
-                convertTo.img
-            "
+            :src="convertTo.img"
             alt="Token Logo"
           />
           <h2 class="mb-2">{{ minReturn }} {{ convertTo.symbol }}</h2>
@@ -83,9 +77,7 @@
           <div class="d-flex align-items-center">
             <img
               class="img-avatar img-avatar-thumb"
-              :src="
-                  convertTo.img
-              "
+              :src="convertTo.img"
               alt="Token Logo"
             />
             <div class="text-left ml-2">
@@ -138,90 +130,90 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store/'
-import { TokenPrice } from '@/types/bancor'
-import * as bancorx from '@/assets/_ts/bancorx'
-import { TokenInfo } from '@/assets/_ts/bancorx'
+import { Component, Prop, Vue } from "vue-property-decorator";
+import { vxm } from "@/store/";
+import { TokenPrice } from "@/types/bancor";
+import * as bancorx from "@/assets/_ts/bancorx";
+import { TokenInfo } from "@/assets/_ts/bancorx";
 
 @Component
 export default class ModalConvertLiquidity extends Vue {
   // data
-  timeleft = 5
-  success: any = false
-  error: any = false
+  timeleft = 5;
+  success: any = false;
+  error: any = false;
 
   // computed
   get convertFrom(): TokenInfo {
-    return vxm.liquidity.fromToken
+    return vxm.liquidity.fromToken;
   }
 
   get convertTo(): TokenInfo {
-    return vxm.liquidity.toToken
+    return vxm.liquidity.toToken;
   }
 
   get amount(): string {
-    return vxm.liquidity.amount
+    return vxm.liquidity.amount;
   }
 
   get amountBnt(): string {
-    return vxm.liquidity.amountBnt
+    return vxm.liquidity.amountBnt;
   }
 
   get heroAction() {
-    return vxm.general.heroAction
+    return vxm.general.heroAction;
   }
 
   get minReturn(): string {
-    return vxm.liquidity.minReturn
+    return vxm.liquidity.minReturn;
   }
 
   get selectedProvider() {
-    return vxm.eosTransit.selectedProvider
+    return vxm.eosTransit.selectedProvider;
   }
 
   // methods
   resetModal() {
-    this.timeleft = 4
-    this.success = false
-    this.error = false
+    this.timeleft = 4;
+    this.success = false;
+    this.error = false;
   }
 
   closeModal() {
-    this.$bvModal.hide('modal-convert-token')
-    this.resetModal()
+    this.$bvModal.hide("modal-convert-token");
+    this.resetModal();
   }
 
   async countdownConvert() {
-    this.timeleft = 3
-    this.success = false
-    this.error = false
+    this.timeleft = 3;
+    this.success = false;
+    this.error = false;
     let timer = setInterval(() => {
       if (this.timeleft === 6) {
-        clearInterval(timer)
-        this.timeleft = 3
-        return
+        clearInterval(timer);
+        this.timeleft = 3;
+        return;
       }
-      this.timeleft -= 1
+      this.timeleft -= 1;
       if (this.timeleft <= 0) {
-        clearInterval(timer)
-        this.initConvert()
+        clearInterval(timer);
+        this.initConvert();
       }
-    }, 1000)
+    }, 1000);
   }
 
   initConvert() {
-    if (this.heroAction === 'liq-add') this.convertLiqAdd()
-    else if (this.heroAction === 'liq-remove') this.convertLiqRemove()
-    else if (this.heroAction === 'convert') this.convert()
+    if (this.heroAction === "liq-add") this.convertLiqAdd();
+    else if (this.heroAction === "liq-remove") this.convertLiqRemove();
+    else if (this.heroAction === "convert") this.convert();
   }
 
   async convertLiqAdd() {
     const tolerance = bancorx.tokenPrecision(
       this.convertTo.symbol,
       ((parseFloat(this.minReturn) / 2) * 0.98).toString()
-    )
-    const wallet = vxm.eosTransit.wallet
+    );
+    const wallet = vxm.eosTransit.wallet;
     if (wallet && wallet.auth)
       wallet.eosApi
         .transact(
@@ -229,7 +221,7 @@ export default class ModalConvertLiquidity extends Vue {
             actions: [
               {
                 account: this.convertFrom.tokenContract,
-                name: 'transfer',
+                name: "transfer",
                 authorization: [
                   {
                     actor: wallet.auth.accountName,
@@ -238,25 +230,25 @@ export default class ModalConvertLiquidity extends Vue {
                 ],
                 data: {
                   from: wallet.auth.accountName,
-                  to: 'thisisbancor',
+                  to: "thisisbancor",
                   quantity:
                     bancorx.tokenPrecision(
                       this.convertFrom.symbol,
                       this.amount
                     ) +
-                    ' ' +
+                    " " +
                     this.convertFrom.symbol,
                   memo: bancorx.bancorMemoLiquidity(
                     this.convertTo.symbol,
-                    'add',
+                    "add",
                     tolerance,
                     wallet.auth.accountName
                   )
                 }
               },
               {
-                account: 'bntbntbntbnt',
-                name: 'transfer',
+                account: "bntbntbntbnt",
+                name: "transfer",
                 authorization: [
                   {
                     actor: wallet.auth.accountName,
@@ -265,12 +257,10 @@ export default class ModalConvertLiquidity extends Vue {
                 ],
                 data: {
                   from: wallet.auth.accountName,
-                  to: 'thisisbancor',
+                  to: "thisisbancor",
                   quantity:
-                    bancorx.tokenPrecision('BNT', this.amountBnt) + ' BNT',
-                  memo: `1,${this.convertTo.relayContract} ${
-                    this.convertTo.symbol
-                  },${tolerance},${wallet.auth.accountName}`
+                    bancorx.tokenPrecision("BNT", this.amountBnt) + " BNT",
+                  memo: `1,${this.convertTo.relayContract} ${this.convertTo.symbol},${tolerance},${wallet.auth.accountName}`
                 }
               }
             ]
@@ -282,33 +272,33 @@ export default class ModalConvertLiquidity extends Vue {
           }
         )
         .then((resp: any) => {
-          this.success = resp
+          this.success = resp;
           this.$ga.event(
             vxm.liquidity.fromToken.symbol,
-            'convert',
-            vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-          )
+            "convert",
+            vxm.liquidity.fromToken.symbol + "-" + vxm.liquidity.toToken.symbol
+          );
         })
         .catch((error: any) => {
-          this.error = error
+          this.error = error;
           this.$ga.event(
             vxm.liquidity.fromToken.symbol,
-            'convert-error',
-            vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-          )
-        })
+            "convert-error",
+            vxm.liquidity.fromToken.symbol + "-" + vxm.liquidity.toToken.symbol
+          );
+        });
   }
   async convertLiqRemove() {
     const minReturn = bancorx.tokenPrecision(
       this.convertTo.symbol,
       (parseFloat(this.minReturn) * 0.98).toString()
-    )
+    );
     const minReturnBnt = bancorx.tokenPrecision(
-      'BNT',
+      "BNT",
       (parseFloat(this.amountBnt) * 0.98).toString()
-    )
-    const wallet = vxm.eosTransit.wallet
-    const halfAmount = (parseFloat(this.amount) / 2).toString()
+    );
+    const wallet = vxm.eosTransit.wallet;
+    const halfAmount = (parseFloat(this.amount) / 2).toString();
     if (wallet && wallet.auth)
       wallet.eosApi
         .transact(
@@ -316,7 +306,7 @@ export default class ModalConvertLiquidity extends Vue {
             actions: [
               {
                 account: this.convertFrom.tokenContract,
-                name: 'transfer',
+                name: "transfer",
                 authorization: [
                   {
                     actor: wallet.auth.accountName,
@@ -325,17 +315,17 @@ export default class ModalConvertLiquidity extends Vue {
                 ],
                 data: {
                   from: wallet.auth.accountName,
-                  to: 'thisisbancor',
+                  to: "thisisbancor",
                   quantity:
                     bancorx.tokenPrecision(
                       this.convertFrom.symbol,
                       halfAmount
                     ) +
-                    ' ' +
+                    " " +
                     this.convertFrom.symbol,
                   memo: bancorx.bancorMemoLiquidity(
                     this.convertFrom.symbol,
-                    'remove',
+                    "remove",
                     minReturn,
                     wallet.auth.accountName
                   )
@@ -343,7 +333,7 @@ export default class ModalConvertLiquidity extends Vue {
               },
               {
                 account: this.convertFrom.tokenContract,
-                name: 'transfer',
+                name: "transfer",
                 authorization: [
                   {
                     actor: wallet.auth.accountName,
@@ -352,17 +342,15 @@ export default class ModalConvertLiquidity extends Vue {
                 ],
                 data: {
                   from: wallet.auth.accountName,
-                  to: 'thisisbancor',
+                  to: "thisisbancor",
                   quantity:
                     bancorx.tokenPrecision(
                       this.convertFrom.symbol,
                       halfAmount
                     ) +
-                    ' ' +
+                    " " +
                     this.convertFrom.symbol,
-                  memo: `1,${
-                    this.convertFrom.relayContract
-                  } BNT,${minReturnBnt},${wallet.auth.accountName}`
+                  memo: `1,${this.convertFrom.relayContract} BNT,${minReturnBnt},${wallet.auth.accountName}`
                 }
               }
             ]
@@ -374,28 +362,28 @@ export default class ModalConvertLiquidity extends Vue {
           }
         )
         .then((resp: any) => {
-          this.success = resp
+          this.success = resp;
           this.$ga.event(
             vxm.liquidity.fromToken.symbol,
-            'convert',
-            vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-          )
+            "convert",
+            vxm.liquidity.fromToken.symbol + "-" + vxm.liquidity.toToken.symbol
+          );
         })
         .catch((error: any) => {
-          this.error = error
+          this.error = error;
           this.$ga.event(
             vxm.liquidity.fromToken.symbol,
-            'convert-error',
-            vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-          )
-        })
+            "convert-error",
+            vxm.liquidity.fromToken.symbol + "-" + vxm.liquidity.toToken.symbol
+          );
+        });
   }
   async convert() {
     const tolerance = bancorx.tokenPrecision(
       this.convertTo.symbol,
       (parseFloat(this.minReturn) * 0.98).toString()
-    )
-    const wallet = vxm.eosTransit.wallet
+    );
+    const wallet = vxm.eosTransit.wallet;
     if (wallet && wallet.auth)
       wallet.eosApi
         .transact(
@@ -403,7 +391,7 @@ export default class ModalConvertLiquidity extends Vue {
             actions: [
               {
                 account: this.convertFrom.tokenContract,
-                name: 'transfer',
+                name: "transfer",
                 authorization: [
                   {
                     actor: wallet.auth.accountName,
@@ -412,13 +400,13 @@ export default class ModalConvertLiquidity extends Vue {
                 ],
                 data: {
                   from: wallet.auth.accountName,
-                  to: 'thisisbancor',
+                  to: "thisisbancor",
                   quantity:
                     bancorx.tokenPrecision(
                       this.convertFrom.symbol,
                       this.amount
                     ) +
-                    ' ' +
+                    " " +
                     this.convertFrom.symbol,
                   memo: bancorx.composeBancorMemo(
                     this.convertFrom.symbol,
@@ -437,21 +425,21 @@ export default class ModalConvertLiquidity extends Vue {
           }
         )
         .then((resp: any) => {
-          this.success = resp
+          this.success = resp;
           this.$ga.event(
             vxm.liquidity.fromToken.symbol,
-            'convert',
-            vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-          )
+            "convert",
+            vxm.liquidity.fromToken.symbol + "-" + vxm.liquidity.toToken.symbol
+          );
         })
         .catch((error: any) => {
-          this.error = error
+          this.error = error;
           this.$ga.event(
             vxm.liquidity.fromToken.symbol,
-            'convert-error',
-            vxm.liquidity.fromToken.symbol + '-' + vxm.liquidity.toToken.symbol
-          )
-        })
+            "convert-error",
+            vxm.liquidity.fromToken.symbol + "-" + vxm.liquidity.toToken.symbol
+          );
+        });
   }
 
   // lifecycle hooks

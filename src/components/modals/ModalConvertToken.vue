@@ -16,9 +16,7 @@
           <h6 class="text-uppercase text-muted">Send</h6>
           <img
             class="img-avatar img-avatar-thumb mb-2"
-            :src="
-                convertFrom.primaryCommunityImageName
-            "
+            :src="convertFrom.primaryCommunityImageName"
             alt="Token Logo"
           />
           <h2 class="mb-2">{{ amount }} {{ convertFrom.code }}</h2>
@@ -41,9 +39,7 @@
           <h6 class="text-uppercase text-muted">Min Return</h6>
           <img
             class="img-avatar img-avatar-thumb mb-2"
-            :src="
-                convertTo.primaryCommunityImageName
-            "
+            :src="convertTo.primaryCommunityImageName"
             alt="Token Logo"
           />
           <h2 class="mb-2">{{ minReturn }} {{ convertTo.code }}</h2>
@@ -79,72 +75,72 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store/'
-import { TokenPrice } from '@/types/bancor'
-import * as bancorx from '@/assets/_ts/bancorx'
+import { Component, Prop, Vue } from "vue-property-decorator";
+import { vxm } from "@/store/";
+import { TokenPrice } from "@/types/bancor";
+import * as bancorx from "@/assets/_ts/bancorx";
 
 @Component
 export default class ModalConvertToken extends Vue {
   // data
-  timeleft = 5
-  success: any = false
-  error: any = false
+  timeleft = 5;
+  success: any = false;
+  error: any = false;
 
   // computed
   get convertFrom(): TokenPrice {
-    return vxm.convert.convertFrom
+    return vxm.convert.convertFrom;
   }
 
   get convertTo(): TokenPrice {
-    return vxm.convert.convertTo
+    return vxm.convert.convertTo;
   }
 
   get amount(): string {
-    return vxm.convert.amount
+    return vxm.convert.amount;
   }
 
   get minReturn(): string {
-    return vxm.convert.minReturn
+    return vxm.convert.minReturn;
   }
 
   get selectedProvider() {
-    return vxm.eosTransit.selectedProvider
+    return vxm.eosTransit.selectedProvider;
   }
 
   // methods
   resetModal() {
-    this.timeleft = 6
-    this.success = false
-    this.error = false
+    this.timeleft = 6;
+    this.success = false;
+    this.error = false;
   }
 
   closeModal() {
-    this.$bvModal.hide('modal-convert-token')
-    this.resetModal()
+    this.$bvModal.hide("modal-convert-token");
+    this.resetModal();
   }
 
   async countdownConvert() {
-    this.timeleft = 5
-    this.success = false
-    this.error = false
+    this.timeleft = 5;
+    this.success = false;
+    this.error = false;
     let timer = setInterval(() => {
       if (this.timeleft === 6) {
-        clearInterval(timer)
-        this.timeleft = 5
-        return
+        clearInterval(timer);
+        this.timeleft = 5;
+        return;
       }
-      this.timeleft -= 1
+      this.timeleft -= 1;
       if (this.timeleft <= 0) {
-        clearInterval(timer)
-        this.convert()
+        clearInterval(timer);
+        this.convert();
       }
-    }, 1000)
+    }, 1000);
   }
 
   async convert() {
-    const wallet = vxm.eosTransit.wallet
-    const relay = bancorx.relays[vxm.convert.convertFrom.code]
+    const wallet = vxm.eosTransit.wallet;
+    const relay = bancorx.relays[vxm.convert.convertFrom.code];
     if (wallet && wallet.auth)
       wallet.eosApi
         .transact(
@@ -152,7 +148,7 @@ export default class ModalConvertToken extends Vue {
             actions: [
               {
                 account: relay.code,
-                name: 'transfer',
+                name: "transfer",
                 authorization: [
                   {
                     actor: wallet.auth.accountName,
@@ -161,10 +157,10 @@ export default class ModalConvertToken extends Vue {
                 ],
                 data: {
                   from: wallet.auth.accountName,
-                  to: 'thisisbancor',
+                  to: "thisisbancor",
                   quantity:
                     bancorx.tokenPrecision(relay.symbol, this.amount) +
-                    ' ' +
+                    " " +
                     relay.symbol,
                   memo: bancorx.composeBancorMemo(
                     this.convertFrom.code,
@@ -183,11 +179,11 @@ export default class ModalConvertToken extends Vue {
           }
         )
         .then((resp: any) => {
-          this.success = resp
+          this.success = resp;
         })
         .catch((error: any) => {
-          this.error = error
-        })
+          this.error = error;
+        });
   }
 
   // lifecycle hooks
