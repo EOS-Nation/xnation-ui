@@ -38,7 +38,7 @@
                 icon="exchange-alt"
                 class="fa-2x text-white cursor"
                 :spin="spinning"
-                @click="swapTokens()"
+                @click="swapTokens"
               />
             </transition>
             <div class="mb-3 mt-3">
@@ -391,27 +391,14 @@ export default class HeroConvert extends Vue {
     const smartSupply = split(this.smartSupply);
 
     const returns = tokens.map(({ amount }, index) => {
-      const tokenBalance = split(index == 0 ? this.token1Balance : this.token2Balance)
-      console.log({
-        amount: amount.toString(),
-        tokenBalance: tokenBalance.toString(),
-        smartSupply: smartSupply.toString()
-      }, 'going to...')
-      const result = calculateFundReturn(
-        amount,
-        tokenBalance,
-        smartSupply
+      const tokenBalance = split(
+        index == 0 ? this.token1Balance : this.token2Balance
       );
-      console.log(result.toString())
+      const result = calculateFundReturn(amount, tokenBalance, smartSupply);
       return result;
     });
-    console.log(returns);
     const lowestReturn = returns.reduce((acc, val) =>
       val.amount <= acc.amount ? val : acc
-    );
-    console.log(
-      lowestReturn.toString(),
-      "is the lowest return we're trying to get."
     );
 
     try {
