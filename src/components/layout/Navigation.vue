@@ -3,31 +3,24 @@
     <!-- Header Content -->
     <div class="content content-header content-boxed py-0">
       <!-- Left Section -->
-      <div class="d-flex align-items-center float-left" style="width: 180px">
+      <div
+        class="d-flex align-items-center align-middle float-left"
+        style="width: 180px"
+      >
         <!-- Toggle Sidebar -->
         <!-- END Toggle Sidebar -->
         <router-link :to="{ name: 'Tokens' }">
           <img src="@/assets/media/logos/eosn.png" height="40px" class="mr-4" />
         </router-link>
-        <b-dropdown size="sm" variant="dual" class="d-md-none mr-2" no-caret>
-          <template slot="button-content">
-            <font-awesome-icon icon="ellipsis-v" fixed-width />
-          </template>
-          <div class="px-2 font-size-sm">
-            <b-dropdown-item :to="{ name: 'Tokens' }">
-              <font-awesome-icon icon="exchange-alt" fixed-width class="mr-2" />
-              Convert
-            </b-dropdown-item>
-            <b-dropdown-item :to="{ name: 'Relays' }">
-              <font-awesome-icon icon="star-of-life" fixed-width class="mr-2" />
-              Relays
-            </b-dropdown-item>
-            <b-dropdown-item :to="{ name: 'Wallet' }">
-              <font-awesome-icon icon="wallet" fixed-width class="mr-2" />
-              Wallet
-            </b-dropdown-item>
-          </div>
-        </b-dropdown>
+        <b-form-group id="form-group">
+          <b-form-radio-group
+            class="align-self-center"
+            size="sm"
+            v-model="selected"
+            :options="options"
+            buttons
+          ></b-form-radio-group>
+        </b-form-group>
       </div>
       <!-- END Left Section -->
 
@@ -118,51 +111,61 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store/'
-import wait from 'waait'
+import { Component, Prop, Vue } from "vue-property-decorator";
+import { vxm } from "@/store/";
+import wait from "waait";
 
 @Component
 export default class Navigation extends Vue {
+  selected = "eos";
+  options = [
+    { text: "EOS", value: "eos" },
+    { text: "ETH", value: "eth" }
+  ];
+
   // computed
   get language() {
-    return vxm.general.language
+    return vxm.general.language;
   }
 
   set language(lang: string) {
-    vxm.general.setLanguage(lang)
+    vxm.general.setLanguage(lang);
   }
 
   get loginStatus() {
-    return vxm.eosTransit.loginStatus
+    return vxm.eosTransit.loginStatus;
   }
 
   get isAuthenticated() {
     if (vxm.eosTransit.wallet && vxm.eosTransit.wallet.auth)
-      return vxm.eosTransit.wallet.auth.accountName
-    else return false
+      return vxm.eosTransit.wallet.auth.accountName;
+    else return false;
   }
 
   createRelay() {
     this.$router.push({
       name: "Create"
-    })
+    });
   }
 
   // methods
   async loginAction() {
-    if (this.loginStatus[0] === 'Login') {
-      this.$bvModal.show('modal-login')
+    if (this.loginStatus[0] === "Login") {
+      this.$bvModal.show("modal-login");
       // vxm.eosTransit.initLogin(vxm.eosTransit.walletProviders[0])
     } else if (
-      this.loginStatus[0] !== 'Authenticating' &&
-      this.loginStatus[0] !== 'Connecting' &&
-      this.loginStatus[0] !== 'Fetching'
+      this.loginStatus[0] !== "Authenticating" &&
+      this.loginStatus[0] !== "Connecting" &&
+      this.loginStatus[0] !== "Fetching"
     ) {
-      vxm.eosTransit.logout()
+      vxm.eosTransit.logout();
     }
   }
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+#form-group {
+  margin-bottom: unset;
+}
+</style>
