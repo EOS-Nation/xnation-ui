@@ -52,8 +52,8 @@
                 :disabled="!isAuthenticated"
               >
                 <font-awesome-icon
-                  :icon="loadingTokens ? 'circle-notch' : 'sync-alt'"
-                  :spin="loadingTokens"
+                  :icon="loading ? 'circle-notch' : 'sync-alt'"
+                  :spin="loading"
                   fixed-width
                   class="mr-2"
                 />
@@ -112,6 +112,7 @@ import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
+import { mapGetters } from "vuex";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
@@ -160,20 +161,8 @@ export default class HeroConvert extends Vue {
     );
   }
 
-  get amount() {
-    return vxm.liquidity.amount;
-  }
-
-  get minReturn() {
-    return vxm.liquidity.minReturn;
-  }
-
   get tokens() {
     return vxm.relays.tokens;
-  }
-
-  get loadingTokens() {
-    return vxm.liquidity.rateLoading;
   }
 
   promptModal(tokenNumber: number) {
@@ -186,7 +175,7 @@ export default class HeroConvert extends Vue {
     const { symbol, logo } = this.tokens.find(
       token => token.symbol == selectedSymbol
     )!;
-    const fromTokenChanged = this.identifyToken(this.promptedTokenNumber);
+    const fromTokenChanged = this.isFromToken(this.promptedTokenNumber);
     if (fromTokenChanged) {
       this.fromTokenImg = logo;
       this.fromTokenSymbol = symbol;
@@ -194,27 +183,6 @@ export default class HeroConvert extends Vue {
       this.toTokenImg = logo;
       this.toTokenSymbol = symbol;
     }
-  }
-
-  async conversionRate() {
-    this.rateLoading = true;
-    let amount = this.amount;
-    if (amount === "") {
-      amount = "1";
-      const minReturn = await bancorx.calcRate(
-        vxm.liquidity.fromToken.symbol,
-        vxm.liquidity.toToken.symbol,
-        amount
-      );
-      this.rate = this.numeral(
-        parseFloat(minReturn) / parseFloat(amount)
-      ).format("0,0.0000");
-    } else
-      this.rate = this.numeral(
-        parseFloat(this.minReturn) / parseFloat(amount)
-      ).format("0,0.0000");
-
-    this.rateLoading = false;
   }
 
   // methods
@@ -240,9 +208,11 @@ export default class HeroConvert extends Vue {
       new Symbol(toToken.symbol, toToken.precision)
     );
 
-
-    const minimumReturn = new Asset(toAmountAsset.amount * 0.98, toAmountAsset.symbol);
-    const minimumReturnString = minimumReturn.toString().split(' ')[0];
+    const minimumReturn = new Asset(
+      toAmountAsset.amount * 0.98,
+      toAmountAsset.symbol
+    );
+    const minimumReturnString = minimumReturn.toString().split(" ")[0];
     const memo = await bancorCalculator.composeMemo(
       new Symbol(fromToken.symbol, fromToken.precision),
       new Symbol(toToken.symbol, toToken.precision),
@@ -252,12 +222,16 @@ export default class HeroConvert extends Vue {
     );
 
     try {
-      const txResponse = await multiContract.convert(fromToken.contract, fromAmountAsset, memo);
-      console.log(JSON.stringify(txResponse))
-      this.fromTokenAmount = ""
-      this.toTokenAmount = ""
-    } catch(e) {
-      console.warn('TX Error:', e)
+      const txResponse = await multiContract.convert(
+        fromToken.contract,
+        fromAmountAsset,
+        memo
+      );
+      console.log(JSON.stringify(txResponse));
+      this.fromTokenAmount = "";
+      this.toTokenAmount = "";
+    } catch (e) {
+      console.warn("TX Error:", e);
     }
     await vxm.relays.fetchRelays();
   }
@@ -272,7 +246,9 @@ export default class HeroConvert extends Vue {
 
   @Watch("$route")
   listen(to: any) {
-    this.setFromToken(to.params.symbolName);
+    if (to.params && to.params.symbolName) {
+      this.setFromToken(to.params.symbolName);
+    }
   }
 
   navTransfer() {
@@ -332,7 +308,7 @@ export default class HeroConvert extends Vue {
     this[this.flipped ? "token2Amount" : "token1Amount"] = amount;
   }
 
-  identifyToken(numberSelection: number): boolean {
+  isFromToken(numberSelection: number): boolean {
     if (this.flipped && numberSelection == 1) {
       return false;
     } else if (!this.flipped && numberSelection == 1) {
@@ -348,7 +324,7 @@ export default class HeroConvert extends Vue {
 
   async tokenAmountChange(numberSelection: number) {
     // Which token just changed? From or To?
-    const fromTokenChanged = this.identifyToken(numberSelection);
+    const fromTokenChanged = this.isFromToken(numberSelection);
     const fromToken = vxm.relays.tokens.find(
       token => token.symbol == this.fromTokenSymbol
     )!;
@@ -434,9 +410,10 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-    this.setFromToken(this.$route.params.symbolName || vxm.relays.tokens[0].symbol);
+    this.setFromToken(
+      this.$route.params.symbolName || vxm.relays.tokens[0].symbol
+    );
     this.loadSimpleRewards();
-    this.conversionRate();
   }
 }
 </script>
