@@ -27,7 +27,7 @@
       <!-- Center Section -->
       <div class="d-none d-md-flex align-items-center justify-content-center">
         <b-btn
-          :to="{ name: 'Tokens' }"
+          :to="{ name: `${this.selected}-Tokens` }"
           variant="primary"
           size="sm"
           exact
@@ -37,7 +37,7 @@
           Convert
         </b-btn>
         <b-btn
-          :to="{ name: 'Relays' }"
+          :to="{ name: `${this.selected}-Relays` }"
           variant="primary"
           size="sm"
           exact
@@ -47,7 +47,8 @@
           Relays
         </b-btn>
         <b-btn
-          :to="{ name: 'Create' }"
+          v-if="selected == 'eos'"
+          :to="{ name: 'eos-Create' }"
           variant="primary"
           size="sm"
           :disabled="!isAuthenticated"
@@ -59,7 +60,7 @@
         </b-btn>
         <b-btn
           v-if="!isAuthenticated"
-          :to="{ name: 'Wallet' }"
+          :to="{ name: `${this.selected}-Wallet` }"
           variant="primary"
           size="sm"
           exact
@@ -68,10 +69,12 @@
         </b-btn>
         <b-btn
           v-else
-          :to="{ name: 'WalletAccount', params: { account: isAuthenticated } }"
+          :to="{
+            name: `${this.selected}-WalletAccount`,
+            params: { account: isAuthenticated }
+          }"
           variant="primary"
           size="sm"
-          exact
         >
           <font-awesome-icon icon="wallet" fixed-width /> Wallet
         </b-btn>
@@ -111,7 +114,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from "vue-property-decorator";
+import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store/";
 import wait from "waait";
 
@@ -122,6 +125,13 @@ export default class Navigation extends Vue {
     { text: "EOS", value: "eos" },
     { text: "ETH", value: "eth" }
   ];
+
+  @Watch("selected")
+  onChange(selectedNetwork: string) {
+    this.$router.push({
+      path: `/${selectedNetwork}`
+    });
+  }
 
   // computed
   get language() {
