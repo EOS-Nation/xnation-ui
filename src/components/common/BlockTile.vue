@@ -14,29 +14,29 @@
 </template>
 
 <script lang="ts">
-import { Prop, Component, Vue } from 'vue-property-decorator'
+import { Prop, Component, Vue } from "vue-property-decorator";
 
 @Component
 export default class BlockTile extends Vue {
   // prop
-  @Prop() title!: string
-  @Prop() subtitle?: string
-  @Prop() content?: string
+  @Prop() title!: string;
+  @Prop() subtitle?: string;
+  @Prop() content?: string;
 
   // data
-  message = 'Hello'
+  message = "Hello";
 
   // computed
   get reverseMessage() {
     return this.message
-      .split('')
+      .split("")
       .reverse()
-      .join('')
+      .join("");
   }
 
   // method
   changeMessage() {
-    this.message = 'Good bye'
+    this.message = "Good bye";
   }
 
   // Lifecycle hooks

@@ -121,7 +121,7 @@ export class RelaysModule extends VuexModule {
     }));
   }
 
-  get tokens(): PrettyToken[] {
+  get tokens(): any[] {
     if (!this.initComplete) return [];
     return this.relaysList
       .filter(relay => relay.settings.enabled)

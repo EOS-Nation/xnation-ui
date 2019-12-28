@@ -15,11 +15,11 @@
               :class="{ 'fa-blink': searchState === 'keyboard' }"
             />
           </b-input-group-text> -->
-          <b-form-input
-            class="form-control form-control-alt"
-            v-model="tokenSearch"
-            placeholder="Search Token"
-          ></b-form-input>
+        <b-form-input
+          class="form-control form-control-alt"
+          v-model="tokenSearch"
+          placeholder="Search Token"
+        ></b-form-input>
         <!-- </b-input-group> -->
       </div>
     </div>
@@ -83,14 +83,15 @@
               </tr>
             </template>
             <template v-else>
-              <tr v-for="(token, index) in newTokens" :key="index">
+              <tr v-for="(token, index) in tokens" :key="index">
                 <td
                   class="text-center d-none d-md-table-cell"
                   v-text="index + 1"
                 ></td>
                 <td class="d-flex justify-content-start align-items-center">
                   <img
-                    v-b-tooltip.hover :title="true ? 'Sale is Enabled' : 'Sale is Disabled'"
+                    v-b-tooltip.hover
+                    :title="true ? 'Sale is Enabled' : 'Sale is Disabled'"
                     class="img-avatar img-avatar-thumb img-avatar32"
                     :src="token.logo"
                     alt="Token Logo"
@@ -102,14 +103,14 @@
                 </td>
                 <td class="text-center font-w700">
                   <span v-if="token.price < 1">{{
-                    numeral(token.price).format('$0,0.000000')
+                    numeral(token.price).format("$0,0.000000")
                   }}</span>
                   <span v-else>{{
-                    numeral(token.price).format('$0,0.00')
+                    numeral(token.price).format("$0,0.00")
                   }}</span>
                 </td>
                 <td class="text-right d-none d-md-table-cell">
-                  {{ numeral(token.liqDepth).format('$0,0.00') }}
+                  {{ numeral(token.liqDepth).format("$0,0.00") }}
                 </td>
                 <td class="text-right">
                   <b-btn
@@ -139,12 +140,12 @@
 </template>
 
 <script lang="ts">
-import { Watch, Component, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store'
-import numeral from 'numeral'
-import * as bancorx from '@/assets/_ts/bancorx'
-import SortIcons from '@/components/common/SortIcons.vue'
-import { TokenPrice } from '@/types/bancor'
+import { Watch, Component, Vue, Prop } from "vue-property-decorator";
+import { vxm } from "@/store";
+import numeral from "numeral";
+import * as bancorx from "@/assets/_ts/bancorx";
+import SortIcons from "@/components/common/SortIcons.vue";
+import { TokenPrice } from "@/types/bancor";
 const {
   ContentLoader,
   FacebookLoader,
@@ -152,8 +153,8 @@ const {
   BulletListLoader,
   InstagramLoader,
   ListLoader
-} = require('vue-content-loader')
-const debounce = require('lodash.debounce')
+} = require("vue-content-loader");
+const debounce = require("lodash.debounce");
 
 @Component({
   components: {
@@ -167,9 +168,14 @@ const debounce = require('lodash.debounce')
   }
 })
 export default class TokensTable extends Vue {
+  @Prop(Boolean) loading?: boolean;
+  @Prop(Boolean) scrollToTop?: boolean;
+
+  @Prop() tokens!: any[];
+
   // data
-  numeral = numeral
-  private tokenSearch: String = ''
+  numeral = numeral;
+  private tokenSearch: String = "";
   private searchOptions = {
     shouldSort: true,
     threshold: 0.3,
@@ -177,138 +183,91 @@ export default class TokensTable extends Vue {
     distance: 100,
     maxPatternLength: 24,
     minMatchCharLength: 1,
-    keys: ['symbol', 'name']
-  }
-  searchResults: any = []
-  private searchState: string = 'search'
-  public debouncedGetSearch: any
-  private currentSort = 'v24h'
-  private currentSortDir = 'desc'
-  private tokens: any = []
+    keys: ["symbol", "name"]
+  };
+  searchResults: any = [];
+  private searchState: string = "search";
+  public debouncedGetSearch: any;
+  private currentSort = "v24h";
+  private currentSortDir = "desc";
 
   // computed
-  get ethPrice() {
-    return vxm.tokens.ethPrice
-  }
-
-  get loading() {
-    return vxm.tokens.loadingTokens
-  }
-
   get searchedTokens() {
-    if (this.searchResults.length > 0) return this.searchResults
-    else return this.tokens
-  }
-
-  get newTokens() {
-    return vxm.relays.tokens
+    if (this.searchResults.length > 0) return this.searchResults;
+    else return this.tokens;
   }
 
   get sortedTokens() {
-    let tokens = this.searchedTokens
+    let tokens = this.searchedTokens;
     return tokens.sort((a: any, b: any) => {
-      let modifier = 1
-      if (this.currentSortDir === 'desc') modifier = -1
-      if (this.currentSort === 'symbol') {
-        if (a[this.currentSort] < b[this.currentSort]) return -1 * modifier
-        if (a[this.currentSort] > b[this.currentSort]) return 1 * modifier
-        return 0
+      let modifier = 1;
+      if (this.currentSortDir === "desc") modifier = -1;
+      if (this.currentSort === "symbol") {
+        if (a[this.currentSort] < b[this.currentSort]) return -1 * modifier;
+        if (a[this.currentSort] > b[this.currentSort]) return 1 * modifier;
+        return 0;
       } else {
         if (parseFloat(a[this.currentSort]) < parseFloat(b[this.currentSort]))
-          return -1 * modifier
+          return -1 * modifier;
         if (parseFloat(a[this.currentSort]) > parseFloat(b[this.currentSort]))
-          return 1 * modifier
-        return 0
+          return 1 * modifier;
+        return 0;
       }
-    })
+    });
   }
 
-  // method
-  initAction(action: 'convert' | 'transfer', symbol: string) {
-    window.scroll({
-      top: 0,
-      left: 0,
-      behavior: 'smooth'
-    })
-    if (action == 'transfer') {
-      this.$router.push({
-        name: 'Transfer',
-        params: { symbolName: symbol }
-      })
-    } else {
-      this.$router.push({
-        name: 'Token',
-        params: { symbolName: symbol }
-      })
-      // else console.error('Failed to find token information for symbol', symbol)
-      // vxm.general.setHeroAction(action)
+  initAction(action: "convert" | "transfer", symbol: string) {
+    if (this.scrollToTop) {
+      window.scroll({
+        top: 0,
+        left: 0,
+        behavior: "smooth"
+      });
     }
+    this.$emit(action, symbol);
   }
 
   searchTokens() {
     // @ts-ignore
     this.$search(this.tokenSearch, this.tokens, this.searchOptions).then(
       (results: any) => {
-        this.searchResults = results
-        if (this.tokenSearch === '') this.searchState = 'search'
-        else this.searchState = 'check'
+        this.searchResults = results;
+        if (this.tokenSearch === "") this.searchState = "search";
+        else this.searchState = "check";
       }
-    )
+    );
   }
 
   sort(s: string) {
     if (s === this.currentSort) {
-      this.currentSortDir = this.currentSortDir === 'asc' ? 'desc' : 'asc'
+      this.currentSortDir = this.currentSortDir === "asc" ? "desc" : "asc";
     }
-    this.currentSort = s
+    this.currentSort = s;
   }
 
-  async updateTokens() {
-    let res = await vxm.tokens.getTokens()
-    vxm.tokens.setTokens({ eos: res, eth: [] })
-    this.tokens = res.map((t: TokenPrice) => ({
-      id: t.id,
-      symbol: t.code,
-      name: t.name,
-      img:
-        t.primaryCommunityImageName,
-      c24h: t.change24h,
-      price: t.price,
-      v24h: t.volume24h.USD,
-      liqDepth: t.liquidityDepth
-    }))
-    return res
-  }
-
-  @Watch('tokenSearch')
+  @Watch("tokenSearch")
   async onSearchChange(val: any, oldVal: any) {
-    if (val !== '') {
-      this.searchState = 'keyboard'
-      this.debouncedGetSearch()
+    if (val !== "") {
+      this.searchState = "keyboard";
+      this.debouncedGetSearch();
     } else {
-      this.searchTokens()
+      this.searchTokens();
     }
   }
 
   // Lifecycle hooks
   async created() {
-    vxm.tokens.setLoadingTokens(true)
-    await vxm.tokens.getEthPrice()
-    const res = await this.updateTokens()
-    vxm.convert.setToken({ t: res[0], d: 'from' })
-    vxm.convert.setToken({ t: res[1], d: 'to' })
-    vxm.tokens.setLoadingTokens(false)
     // @ts-ignore
-    this.$options.interval = setInterval(this.updateTokens, 10000)
+    this.$options.interval = setInterval(this.updateTokens, 10000);
     this.debouncedGetSearch = debounce(() => {
-      this.searchTokens()
-    }, 500)
+      this.searchTokens();
+    }, 500);
   }
   mounted() {}
   updated() {}
   beforeDestroy() {
     // @ts-ignore
-    clearInterval(this.$options.interval)
+    clearInterval(this.$options.interval);
   }
 }
 </script>
