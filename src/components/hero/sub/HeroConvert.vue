@@ -112,7 +112,6 @@ import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
-import { mapGetters } from "vuex";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
@@ -309,21 +308,20 @@ export default class HeroConvert extends Vue {
   }
 
   isFromToken(numberSelection: number): boolean {
-    if (this.flipped && numberSelection == 1) {
-      return false;
-    } else if (!this.flipped && numberSelection == 1) {
-      return true;
-    } else if (this.flipped && numberSelection == 2) {
-      return true;
-    } else if (!this.flipped && numberSelection == 2) {
-      return false;
-    } else {
-      throw new Error("Failed to identify token!");
-    }
+    return (
+      (!this.flipped && numberSelection == 1) ||
+      (this.flipped && numberSelection == 2)
+    );
+  }
+
+  createAsset(amount: number, symbolName: string, precision: number): Asset {
+    return new Asset(
+      amount * Math.pow(10, precision),
+      new Symbol(symbolName, precision)
+    );
   }
 
   async tokenAmountChange(numberSelection: number) {
-    // Which token just changed? From or To?
     const fromTokenChanged = this.isFromToken(numberSelection);
     const fromToken = vxm.relays.tokens.find(
       token => token.symbol == this.fromTokenSymbol
@@ -343,10 +341,7 @@ export default class HeroConvert extends Vue {
 
       try {
         const reward = await bancorCalculator.estimateReturn(
-          new Asset(
-            amount * Math.pow(10, fromToken.precision),
-            new Symbol(fromToken.symbol, fromToken.precision)
-          ),
+          this.createAsset(amount, fromToken.symbol, fromToken.precision),
           new Symbol(toToken.symbol, toToken.precision)
         );
         this.toTokenAmount = String(reward.toNumber());

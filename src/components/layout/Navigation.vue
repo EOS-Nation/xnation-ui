@@ -131,6 +131,7 @@ export default class Navigation extends Vue {
     this.$router.push({
       path: `/${selectedNetwork}`
     });
+    vxm.relays.setNetwork(selectedNetwork);
   }
 
   // computed

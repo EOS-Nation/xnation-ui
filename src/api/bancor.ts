@@ -102,3 +102,4 @@ export class BancorApi implements BancorWrapper {
 }
 
 export const bancorApi = new BancorApi(Blockchain.EOS);
+export const ethBancorApi = new BancorApi(Blockchain.ETH)

@@ -9,18 +9,9 @@ import { Asset, split } from "eos-common";
 import { client } from "@/api/dFuse";
 import { calculateCost } from "bancorx";
 import axios from "axios";
-import { bancorApi } from '@/api/bancor'
-
-
-interface FlatSymbol {
-  _code: string;
-  precision: number;
-}
-
-interface FlatToken {
-  contract: string;
-  symbol: FlatSymbol;
-}
+import { bancorApi, ethBancorApi } from "@/api/bancor";
+import { SimpleToken } from "@/types/bancor";
+import { tokens } from './tokens';
 
 interface TokenMeta {
   name: string;
@@ -58,11 +49,6 @@ export interface Settings {
   contract: string;
 }
 
-interface PrettyToken extends Reserve {
-  name: string;
-  logo: string;
-}
-
 @Module({ namespacedPath: "relays/" })
 export class RelaysModule extends VuexModule {
   relaysList: PlainRelay[] = [];
@@ -72,14 +58,23 @@ export class RelaysModule extends VuexModule {
   tokenMeta: TokenMeta[] = [];
   usdPrice: number = 0;
   initComplete: boolean = false;
+  selectedNetwork: string = "eos";
+  relaysDb: any = {};
 
   @action async init() {
-    await Promise.all([
-      this.fetchUsdPrice(),
-      this.fetchScopes(),
-      this.fetchMeta()
-    ]);
+    await Promise.all([this.fetchUsdPrice(), this.initEos(), this.initEth()]);
     this.initCompleted();
+  }
+
+  @action async initEos() {
+    return Promise.all([this.fetchScopes(), this.fetchMeta()]);
+  }
+
+  @action async initEth() {
+    const tokens = await ethBancorApi.getTokens();
+    console.log(tokens, "was on Eth");
+    this.relaysDb['eth'] = tokens;
+    return "5";
   }
 
   @mutation
@@ -95,6 +90,21 @@ export class RelaysModule extends VuexModule {
   setUsdPrice(usdPrice: number) {
     this.usdPrice = usdPrice;
   }
+
+  get network() {
+    return this.selectedNetwork;
+  }
+
+  @mutation setNetwork(newNetwork: string) {
+    this.selectedNetwork = newNetwork;
+  }
+
+  
+  set network(newNetwork: string) { 
+    this.selectedNetwork = newNetwork;
+  }
+
+  
 
   get relay() {
     return (symbolName: string) => {
@@ -121,8 +131,21 @@ export class RelaysModule extends VuexModule {
     }));
   }
 
-  get tokens(): any[] {
-    if (!this.initComplete) return [];
+
+  get ethTokens(): SimpleToken[] {
+    const tokensApi = this.relaysDb['eth'];
+    const ethValueInUsd = tokensApi.find((token: any) => token.code == 'ETH').price
+    return tokensApi.map((token: any) => ({
+      symbol: token.code, 
+      name: token.name,
+      price: token.price, 
+      liqDepth: token.liquidityDepth * ethValueInUsd,
+      logo: token.primaryCommunityImageName
+    }))
+  }
+
+  get eosTokens(): SimpleToken[] {
+    // @ts-ignore
     return this.relaysList
       .filter(relay => relay.settings.enabled)
       .map(relay => relay.reserves)
@@ -158,11 +181,15 @@ export class RelaysModule extends VuexModule {
         return {
           ...token,
           name,
-          logo
+          logo,
+          precision: token.balance.split(' ')[0].split('.')[1]
         };
       });
+  }
 
-
+  get tokens(): SimpleToken[] {
+    if (!this.initComplete) return [];
+    return this.selectedNetwork == 'eos' ? this.eosTokens : this.ethTokens 
   }
 
   @action async fetchRelays() {

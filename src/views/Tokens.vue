@@ -18,13 +18,7 @@
 import { Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import TokensTable from "@/components/tables/TokensTable.vue";
-
-interface SimpleToken {
-  symbol: string;
-  name: string;
-  price: string;
-  liqDepth: number;
-}
+import { SimpleToken } from "@/types/bancor";
 
 @Component({
   components: {
@@ -33,14 +27,7 @@ interface SimpleToken {
 })
 export default class Token extends Vue {
   get tokens() {
-    const tokens = vxm.relays.tokens.map(token => ({
-      symbol: token.symbol,
-      name: token.name,
-      logo: token.logo,
-      price: token.price,
-      liqDepth: token.liqDepth
-    }));
-    return tokens;
+    return vxm.relays.tokens;
   }
 
   onConvert(symbolName: string) {

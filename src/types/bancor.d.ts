@@ -73,3 +73,12 @@ export interface ReserveInstance {
   sale_enabled: boolean;
   contract: string;
 }
+
+export interface SimpleToken {
+  symbol: string;
+  name: string;
+  price: string;
+  liqDepth: number;
+  logo: string;
+  precision: number;
+}
