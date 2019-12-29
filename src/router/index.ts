@@ -9,6 +9,8 @@ import HeroTransfer from "@/components/hero/sub/HeroTransfer.vue";
 import HeroRelay from "@/components/hero/sub/HeroRelay.vue";
 import HeroCreate from "@/components/hero/sub/HeroCreate.vue";
 import Navigation from "@/components/layout/Navigation.vue";
+import { vxm } from "@/store/";
+
 
 Vue.use(Router);
 
@@ -133,10 +135,18 @@ export const router = new Router({
 });
 
 router.beforeEach((to, from, next) => {
-  if (to && to.name && to.name.includes("-")) next();
+  if (to && to.name && to.name.includes("-")) {
+    const originNetwork = to.name.split('-')[0]
+    if (vxm.relays.selectedNetwork !== originNetwork) {
+      vxm.relays.setNetwork(originNetwork)
+    }
+    next();
+  }
   else {
     const originNetwork = from && from && from.name && from.name.split("-")[0];
     if (originNetwork) {
+      console.log(originNetwork, 'is going to get set');
+      vxm.relays.setNetwork(originNetwork);
       next({ name: `${originNetwork}-${to.name}`, params: to.params });
     } else {
       next();
