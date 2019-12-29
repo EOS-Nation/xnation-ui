@@ -116,7 +116,7 @@ import { multiContract } from "@/api/multiContractTx";
 @Component({
   beforeRouteEnter: async (to, from, next) => {
     if (vxm.relays.tokens.length == 0) {
-      await vxm.relays.fetchRelays();
+      await vxm.relays.init();
     }
     next();
   },
@@ -129,7 +129,6 @@ import { multiContract } from "@/api/multiContractTx";
   }
 })
 export default class HeroConvert extends Vue {
-  // data
   ltr = true;
   rate = "";
   rateLoading = false;
@@ -153,7 +152,6 @@ export default class HeroConvert extends Vue {
   token1SimpleReward = "";
   token2SimpleReward = "";
 
-  // computed
   get isAuthenticated() {
     return (
       vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
@@ -171,9 +169,7 @@ export default class HeroConvert extends Vue {
 
   selectedToken(selectedSymbol: string) {
     this.modal = false;
-    const { symbol, logo } = this.tokens.find(
-      token => token.symbol == selectedSymbol
-    )!;
+    const { symbol, logo } = vxm.relays.token(selectedSymbol)!;
     const fromTokenChanged = this.isFromToken(this.promptedTokenNumber);
     if (fromTokenChanged) {
       this.fromTokenImg = logo;
@@ -184,61 +180,28 @@ export default class HeroConvert extends Vue {
     }
   }
 
-  // methods
   swapTokens() {
     this.flipped = !this.flipped;
   }
 
   async initConvert() {
-    const fromToken = vxm.relays.tokens.find(
-      token => token.symbol == this.fromTokenSymbol
-    )!;
-    const toToken = vxm.relays.tokens.find(
-      token => token.symbol == this.toTokenSymbol
-    )!;
+    const fromToken = vxm.relays.token(this.fromTokenSymbol)!;
+    const toToken = vxm.relays.token(this.toTokenSymbol)!;
+    const result = await vxm.relays.convert({
+      fromSymbol: this.fromTokenSymbol,
+      toSymbol: this.toTokenSymbol,
+      fromAmount: Number(this.fromTokenAmount),
+      toAmount: Number(this.toTokenAmount)
+    });
 
-    const fromAmountAsset = new Asset(
-      Number(this.fromTokenAmount) * Math.pow(10, fromToken.precision),
-      new Symbol(fromToken.symbol, fromToken.precision)
-    );
+    this.fromTokenAmount = "";
+    this.toTokenAmount = "";
 
-    const toAmountAsset = new Asset(
-      Number(this.toTokenAmount) * Math.pow(10, toToken.precision),
-      new Symbol(toToken.symbol, toToken.precision)
-    );
-
-    const minimumReturn = new Asset(
-      toAmountAsset.amount * 0.98,
-      toAmountAsset.symbol
-    );
-    const minimumReturnString = minimumReturn.toString().split(" ")[0];
-    const memo = await bancorCalculator.composeMemo(
-      new Symbol(fromToken.symbol, fromToken.precision),
-      new Symbol(toToken.symbol, toToken.precision),
-      minimumReturnString,
-      // @ts-ignore
-      vxm.eosTransit.wallet.auth.accountName
-    );
-
-    try {
-      const txResponse = await multiContract.convert(
-        fromToken.contract,
-        fromAmountAsset,
-        memo
-      );
-      console.log(JSON.stringify(txResponse));
-      this.fromTokenAmount = "";
-      this.toTokenAmount = "";
-    } catch (e) {
-      console.warn("TX Error:", e);
-    }
     await vxm.relays.fetchRelays();
   }
 
   setFromToken(symbolName: string) {
-    const { symbol, logo } = this.tokens.find(
-      token => token.symbol == symbolName
-    )!;
+    const { symbol, logo } = vxm.relays.token(symbolName)!;
     this.token1Symbol = symbol;
     this.token1Img = logo;
   }
@@ -247,14 +210,32 @@ export default class HeroConvert extends Vue {
   listen(to: any) {
     if (to.params && to.params.symbolName) {
       this.setFromToken(to.params.symbolName);
+      this.updatePriceReturn();
+      this.loadSimpleRewards();
+    } else {
+      this.setFromToken(this.defaultSymbolName);
+      this.updatePriceReturn();
+      this.loadSimpleRewards();
     }
+  }
+
+  get selectedSymbolOrDefault() {
+    return this.$route.params.symbolName || this.defaultSymbolName;
+  }
+
+  get defaultSymbolName() {
+    return vxm.relays.tokens.find(token => token.symbol !== "BNT")!.symbol;
+  }
+
+  get focusedToken() {
+    return vxm.relays.token(this.selectedSymbolOrDefault)!;
   }
 
   navTransfer() {
     this.$router.push({
       name: "Transfer",
       params: {
-        symbolName: this.$route.params.symbolName || "EOS"
+        symbolName: this.selectedSymbolOrDefault
       }
     });
   }
@@ -321,45 +302,38 @@ export default class HeroConvert extends Vue {
     );
   }
 
+  async updatePriceReturn() {
+    this.loading = true;
+
+    const amount = Number(this.fromTokenAmount);
+    const reward = await vxm.relays.getReturn({
+      fromSymbol: this.fromTokenSymbol,
+      amount,
+      toSymbol: this.toTokenSymbol
+    });
+    this.toTokenAmount = reward.amount;
+    this.loading = false;
+  }
+
+  async updatePriceCost() {
+    this.loading = true;
+
+    const amount = Number(this.toTokenAmount);
+    const reward = await vxm.relays.getCost({
+      amount,
+      toSymbol: this.toTokenSymbol,
+      fromSymbol: this.fromTokenSymbol
+    });
+    this.fromTokenAmount = reward.amount;
+    this.loading = false;
+  }
+
   async tokenAmountChange(numberSelection: number) {
     const fromTokenChanged = this.isFromToken(numberSelection);
-    const fromToken = vxm.relays.tokens.find(
-      token => token.symbol == this.fromTokenSymbol
-    )!;
-    const toToken = vxm.relays.tokens.find(
-      token => token.symbol == this.toTokenSymbol
-    )!;
-    console.log({ fromToken, toToken });
-
     if (fromTokenChanged) {
-      const amount = Number(this.fromTokenAmount);
-      console.log(
-        "I should be estimating return of",
-        amount,
-        this.fromTokenSymbol
-      );
-
-      try {
-        const reward = await bancorCalculator.estimateReturn(
-          this.createAsset(amount, fromToken.symbol, fromToken.precision),
-          new Symbol(toToken.symbol, toToken.precision)
-        );
-        this.toTokenAmount = String(reward.toNumber());
-      } catch (e) {
-        console.log("Error thrown in bancorCalculator", e);
-      }
+      this.updatePriceReturn();
     } else {
-      const amount = Number(this.toTokenAmount);
-      console.log("I should be estimating cost...", amount, this.toTokenSymbol);
-      const reward = await bancorCalculator.estimateCost(
-        new Asset(
-          amount * Math.pow(10, toToken.precision),
-          new Symbol(toToken.symbol, toToken.precision)
-        ),
-        new Symbol(fromToken.symbol, fromToken.precision)
-      );
-      console.log("setting", String(reward.toString()));
-      this.fromTokenAmount = String(reward.toNumber());
+      this.updatePriceCost();
     }
   }
 
@@ -372,42 +346,26 @@ export default class HeroConvert extends Vue {
   async loadSimpleRewards() {
     this.loading = true;
 
-    const token1 = vxm.relays.tokens.find(
-      token => token.symbol == this.token1Symbol
-    )!;
-    const token2 = vxm.relays.tokens.find(
-      token => token.symbol == this.token2Symbol
-    )!;
-
-    const fromToken1 = await bancorCalculator.estimateReturn(
-      new Asset(
-        1 * Math.pow(10, token1.precision),
-        new Symbol(token1.symbol, token1.precision)
-      ),
-      new Symbol(token2.symbol, token2.precision)
-    );
-    this.token1SimpleReward = `1 ${
-      this.token1Symbol
-    } = ${fromToken1.toString()}`;
-
-    const fromToken2 = await bancorCalculator.estimateReturn(
-      new Asset(
-        1 * Math.pow(10, token2.precision),
-        new Symbol(token2.symbol, token2.precision)
-      ),
-      new Symbol(token1.symbol, token1.precision)
-    );
-    this.token2SimpleReward = `1 ${
-      this.token2Symbol
-    } = ${fromToken2.toString()}`;
+    const [fromToken1, fromToken2] = await Promise.all([
+      vxm.relays.getReturn({
+        fromSymbol: this.token1Symbol,
+        amount: 1,
+        toSymbol: this.token2Symbol
+      }),
+      vxm.relays.getReturn({
+        fromSymbol: this.token2Symbol,
+        amount: 1,
+        toSymbol: this.token1Symbol
+      })
+    ]);
+    this.token1SimpleReward = `1 ${this.token1Symbol} = ${fromToken1.amount} ${this.token2Symbol}`;
+    this.token2SimpleReward = `1 ${this.token2Symbol} = ${fromToken2.amount} ${this.token1Symbol}`;
 
     this.loading = false;
   }
 
   async created() {
-    this.setFromToken(
-      this.$route.params.symbolName || vxm.relays.tokens[0].symbol
-    );
+    this.setFromToken(this.selectedSymbolOrDefault);
     this.loadSimpleRewards();
   }
 }
