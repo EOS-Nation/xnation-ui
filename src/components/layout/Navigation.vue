@@ -122,15 +122,31 @@ import wait from "waait";
 export default class Navigation extends Vue {
   selected = "eos";
   options = [
-    { text: "EOS", value: "eos" },
-    { text: "ETH", value: "eth" }
+    {
+      text: "EOS",
+      value: "eos"
+    },
+    {
+      text: "ETH",
+      value: "eth"
+    }
   ];
+
+  created() {
+    this.selected = this.routedNetwork;
+  }
+
+  get routedNetwork() {
+    return this.$route.path.split("/")[1];
+  }
 
   @Watch("selected")
   onChange(selectedNetwork: string) {
-    this.$router.push({
-      path: `/${selectedNetwork}`
-    });
+    if (this.routedNetwork !== selectedNetwork) {
+      this.$router.push({
+        path: `/${selectedNetwork}`
+      });
+    }
     vxm.relays.setNetwork(selectedNetwork);
   }
 
@@ -148,9 +164,7 @@ export default class Navigation extends Vue {
   }
 
   get isAuthenticated() {
-    if (vxm.eosTransit.wallet && vxm.eosTransit.wallet.auth)
-      return vxm.eosTransit.wallet.auth.accountName;
-    else return false;
+    return vxm.eosTransit.isAuthenticated;
   }
 
   createRelay() {

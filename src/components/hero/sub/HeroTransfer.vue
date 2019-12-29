@@ -3,7 +3,17 @@
     <div>
       <b-row>
         <b-col md="4" class="text-center">
-          <hero-convert-relay direction="from" />
+          <token-amount-input
+            :key="focusedToken.symbol"
+            :amount.sync="amount"
+            :balance="tokenBalance"
+            :img="focusedToken.logo"
+            :symbol="focusedToken.symbol"
+            dropdown
+            @dropdown="promptModal"
+            @click="promptModal"
+            @onUpdate="tokenAmountChange"
+          />
         </b-col>
         <b-col
           md="4"
@@ -80,42 +90,47 @@ import ModalSelectAll from "@/components/modals/ModalSelectAll.vue";
 import HeroConvertRelay from "@/components/convert/HeroConvertRelay.vue";
 import ModalTransferToken from "@/components/modals/ModalTransferToken.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
+import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 
 @Component({
   components: {
     HeroWrapper,
     ModalSelectAll,
     ModalTransferToken,
-    HeroConvertRelay
+    HeroConvertRelay,
+    TokenAmountInput
   }
 })
 export default class HeroTransfer extends Vue {
-  // data
-  availableBalance = "0";
   loadingBalance = false;
   numeral = numeral;
   contactHistory: string[] = [];
   @Prop(String) symbolName!: string;
 
-  // computed
+  amount = "";
+  tokenBalance = "0";
+
+  memo = "";
+  recipient = "";
+
+  promptModal() {
+    console.log("prompt triggered");
+  }
+
+  tokenAmountChange(e: any) {
+    console.log("token amount changed", e);
+  }
+
   get isAuthenticated() {
     return vxm.eosTransit.isAuthenticated;
   }
 
+  get focusedToken() {
+    return vxm.relays.token(this.selectedSymbolOrDefault)!;
+  }
+
   get token() {
     return vxm.liquidity.fromToken;
-  }
-
-  get debouncedState() {
-    return vxm.convert.debouncedState;
-  }
-
-  get heroAction() {
-    return vxm.general.heroAction;
-  }
-
-  set heroAction(val) {
-    vxm.general.setHeroAction(val);
   }
 
   async loadHistory() {
@@ -138,40 +153,8 @@ export default class HeroTransfer extends Vue {
     }
   }
 
-  get amount() {
-    return vxm.transfer.amount;
-  }
-  set amount(val) {
-    vxm.transfer.setAmount(val);
-  }
-
-  get recipient() {
-    return vxm.transfer.transferTo;
-  }
-  set recipient(val) {
-    vxm.transfer.setRecipient(val);
-  }
-
-  get memo() {
-    return vxm.transfer.memo;
-  }
-
-  set memo(val) {
-    vxm.transfer.setMemo(val);
-  }
-
   get usdValue() {
     return numeral(0).format("$0,0.00");
-  }
-
-  setFromToken(symbolName: string) {
-    const tokenInfo = bancorx.getTokenInfo(symbolName);
-    if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo);
-  }
-
-  @Watch("$route")
-  listen(to: any) {
-    this.setFromToken(to.params.symbolName);
   }
 
   // methods
@@ -179,21 +162,16 @@ export default class HeroTransfer extends Vue {
     this.$bvModal.show("modal-select-relay");
   }
 
-  setPercentage(p: number) {
-    this.amount = ((parseFloat(this.availableBalance) * p) / 100).toString();
-  }
-
   initTransfer() {
     if (!this.isAuthenticated) this.$bvModal.show("modal-login");
     else {
-      this.amount = bancorx.tokenPrecision(this.token.symbol, this.amount);
       this.$bvModal.show("modal-transfer-token");
       let transferHistory = localStorage.getItem("transferHistory");
       const tx = {
         from: this.isAuthenticated,
         to: this.recipient,
-        amount: this.amount,
-        symbol: this.token.symbol,
+        amount: Number(this.amount).toFixed(this.focusedToken.precision),
+        symbol: this.focusedToken.symbol,
         memo: this.memo
       };
       if (transferHistory) {
@@ -218,29 +196,25 @@ export default class HeroTransfer extends Vue {
     } else return "0";
   }
 
-  @Watch("token")
-  async onTokenChange(val: any, oldVal: any) {
-    this.availableBalance = await this.loadBalance();
+  get selectedSymbolOrDefault() {
+    return this.$route.params.symbolName || this.defaultSymbolName;
   }
 
-  @Watch("isAuthenticated")
-  async onAuthChange(val: any, oldVal: any) {
-    this.availableBalance = await this.loadBalance();
+  get defaultSymbolName() {
+    return vxm.relays.tokens.find(token => token.symbol !== "BNT")!.symbol;
   }
 
   navConvert() {
     this.$router.push({
       name: "Token",
       params: {
-        symbolName: this.$route.params.symbolName || "EOS"
+        symbolName: this.selectedSymbolOrDefault
       }
     });
   }
 
   async created() {
-    this.setFromToken(this.$route.params.symbolName);
     this.loadHistory();
-    this.availableBalance = await this.loadBalance();
   }
 }
 </script>
