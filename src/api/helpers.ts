@@ -83,6 +83,17 @@ export const cacheMetaData = async () => {
   shouldDownload = false;
 };
 
+export const createAsset = (
+  amount: number,
+  symbolName: string,
+  precision: number
+): Asset => {
+  return new Asset(
+    amount * Math.pow(10, precision),
+    new Symbol(symbolName, precision)
+  );
+};
+
 export const fetchTokenMeta = async (
   contract: string,
   symbol: string
@@ -98,13 +109,21 @@ export const fetchTokenMeta = async (
   return metaData;
 };
 
-export const getBankBalance = async(): Promise<{id: number; quantity: string; symbl: string}[]> => {
+export const getBankBalance = async (): Promise<{
+  id: number;
+  quantity: string;
+  symbl: string;
+}[]> => {
   // @ts-ignore
-  const account = vxm.eosTransit.wallet.auth.accountName
-  const res = await client.stateTable(process.env.VUE_APP_MULTICONTRACT!, account, 'accounts')
+  const account = vxm.eosTransit.wallet.auth.accountName;
+  const res = await client.stateTable(
+    process.env.VUE_APP_MULTICONTRACT!,
+    account,
+    "accounts"
+  );
   // @ts-ignore
-  return res.rows.map(row => row.json)
-}
+  return res.rows.map(row => row.json);
+};
 
 // export const fetchRelays = async (): Promise<nRelay[]> => {
 //   console.log(`fetchRelays was called`)
@@ -160,13 +179,15 @@ export const getBankBalance = async(): Promise<{id: number; quantity: string; sy
 //   return relays;
 // };
 
-
 const getOppositeSymbol = (symbol: Symbol) => {
   return function(relay: nRelay) {
-    return relay.reserves.find(reserve => !reserve.symbol.isEqual(symbol))
-  }
-}
+    return relay.reserves.find(reserve => !reserve.symbol.isEqual(symbol));
+  };
+};
 
-export const parseTokens = (relays: nRelay[], networkToken = new Symbol('BNT', 10)) => {
-  return relays.map(getOppositeSymbol(networkToken))
-}
+export const parseTokens = (
+  relays: nRelay[],
+  networkToken = new Symbol("BNT", 10)
+) => {
+  return relays.map(getOppositeSymbol(networkToken));
+};
