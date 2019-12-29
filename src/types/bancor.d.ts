@@ -77,8 +77,12 @@ export interface ReserveInstance {
 export interface SimpleToken {
   symbol: string;
   name: string;
-  price: string;
-  liqDepth: number;
+  contract: string;
   logo: string;
   precision: number;
+}
+
+export interface SimpleTokenWithMarketData extends SimpleToken {
+  price: string;
+  liqDepth: number;
 }

@@ -5,13 +5,18 @@ import {
   getter,
   Module
 } from "vuex-class-component";
-import { Asset, split } from "eos-common";
+import { Asset, split, Symbol } from "eos-common";
 import { client } from "@/api/dFuse";
 import { calculateCost } from "bancorx";
 import axios from "axios";
 import { bancorApi, ethBancorApi } from "@/api/bancor";
-import { SimpleToken } from "@/types/bancor";
-import { tokens } from './tokens';
+import { SimpleToken, SimpleTokenWithMarketData } from "@/types/bancor";
+import { multiContract } from "@/api/multiContractTx";
+
+import { bancorCalculator } from "@/api/bancorCalculator";
+import wait from "waait";
+
+import { createAsset } from "@/api/helpers";
 
 interface TokenMeta {
   name: string;
@@ -49,8 +54,23 @@ export interface Settings {
   contract: string;
 }
 
+export type FloatAmount = number;
+
+export interface ProposedTransaction {
+  fromSymbol: string;
+  toSymbol: string;
+  amount: FloatAmount;
+}
+
+export interface ProposedConvertTransaction {
+  fromSymbol: string;
+  toSymbol: string;
+  fromAmount: FloatAmount;
+  toAmount: FloatAmount;
+}
+
 @Module({ namespacedPath: "relays/" })
-export class RelaysModule extends VuexModule {
+export class RelaysModule extends VuexModule  {
   relaysList: PlainRelay[] = [];
   scopes: string[] = [];
   contractName: string = process.env.VUE_APP_MULTICONTRACT!;
@@ -62,19 +82,22 @@ export class RelaysModule extends VuexModule {
   relaysDb: any = {};
 
   @action async init() {
+    if (this.initComplete) {
+      console.log("Init already called");
+    }
     await Promise.all([this.fetchUsdPrice(), this.initEos(), this.initEth()]);
+    await wait();
     this.initCompleted();
   }
 
   @action async initEos() {
-    return Promise.all([this.fetchScopes(), this.fetchMeta()]);
+    await Promise.all([this.fetchScopes(), this.fetchMeta()]);
+    await this.fetchRelays();
   }
 
   @action async initEth() {
     const tokens = await ethBancorApi.getTokens();
-    console.log(tokens, "was on Eth");
-    this.relaysDb['eth'] = tokens;
-    return "5";
+    this.relaysDb["eth"] = tokens;
   }
 
   @mutation
@@ -86,6 +109,152 @@ export class RelaysModule extends VuexModule {
     this.setUsdPrice(Number(await bancorApi.getRate("BNT", "USD")));
   }
 
+  @action async getCost(proposedTransaction: ProposedTransaction) {
+    console.log({ proposedTransaction });
+    if (this.selectedNetwork == "eos")
+      return this.getCostEos(proposedTransaction);
+    else return this.getCostEth(proposedTransaction);
+  }
+
+  @action async getCostEos({
+    fromSymbol,
+    toSymbol,
+    amount
+  }: ProposedTransaction) {
+    const fromToken = this.token(fromSymbol)!;
+    const toToken = this.token(toSymbol)!;
+
+    const reward = await bancorCalculator.estimateCost(
+      new Asset(
+        amount * Math.pow(10, toToken.precision),
+        new Symbol(toToken.symbol, toToken.precision)
+      ),
+      new Symbol(fromToken.symbol, fromToken.precision)
+    );
+
+    return { amount: String(reward.toNumber()) };
+  }
+
+  @action async getCostEth({
+    fromSymbol,
+    toSymbol,
+    amount
+  }: ProposedTransaction) {
+    const fromSymbolApiInstance = this.ethSymbolNameToApiObj(fromSymbol);
+    const toSymbolApiInstance = this.ethSymbolNameToApiObj(toSymbol);
+    const [fromTokenDetail, toTokenDetail] = await Promise.all([
+      ethBancorApi.getTokenTicker(fromSymbolApiInstance.id),
+      ethBancorApi.getTokenTicker(toSymbolApiInstance.id)
+    ]);
+    const result = await ethBancorApi.calculateCost(
+      fromSymbolApiInstance.id,
+      toSymbolApiInstance.id,
+      String(amount * Math.pow(10, toTokenDetail.decimals))
+    );
+    return {
+      amount: String(Number(result) / Math.pow(10, fromTokenDetail.decimals))
+    };
+  }
+
+  @action async getReturn(proposedTransaction: ProposedTransaction) {
+    if (this.selectedNetwork == "eos")
+      return this.getReturnEos(proposedTransaction);
+    else return this.getReturnEth(proposedTransaction);
+  }
+
+  @action async getReturnEos({
+    fromSymbol,
+    toSymbol,
+    amount
+  }: ProposedTransaction) {
+    const fromToken = this.token(fromSymbol)!;
+    const toToken = this.token(toSymbol)!;
+
+    const reward = await bancorCalculator.estimateReturn(
+      createAsset(amount, fromToken.symbol, fromToken.precision),
+      new Symbol(toToken.symbol, toToken.precision)
+    );
+    return { amount: String(reward.toNumber()) };
+  }
+
+  @action async getReturnEth({
+    fromSymbol,
+    toSymbol,
+    amount
+  }: ProposedTransaction) {
+    const fromSymbolApiInstance = this.ethSymbolNameToApiObj(fromSymbol);
+    const toSymbolApiInstance = this.ethSymbolNameToApiObj(toSymbol);
+    const [fromTokenDetail, toTokenDetail] = await Promise.all([
+      ethBancorApi.getTokenTicker(fromSymbolApiInstance.id),
+      ethBancorApi.getTokenTicker(toSymbolApiInstance.id)
+    ]);
+    const result = await ethBancorApi.calculateReturn(
+      fromSymbolApiInstance.id,
+      toSymbolApiInstance.id,
+      String(amount * Math.pow(10, fromTokenDetail.decimals))
+    );
+    return {
+      amount: String(Number(result) / Math.pow(10, toTokenDetail.decimals))
+    };
+  }
+
+  @action async convert(proposedTransaction: ProposedConvertTransaction) {
+    if (this.selectedNetwork == "eos")
+      return this.convertEos(proposedTransaction);
+    else return this.convertEth(proposedTransaction);
+  }
+
+  @action async triggerTx(actions: any[]) {
+    console.log('relays has', actions, 'and giving them to eosTransit')
+    this.$store.dispatch('eosTransit/tx', '5', { root: true });
+  }
+
+  @action async convertEos({ fromAmount, fromSymbol, toAmount, toSymbol }: ProposedConvertTransaction) {
+    // @ts-ignore
+    const accountName = this.$store.rootState.eosTransit.wallet.auth.accountName;
+    const fromToken = this.token(fromSymbol)!
+    const toToken = this.token(toSymbol)!
+
+    const fromAmountAsset = new Asset(
+      Number(fromAmount) * Math.pow(10, fromToken.precision),
+      new Symbol(fromToken.symbol, fromToken.precision)
+    );
+    const toAmountAsset = new Asset(
+      Number(toAmount) * Math.pow(10, toToken.precision),
+      new Symbol(toToken.symbol, toToken.precision)
+    );
+    const minimumReturn = new Asset(
+      toAmountAsset.amount * 0.98,
+      toAmountAsset.symbol
+    );
+    const minimumReturnString = minimumReturn.toString().split(" ")[0];
+    const memo = await bancorCalculator.composeMemo(
+      new Symbol(fromToken.symbol, fromToken.precision),
+      new Symbol(toToken.symbol, toToken.precision),
+      minimumReturnString,
+      accountName
+    );
+    console.log({ memo })
+
+    try {
+      const actions = await multiContract.convert(
+        fromToken.contract,
+        fromAmountAsset,
+        memo
+      );
+      this.triggerTx(actions)
+
+    } catch (e) {
+      console.warn("TX Error:", e);
+    }
+
+  }
+
+  @action async convertEth(proposedTransaction: ProposedConvertTransaction) {
+   console.log('f')
+
+  }
+
   @mutation
   setUsdPrice(usdPrice: number) {
     this.usdPrice = usdPrice;
@@ -95,21 +264,19 @@ export class RelaysModule extends VuexModule {
     return this.selectedNetwork;
   }
 
-  @mutation setNetwork(newNetwork: string) {
+  @mutation
+  setNetwork(newNetwork: string) {
     this.selectedNetwork = newNetwork;
   }
 
-  
-  set network(newNetwork: string) { 
-    this.selectedNetwork = newNetwork;
+  get token() {
+    return (symbolName: string) =>
+      this.tokens.find(token => token.symbol == symbolName);
   }
-
-  
 
   get relay() {
-    return (symbolName: string) => {
-      return this.relays.find(relay => relay.settings.symbolName == symbolName);
-    };
+    return (symbolName: string) =>
+      this.relays.find(relay => relay.settings.symbolName == symbolName);
   }
 
   get relays() {
@@ -131,20 +298,28 @@ export class RelaysModule extends VuexModule {
     }));
   }
 
-
-  get ethTokens(): SimpleToken[] {
-    const tokensApi = this.relaysDb['eth'];
-    const ethValueInUsd = tokensApi.find((token: any) => token.code == 'ETH').price
-    return tokensApi.map((token: any) => ({
-      symbol: token.code, 
-      name: token.name,
-      price: token.price, 
-      liqDepth: token.liquidityDepth * ethValueInUsd,
-      logo: token.primaryCommunityImageName
-    }))
+  get ethSymbolNameToApiObj() {
+    return (symbolName: string) => {
+      const tokensApi = this.relaysDb["eth"];
+      return tokensApi.find((token: any) => token.code == symbolName);
+    };
   }
 
-  get eosTokens(): SimpleToken[] {
+  get ethTokens(): SimpleTokenWithMarketData[] {
+    const tokensApi = this.relaysDb["eth"];
+    if (!tokensApi || tokensApi.length == 0) return [];
+    const ethValueInUsd = tokensApi.find((token: any) => token.code == "ETH")
+      .price;
+    return tokensApi.map((token: any) => ({
+      symbol: token.code,
+      name: token.name,
+      price: token.price,
+      liqDepth: token.liquidityDepth * ethValueInUsd,
+      logo: token.primaryCommunityImageName
+    }));
+  }
+
+  get eosTokens(): SimpleTokenWithMarketData[] {
     // @ts-ignore
     return this.relaysList
       .filter(relay => relay.settings.enabled)
@@ -182,18 +357,24 @@ export class RelaysModule extends VuexModule {
           ...token,
           name,
           logo,
-          precision: token.balance.split(' ')[0].split('.')[1]
+          contract: token.contract,
+          precision: token.balance.split(" ")[0].split(".")[1].length,
         };
       });
   }
 
   get tokens(): SimpleToken[] {
-    if (!this.initComplete) return [];
-    return this.selectedNetwork == 'eos' ? this.eosTokens : this.ethTokens 
+    console.log(
+      "Tokens has been engaged when the length of tokens is",
+      this.ethTokens.length,
+      "for eth and",
+      this.eosTokens.length,
+      "for eos"
+    );
+    return this.selectedNetwork == "eos" ? this.eosTokens : this.ethTokens;
   }
 
   @action async fetchRelays() {
-    if (this.scopes.length == 0) await this.init();
     try {
       const [rawConverters, rawReserves] = await Promise.all([
         client.stateTablesForScopes(
