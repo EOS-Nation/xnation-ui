@@ -76,7 +76,7 @@ export class BancorApi implements BancorWrapper {
     return res.data;
   }
 
-  public async calculateCost(fromId: string, toId: string, amount: any): Promise<IntegerAmount> {
+  public async calculateCost(fromId: string, toId: string, amount: IntegerAmount): Promise<IntegerAmount> {
     return this.priceDiscovery(fromId, {
       toCurrencyId: toId,
       toAmount: amount,
@@ -84,7 +84,7 @@ export class BancorApi implements BancorWrapper {
     });
   }
 
-  public async calculateReturn(fromId: string, toId: string, amount: any): Promise<IntegerAmount> {
+  public async calculateReturn(fromId: string, toId: string, amount: IntegerAmount): Promise<IntegerAmount> {
     return this.priceDiscovery(fromId, {
       toCurrencyId: toId,
       fromAmount: amount,
