@@ -95,8 +95,10 @@ export class EosTransitModule extends VuexModule {
     return this.wallet && this.wallet.auth && this.wallet.auth.accountName
   }
   
-  // actions
   @action async tx(actions: any) {
+    console.log(...arguments, 'were arguments')
+    console.log(actions, 'were the actions on tx')
+    if (!actions) console.error('eosTransit-tx failed to received a payload, actions undefined.')
     // @ts-ignore
     return this.wallet.eosApi
         .transact(

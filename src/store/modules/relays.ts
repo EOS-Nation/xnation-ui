@@ -206,7 +206,7 @@ export class RelaysModule extends VuexModule  {
 
   @action async triggerTx(actions: any[]) {
     console.log('relays has', actions, 'and giving them to eosTransit')
-    this.$store.dispatch('eosTransit/tx', '5', { root: true });
+    this.$store.dispatch('eosTransit/tx', actions, { root: true });
   }
 
   @action async convertEos({ fromAmount, fromSymbol, toAmount, toSymbol }: ProposedConvertTransaction) {

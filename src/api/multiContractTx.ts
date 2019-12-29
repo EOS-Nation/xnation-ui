@@ -25,18 +25,17 @@ type TriggerTx = (actions: Action[]) => Promise<TxResponse>;
 class MultiContractTx {
   contractName: string;
   getAuth: GetAuth;
-  triggerTx: TriggerTx;
+  triggerTx: any;
   table: TableWrapper;
 
   constructor(
     contractName: string,
     getAuth: GetAuth,
-    triggerTx: TriggerTx,
     tableApi: TableWrapper
   ) {
     this.contractName = contractName;
     this.getAuth = getAuth;
-    this.triggerTx = triggerTx;
+    this.triggerTx = () => console.log('MultiContract needs to be updated');
     this.table = tableApi;
   }
 
@@ -123,7 +122,7 @@ class MultiContractTx {
         memo
       }
     }
-    return this.tx([action])
+    return [action]
   }
 
   updateFee(symbolCode: string, percent: number): Promise<TxResponse> {
@@ -341,6 +340,5 @@ const getAuth: GetAuth = () => {
 export const multiContract = new MultiContractTx(
   process.env.VUE_APP_MULTICONTRACT!,
   getAuth,
-  vxm.eosTransit.tx,
   tableApi
 );
