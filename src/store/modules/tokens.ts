@@ -12,10 +12,10 @@ import * as bancorx from '@/assets/_ts/bancorx'
 
 @Module({ namespacedPath: 'tokens/' })
 export class TokensModule extends VuexModule {
-  @getter eosTokens: TokenPrice[] = []
-  @getter ethTokens: TokenPrice[] = []
-  @getter loadingTokens: boolean = false
-  @getter ethPrice: any
+  eosTokens: TokenPrice[] = []
+  ethTokens: TokenPrice[] = []
+  loadingTokens: boolean = false
+  ethPrice: any
 
   get tokenDb() {
 

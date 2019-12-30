@@ -44,9 +44,9 @@ export class ConvertModule extends VuexModule {
   }
 
   @getter convertDirection: 'from' | 'to' = 'from'
-  @getter amount: string = ''
-  @getter minReturn: string = ''
-  @getter debouncedState: string = 'idle'
+  amount: string = ''
+  minReturn: string = ''
+  debouncedState: string = 'idle'
 
   // actions
   @action async initConversion(direction: 'from' | 'to') {

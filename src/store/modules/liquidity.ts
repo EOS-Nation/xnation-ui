@@ -10,14 +10,14 @@ import { TokenInfo } from '@/assets/_ts/bancorx'
 
 @Module({ namespacedPath: 'liquidity/' })
 export class LiquidityModule extends VuexModule {
-  @getter direction: 'from' | 'to' = 'from'
-  @getter relaySelect = true
-  @getter fromToken: TokenInfo = bancorx.tokenDb[0]
-  @getter toToken: TokenInfo = bancorx.tokenDb[1]
-  @getter amount = ''
-  @getter minReturn = ''
-  @getter rateLoading = false
-  @getter amountBnt = ''
+  direction: 'from' | 'to' = 'from'
+  relaySelect = true
+  fromToken: TokenInfo = bancorx.tokenDb[0]
+  toToken: TokenInfo = bancorx.tokenDb[1]
+  amount = ''
+  minReturn = ''
+  rateLoading = false
+  amountBnt = ''
 
   @mutation setRelaySelect(b: boolean) {
     this.relaySelect = b

@@ -25,9 +25,9 @@ export class TransferModule extends VuexModule {
     },
     priceHistory: [[167, 56.98408]]
   }
-  @getter transferTo: string = ''
-  @getter amount: string = ''
-  @getter memo: string = ''
+  transferTo: string = ''
+  amount: string = ''
+  memo: string = ''
 
   @mutation setToken(t: TokenPrice) {
     this.transferToken = t

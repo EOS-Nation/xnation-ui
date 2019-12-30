@@ -71,10 +71,10 @@ export class EosTransitModule extends VuexModule {
   // what EOS login method he wants to use.
 
   // We just take the one we have as if the user has selected that
-  @getter selectedProvider: WalletProvider | '' = ''
+  selectedProvider: WalletProvider | '' = ''
 
-  @getter wallet: Wallet | false = false
-  @getter walletState: WalletState | false = false
+  wallet: Wallet | false = false
+  walletState: WalletState | false = false
 
   get loginStatus() {
     const login = ['Login', 'arrow-circle-right', false]
@@ -96,9 +96,7 @@ export class EosTransitModule extends VuexModule {
   }
   
   @action async tx(actions: any) {
-    console.log(...arguments, 'were arguments')
     console.log(actions, 'were the actions on tx')
-    if (!actions) console.error('eosTransit-tx failed to received a payload, actions undefined.')
     // @ts-ignore
     return this.wallet.eosApi
         .transact(
