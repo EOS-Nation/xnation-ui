@@ -213,7 +213,7 @@ export default class HeroConvert extends Vue {
       this.updatePriceReturn();
       this.loadSimpleRewards();
     } else {
-      this.setFromToken(this.defaultSymbolName);
+      this.setFromToken(this.selectedSymbolOrDefault);
       this.updatePriceReturn();
       this.loadSimpleRewards();
     }

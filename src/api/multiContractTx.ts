@@ -44,7 +44,7 @@ class MultiContractTx {
       ...action,
       authorization: this.getAuth()
     }));
-    return this.triggerTx(authedActions);
+    return authedActions;
   }
 
   deleteReserve(symbolCode: string, currency: string): Promise<TxResponse> {
@@ -122,7 +122,7 @@ class MultiContractTx {
         memo
       }
     }
-    return [action]
+    return this.tx([action])
   }
 
   updateFee(symbolCode: string, percent: number): Promise<TxResponse> {
