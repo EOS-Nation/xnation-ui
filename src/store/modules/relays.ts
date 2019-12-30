@@ -70,7 +70,7 @@ export interface ProposedConvertTransaction {
 }
 
 @Module({ namespacedPath: "relays/" })
-export class RelaysModule extends VuexModule  {
+export class RelaysModule extends VuexModule {
   relaysList: PlainRelay[] = [];
   scopes: string[] = [];
   contractName: string = process.env.VUE_APP_MULTICONTRACT!;
@@ -80,6 +80,7 @@ export class RelaysModule extends VuexModule  {
   initComplete: boolean = false;
   selectedNetwork: string = "eos";
   relaysDb: any = {};
+  ethTokensList: any = [];
 
   @action async init() {
     if (this.initComplete) {
@@ -97,7 +98,7 @@ export class RelaysModule extends VuexModule  {
 
   @action async initEth() {
     const tokens = await ethBancorApi.getTokens();
-    this.relaysDb["eth"] = tokens;
+    this.ethTokensList = tokens;
   }
 
   @mutation
@@ -205,15 +206,21 @@ export class RelaysModule extends VuexModule  {
   }
 
   @action async triggerTx(actions: any[]) {
-    console.log('relays has', actions, 'and giving them to eosTransit')
-    this.$store.dispatch('eosTransit/tx', actions, { root: true });
+    console.log("relays has", actions, "and giving them to eosTransit");
+    this.$store.dispatch("eosTransit/tx", actions, { root: true });
   }
 
-  @action async convertEos({ fromAmount, fromSymbol, toAmount, toSymbol }: ProposedConvertTransaction) {
+  @action async convertEos({
+    fromAmount,
+    fromSymbol,
+    toAmount,
+    toSymbol
+  }: ProposedConvertTransaction) {
     // @ts-ignore
-    const accountName = this.$store.rootState.eosTransit.wallet.auth.accountName;
-    const fromToken = this.token(fromSymbol)!
-    const toToken = this.token(toSymbol)!
+    const accountName = this.$store.rootState.eosTransit.wallet.auth
+      .accountName;
+    const fromToken = this.token(fromSymbol)!;
+    const toToken = this.token(toSymbol)!;
 
     const fromAmountAsset = new Asset(
       Number(fromAmount) * Math.pow(10, fromToken.precision),
@@ -234,7 +241,6 @@ export class RelaysModule extends VuexModule  {
       minimumReturnString,
       accountName
     );
-    console.log({ memo })
 
     try {
       const actions = await multiContract.convert(
@@ -242,17 +248,14 @@ export class RelaysModule extends VuexModule  {
         fromAmountAsset,
         memo
       );
-      this.triggerTx(actions)
-
+      this.triggerTx(actions);
     } catch (e) {
       console.warn("TX Error:", e);
     }
-
   }
 
   @action async convertEth(proposedTransaction: ProposedConvertTransaction) {
-   console.log('f')
-
+    console.log("f");
   }
 
   @mutation
@@ -299,22 +302,21 @@ export class RelaysModule extends VuexModule  {
   }
 
   get ethSymbolNameToApiObj() {
-    return (symbolName: string) => {
-      const tokensApi = this.relaysDb["eth"];
-      return tokensApi.find((token: any) => token.code == symbolName);
-    };
+    return (symbolName: string) =>
+      this.ethTokensList.find((token: any) => token.code == symbolName);
   }
 
   get ethTokens(): SimpleTokenWithMarketData[] {
-    const tokensApi = this.relaysDb["eth"];
-    if (!tokensApi || tokensApi.length == 0) return [];
-    const ethValueInUsd = tokensApi.find((token: any) => token.code == "ETH")
-      .price;
-    return tokensApi.map((token: any) => ({
+    const ethToken = this.ethTokensList.find(
+      (token: any) => token.code == "ETH"
+    )!;
+    if (!ethToken) return [];
+    // @ts-ignore
+    return this.ethTokensList.map((token: any) => ({
       symbol: token.code,
       name: token.name,
       price: token.price,
-      liqDepth: token.liquidityDepth * ethValueInUsd,
+      liqDepth: token.liquidityDepth * Number(ethToken.price),
       logo: token.primaryCommunityImageName
     }));
   }
@@ -358,7 +360,7 @@ export class RelaysModule extends VuexModule  {
           name,
           logo,
           contract: token.contract,
-          precision: token.balance.split(" ")[0].split(".")[1].length,
+          precision: token.balance.split(" ")[0].split(".")[1].length
         };
       });
   }
