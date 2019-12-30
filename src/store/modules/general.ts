@@ -1,7 +1,6 @@
 import {
   VuexModule,
   mutation,
-  action,
   getter,
   Module
 } from 'vuex-class-component'

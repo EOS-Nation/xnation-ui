@@ -97,7 +97,7 @@
           <font-awesome-icon icon="search" fixed-width />
         </b-btn>
         <!-- Toggle Sidebar -->
-        <b-btn @click="loginAction()" variant="dual" size="sm">
+        <b-btn @click="loginAction" variant="dual" size="sm">
           {{ loginStatus[0] }}
           <font-awesome-icon
             :icon="loginStatus[1]"
@@ -163,6 +163,18 @@ export default class Navigation extends Vue {
     return vxm.eosTransit.loginStatus;
   }
 
+  get status() {
+    return this.loginStatus[0];
+  }
+
+  get icon() {
+    return this.loginStatus[1];
+  }
+
+  get spin() {
+    return this.loginStatus[2];
+  }
+
   get isAuthenticated() {
     return vxm.eosTransit.isAuthenticated;
   }
@@ -173,15 +185,14 @@ export default class Navigation extends Vue {
     });
   }
 
-  // methods
   async loginAction() {
-    if (this.loginStatus[0] === "Login") {
+    const status = this.status;
+    if (status === "Login") {
       this.$bvModal.show("modal-login");
-      // vxm.eosTransit.initLogin(vxm.eosTransit.walletProviders[0])
     } else if (
-      this.loginStatus[0] !== "Authenticating" &&
-      this.loginStatus[0] !== "Connecting" &&
-      this.loginStatus[0] !== "Fetching"
+      status !== "Authenticating" &&
+      status !== "Connecting" &&
+      status !== "Fetching"
     ) {
       vxm.eosTransit.logout();
     }
