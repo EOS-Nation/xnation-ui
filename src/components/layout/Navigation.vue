@@ -131,7 +131,6 @@ export default class Navigation extends Vue {
   created() {
     this.selected = this.routedNetwork;
     this.senseEthereum();
-    console.log(vxm.eth.isAuthenticated, "was isAuthenticated on eth");
   }
 
   async senseEthereum() {

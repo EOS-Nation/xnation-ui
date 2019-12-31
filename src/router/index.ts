@@ -124,7 +124,7 @@ export const router = new Router({
     ...builtRoutes,
     {
       path: "/eos/relays/create",
-      name: "Create",
+      name: "eos-Create",
       components: {
         Nav: Navigation,
         default: Relays,
@@ -145,7 +145,6 @@ router.beforeEach((to, from, next) => {
   else {
     const originNetwork = from && from && from.name && from.name.split("-")[0];
     if (originNetwork) {
-      console.log(originNetwork, 'is going to get set');
       vxm.relays.setNetwork(originNetwork);
       next({ name: `${originNetwork}-${to.name}`, params: to.params });
     } else {
