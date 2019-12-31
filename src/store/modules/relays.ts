@@ -17,6 +17,7 @@ import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 
 import { createAsset } from "@/api/helpers";
+import web3 from "web3";
 
 interface TokenMeta {
   name: string;
@@ -206,8 +207,11 @@ export class RelaysModule extends VuexModule {
   }
 
   @action async triggerTx(actions: any[]) {
-    console.log("relays has", actions, "and giving them to eosTransit");
-    this.$store.dispatch("eosTransit/tx", actions, { root: true });
+    if (this.selectedNetwork == "eos") {
+      this.$store.dispatch("eosTransit/tx", actions, { root: true });
+    } else {
+      this.$store.dispatch("eth/tx", actions, { root: true });
+    }
   }
 
   @action async convertEos({
@@ -254,8 +258,29 @@ export class RelaysModule extends VuexModule {
     }
   }
 
-  @action async convertEth(proposedTransaction: ProposedConvertTransaction) {
-    console.log("f");
+  @action async convertEth({ fromSymbol, toSymbol, fromAmount, toAmount }: ProposedConvertTransaction) {
+    const fromObj = this.ethSymbolNameToApiObj(fromSymbol);
+    const toObj = this.ethSymbolNameToApiObj(toSymbol);
+
+    const fromAmountWei = web3.utils.toWei(String(fromAmount));
+    
+    const minimumReturn = toAmount * 0.98;
+    const minimumReturnWei = web3.utils.toWei(String(minimumReturn));
+
+    const loggedIn = this.$store.getters
+    // Todo
+    // Un-hardcode ownerAddress
+    const convertPost = {
+      blockchainType: "ethereum",
+      fromCurrencyId: fromObj.id,
+      toCurrencyId: toObj.id,
+      amount: fromAmountWei,
+      minimumReturn: minimumReturnWei,
+      ownerAddress: "0x8a81E3058574A7c1D9A979BfC59A00E96209FdE7"
+    }
+    const res = await ethBancorApi.convert(convertPost)
+    const params = res.data;
+    this.triggerTx(params)
   }
 
   @mutation

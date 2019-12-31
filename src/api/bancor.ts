@@ -5,8 +5,25 @@ export interface BancorWrapper {
   getTokens(): Promise<TokenPrice[]>;
   getToken(symbol: string): Promise<TokenDetail>;
   getTokenTicker?(symbol: string): Promise<any>;
-  calculateCost(fromId: string, toId: string, amount: any): Promise<IntegerAmount>;
-  calculateReturn(fromId: string, toId: string, amount: any): Promise<IntegerAmount>;
+  calculateCost(
+    fromId: string,
+    toId: string,
+    amount: any
+  ): Promise<IntegerAmount>;
+  calculateReturn(
+    fromId: string,
+    toId: string,
+    amount: any
+  ): Promise<IntegerAmount>;
+}
+
+export interface ConvertPayload {
+  blockchainType: string;
+  fromCurrencyId: string;
+  toCurrencyId: string;
+  amount: string;
+  minimumReturn: string;
+  ownerAddress: string;
 }
 
 enum Blockchain {
@@ -27,10 +44,15 @@ export class BancorApi implements BancorWrapper {
     this.blockchain = blockchain;
   }
 
-  private async request(endpoint: string, params: any) {
+  private async request(endpoint: string, params: any = {}) {
     const res = await this.instance.get(endpoint, {
-      params: params
+      params
     });
+    return res.data;
+  }
+
+  private async post(endpoint: string, params: any) {
+    const res = await this.instance.post(endpoint, params);
     return res.data;
   }
 
@@ -42,6 +64,16 @@ export class BancorApi implements BancorWrapper {
       primaryCommunityImageName:
         this.photoBaseUrl + res.data.primaryCommunityImageName
     };
+  }
+
+  public async convert(payload: ConvertPayload) {
+    return this.post("currencies/convert", payload);
+  }
+
+  public async getPath(fromId: string, toId: string) {
+    const endpoint = `transactions/conversionPath?fromCurrencyId=${fromId}&toCurrencyId=${toId}`;
+    const res = await this.request(endpoint);
+    return res;
   }
 
   public async getTokens(): Promise<TokenPrice[]> {
@@ -70,13 +102,20 @@ export class BancorApi implements BancorWrapper {
     return res.data;
   }
 
-  private async priceDiscovery(tokenId: string, params: any): Promise<IntegerAmount> {
+  private async priceDiscovery(
+    tokenId: string,
+    params: any
+  ): Promise<IntegerAmount> {
     const endpoint = "currencies/" + tokenId + "/value";
     const res = await this.request(endpoint, params);
     return res.data;
   }
 
-  public async calculateCost(fromId: string, toId: string, amount: IntegerAmount): Promise<IntegerAmount> {
+  public async calculateCost(
+    fromId: string,
+    toId: string,
+    amount: IntegerAmount
+  ): Promise<IntegerAmount> {
     return this.priceDiscovery(fromId, {
       toCurrencyId: toId,
       toAmount: amount,
@@ -84,7 +123,11 @@ export class BancorApi implements BancorWrapper {
     });
   }
 
-  public async calculateReturn(fromId: string, toId: string, amount: IntegerAmount): Promise<IntegerAmount> {
+  public async calculateReturn(
+    fromId: string,
+    toId: string,
+    amount: IntegerAmount
+  ): Promise<IntegerAmount> {
     return this.priceDiscovery(fromId, {
       toCurrencyId: toId,
       fromAmount: amount,
@@ -102,4 +145,4 @@ export class BancorApi implements BancorWrapper {
 }
 
 export const bancorApi = new BancorApi(Blockchain.EOS);
-export const ethBancorApi = new BancorApi(Blockchain.ETH)
+export const ethBancorApi = new BancorApi(Blockchain.ETH);

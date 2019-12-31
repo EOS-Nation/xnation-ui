@@ -185,8 +185,6 @@ export default class HeroConvert extends Vue {
   }
 
   async initConvert() {
-    const fromToken = vxm.relays.token(this.fromTokenSymbol)!;
-    const toToken = vxm.relays.token(this.toTokenSymbol)!;
     const result = await vxm.relays.convert({
       fromSymbol: this.fromTokenSymbol,
       toSymbol: this.toTokenSymbol,

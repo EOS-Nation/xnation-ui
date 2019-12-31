@@ -9,6 +9,7 @@ import { transfer, TransferModule } from "./modules/transfer";
 import { wallet, walletModule } from "./modules/wallet";
 import { liquidity, LiquidityModule } from "./modules/liquidity";
 import { relays, RelaysModule } from "./modules/relays";
+import { eth, EthereumModule } from "./modules/eth";
 
 Vue.use(Vuex);
 
@@ -21,7 +22,8 @@ export const store = new Vuex.Store({
     transfer,
     wallet,
     liquidity,
-    relays
+    relays,
+    eth
   },
   strict: process.env.NODE_ENV !== "production"
 });
@@ -40,5 +42,6 @@ export const vxm = {
     store,
     LiquidityModule
   ) as LiquidityModule,
-  relays: RelaysModule.CreateProxy(store, RelaysModule) as RelaysModule
+  relays: RelaysModule.CreateProxy(store, RelaysModule) as RelaysModule,
+  eth: EthereumModule.CreateProxy(store, EthereumModule) as EthereumModule
 };
