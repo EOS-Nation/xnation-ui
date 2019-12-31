@@ -98,12 +98,8 @@
         </b-btn>
         <!-- Toggle Sidebar -->
         <b-btn @click="loginAction" variant="dual" size="sm">
-          {{ loginStatus[0] }}
-          <font-awesome-icon
-            :icon="loginStatus[1]"
-            :pulse="loginStatus[2]"
-            fixed-width
-          />
+          {{ status }}
+          <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
         </b-btn>
         <!-- END Toggle Sidebar -->
       </div>
