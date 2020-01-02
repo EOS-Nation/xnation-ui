@@ -49,11 +49,11 @@
                 variant="success"
                 v-ripple
                 class="px-4 py-2 d-block"
-                :disabled="!isAuthenticated"
+                :disabled="disableConvert"
               >
                 <font-awesome-icon
-                  :icon="loading ? 'circle-notch' : 'sync-alt'"
-                  :spin="loading"
+                  :icon="loadingConversion ? 'circle-notch' : 'sync-alt'"
+                  :spin="loadingConversion"
                   fixed-width
                   class="mr-2"
                 />
@@ -152,6 +152,8 @@ export default class HeroConvert extends Vue {
   token1SimpleReward = "";
   token2SimpleReward = "";
 
+  loadingConversion = false;
+
   get isAuthenticated() {
     return (
       vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
@@ -238,6 +240,10 @@ export default class HeroConvert extends Vue {
     });
   }
 
+  get disableConvert() {
+    return !this.isAuthenticated || this.loadingConversion
+  }
+
   get fromTokenSymbol() {
     return this.flipped ? this.token2Symbol : this.token1Symbol;
   }
@@ -301,8 +307,7 @@ export default class HeroConvert extends Vue {
   }
 
   async updatePriceReturn() {
-    this.loading = true;
-
+    this.loadingConversion = true;
     const amount = Number(this.fromTokenAmount);
     const reward = await vxm.relays.getReturn({
       fromSymbol: this.fromTokenSymbol,
@@ -310,7 +315,7 @@ export default class HeroConvert extends Vue {
       toSymbol: this.toTokenSymbol
     });
     this.toTokenAmount = reward.amount;
-    this.loading = false;
+    this.loadingConversion = false;
   }
 
   async updatePriceCost() {
