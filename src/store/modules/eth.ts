@@ -33,9 +33,25 @@ export class EthereumModule extends VuexModule {
     if (typeof window.ethereum !== "undefined") {
       const accounts = await this.ethereum.enable();
       this.setLoggedInAccount(accounts[0]);
+      this.startListener()
       return accounts[0];
     } else {
       throw new Error("Ethereum not found or user rejected");
+    }
+  }
+
+  @action async startListener() {
+    this.ethereum.on('accountsChanged', (accounts: string[]) => {
+      this.setLoggedInAccount(accounts[0]);
+    })
+  }
+
+  @action async checkAlreadySignedIn() {
+    if (this.ethereum) {
+      if (this.ethereum.selectedAddress) {
+        this.setLoggedInAccount(this.ethereum.selectedAddress)
+        this.startListener()
+      }
     }
   }
 

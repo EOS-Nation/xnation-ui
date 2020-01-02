@@ -130,6 +130,7 @@ export default class Navigation extends Vue {
 
   created() {
     this.selected = this.routedNetwork;
+    vxm.eth.checkAlreadySignedIn();
   }
 
   get routedNetwork() {
@@ -167,7 +168,7 @@ export default class Navigation extends Vue {
   get shortenedEthAddress() {
     const isAuthenticated = vxm.eth.isAuthenticated;
     return isAuthenticated.length > 13
-      ? isAuthenticated.substring(0, 5) +
+      ? isAuthenticated.substring(0, 4) +
           "..." +
           isAuthenticated.substring(
             isAuthenticated.length - 6,
@@ -183,7 +184,7 @@ export default class Navigation extends Vue {
       const isAuthenticated = vxm.eth.isAuthenticated;
       if (isAuthenticated) {
         return this.shortenedEthAddress;
-      } else return "Login";
+      } else return "Login with MetaMask";
     }
   }
 
@@ -223,7 +224,11 @@ export default class Navigation extends Vue {
   }
 
   async loginActionEth() {
-    const res = await vxm.eth.connect();
+    if (vxm.eth.isAuthenticated) {
+      // Cannot logout of MetaMask
+    } else {
+      await vxm.eth.connect();
+    }
   }
 
   async loginAction() {
