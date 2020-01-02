@@ -192,6 +192,7 @@ export default class HeroConvert extends Vue {
     } else if (this.flipped && this.promptedTokenNumber == 2) {
       this.token2Key = this.reverseString(this.token2Key);
     }
+    this.updatePriceReturn();
   }
 
   reverseString(message: string) {

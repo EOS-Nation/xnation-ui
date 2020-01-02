@@ -82,6 +82,8 @@ export class RelaysModule extends VuexModule {
   selectedNetwork: string = "eos";
   relaysDb: any = {};
   ethTokensList: any = [];
+  eosTokensList: any = [];
+  usdValueOfEth: number = 0;
 
   @action async init() {
     if (this.initComplete) {
@@ -92,9 +94,25 @@ export class RelaysModule extends VuexModule {
     this.initCompleted();
   }
 
+  @mutation setUsdValue(price: number) {
+    this.usdValueOfEth = price;
+  }
+
   @action async initEos() {
-    await Promise.all([this.fetchScopes(), this.fetchMeta()]);
-    await this.fetchRelays();
+    const [usdValueOfEth, tokens] = await Promise.all([
+      bancorApi.getTokenTicker("ETH"),
+      bancorApi.getTokens()
+    ]);
+    this.setUsdValue(usdValueOfEth.price);
+    this.eosTokensList = tokens.map((token: any) => {
+      if (token.code == "BNT") {
+        return { ...token, decimals: 10 };
+      } else {
+        return token;
+      }
+    });
+    // await Promise.all([this.fetchScopes(), this.fetchMeta()]);
+    // await this.fetchRelays();
   }
 
   @action async initEth() {
@@ -122,18 +140,41 @@ export class RelaysModule extends VuexModule {
     toSymbol,
     amount
   }: ProposedTransaction) {
-    const fromToken = this.token(fromSymbol)!;
-    const toToken = this.token(toSymbol)!;
-
-    const reward = await bancorCalculator.estimateCost(
-      new Asset(
-        amount * Math.pow(10, toToken.precision),
-        new Symbol(toToken.symbol, toToken.precision)
-      ),
-      new Symbol(fromToken.symbol, fromToken.precision)
+    const [fromToken, toToken] = await Promise.all([
+      this.getEosTokenWithDecimals(fromSymbol),
+      this.getEosTokenWithDecimals(toSymbol)
+    ]);
+    const result = await bancorApi.calculateCost(
+      fromToken.id,
+      toToken.id,
+      String(amount * Math.pow(10, toToken.decimals))
     );
+    console.log({ fromToken, toToken, result });
+    return {
+      amount: String(Number(result) / Math.pow(10, fromToken.decimals))
+    };
+  }
 
-    return { amount: String(reward.toNumber()) };
+  @action async getEosTokenWithDecimals(symbolName: string): Promise<any> {
+    const token = this.eosTokensList.find(
+      (token: any) => token.code == symbolName
+    );
+    if (token.decimals) {
+      return token;
+    } else {
+      const detailApiInstance = await bancorApi.getTokenTicker(symbolName);
+      this.eosTokensList = this.eosTokensList.map((existingToken: any) => {
+        if (existingToken.code == symbolName) {
+          return {
+            ...existingToken,
+            decimals: detailApiInstance.decimals
+          };
+        } else {
+          return existingToken;
+        }
+      });
+      return this.getEosTokenWithDecimals(symbolName);
+    }
   }
 
   @action async getCostEth({
@@ -168,14 +209,17 @@ export class RelaysModule extends VuexModule {
     toSymbol,
     amount
   }: ProposedTransaction) {
-    const fromToken = this.token(fromSymbol)!;
-    const toToken = this.token(toSymbol)!;
+    const [fromToken, toToken] = await Promise.all([
+      this.getEosTokenWithDecimals(fromSymbol),
+      this.getEosTokenWithDecimals(toSymbol)
+    ]);
 
-    const reward = await bancorCalculator.estimateReturn(
-      createAsset(amount, fromToken.symbol, fromToken.precision),
-      new Symbol(toToken.symbol, toToken.precision)
+    const reward = await bancorApi.calculateReturn(
+      fromToken.id,
+      toToken.id,
+      String(amount * Math.pow(10, fromToken.decimals))
     );
-    return { amount: String(reward.toNumber()) };
+    return { amount: String(Number(reward) / Math.pow(10, toToken.decimals)) };
   }
 
   @action async getReturnEth({
@@ -257,16 +301,21 @@ export class RelaysModule extends VuexModule {
     }
   }
 
-  @action async convertEth({ fromSymbol, toSymbol, fromAmount, toAmount }: ProposedConvertTransaction) {
+  @action async convertEth({
+    fromSymbol,
+    toSymbol,
+    fromAmount,
+    toAmount
+  }: ProposedConvertTransaction) {
     const fromObj = this.ethSymbolNameToApiObj(fromSymbol);
     const toObj = this.ethSymbolNameToApiObj(toSymbol);
 
     const fromAmountWei = web3.utils.toWei(String(fromAmount));
-    
+
     const minimumReturn = toAmount * 0.98;
     const minimumReturnWei = web3.utils.toWei(String(minimumReturn));
 
-    const loggedIn = this.$store.getters
+    const loggedIn = this.$store.getters;
     // Todo
     // Un-hardcode ownerAddress
     const convertPost = {
@@ -276,10 +325,10 @@ export class RelaysModule extends VuexModule {
       amount: fromAmountWei,
       minimumReturn: minimumReturnWei,
       ownerAddress: "0x8a81E3058574A7c1D9A979BfC59A00E96209FdE7"
-    }
-    const res = await ethBancorApi.convert(convertPost)
+    };
+    const res = await ethBancorApi.convert(convertPost);
     const params = res.data;
-    this.triggerTx(params)
+    this.triggerTx(params);
   }
 
   @mutation
@@ -347,6 +396,15 @@ export class RelaysModule extends VuexModule {
 
   get eosTokens(): SimpleTokenWithMarketData[] {
     // @ts-ignore
+    return this.eosTokensList.map((token: any) => ({
+      symbol: token.code,
+      name: token.name,
+      price: token.price,
+      liqDepth: token.liquidityDepth * this.usdValueOfEth,
+      logo: token.primaryCommunityImageName
+    }));
+
+    // @ts-ignore
     return this.relaysList
       .filter(relay => relay.settings.enabled)
       .map(relay => relay.reserves)
@@ -401,6 +459,7 @@ export class RelaysModule extends VuexModule {
   }
 
   @action async fetchRelays() {
+    return;
     try {
       const [rawConverters, rawReserves] = await Promise.all([
         client.stateTablesForScopes(
