@@ -98,7 +98,7 @@
         </b-btn>
         <!-- Toggle Sidebar -->
         <b-btn @click="loginAction" variant="dual" size="sm">
-          {{ status }}
+          {{ loginButtonLabel }}
           <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
         </b-btn>
         <!-- END Toggle Sidebar -->
@@ -130,15 +130,15 @@ export default class Navigation extends Vue {
 
   created() {
     this.selected = this.routedNetwork;
-    this.senseEthereum();
-  }
-
-  async senseEthereum() {
-    vxm.eth.connect();
   }
 
   get routedNetwork() {
     return this.$route.path.split("/")[1];
+  }
+
+  @Watch("$route")
+  listen(to: any) {
+    console.log("route change detected", to);
   }
 
   @Watch("selected")
@@ -164,12 +164,35 @@ export default class Navigation extends Vue {
     return vxm.eosTransit.loginStatus;
   }
 
-  get status() {
-    return this.loginStatus[0];
+  get shortenedEthAddress() {
+    const isAuthenticated = vxm.eth.isAuthenticated;
+    return isAuthenticated.length > 13
+      ? isAuthenticated.substring(0, 5) +
+          "..." +
+          isAuthenticated.substring(
+            isAuthenticated.length - 6,
+            isAuthenticated.length
+          )
+      : isAuthenticated;
+  }
+
+  get loginButtonLabel() {
+    if (this.routedNetwork == "eos") {
+      return this.loginStatus[0];
+    } else {
+      const isAuthenticated = vxm.eth.isAuthenticated;
+      if (isAuthenticated) {
+        return this.shortenedEthAddress;
+      } else return "Login";
+    }
   }
 
   get icon() {
-    return this.loginStatus[1];
+    if (this.routedNetwork == "eos") {
+      return this.loginStatus[1];
+    } else {
+      return vxm.eth.isAuthenticated ? "power-off" : "arrow-circle-right";
+    }
   }
 
   get spin() {
@@ -186,8 +209,8 @@ export default class Navigation extends Vue {
     });
   }
 
-  async loginAction() {
-    const status = this.status;
+  async loginActionEos() {
+    const status = this.loginButtonLabel;
     if (status === "Login") {
       this.$bvModal.show("modal-login");
     } else if (
@@ -197,6 +220,16 @@ export default class Navigation extends Vue {
     ) {
       vxm.eosTransit.logout();
     }
+  }
+
+  async loginActionEth() {
+    const res = await vxm.eth.connect();
+  }
+
+  async loginAction() {
+    const network = this.routedNetwork;
+    if (network == "eos") this.loginActionEos();
+    else this.loginActionEth();
   }
 }
 </script>

@@ -112,7 +112,6 @@ export class RelaysModule extends VuexModule {
   }
 
   @action async getCost(proposedTransaction: ProposedTransaction) {
-    console.log({ proposedTransaction });
     if (this.selectedNetwork == "eos")
       return this.getCostEos(proposedTransaction);
     else return this.getCostEth(proposedTransaction);
