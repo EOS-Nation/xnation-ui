@@ -5,7 +5,7 @@
         <b-col md="4">
           <transition name="slide-fade-down" mode="out-in">
             <token-amount-input
-              :key="fromTokenSymbol"
+              :key="token1Key"
               :amount.sync="token1Amount"
               :balance="token1Balance"
               :img="token1Img"
@@ -27,7 +27,7 @@
               <font-awesome-icon
                 icon="exchange-alt"
                 class="fa-2x text-white cursor"
-                :key="ltr ? 'ltr' : 'rtl'"
+                :key="flipped ? 'exchange' : 'exchange-'"
                 @click="swapTokens"
               />
             </transition>
@@ -74,7 +74,7 @@
         <b-col md="4">
           <transition name="slide-fade-up" mode="out-in">
             <token-amount-input
-              :key="toTokenSymbol"
+              :key="token2Key"
               :amount.sync="token2Amount"
               :balance="token2Balance"
               :img="token2Img"
@@ -142,17 +142,20 @@ export default class HeroConvert extends Vue {
   token1Balance = "";
   token1Img = "";
   token1Symbol = "";
+  token1Key = "token1K";
 
   token2Amount = "";
   token2Balance = "";
   token2Img =
     "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png";
   token2Symbol = "BNT";
+  token2Key = "token2K";
 
   token1SimpleReward = "";
   token2SimpleReward = "";
 
   loadingConversion = false;
+  triggerUpdate = false;
 
   get isAuthenticated() {
     return (
@@ -180,6 +183,22 @@ export default class HeroConvert extends Vue {
       this.toTokenImg = logo;
       this.toTokenSymbol = symbol;
     }
+    if (this.flipped && this.promptedTokenNumber == 1) {
+      this.token1Key = this.reverseString(this.token1Key);
+    } else if (!this.flipped && this.promptedTokenNumber == 1) {
+      this.token1Key = this.reverseString(this.token1Key);
+    } else if (!this.flipped && this.promptedTokenNumber == 2) {
+      this.token2Key = this.reverseString(this.token2Key);
+    } else if (this.flipped && this.promptedTokenNumber == 2) {
+      this.token2Key = this.reverseString(this.token2Key);
+    }
+  }
+
+  reverseString(message: string) {
+    return message
+      .split("")
+      .reverse()
+      .join("");
   }
 
   swapTokens() {
@@ -202,8 +221,8 @@ export default class HeroConvert extends Vue {
 
   setFromToken(symbolName: string) {
     const { symbol, logo } = vxm.relays.token(symbolName)!;
-    this.token1Symbol = symbol;
-    this.token1Img = logo;
+    this.fromTokenSymbol = symbol;
+    this.fromTokenImg = logo;
   }
 
   @Watch("$route")
@@ -241,7 +260,7 @@ export default class HeroConvert extends Vue {
   }
 
   get disableConvert() {
-    return !this.isAuthenticated || this.loadingConversion
+    return !this.isAuthenticated || this.loadingConversion;
   }
 
   get fromTokenSymbol() {
