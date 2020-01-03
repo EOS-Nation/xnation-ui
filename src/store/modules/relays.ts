@@ -390,7 +390,9 @@ export class RelaysModule extends VuexModule {
       name: token.name,
       price: token.price,
       liqDepth: token.liquidityDepth * Number(ethToken.price),
-      logo: token.primaryCommunityImageName
+      logo: token.primaryCommunityImageName,
+      change24h: token.change24h,
+      volume24h: token.volume24h.USD
     }));
   }
 
@@ -401,7 +403,9 @@ export class RelaysModule extends VuexModule {
       name: token.name,
       price: token.price,
       liqDepth: token.liquidityDepth * this.usdValueOfEth,
-      logo: token.primaryCommunityImageName
+      logo: token.primaryCommunityImageName,
+      change24h: token.change24h,
+      volume24h: token.volume24h.USD
     }));
 
     // @ts-ignore

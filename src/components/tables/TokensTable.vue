@@ -47,6 +47,19 @@
                 @click="sort('price')"
                 class="cursor text-center"
                 style="min-width: 150px;"
+                v-if="bonusProps"
+              >
+                <sort-icons
+                  :currentSort="currentSort"
+                  :currentSortDir="currentSortDir"
+                  category="price"
+                />
+                24H CHANGE
+              </th>
+              <th
+                @click="sort('price')"
+                class="cursor text-center"
+                style="min-width: 150px;"
               >
                 <sort-icons
                   :currentSort="currentSort"
@@ -54,6 +67,19 @@
                   category="price"
                 />
                 Price USD
+              </th>
+              <th
+                @click="sort('price')"
+                class="cursor text-center"
+                style="min-width: 150px;"
+                v-if="bonusProps"
+              >
+                <sort-icons
+                  :currentSort="currentSort"
+                  :currentSortDir="currentSortDir"
+                  category="price"
+                />
+                24H VOLUME
               </th>
               <th
                 @click="sort('liqDepth')"
@@ -101,6 +127,14 @@
                 <td class="d-none d-md-table-cell">
                   <span class="text-muted font-size-sm">{{ token.name }}</span>
                 </td>
+                <td class="text-center font-w700" v-if="bonusProps">
+                  <span
+                    :class="
+                      token.change24h > 0 ? `text-success` : 'text-danger'
+                    "
+                    >{{ numeral(token.change24h).format("0.00") + "%" }}</span
+                  >
+                </td>
                 <td class="text-center font-w700">
                   <span v-if="token.price < 1">{{
                     numeral(token.price).format("$0,0.000000")
@@ -108,6 +142,9 @@
                   <span v-else>{{
                     numeral(token.price).format("$0,0.00")
                   }}</span>
+                </td>
+                <td class="text-center" v-if="bonusProps">
+                  <span>{{ numeral(token.volume24h).format("$0,0.00") }}</span>
                 </td>
                 <td class="text-right d-none d-md-table-cell">
                   {{ numeral(token.liqDepth).format("$0,0.00") }}
@@ -145,7 +182,11 @@ import { vxm } from "@/store";
 import numeral from "numeral";
 import * as bancorx from "@/assets/_ts/bancorx";
 import SortIcons from "@/components/common/SortIcons.vue";
-import { TokenPrice } from "@/types/bancor";
+import {
+  TokenPrice,
+  SimpleToken,
+  SimpleTokenWithMarketData
+} from "@/types/bancor";
 const {
   ContentLoader,
   FacebookLoader,
@@ -171,7 +212,7 @@ export default class TokensTable extends Vue {
   @Prop(Boolean) loading?: boolean;
   @Prop(Boolean) scrollToTop?: boolean;
 
-  @Prop() tokens!: any[];
+  @Prop() tokens!: SimpleToken[] | SimpleTokenWithMarketData[];
 
   // data
   numeral = numeral;
@@ -191,7 +232,10 @@ export default class TokensTable extends Vue {
   private currentSort = "v24h";
   private currentSortDir = "desc";
 
-  // computed
+  get bonusProps() {
+    return this.tokens.every(token => token.hasOwnProperty("change24h") && token.hasOwnProperty("volume24h"));
+  }
+
   get searchedTokens() {
     if (this.searchResults.length > 0) return this.searchResults;
     else return this.tokens;
@@ -257,6 +301,7 @@ export default class TokensTable extends Vue {
 
   // Lifecycle hooks
   async created() {
+    console.log(this.tokens, "was what I got");
     // @ts-ignore
     this.$options.interval = setInterval(this.updateTokens, 10000);
     this.debouncedGetSearch = debounce(() => {
