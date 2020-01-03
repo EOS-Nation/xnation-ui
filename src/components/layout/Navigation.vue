@@ -184,7 +184,7 @@ export default class Navigation extends Vue {
       const isAuthenticated = vxm.eth.isAuthenticated;
       if (isAuthenticated) {
         return this.shortenedEthAddress;
-      } else return "Login with MetaMask";
+      } else return "Login";
     }
   }
 

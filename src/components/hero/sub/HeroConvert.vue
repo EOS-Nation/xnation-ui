@@ -129,9 +129,6 @@ import { multiContract } from "@/api/multiContractTx";
   }
 })
 export default class HeroConvert extends Vue {
-  ltr = true;
-  rate = "";
-  rateLoading = false;
   loading = true;
   numeral = numeral;
   modal = false;
@@ -226,12 +223,43 @@ export default class HeroConvert extends Vue {
     this.fromTokenImg = logo;
   }
 
+  setToToken(symbolName: string) {
+    const { symbol, logo } = vxm.relays.token(symbolName)!;
+    this.toTokenSymbol = symbol;
+    this.toTokenImg = logo;
+  }
+
+  networkChange() {
+    const fromSymbol = this.fromTokenSymbol;
+    const toSymbol = this.toTokenSymbol;
+    const fromToken = vxm.relays.token(fromSymbol);
+    const toToken = vxm.relays.token(toSymbol);
+    this.token2Key = this.reverseString(this.token2Key);
+    this.token1Key = this.reverseString(this.token1Key);
+    if (!fromToken) {
+      this.setFromToken(this.selectedSymbolOrDefault);
+    }
+    if (!toToken) {
+      this.setToToken("BNT");
+    }
+    this.updatePriceReturn();
+    this.loadSimpleRewards();
+  }
+
+  parseNetwork(fullPath: string) {
+    return fullPath.split("/")[1];
+  }
+
+  networkChanged(to: any, from: any): boolean {
+    const toNetwork = this.parseNetwork(to.fullPath);
+    const fromNetwork = this.parseNetwork(from.fullPath);
+    return toNetwork !== fromNetwork;
+  }
+
   @Watch("$route")
-  listen(to: any) {
-    if (to.params && to.params.symbolName) {
-      this.setFromToken(to.params.symbolName);
-      this.updatePriceReturn();
-      this.loadSimpleRewards();
+  listen(to: any, from: any) {
+    if (this.networkChanged(to, from)) {
+      this.networkChange();
     } else {
       this.setFromToken(this.selectedSymbolOrDefault);
       this.updatePriceReturn();
@@ -316,13 +344,6 @@ export default class HeroConvert extends Vue {
     return (
       (!this.flipped && numberSelection == 1) ||
       (this.flipped && numberSelection == 2)
-    );
-  }
-
-  createAsset(amount: number, symbolName: string, precision: number): Asset {
-    return new Asset(
-      amount * Math.pow(10, precision),
-      new Symbol(symbolName, precision)
     );
   }
 
