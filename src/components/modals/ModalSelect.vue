@@ -1,5 +1,11 @@
 <template>
-  <b-modal :visible="modalShow" size="lg" @change="onChange"  centered hide-footer>
+  <b-modal
+    :visible="modalShow"
+    size="lg"
+    @change="onChange"
+    centered
+    hide-footer
+  >
     <template slot="modal-title">
       Select Token
     </template>
@@ -39,9 +45,7 @@
           <token-balance-block
             :symbol="token.symbol"
             :balance="token.userBalance"
-            :img="
-                token.logo
-            "
+            :img="token.logo"
           />
         </b-col>
       </b-row>
@@ -50,29 +54,29 @@
 </template>
 
 <script lang="ts">
-import { Watch, Component, Prop, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store/'
-import { TokenPrice } from '@/types/bancor'
-import TokenBalanceBlock from '@/components/common/TokenBalanceBlock.vue'
-const debounce = require('lodash.debounce')
-import * as bancorx from '@/assets/_ts/bancorx'
-import { TokenInfo } from '@/assets/_ts/bancorx'
+import { Watch, Component, Prop, Vue } from "vue-property-decorator";
+import { vxm } from "@/store/";
+import { TokenPrice } from "@/types/bancor";
+import TokenBalanceBlock from "@/components/common/TokenBalanceBlock.vue";
+const debounce = require("lodash.debounce");
+import * as bancorx from "@/assets/_ts/bancorx";
+import { TokenInfo } from "@/assets/_ts/bancorx";
 
 @Component({
   components: { TokenBalanceBlock }
 })
 export default class ModalSelect extends Vue {
   // props
-    @Prop(Boolean) modalShow!: boolean;
-    @Prop(Array) tokens!: any[] 
-    visible = false
+  @Prop(Boolean) modalShow!: boolean;
+  @Prop(Array) tokens!: any[];
+  visible = false;
 
   onChange(value: boolean) {
-    this.$emit("update:modalShow", value)
+    this.$emit("update:modalShow", value);
   }
 
   // data
-  private tokenSearch: String = ''
+  private tokenSearch: String = "";
   private searchOptions = {
     shouldSort: true,
     threshold: 0.3,
@@ -80,17 +84,17 @@ export default class ModalSelect extends Vue {
     distance: 100,
     maxPatternLength: 24,
     minMatchCharLength: 1,
-    keys: ['symbol']
-  }
-  searchResults: any = []
-  private searchState: string = 'search'
-  public debouncedGetSearch: any
-  filter: string = 'All'
-  relayBalances: any[] = []
+    keys: ["symbol"]
+  };
+  searchResults: any = [];
+  private searchState: string = "search";
+  public debouncedGetSearch: any;
+  filter: string = "All";
+  relayBalances: any[] = [];
 
   get searchedTokens() {
-    if (this.searchResults.length > 0) return this.searchResults
-    else return this.relayBalances
+    if (this.searchResults.length > 0) return this.searchResults;
+    else return this.relayBalances;
   }
 
   // methods
@@ -102,24 +106,24 @@ export default class ModalSelect extends Vue {
     // @ts-ignore
     this.$search(this.tokenSearch, this.relayBalances, this.searchOptions).then(
       (results: any) => {
-        this.searchResults = results
-        if (this.tokenSearch === '') this.searchState = 'search'
-        else this.searchState = 'check'
+        this.searchResults = results;
+        if (this.tokenSearch === "") this.searchState = "search";
+        else this.searchState = "check";
       }
-    )
+    );
   }
 
   setFilter(f: string) {
-    this.filter = f
+    this.filter = f;
   }
 
-  @Watch('tokenSearch')
+  @Watch("tokenSearch")
   async onSearchChange(val: any, oldVal: any) {
-    if (val !== '') {
-      this.searchState = 'keyboard'
-      this.debouncedGetSearch()
+    if (val !== "") {
+      this.searchState = "keyboard";
+      this.debouncedGetSearch();
     } else {
-      this.searchTokens()
+      this.searchTokens();
     }
   }
 
@@ -127,8 +131,8 @@ export default class ModalSelect extends Vue {
   mounted() {}
   created() {
     this.debouncedGetSearch = debounce(() => {
-      this.searchTokens()
-    }, 500)
+      this.searchTokens();
+    }, 500);
   }
   updated() {}
   destroyed() {}
