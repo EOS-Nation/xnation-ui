@@ -233,7 +233,10 @@ export default class TokensTable extends Vue {
   private currentSortDir = "desc";
 
   get bonusProps() {
-    return this.tokens.every(token => token.hasOwnProperty("change24h") && token.hasOwnProperty("volume24h"));
+    return this.tokens.every(
+      token =>
+        token.hasOwnProperty("change24h") && token.hasOwnProperty("volume24h")
+    );
   }
 
   get searchedTokens() {
@@ -301,8 +304,7 @@ export default class TokensTable extends Vue {
 
   // Lifecycle hooks
   async created() {
-
-// @ts-ignore
+    // @ts-ignore
     this.$options.interval = setInterval(this.updateTokens, 10000);
     this.debouncedGetSearch = debounce(() => {
       this.searchTokens();
