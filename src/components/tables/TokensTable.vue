@@ -17,7 +17,8 @@
           </b-input-group-text> -->
         <b-form-input
           class="form-control form-control-alt"
-          v-model="tokenSearch"
+          :value="value"
+          @input="$emit('input', $event)"
           placeholder="Search Token"
         ></b-form-input>
         <!-- </b-input-group> -->
@@ -213,6 +214,7 @@ export default class TokensTable extends Vue {
   @Prop(Boolean) scrollToTop?: boolean;
 
   @Prop() tokens!: SimpleToken[] | SimpleTokenWithMarketData[];
+  @Prop() value!: string;
 
   // data
   numeral = numeral;
@@ -239,28 +241,9 @@ export default class TokensTable extends Vue {
     );
   }
 
-  get searchedTokens() {
-    if (this.searchResults.length > 0) return this.searchResults;
-    else return this.tokens;
-  }
-
-  get sortedTokens() {
-    let tokens = this.searchedTokens;
-    return tokens.sort((a: any, b: any) => {
-      let modifier = 1;
-      if (this.currentSortDir === "desc") modifier = -1;
-      if (this.currentSort === "symbol") {
-        if (a[this.currentSort] < b[this.currentSort]) return -1 * modifier;
-        if (a[this.currentSort] > b[this.currentSort]) return 1 * modifier;
-        return 0;
-      } else {
-        if (parseFloat(a[this.currentSort]) < parseFloat(b[this.currentSort]))
-          return -1 * modifier;
-        if (parseFloat(a[this.currentSort]) > parseFloat(b[this.currentSort]))
-          return 1 * modifier;
-        return 0;
-      }
-    });
+  derp(value: any) {
+    console.log('value', value, 'on derp')
+    this.$emit('input', value)
   }
 
   initAction(action: "convert" | "transfer", symbol: string) {
@@ -300,21 +283,6 @@ export default class TokensTable extends Vue {
     } else {
       this.searchTokens();
     }
-  }
-
-  // Lifecycle hooks
-  async created() {
-    // @ts-ignore
-    this.$options.interval = setInterval(this.updateTokens, 10000);
-    this.debouncedGetSearch = debounce(() => {
-      this.searchTokens();
-    }, 500);
-  }
-  mounted() {}
-  updated() {}
-  beforeDestroy() {
-    // @ts-ignore
-    clearInterval(this.$options.interval);
   }
 }
 </script>

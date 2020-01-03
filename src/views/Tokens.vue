@@ -1,21 +1,20 @@
 <template>
   <div>
-    <!-- Page Content -->
     <div class="d-none d-md-block content content-boxed">
       <tokens-table
         :loading="false"
-        :tokens="tokens"
+        :tokens="filteredTokens"
         @convert="onConvert"
         @transfer="onTransfer"
+        v-model="searchTerm"
         scrollToTop
       />
     </div>
-    <!-- END Page Content -->
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+import { Component, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store";
 import TokensTable from "@/components/tables/TokensTable.vue";
 import { SimpleToken } from "@/types/bancor";
@@ -26,8 +25,27 @@ import { SimpleToken } from "@/types/bancor";
   }
 })
 export default class Token extends Vue {
-  get tokens() {
-    return vxm.relays.tokens;
+  searchTerm = "";
+
+  get filteredTokens() {
+    return this.searchTerm
+      ? vxm.relays.tokens.filter(
+          token =>
+            token.symbol
+              .toLowerCase()
+              .includes(this.searchTerm.toLowerCase()) ||
+            token.name.toLowerCase().includes(this.searchTerm.toLowerCase())
+        )
+      : vxm.relays.tokens;
+  }
+
+  @Watch("searchTerm")
+  change(newSearch: string) {
+    this.search(newSearch);
+  }
+
+  search(searchString: string) {
+    console.log("received search string", searchString);
   }
 
   onConvert(symbolName: string) {
