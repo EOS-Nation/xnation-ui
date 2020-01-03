@@ -301,8 +301,8 @@ export default class TokensTable extends Vue {
 
   // Lifecycle hooks
   async created() {
-    console.log(this.tokens, "was what I got");
-    // @ts-ignore
+
+// @ts-ignore
     this.$options.interval = setInterval(this.updateTokens, 10000);
     this.debouncedGetSearch = debounce(() => {
       this.searchTokens();
