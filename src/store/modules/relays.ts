@@ -18,6 +18,7 @@ import wait from "waait";
 
 import { createAsset } from "@/api/helpers";
 import web3 from "web3";
+import { rpc } from '@/api/rpc';
 
 interface TokenMeta {
   name: string;
@@ -111,8 +112,7 @@ export class RelaysModule extends VuexModule {
         return token;
       }
     });
-    // await Promise.all([this.fetchScopes(), this.fetchMeta()]);
-    // await this.fetchRelays();
+
   }
 
   @action async initEth() {
@@ -302,17 +302,19 @@ export class RelaysModule extends VuexModule {
     const minimumReturn = toAmount * 0.98;
     const minimumReturnWei = web3.utils.toWei(String(minimumReturn));
 
-    const loggedIn = this.$store.getters;
-    // Todo
-    // Un-hardcode ownerAddress
+    // @ts-ignore
+    const ownerAddress = this.$store.rootGetters['eth/isAuthenticated']
     const convertPost = {
       fromCurrencyId: fromObj.id,
       toCurrencyId: toObj.id,
       amount: fromAmountWei,
       minimumReturn: minimumReturnWei,
-      ownerAddress: "0x8a81E3058574A7c1D9A979BfC59A00E96209FdE7"
+      ownerAddress
     };
     const res = await ethBancorApi.convert(convertPost);
+    if (res.errorCode) {
+      throw new Error(res.errorCode)
+    }
     const params = res.data;
     const txRes = await this.triggerTx(params);
     return txRes.result;
@@ -334,7 +336,7 @@ export class RelaysModule extends VuexModule {
 
   get token() {
     return (symbolName: string) =>
-      this.tokens.find(token => token.symbol == symbolName);
+    this.tokens.find(token => token.symbol == symbolName);
   }
 
   get relay() {
@@ -552,3 +554,34 @@ export class RelaysModule extends VuexModule {
 }
 
 export const relays = RelaysModule.ExtractVuexModule(RelaysModule);
+
+
+// const relays = [['EOS',	'bnt2eoscnvrt'],
+// ['BLACK',	'bancorc11111'],
+// ['KARMA',	'bancorc11112'],
+// ['HORUS',	'bancorc11121'],
+// ['MEETONE',	'bancorc11122'],
+// ['IQ',	'bancorc11123'],
+// ['EPRA',	'bancorc11124'],
+// ['DICE',	'bancorc11125'],
+// ['HVT',	'bancorc11131'],
+// ['OCT',	'bancorc11132'],
+// ['MEV',	'bancorc11134'],
+// ['ZKS',	'bancorc11142'],
+// ['CUSD',	'bancorc11144'],
+// ['TAEL',	'bancorc11145'],
+// ['ZOS',	'bancorc11151'],
+// ['EQUA',	'bancorc11152'],
+// ['PEOS',	'bancorc11153'],
+// ['DAPP',	'bancorc11154'],
+// ['CHEX',	'bancorc11155'],
+// ['FINX',	'bancorc11211'],
+// ['STUFF',	'bancorc11212'],
+// ['EMT',	'bancorc11213'],
+// ['PIXEOS',	'bancorc11214'],
+// ['NUT',	'bancorc11215'],
+// ['EOSDT',	'bancorc11222'],
+// ['DRAGON',	'bancorc11223'],
+// ['LUME',	'bancorc11225'],
+// ['SENSE',	'bancorc11231'],
+// ['USDT',	'bancorc11232']]
