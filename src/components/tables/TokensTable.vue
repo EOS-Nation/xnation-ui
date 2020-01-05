@@ -241,11 +241,6 @@ export default class TokensTable extends Vue {
     );
   }
 
-  derp(value: any) {
-    console.log('value', value, 'on derp')
-    this.$emit('input', value)
-  }
-
   initAction(action: "convert" | "transfer", symbol: string) {
     if (this.scrollToTop) {
       window.scroll({
