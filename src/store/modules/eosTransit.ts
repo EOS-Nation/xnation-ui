@@ -96,7 +96,6 @@ export class EosTransitModule extends VuexModule {
   }
   
   @action async tx(actions: any) {
-    console.log(actions, 'were the actions on tx')
     // @ts-ignore
     return this.wallet.eosApi
         .transact(

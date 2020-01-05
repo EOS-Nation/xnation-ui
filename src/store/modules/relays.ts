@@ -251,9 +251,9 @@ export class RelaysModule extends VuexModule {
 
   @action async triggerTx(actions: any[]) {
     if (this.selectedNetwork == "eos") {
-      this.$store.dispatch("eosTransit/tx", actions, { root: true });
+      return this.$store.dispatch("eosTransit/tx", actions, { root: true });
     } else {
-      this.$store.dispatch("eth/tx", actions, { root: true });
+      return this.$store.dispatch("eth/tx", actions, { root: true });
     }
   }
 
@@ -266,38 +266,29 @@ export class RelaysModule extends VuexModule {
     // @ts-ignore
     const accountName = this.$store.rootState.eosTransit.wallet.auth
       .accountName;
-    const fromToken = this.token(fromSymbol)!;
-    const toToken = this.token(toSymbol)!;
-
-    const fromAmountAsset = new Asset(
-      Number(fromAmount) * Math.pow(10, fromToken.precision),
-      new Symbol(fromToken.symbol, fromToken.precision)
+    const fromObj = this.eosTokensList.find(
+      (token: any) => token.code == fromSymbol
     );
-    const toAmountAsset = new Asset(
-      Number(toAmount) * Math.pow(10, toToken.precision),
-      new Symbol(toToken.symbol, toToken.precision)
-    );
-    const minimumReturn = new Asset(
-      toAmountAsset.amount * 0.98,
-      toAmountAsset.symbol
-    );
-    const minimumReturnString = minimumReturn.toString().split(" ")[0];
-    const memo = await bancorCalculator.composeMemo(
-      new Symbol(fromToken.symbol, fromToken.precision),
-      new Symbol(toToken.symbol, toToken.precision),
-      minimumReturnString,
-      accountName
+    const toObj = this.eosTokensList.find(
+      (token: any) => token.code == toSymbol
     );
 
+    const res = await bancorApi.convert({
+      fromCurrencyId: fromObj.id,
+      toCurrencyId: toObj.id,
+      amount: String((fromAmount * Math.pow(10, fromObj.decimals)).toFixed(0)),
+      minimumReturn: String(
+        (toAmount * 0.98 * Math.pow(10, toObj.decimals)).toFixed(0)
+      ),
+      ownerAddress: accountName
+    });
+
+    const { actions } = res.data[0];
     try {
-      const actions = await multiContract.convert(
-        fromToken.contract,
-        fromAmountAsset,
-        memo
-      );
-      this.triggerTx(actions);
+      const txRes = await this.triggerTx(actions);
+      return txRes.transaction_id;
     } catch (e) {
-      console.warn("TX Error:", e);
+      console.log("caught it", e);
     }
   }
 
@@ -319,7 +310,6 @@ export class RelaysModule extends VuexModule {
     // Todo
     // Un-hardcode ownerAddress
     const convertPost = {
-      blockchainType: "ethereum",
       fromCurrencyId: fromObj.id,
       toCurrencyId: toObj.id,
       amount: fromAmountWei,
@@ -328,7 +318,8 @@ export class RelaysModule extends VuexModule {
     };
     const res = await ethBancorApi.convert(convertPost);
     const params = res.data;
-    this.triggerTx(params);
+    const txRes = await this.triggerTx(params);
+    return txRes.result;
   }
 
   @mutation

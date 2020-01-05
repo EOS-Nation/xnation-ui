@@ -18,7 +18,7 @@ export interface BancorWrapper {
 }
 
 export interface ConvertPayload {
-  blockchainType: string;
+  format?: string;
   fromCurrencyId: string;
   toCurrencyId: string;
   amount: string;
@@ -52,6 +52,7 @@ export class BancorApi implements BancorWrapper {
   }
 
   private async post(endpoint: string, params: any) {
+    console.log({ endpoint, params })
     const res = await this.instance.post(endpoint, params);
     return res.data;
   }
@@ -67,7 +68,18 @@ export class BancorApi implements BancorWrapper {
   }
 
   public async convert(payload: ConvertPayload) {
-    return this.post("currencies/convert", payload);
+
+    let final = {
+      ...payload,
+      blockchainType: this.blockchain == Blockchain.EOS ? 'eos': 'ethereum'
+    }
+    if (this.blockchain == Blockchain.EOS) {
+      final = {
+        ...final,
+        format: "json"
+      }
+    }
+    return this.post("currencies/convert", final);
   }
 
   public async getPath(fromId: string, toId: string) {

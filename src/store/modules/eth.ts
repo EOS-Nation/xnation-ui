@@ -1,13 +1,14 @@
 import { VuexModule, mutation, action, Module } from "vuex-class-component";
 import web3 from "web3";
 
-const tx = async (data: any) =>
+const tx = (data: any) =>
   new Promise((resolve, reject) => {
     // @ts-ignore
     const ethereum = window["ethereum"];
     ethereum.sendAsync(data, function(err: any, result: any) {
-      resolve(result);
-      reject(err);
+      if (err.message) {
+        reject(err)
+      } else resolve(result)
     });
   });
 
@@ -33,7 +34,7 @@ export class EthereumModule extends VuexModule {
     if (typeof window.ethereum !== "undefined") {
       const accounts = await this.ethereum.enable();
       this.setLoggedInAccount(accounts[0]);
-      this.startListener()
+      this.startListener();
       return accounts[0];
     } else {
       throw new Error("Ethereum not found or user rejected");
@@ -41,16 +42,16 @@ export class EthereumModule extends VuexModule {
   }
 
   @action async startListener() {
-    this.ethereum.on('accountsChanged', (accounts: string[]) => {
+    this.ethereum.on("accountsChanged", (accounts: string[]) => {
       this.setLoggedInAccount(accounts[0]);
-    })
+    });
   }
 
   @action async checkAlreadySignedIn() {
     if (this.ethereum) {
       if (this.ethereum.selectedAddress) {
-        this.setLoggedInAccount(this.ethereum.selectedAddress)
-        this.startListener()
+        this.setLoggedInAccount(this.ethereum.selectedAddress);
+        this.startListener();
       }
     }
   }
@@ -84,8 +85,6 @@ export class EthereumModule extends VuexModule {
     ];
     return this.tx(params);
   }
-
-
 }
 
 export const eth = EthereumModule.ExtractVuexModule(EthereumModule);

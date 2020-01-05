@@ -26,15 +26,6 @@ export default class TokenBalanceBlock extends Vue {
   @Prop() symbol!: string
   @Prop() img!: string
   @Prop() balance!: string
-
-  // data
-  numeral = numeral
-
-  // computed
-  get isAuthenticated() {
-    return vxm.eosTransit.isAuthenticated
-  }
-  async created() { }
 }
 </script>
 
