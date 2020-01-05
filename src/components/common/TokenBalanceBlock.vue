@@ -15,17 +15,17 @@
 </template>
 
 <script lang="ts">
-import { Watch, Component, Prop, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store/'
-import { TokenPrice } from '@/types/bancor'
-import numeral from 'numeral'
+import { Watch, Component, Prop, Vue } from "vue-property-decorator";
+import { vxm } from "@/store/";
+import { TokenPrice } from "@/types/bancor";
+import numeral from "numeral";
 
 @Component
 export default class TokenBalanceBlock extends Vue {
   // props
-  @Prop() symbol!: string
-  @Prop() img!: string
-  @Prop() balance!: string
+  @Prop() symbol!: string;
+  @Prop() img!: string;
+  @Prop() balance!: string;
 }
 </script>
 
