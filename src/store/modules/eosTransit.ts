@@ -24,13 +24,6 @@ import { vxm } from '@/store'
 
 @Module({ namespacedPath: 'eosTransit/' })
 export class EosTransitModule extends VuexModule {
-  // We need to initialize the so called "access context" first,
-  // passing it our dapp name, network configuration and
-  // providers we want to make available to the dapp.
-  // The context is responsible for initializing wallet connectoins
-  // and tracking state of connected wallets.
-
-  // We're using our own test network as an example here.
   @getter accessContext = initAccessContext({
     appName: 'Bancor by EOS Nation',
     network: {
@@ -51,26 +44,9 @@ export class EosTransitModule extends VuexModule {
     ]
   })
 
-  // We're all set now and can get the list of available wallet providers
-  // (we only have Scatter provider configured, so there will be only one):
   @getter
   walletProviders: WalletProvider[] = this.accessContext.getWalletProviders()
-  /* [{
-   *   id: 'scatter',
-   *   meta: {
-   *    name: 'Scatter Desktop',
-   *    shortName: 'Scatter',
-   *    description: 'Scatter Desktop application that keeps your private keys secure'
-   *   },
-   *   signatureProvider,
-   *   ... etc
-   * }]
-   */
 
-  // This list can be used to, e.g., show the "login options" to the user to let him choose
-  // what EOS login method he wants to use.
-
-  // We just take the one we have as if the user has selected that
   selectedProvider: WalletProvider | '' = ''
 
   wallet: Wallet | false = false
@@ -111,21 +87,16 @@ export class EosTransitModule extends VuexModule {
   }
 
   @action async initLogin(provider: WalletProvider) {
-    // We set the selected provider state
     this.setProvider(provider)
 
-    // When user selects the wallet provider, we initiate the `Wallet` with it:
     const wallet = this.accessContext.initWallet(provider)
 
-    // subscribe and set the current Wallet State
     wallet.subscribe(walletState => {
       if (walletState) this.setWalletState(walletState)
     })
 
-    // Now we have an instance of `wallet` that is tracked by our `accessContext`.
     try {
       await wallet.connect()
-      // wallet.connected === true
 
       // Now that we are connected, lets authenticate (in case of a Scatter app,
       // it does it right after connection, so this is more for the state tracking
