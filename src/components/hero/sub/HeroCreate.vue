@@ -12,11 +12,20 @@
             <transition name="slide-fade-down" mode="out-in">
               <div>
                 <h3 class="text-white">Token Contract</h3>
-                <b-form-input id="input-1" v-model="token1Contract" placeholder="eosio.token" trim></b-form-input>
+                <b-form-input
+                  id="input-1"
+                  v-model="token1Contract"
+                  placeholder="eosio.token"
+                  trim
+                ></b-form-input>
               </div>
             </transition>
           </b-col>
-          <b-col md="4" class="justify-content-center align-items-center" style="min-height: 230px">
+          <b-col
+            md="4"
+            class="justify-content-center align-items-center"
+            style="min-height: 230px"
+          >
             <transition name="fade" mode="out-in">
               <span>
                 <h3 class="invisible">TECHDEBT</h3>
@@ -31,7 +40,9 @@
                   v-else
                   icon="question"
                 />
-                <div class="text-white" v-if="failedToFindToken">Failed to find token</div>
+                <div class="text-white" v-if="failedToFindToken">
+                  Failed to find token
+                </div>
               </span>
             </transition>
           </b-col>
@@ -39,7 +50,12 @@
             <transition name="slide-fade-up" mode="out-in">
               <div>
                 <h3 class="text-white">Token Symbol</h3>
-                <b-form-input id="input-1" v-model="token1SymbolName" placeholder="EOS" trim></b-form-input>
+                <b-form-input
+                  id="input-1"
+                  v-model="token1SymbolName"
+                  placeholder="EOS"
+                  trim
+                ></b-form-input>
               </div>
             </transition>
           </b-col>
@@ -279,8 +295,12 @@ export default class HeroConvert extends Vue {
   async tokenIsValid() {
     // ToDo
     // Check a reserve doesn't already exist with the network token
-    const tokenRelayAlreadyExists = vxm.relays.relays.find(
-      relay => relay.reserves.some(reserve => reserve.symbol == this.token1SymbolName && reserve.contract == this.token1Contract)
+    const tokenRelayAlreadyExists = vxm.relays.relays.find(relay =>
+      relay.reserves.some(
+        reserve =>
+          reserve.symbol == this.token1SymbolName &&
+          reserve.contract == this.token1Contract
+      )
     );
 
     if (tokenRelayAlreadyExists) {
@@ -355,7 +375,13 @@ export default class HeroConvert extends Vue {
         if (e.message == "Smart Token already exists") {
           console.log("Token I was suggesting already exists");
           // handle this
-          this.smartTokenSymbol = suggestedSmartTokenSymbol.split('').reverse().slice(1).reverse().join('') + 'X'
+          this.smartTokenSymbol =
+            suggestedSmartTokenSymbol
+              .split("")
+              .reverse()
+              .slice(1)
+              .reverse()
+              .join("") + "X";
         } else if (e.message == "Token does not exist") {
           this.smartTokenSymbol = suggestedSmartTokenSymbol;
         } else {
