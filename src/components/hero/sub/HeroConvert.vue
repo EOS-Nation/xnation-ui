@@ -8,7 +8,7 @@
               :key="token1Key"
               :amount.sync="token1Amount"
               :balance="token1Balance"
-              :img="token1Img"
+              :img="token(token1Symbol).logo"
               :symbol="token1Symbol"
               dropdown
               @dropdown="promptModal(1)"
@@ -77,7 +77,7 @@
               :key="token2Key"
               :amount.sync="token2Amount"
               :balance="token2Balance"
-              :img="token2Img"
+              :img="token(token2Symbol).logo"
               :symbol="token2Symbol"
               dropdown
               @dropdown="promptModal(2)"
@@ -96,12 +96,12 @@
         <token-swap
           :error="error"
           :success="success"
-          :leftImg="fromTokenImg"
+          :leftImg="fromToken.logo"
           :leftTitle="`${fromTokenAmount} ${fromTokenSymbol}`"
-          :leftSubtitle="token(fromTokenSymbol).name"
-          :rightImg="toTokenImg"
+          :leftSubtitle="fromToken.name"
+          :rightImg="toToken.logo"
           :rightTitle="`${toTokenAmount} ${toTokenSymbol}`"
-          :rightSubtitle="token(toTokenSymbol).name"
+          :rightSubtitle="toToken.name"
         >
           <template v-slot:footer>
             <b-col cols="12" class="text-center">
@@ -178,14 +178,11 @@ export default class HeroConvert extends Vue {
   promptedTokenNumber = 0;
   token1Amount = "";
   token1Balance = "";
-  token1Img = "";
   token1Symbol = "";
   token1Key = "token1K";
 
   token2Amount = "";
   token2Balance = "";
-  token2Img =
-    "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f80f2a40-eaf5-11e7-9b5e-179c6e04aa7c.png";
   token2Symbol = "BNT";
   token2Key = "token2K";
 
@@ -194,6 +191,18 @@ export default class HeroConvert extends Vue {
 
   loadingConversion = false;
   triggerUpdate = false;
+
+  get fromToken() {
+    return this.flipped
+      ? this.token(this.token2Symbol)
+      : this.token(this.token1Symbol);
+  }
+
+  get toToken() {
+    return this.flipped
+      ? this.token(this.token1Symbol)
+      : this.token(this.token2Symbol);
+  }
 
   get isAuthenticated() {
     return (
@@ -211,22 +220,61 @@ export default class HeroConvert extends Vue {
     return vxm.relays.tokens;
   }
 
+  get selectedSymbolOrDefault() {
+    return this.$route.params.symbolName || this.defaultSymbolName;
+  }
+
+  get defaultSymbolName() {
+    return vxm.relays.tokens.find(token => token.symbol !== "BNT")!.symbol;
+  }
+
+  get fromTokenSymbol() {
+    return this.flipped ? this.token2Symbol : this.token1Symbol;
+  }
+
+  get toTokenSymbol() {
+    return this.flipped ? this.token1Symbol : this.token2Symbol;
+  }
+
+  get fromTokenAmount() {
+    return this.flipped ? this.token2Amount : this.token1Amount;
+  }
+
+  get toTokenAmount() {
+    return this.flipped ? this.token1Amount : this.token2Amount;
+  }
+
+  get disableConvert() {
+    return (
+      !this.isAuthenticated ||
+      this.loadingConversion ||
+      this.token1Amount == "" ||
+      this.token2Amount == ""
+    );
+  }
+
+  set fromTokenSymbol(symbol: string) {
+    this[this.flipped ? "token2Symbol" : "token1Symbol"] = symbol;
+  }
+
+  set toTokenSymbol(symbol: string) {
+    this[this.flipped ? "token1Symbol" : "token2Symbol"] = symbol;
+  }
+
+  set toTokenAmount(amount: string) {
+    this[this.flipped ? "token1Amount" : "token2Amount"] = amount;
+  }
+
+  set fromTokenAmount(amount: string) {
+    this[this.flipped ? "token2Amount" : "token1Amount"] = amount;
+  }
+
   promptModal(tokenNumber: number) {
     this.promptedTokenNumber = tokenNumber;
     this.modal = true;
   }
 
-  selectedToken(selectedSymbol: string) {
-    this.modal = false;
-    const { symbol, logo } = vxm.relays.token(selectedSymbol)!;
-    const fromTokenChanged = this.isFromToken(this.promptedTokenNumber);
-    if (fromTokenChanged) {
-      this.fromTokenImg = logo;
-      this.fromTokenSymbol = symbol;
-    } else {
-      this.toTokenImg = logo;
-      this.toTokenSymbol = symbol;
-    }
+  animateChangedToken() {
     if (this.flipped && this.promptedTokenNumber == 1) {
       this.token1Key = this.reverseString(this.token1Key);
     } else if (!this.flipped && this.promptedTokenNumber == 1) {
@@ -236,6 +284,17 @@ export default class HeroConvert extends Vue {
     } else if (this.flipped && this.promptedTokenNumber == 2) {
       this.token2Key = this.reverseString(this.token2Key);
     }
+  }
+
+  selectedToken(selectedSymbol: string) {
+    this.modal = false;
+    const fromTokenChanged = this.isFromToken(this.promptedTokenNumber);
+    if (fromTokenChanged) {
+      this.fromTokenSymbol = selectedSymbol;
+    } else {
+      this.toTokenSymbol = selectedSymbol;
+    }
+    this.animateChangedToken();
     this.updatePriceReturn();
   }
 
@@ -263,26 +322,12 @@ export default class HeroConvert extends Vue {
 
       this.success = result;
       this.error = "";
-      this.fromTokenAmount = "";
-      this.toTokenAmount = "";
 
-      await vxm.relays.fetchRelays();
+      vxm.relays.init();
     } catch (e) {
       this.error = e.message;
       this.success = "";
     }
-  }
-
-  setFromToken(symbolName: string) {
-    const { symbol, logo } = vxm.relays.token(symbolName)!;
-    this.fromTokenSymbol = symbol;
-    this.fromTokenImg = logo;
-  }
-
-  setToToken(symbolName: string) {
-    const { symbol, logo } = vxm.relays.token(symbolName)!;
-    this.toTokenSymbol = symbol;
-    this.toTokenImg = logo;
   }
 
   networkChange() {
@@ -293,10 +338,10 @@ export default class HeroConvert extends Vue {
     this.token2Key = this.reverseString(this.token2Key);
     this.token1Key = this.reverseString(this.token1Key);
     if (!fromToken) {
-      this.setFromToken(this.selectedSymbolOrDefault);
+      this.fromTokenSymbol = this.selectedSymbolOrDefault;
     }
     if (!toToken) {
-      this.setToToken("BNT");
+      this.toTokenSymbol = "BNT";
     }
     this.updatePriceReturn();
     this.loadSimpleRewards();
@@ -317,22 +362,18 @@ export default class HeroConvert extends Vue {
     if (this.networkChanged(to, from)) {
       this.networkChange();
     } else {
-      this.setFromToken(this.selectedSymbolOrDefault);
+      this.fromTokenSymbol = this.selectedSymbolOrDefault;
       this.updatePriceReturn();
       this.loadSimpleRewards();
     }
   }
 
-  get selectedSymbolOrDefault() {
-    return this.$route.params.symbolName || this.defaultSymbolName;
-  }
-
-  get defaultSymbolName() {
-    return vxm.relays.tokens.find(token => token.symbol !== "BNT")!.symbol;
-  }
-
-  get focusedToken() {
-    return vxm.relays.token(this.selectedSymbolOrDefault)!;
+  @Watch("txModal")
+  modalChange(visible: boolean) {
+    if (!visible) {
+      this.token1Amount = "";
+      this.token2Amount = "";
+    }
   }
 
   navTransfer() {
@@ -342,62 +383,6 @@ export default class HeroConvert extends Vue {
         symbolName: this.selectedSymbolOrDefault
       }
     });
-  }
-
-  get disableConvert() {
-    return (
-      !this.isAuthenticated ||
-      this.loadingConversion ||
-      this.token1Amount == "" || this.token2Amount == ""
-    );
-  }
-
-  get fromTokenSymbol() {
-    return this.flipped ? this.token2Symbol : this.token1Symbol;
-  }
-
-  get toTokenSymbol() {
-    return this.flipped ? this.token1Symbol : this.token2Symbol;
-  }
-
-  get fromTokenImg() {
-    return this.flipped ? this.token2Img : this.token1Img;
-  }
-
-  get toTokenImg() {
-    return this.flipped ? this.token1Img : this.token2Img;
-  }
-
-  get fromTokenAmount() {
-    return this.flipped ? this.token2Amount : this.token1Amount;
-  }
-
-  get toTokenAmount() {
-    return this.flipped ? this.token1Amount : this.token2Amount;
-  }
-
-  set fromTokenSymbol(symbol: string) {
-    this[this.flipped ? "token2Symbol" : "token1Symbol"] = symbol;
-  }
-
-  set toTokenSymbol(symbol: string) {
-    this[this.flipped ? "token1Symbol" : "token2Symbol"] = symbol;
-  }
-
-  set fromTokenImg(url: string) {
-    this[this.flipped ? "token2Img" : "token1Img"] = url;
-  }
-
-  set toTokenImg(url: string) {
-    this[this.flipped ? "token1Img" : "token2Img"] = url;
-  }
-
-  set toTokenAmount(amount: string) {
-    this[this.flipped ? "token1Amount" : "token2Amount"] = amount;
-  }
-
-  set fromTokenAmount(amount: string) {
-    this[this.flipped ? "token2Amount" : "token1Amount"] = amount;
   }
 
   isFromToken(numberSelection: number): boolean {
@@ -469,7 +454,7 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-    this.setFromToken(this.selectedSymbolOrDefault);
+    this.fromTokenSymbol = this.selectedSymbolOrDefault;
     this.loadSimpleRewards();
   }
 }

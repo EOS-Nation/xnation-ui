@@ -284,12 +284,8 @@ export class RelaysModule extends VuexModule {
     });
 
     const { actions } = res.data[0];
-    try {
-      const txRes = await this.triggerTx(actions);
-      return txRes.transaction_id;
-    } catch (e) {
-      console.log("caught it", e);
-    }
+    const txRes = await this.triggerTx(actions);
+    return txRes.transaction_id;
   }
 
   @action async convertEth({
