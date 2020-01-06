@@ -205,7 +205,7 @@ export default class HeroConvert extends Vue {
   }
 
   get isAuthenticated() {
-    return this.currentNetwork == 'eos' ? vxm.eosWallet.walletState && vxm.eosWallet.walletState.authenticated : vxm.ethWallet.isAuthenticated
+    return vxm.wallet.isAuthenticated;
   }
 
   get token() {

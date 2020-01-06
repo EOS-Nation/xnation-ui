@@ -1,19 +1,24 @@
-import { VuexModule, mutation, action, Module } from "vuex-class-component";
+import { VuexModule, mutation, action, Module, getter } from "vuex-class-component";
 import i18n from "@/i18n";
+import { vxm } from '@/store/index';
 
 @Module({ namespacedPath: "wallet/" })
 export class WalletModule extends VuexModule {
 
   wallet = "eos";
 
-
   get currentNetwork() {
     return this.wallet;
   }
 
   get isAuthenticated() {
-    // @ts-ignore
-    return this.$store.rootGetters[`${this.currentNetwork}/isAuthenticated`];
+      // @ts-ignore
+      return vxm[`${this.wallet}Wallet`].isAuthenticated
+  }
+
+  getStatus() {
+      console.log('this was on status', this);
+      return 'fhweuifuiwe'
   }
 
   @mutation setWallet(wallet: string) {

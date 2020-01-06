@@ -1,6 +1,5 @@
-import { VuexModule, mutation, action, Module } from "vuex-class-component";
+import { VuexModule, action, Module } from "vuex-class-component";
 import { SimpleToken, SimpleTokenWithMarketData, ProposedTransaction, ProposedConvertTransaction} from "@/types/bancor";
-
 
 @Module({ namespacedPath: "eosBancor/" })
 export class EosBancorModule extends VuexModule {
@@ -19,17 +18,11 @@ export class EosBancorModule extends VuexModule {
     console.log('Init was called on eosBancor');
   }
 
-  @action async convert(tx: ProposedConvertTransaction) {
+  @action async convert(tx: ProposedConvertTransaction) {}
 
-  }
+  @action async getCost(proposedTransaction: ProposedTransaction) {}
 
-  @action async getCost(proposedTransaction: ProposedTransaction) {
-  
-  }
-
-  @action async getReturn(proposedTransaction: ProposedTransaction) {
-      
-  }
+  @action async getReturn(proposedTransaction: ProposedTransaction) {}
 
 }
 

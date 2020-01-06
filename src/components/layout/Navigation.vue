@@ -124,18 +124,12 @@ export default class Navigation extends Vue {
   created() {
     this.selected = this.routedNetwork;
     vxm.ethWallet.checkAlreadySignedIn();
-    vxm.eosBancor.init();
-    vxm.bancor.init();
   }
 
   get routedNetwork() {
     return this.$route.path.split("/")[1];
   }
 
-  @Watch("$route")
-  listen(to: any) {
-    console.log("route change detected", to);
-  }
 
   @Watch("selected")
   onChange(selectedNetwork: string) {
@@ -199,7 +193,7 @@ export default class Navigation extends Vue {
   }
 
   get isAuthenticated() {
-    return vxm.eosWallet.isAuthenticated;
+    return vxm.wallet.isAuthenticated;
   }
 
   createRelay() {

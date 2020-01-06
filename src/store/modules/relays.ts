@@ -251,7 +251,7 @@ export class RelaysModule extends VuexModule {
 
   @action async triggerTx(actions: any[]) {
     if (this.selectedNetwork == "eos") {
-      return this.$store.dispatch("eosTransit/tx", actions, { root: true });
+      return this.$store.dispatch("eosWallet/tx", actions, { root: true });
     } else {
       return this.$store.dispatch("eth/tx", actions, { root: true });
     }
@@ -264,7 +264,9 @@ export class RelaysModule extends VuexModule {
     toSymbol
   }: ProposedConvertTransaction) {
     // @ts-ignore
-    const accountName = this.$store.rootState.eosTransit.wallet.auth
+    console.log(this.$store.rootState, 'was state')
+    // @ts-ignore
+    const accountName = this.$store.rootState.eosWallet.walletState.auth
       .accountName;
     const fromObj = this.eosTokensList.find(
       (token: any) => token.code == fromSymbol
@@ -284,7 +286,9 @@ export class RelaysModule extends VuexModule {
     });
 
     const { actions } = res.data[0];
+    console.log('got here')
     const txRes = await this.triggerTx(actions);
+    console.log('got, not here? ')
     return txRes.transaction_id;
   }
 
