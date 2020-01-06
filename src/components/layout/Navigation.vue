@@ -136,7 +136,7 @@ export default class Navigation extends Vue {
 
   created() {
     this.selected = this.routedNetwork;
-    vxm.eth.checkAlreadySignedIn();
+    vxm.ethWallet.checkAlreadySignedIn();
   }
 
   get routedNetwork() {
@@ -164,7 +164,7 @@ export default class Navigation extends Vue {
   }
 
   get loginTooltip() {
-    return this.routedNetwork == 'eth' && vxm.eth.isAuthenticated ? 'Logout via MetaMask' : ''
+    return this.routedNetwork == 'eth' && vxm.ethWallet.isAuthenticated ? 'Logout via MetaMask' : ''
   }
 
   set language(lang: string) {
@@ -176,7 +176,7 @@ export default class Navigation extends Vue {
   }
 
   get shortenedEthAddress() {
-    const isAuthenticated = vxm.eth.isAuthenticated;
+    const isAuthenticated = vxm.ethWallet.isAuthenticated;
     return isAuthenticated.length > 13
       ? isAuthenticated.substring(0, 4) +
           "..." +
@@ -191,7 +191,7 @@ export default class Navigation extends Vue {
     if (this.routedNetwork == "eos") {
       return this.loginStatus[0];
     } else {
-      const isAuthenticated = vxm.eth.isAuthenticated;
+      const isAuthenticated = vxm.ethWallet.isAuthenticated;
       if (isAuthenticated) {
         return this.shortenedEthAddress;
       } else return "Login";
@@ -202,7 +202,7 @@ export default class Navigation extends Vue {
     if (this.routedNetwork == "eos") {
       return this.loginStatus[1];
     } else {
-      return vxm.eth.isAuthenticated ? "power-off" : "arrow-circle-right";
+      return vxm.ethWallet.isAuthenticated ? "power-off" : "arrow-circle-right";
     }
   }
 
@@ -234,10 +234,10 @@ export default class Navigation extends Vue {
   }
 
   async loginActionEth() {
-    if (vxm.eth.isAuthenticated) {
+    if (vxm.ethWallet.isAuthenticated) {
       // Cannot logout of MetaMask
     } else {
-      await vxm.eth.connect();
+      await vxm.ethWallet.connect();
     }
   }
 

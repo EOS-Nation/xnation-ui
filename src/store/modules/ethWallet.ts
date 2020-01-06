@@ -12,7 +12,7 @@ const tx = (data: any) =>
     });
   });
 
-@Module({ namespacedPath: "eth/" })
+@Module({ namespacedPath: "ethWallet/" })
 export class EthereumModule extends VuexModule {
   loggedInAccount: string = "";
 
@@ -87,4 +87,4 @@ export class EthereumModule extends VuexModule {
   }
 }
 
-export const eth = EthereumModule.ExtractVuexModule(EthereumModule);
+export const ethWallet = EthereumModule.ExtractVuexModule(EthereumModule);
