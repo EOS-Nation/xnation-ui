@@ -109,18 +109,17 @@
                 Please proceed with your wallet to confirm this Transaction.
               </h6>
               <h6 v-else-if="error && !success" class="text-danger">
-                Error: {{ error
-                }}<span class="cursor text-muted"> - Try again</span>
+                Error: {{ error }}
+                <!-- <span class="cursor text-muted"> - Try again</span> -->
               </h6>
               <h6 v-else-if="!error && success">
-                <a
-                  :href="'https://bloks.io/transaction/' + success"
-                  target="_blank"
-                  class="text-success"
-                >
-                  SUCCESS: View {{ success.substring(0, 6) }} TX on bloks.io
+                <a :href="explorerLink" target="_blank" class="text-success">
+                  SUCCESS: View {{ success.substring(0, 6) }} TX on
+                  {{ explorerName }}
                 </a>
-                <span class="cursor text-muted">- Close</span>
+                <span @click="txModal = false" class="cursor text-muted"
+                  >- Close</span
+                >
               </h6>
             </b-col>
           </template>
@@ -168,7 +167,7 @@ export default class HeroConvert extends Vue {
   txModal = false;
   flipped = false;
 
-  txBusy= false;
+  txBusy = false;
 
   error = "";
   success = "";
@@ -192,6 +191,16 @@ export default class HeroConvert extends Vue {
 
   get currentNetwork() {
     return this.parseNetwork(this.$route.fullPath);
+  }
+
+  get explorerLink() {
+    return this.currentNetwork == "eos"
+      ? `https://bloks.io/transaction/${this.success}`
+      : `https://etherscan.io/tx/${this.success}`;
+  }
+
+  get explorerName() {
+    return this.currentNetwork == "eos" ? "Bloks.io" : "Etherscan";
   }
 
   get fromToken() {
@@ -382,7 +391,11 @@ export default class HeroConvert extends Vue {
     this.token2Amount = "";
     this.success = "";
     this.error = "";
-    console.log("clean up after tx was called", this.txModal, 'was tx modal state.')
+    console.log(
+      "clean up after tx was called",
+      this.txModal,
+      "was tx modal state."
+    );
   }
 
   @Watch("txModal")

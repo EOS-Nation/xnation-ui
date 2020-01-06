@@ -90,6 +90,7 @@ export class RelaysModule extends VuexModule {
     if (this.initComplete) {
       console.log("Init already called");
     }
+    this.fetchBalances();
     await Promise.all([this.fetchUsdPrice(), this.initEos(), this.initEth()]);
     await wait();
     this.initCompleted();
