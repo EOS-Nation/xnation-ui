@@ -28,6 +28,10 @@ export class EthereumModule extends VuexModule {
     // @ts-ignore
     return window["ethereum"];
   }
+  
+  @action async logout() {
+    console.warn("Client cannot logout by itself, log out via MetaMask.");
+  }
 
   @action async connect() {
     // @ts-ignore
