@@ -6,7 +6,7 @@ const tx = (data: any) =>
     // @ts-ignore
     const ethereum = window["ethereum"];
     ethereum.sendAsync(data, function(err: any, result: any) {
-      if (err.message) {
+      if (err && err.message) {
         reject(err)
       } else resolve(result)
     });
