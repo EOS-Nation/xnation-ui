@@ -124,6 +124,8 @@ export default class Navigation extends Vue {
   created() {
     this.selected = this.routedNetwork;
     vxm.ethWallet.checkAlreadySignedIn();
+    vxm.eosBancor.init();
+    vxm.bancor.init();
   }
 
   get routedNetwork() {

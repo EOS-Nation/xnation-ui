@@ -21,6 +21,21 @@ export interface PriceHistory {
   [index: number]: number;
 }
 
+export type FloatAmount = number;
+
+export interface ProposedTransaction {
+  fromSymbol: string;
+  toSymbol: string;
+  amount: FloatAmount;
+}
+
+export interface ProposedConvertTransaction {
+  fromSymbol: string;
+  toSymbol: string;
+  fromAmount: FloatAmount;
+  toAmount: FloatAmount;
+}
+
 export interface TokenDetail {
   _id: string;
   type: string;
