@@ -105,7 +105,7 @@
           :success="success"
           :leftImg="fromToken.logo"
           :leftTitle="`${fromTokenAmount} ${fromTokenSymbol}`"
-          :leftSubtitle="fromToken.name"
+          :leftSubtitle="`${fromToken.name} ($${(token(fromTokenSymbol).price * Number(fromTokenAmount)).toFixed(2)} USD)`"
           :rightImg="toToken.logo"
           :rightTitle="`${toTokenAmount} ${toTokenSymbol}`"
           :rightSubtitle="toToken.name"
