@@ -333,61 +333,11 @@ export default class WalletAccount extends Vue {
     }
   }
   async getBalances() {
-    this.balances = []
-    const b = await vxm.wallet.getTokenBalances(this.account)
-    //const relays = await vxm.liquidity.loadRelayTokens()
-    for (const token of b) {
-      const tokenInfo: TokenInfo | false = bancorx.getTokenInfo(token.symbol)
-      if (tokenInfo && token.amount) {
-        const tokenPrice = this.tokens.find((t: TokenPrice) => {
-          return t.code === token.symbol
-        })
-        if (tokenPrice) {
-          this.balances.push({
-            reserveToken: tokenInfo.relayToken,
-            name: tokenInfo.name,
-            logo_url:
-              tokenInfo.img,
-            contract: tokenInfo.relayContract,
-            symbol: tokenInfo.symbol,
-            balance: token.amount,
-            price: tokenPrice.price,
-            c24h: tokenPrice.change24h,
-            value: token.amount * tokenPrice.price,
-            value24hChange:
-              ((token.amount * tokenPrice.price) / 100) * tokenPrice.change24h,
-            tokenPrice: tokenPrice
-          })
-        } else {
-          try {
-            const symbol = tokenInfo.symbol.toUpperCase();
-            const { price, price24h } = await bancorApi.getTokenTicker(symbol)
-            const c24h = (price / price24h) * 100 - 100
-            this.balances.push({
-              reserveToken: tokenInfo.relayToken,
-              name: tokenInfo.name,
-              logo_url:
-                tokenInfo.img,
-              contract: tokenInfo.relayContract,
-              symbol: tokenInfo.symbol,
-              balance: token.amount,
-              price: price,
-              c24h: c24h,
-              value: token.amount * price,
-              value24hChange: ((token.amount * price) / 100) * c24h
-            })
-          } catch (e) {
-            console.log(e)
-          }
-        }
-      }
-    }
+  
   }
+
   async getTokens() {
     this.tokens = await bancorApi.getTokens()
-    vxm.tokens.setTokens({ eos: this.tokens, eth: [] })
-    //vxm.convert.setToken({ t: this.tokens[0], d: 'from' })
-    //vxm.convert.setToken({ t: this.tokens[1], d: 'to' })
   }
 
   initAction(action: 'convert' | 'transfer', symbol: string) {
@@ -413,7 +363,6 @@ export default class WalletAccount extends Vue {
   }
 
   async created() {
-    vxm.general.setHeroAction('transfer')
     this.loading = true
     await this.getTokens()
     //await this.getRelays()

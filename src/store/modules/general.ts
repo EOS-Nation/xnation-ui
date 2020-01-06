@@ -9,15 +9,7 @@ import i18n from '@/i18n'
 @Module({ namespacedPath: 'general/' })
 export class GeneralModule extends VuexModule {
   @getter language: string = 'en'
-  @getter heroAction: string = 'convert'
 
-  @mutation setHeroAction(action: string) {
-    this.heroAction = action
-  }
-
-  // Get / Set Language from Browser/LocaleStorage
-  // or
-  // Set Language from user input
   @mutation setLanguage(lang?: string) {
     if (lang) {
       this.language = i18n.locale = lang

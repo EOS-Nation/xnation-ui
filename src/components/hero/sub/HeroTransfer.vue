@@ -30,7 +30,7 @@
             </div>
             <div class="d-flex justify-content-center">
               <b-btn
-                @click="initTransfer()"
+                @click="initTransfer"
                 variant="info"
                 v-ripple
                 class="px-4 py-2 d-block"
