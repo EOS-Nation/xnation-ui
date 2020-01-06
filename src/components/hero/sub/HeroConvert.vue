@@ -309,6 +309,8 @@ export default class HeroConvert extends Vue {
 
   swapTokens() {
     this.flipped = !this.flipped;
+    this.token1Key = this.reverseString(this.token1Key)
+    this.token2Key = this.reverseString(this.token2Key)
   }
 
   async initConvert() {
@@ -395,6 +397,7 @@ export default class HeroConvert extends Vue {
   }
 
   async updatePriceReturn() {
+    if (!Number(this.token1Amount) && !Number(this.token2Amount)) return
     this.loadingConversion = true;
     const amount = Number(this.fromTokenAmount);
     const reward = await vxm.relays.getReturn({
