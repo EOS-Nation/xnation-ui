@@ -154,10 +154,11 @@ class BancorCalculator {
         amount: balances.find(balance =>
           balance.symbol.isEqual(reserve.symbol)
         )!,
-        contract: reserve.contract
+        contract: reserve.contract,
       }))
     };
     if (result.reserves.every(reserve => Boolean(reserve.amount)))
+    // @ts-ignore
       return result;
     throw new Error("Reserve mismatch in relays");
   }
