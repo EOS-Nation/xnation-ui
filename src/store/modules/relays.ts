@@ -106,6 +106,7 @@ export class RelaysModule extends VuexModule {
 
   @action async fetchBalancesEos() {
     const balances = await getTokenBalances(vxm.wallet.isAuthenticated);
+    
     this.eosTokensList = this.eosTokensList.map((token: any) => {
       const existingToken = balances.tokens.find(
         balanceObj => balanceObj.symbol == token.code
@@ -126,6 +127,7 @@ export class RelaysModule extends VuexModule {
       bancorApi.getTokenTicker("ETH"),
       bancorApi.getTokens()
     ]);
+    console.log(tokens);
     this.setUsdValue(usdValueOfEth.price);
     this.eosTokensList = tokens.map((token: any) => {
       if (token.code == "BNT") {

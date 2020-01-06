@@ -42,6 +42,13 @@
               <span v-else class="text-white font-size-sm">
                 {{ flipped ? token2SimpleReward : token1SimpleReward }}
               </span>
+              <div class="text-white font-size-sm">
+                {{
+                  `1 ${fromTokenSymbol} = $${token(
+                    fromTokenSymbol
+                  ).price.toFixed(2)} USD`
+                }}
+              </div>
             </div>
             <div class="d-flex justify-content-center">
               <b-btn
