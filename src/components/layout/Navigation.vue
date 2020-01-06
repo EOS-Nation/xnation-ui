@@ -139,6 +139,7 @@ export default class Navigation extends Vue {
       });
     }
     vxm.wallet.setWallet(selectedNetwork);
+    vxm.relays.setNetwork(selectedNetwork);
   }
 
   get language() {
