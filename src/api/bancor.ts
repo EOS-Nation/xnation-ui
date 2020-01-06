@@ -52,7 +52,6 @@ export class BancorApi implements BancorWrapper {
   }
 
   private async post(endpoint: string, params: any) {
-    console.log({ endpoint, params })
     const res = await this.instance.post(endpoint, params);
     return res.data;
   }
