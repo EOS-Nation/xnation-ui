@@ -67,12 +67,6 @@ export default class TokenAmountInput extends Vue {
   @Prop(Boolean) dropdown?: boolean
   @Prop(Boolean) small?: boolean
 
-  // data
-
-  // computed
-
-  // method
-
   @Watch("amount")
   listen() {
     this.$emit("update:amount", this.amount);
@@ -101,11 +95,6 @@ export default class TokenAmountInput extends Vue {
     this.$emit("dropdown")
   }
 
-  // Lifecycle hooks
-  async created() { }
-  mounted() { }
-  updated() { }
-  destroyed() { }
 }
 </script>
 
