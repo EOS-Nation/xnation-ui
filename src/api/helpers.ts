@@ -74,6 +74,13 @@ let tokenMeta: TokenMeta[] = [
 
 let shouldDownload = true;
 
+export const getTokenBalances = async(accountName: string): Promise<any> => {
+  const res = await axios.get(`http://mainnet.eosn.io/v2/state/get_tokens?account=${accountName}`);
+  console.log(res.data)
+  return res.data;
+}
+
+
 export const cacheMetaData = async () => {
   const res = await axios.get(tokenMetaDataEndpoint);
   tokenMeta = [
