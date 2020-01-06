@@ -1,14 +1,10 @@
 <template>
   <header id="page-header">
-    <!-- Header Content -->
     <div class="content content-header content-boxed py-0">
-      <!-- Left Section -->
       <div
         class="d-flex align-items-center align-middle float-left"
         style="width: 180px"
       >
-        <!-- Toggle Sidebar -->
-        <!-- END Toggle Sidebar -->
         <router-link :to="{ name: 'Tokens' }">
           <img src="@/assets/media/logos/eosn.png" height="40px" class="mr-4" />
         </router-link>
@@ -22,9 +18,6 @@
           ></b-form-radio-group>
         </b-form-group>
       </div>
-      <!-- END Left Section -->
-
-      <!-- Center Section -->
       <div class="d-none d-md-flex align-items-center justify-content-center">
         <b-btn
           :to="{ name: `${this.selected}-Tokens` }"
@@ -79,9 +72,7 @@
           <font-awesome-icon icon="wallet" fixed-width /> Wallet
         </b-btn>
       </div>
-      <!-- END Center Section -->
 
-      <!-- Right Section -->
       <div
         class="d-flex align-items-center float-right justify-content-end"
         style="width: 180px"
@@ -96,7 +87,6 @@
         >
           <font-awesome-icon icon="search" fixed-width />
         </b-btn>
-        <!-- Toggle Sidebar -->
         <b-btn
           @click="loginAction"
           variant="dual"
@@ -107,11 +97,8 @@
           {{ loginButtonLabel }}
           <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
         </b-btn>
-        <!-- END Toggle Sidebar -->
       </div>
-      <!-- END Right Section -->
     </div>
-    <!-- END Header Content -->
   </header>
 </template>
 
@@ -155,10 +142,9 @@ export default class Navigation extends Vue {
         path: `/${selectedNetwork}`
       });
     }
-    vxm.relays.setNetwork(selectedNetwork);
+    vxm.wallet.setWallet(selectedNetwork);
   }
 
-  // computed
   get language() {
     return vxm.general.language;
   }

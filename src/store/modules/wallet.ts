@@ -3,14 +3,21 @@ import i18n from "@/i18n";
 
 @Module({ namespacedPath: "wallet/" })
 export class WalletModule extends VuexModule {
-  
+
+  wallet = "eos";
+
+
   get currentNetwork() {
-    return "eos";
+    return this.wallet;
   }
 
   get isAuthenticated() {
     // @ts-ignore
     return this.$store.rootGetters[`${this.currentNetwork}/isAuthenticated`];
+  }
+
+  @mutation setWallet(wallet: string) {
+    this.wallet = wallet;
   }
 
   @action async dispatcher(methodName: string, params: any = null) {
