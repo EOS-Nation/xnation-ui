@@ -12,13 +12,13 @@ import axios from "axios";
 import { bancorApi, ethBancorApi } from "@/api/bancor";
 import { SimpleToken, SimpleTokenWithMarketData } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
-
 import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 
-import { createAsset } from "@/api/helpers";
+import { createAsset, getTokenBalances } from "@/api/helpers";
 import web3 from "web3";
-import { rpc } from '@/api/rpc';
+import { rpc } from "@/api/rpc";
+import { vxm } from "@/store";
 
 interface TokenMeta {
   name: string;
@@ -95,6 +95,27 @@ export class RelaysModule extends VuexModule {
     this.initCompleted();
   }
 
+  @action async fetchBalances() {
+    return (
+      vxm.wallet.currentNetwork == "eos" &&
+      vxm.wallet.isAuthenticated &&
+      this.fetchBalancesEos()
+    );
+  }
+
+  @action async fetchBalancesEos() {
+    const balances = await getTokenBalances(vxm.wallet.isAuthenticated);
+    this.eosTokensList = this.eosTokensList.map((token: any) => {
+      const existingToken = balances.tokens.find(
+        balanceObj => balanceObj.symbol == token.code
+      );
+      return {
+        ...token,
+        balance: (existingToken && existingToken.amount) || 0
+      };
+    });
+  }
+
   @mutation setUsdValue(price: number) {
     this.usdValueOfEth = price;
   }
@@ -112,7 +133,6 @@ export class RelaysModule extends VuexModule {
         return token;
       }
     });
-
   }
 
   @action async initEth() {
@@ -253,7 +273,7 @@ export class RelaysModule extends VuexModule {
     if (this.selectedNetwork == "eos") {
       return this.$store.dispatch("eosWallet/tx", actions, { root: true });
     } else {
-      return this.$store.dispatch("eth/tx", actions, { root: true });
+      return this.$store.dispatch("ethWallet/tx", actions, { root: true });
     }
   }
 
@@ -264,7 +284,7 @@ export class RelaysModule extends VuexModule {
     toSymbol
   }: ProposedConvertTransaction) {
     // @ts-ignore
-    console.log(this.$store.rootState, 'was state')
+    console.log(this.$store.rootState, "was state");
     // @ts-ignore
     const accountName = this.$store.rootState.eosWallet.walletState.auth
       .accountName;
@@ -286,9 +306,9 @@ export class RelaysModule extends VuexModule {
     });
 
     const { actions } = res.data[0];
-    console.log('got here')
+    console.log("got here");
     const txRes = await this.triggerTx(actions);
-    console.log('got, not here? ')
+    console.log("got, not here? ");
     return txRes.transaction_id;
   }
 
@@ -307,7 +327,7 @@ export class RelaysModule extends VuexModule {
     const minimumReturnWei = web3.utils.toWei(String(minimumReturn));
 
     // @ts-ignore
-    const ownerAddress = this.$store.rootGetters['eth/isAuthenticated']
+    const ownerAddress = this.$store.rootGetters["ethWallet/isAuthenticated"];
     const convertPost = {
       fromCurrencyId: fromObj.id,
       toCurrencyId: toObj.id,
@@ -317,10 +337,11 @@ export class RelaysModule extends VuexModule {
     };
     const res = await ethBancorApi.convert(convertPost);
     if (res.errorCode) {
-      throw new Error(res.errorCode)
+      throw new Error(res.errorCode);
     }
     const params = res.data;
     const txRes = await this.triggerTx(params);
+    console.log(txRes, 'was tx Res')
     return txRes.result;
   }
 
@@ -340,7 +361,7 @@ export class RelaysModule extends VuexModule {
 
   get token() {
     return (symbolName: string) =>
-    this.tokens.find(token => token.symbol == symbolName);
+      this.tokens.find(token => token.symbol == symbolName);
   }
 
   get relay() {
@@ -398,7 +419,8 @@ export class RelaysModule extends VuexModule {
       liqDepth: token.liquidityDepth * this.usdValueOfEth,
       logo: token.primaryCommunityImageName,
       change24h: token.change24h,
-      volume24h: token.volume24h.USD
+      volume24h: token.volume24h.USD,
+      balance: token.balance || 0
     }));
 
     // @ts-ignore
@@ -558,7 +580,6 @@ export class RelaysModule extends VuexModule {
 }
 
 export const relays = RelaysModule.ExtractVuexModule(RelaysModule);
-
 
 // const relays = [['EOS',	'bnt2eoscnvrt'],
 // ['BLACK',	'bancorc11111'],

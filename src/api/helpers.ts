@@ -5,6 +5,8 @@ import { Asset, split, Symbol } from "eos-common";
 import { EosAccount, nRelay, TokenSymbol } from "bancorx/build/interfaces";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
+import { TokenBalances } from '@/types/bancor';
+
 
 const tokenMetaDataEndpoint =
   "https://raw.githubusercontent.com/eoscafe/eos-airdrops/master/tokens.json";
@@ -74,9 +76,8 @@ let tokenMeta: TokenMeta[] = [
 
 let shouldDownload = true;
 
-export const getTokenBalances = async(accountName: string): Promise<any> => {
+export const getTokenBalances = async(accountName: string): Promise<TokenBalances> => {
   const res = await axios.get(`http://mainnet.eosn.io/v2/state/get_tokens?account=${accountName}`);
-  console.log(res.data)
   return res.data;
 }
 

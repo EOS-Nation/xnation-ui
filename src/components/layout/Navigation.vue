@@ -130,6 +130,12 @@ export default class Navigation extends Vue {
     return this.$route.path.split("/")[1];
   }
 
+  @Watch("isAuthenticated")
+  onAuthentication(account: string) {
+    if (account) {
+      vxm.relays.fetchBalances();
+    }
+  }
 
   @Watch("selected")
   onChange(selectedNetwork: string) {
@@ -147,7 +153,9 @@ export default class Navigation extends Vue {
   }
 
   get loginTooltip() {
-    return this.routedNetwork == 'eth' && vxm.ethWallet.isAuthenticated ? 'Logout via MetaMask' : ''
+    return this.routedNetwork == "eth" && vxm.ethWallet.isAuthenticated
+      ? "Logout via MetaMask"
+      : "";
   }
 
   set language(lang: string) {

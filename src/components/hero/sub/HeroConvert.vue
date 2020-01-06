@@ -7,7 +7,7 @@
             <token-amount-input
               :key="token1Key"
               :amount.sync="token1Amount"
-              :balance="token1Balance"
+              :balance="String(token(token1Symbol).balance)"
               :img="token(token1Symbol).logo"
               :symbol="token1Symbol"
               dropdown
@@ -76,7 +76,7 @@
             <token-amount-input
               :key="token2Key"
               :amount.sync="token2Amount"
-              :balance="token2Balance"
+              :balance="String(token(token2Symbol).balance)"
               :img="token(token2Symbol).logo"
               :symbol="token2Symbol"
               dropdown
@@ -335,6 +335,8 @@ export default class HeroConvert extends Vue {
       this.success = "";
     }
     this.txBusy = false;
+    await wait(500);
+    vxm.relays.fetchBalances();
   }
 
   networkChange() {

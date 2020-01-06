@@ -23,6 +23,12 @@ export interface PriceHistory {
 
 export type FloatAmount = number;
 
+export interface TokenBalances {
+  query_time: number;
+  account: string;
+  tokens: { symbol: string, precision: number, amount: number, contract: string }[]
+}
+
 export interface ProposedTransaction {
   fromSymbol: string;
   toSymbol: string;
