@@ -18,9 +18,6 @@ import tp from "eos-transit-tokenpocket-provider";
 import meetone from "eos-transit-meetone-provider";
 import whalevault from "eos-transit-whalevault-provider";
 import keycat from "eos-transit-keycat-provider";
-import { vxm } from "@/store";
-// import simpleos from 'eos-transit-simpleos-provider'
-// import portisProvider from 'eos-transit-portis-provider'
 
 @Module({ namespacedPath: "eosWallet/" })
 export class EosTransitModule extends VuexModule {
@@ -97,20 +94,9 @@ export class EosTransitModule extends VuexModule {
     try {
       await wallet.connect();
 
-      // Now that we are connected, lets authenticate (in case of a Scatter app,
-      // it does it right after connection, so this is more for the state tracking
-      // and for WAL to fetch the EOS account data for us)
       try {
         await wallet.login();
-        // wallet.authenticated === true
         this.setWallet(wallet);
-        // if (wallet && wallet.auth)
-        // await vxm.wallet.getTokenBalances(wallet.auth.accountName)
-        // Now that we have a wallet that is connected, logged in and have account data available,
-        // you can use it to sign transactions using the `eosjs` API instance that is automatically
-        // created and maintained by the wallet.
-
-        // set autologin
         localStorage.setItem("autoLogin", provider.id);
       } catch (e) {
         console.log("auth error");
@@ -131,7 +117,6 @@ export class EosTransitModule extends VuexModule {
     }
   }
 
-  // mutations
   @mutation setProvider(provider: WalletProvider) {
     this.selectedProvider = provider;
   }
