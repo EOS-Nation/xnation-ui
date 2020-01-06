@@ -66,7 +66,6 @@ import { TokenInfo } from "@/assets/_ts/bancorx";
   components: { TokenBalanceBlock }
 })
 export default class ModalSelect extends Vue {
-  // props
   @Prop(Boolean) modalShow!: boolean;
   @Prop(Array) tokens!: any[];
   visible = false;
@@ -75,7 +74,6 @@ export default class ModalSelect extends Vue {
     this.$emit("update:modalShow", value);
   }
 
-  // data
   private tokenSearch: String = "";
   private searchOptions = {
     shouldSort: true,
@@ -127,7 +125,6 @@ export default class ModalSelect extends Vue {
     }
   }
 
-  // Lifecycle hooks
   mounted() {}
   created() {
     this.debouncedGetSearch = debounce(() => {
