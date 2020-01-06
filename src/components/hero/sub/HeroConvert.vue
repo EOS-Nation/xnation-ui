@@ -192,6 +192,10 @@ export default class HeroConvert extends Vue {
   loadingConversion = false;
   triggerUpdate = false;
 
+  get currentNetwork() {
+    return this.parseNetwork(this.$route.fullPath);
+  }
+
   get fromToken() {
     return this.flipped
       ? this.token(this.token2Symbol)
@@ -205,9 +209,7 @@ export default class HeroConvert extends Vue {
   }
 
   get isAuthenticated() {
-    return (
-      vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
-    );
+    return this.currentNetwork == 'eos' ? vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated : vxm.eth.isAuthenticated
   }
 
   get token() {
