@@ -245,6 +245,26 @@ export class RelaysModule extends VuexModule {
     return { amount: String(Number(reward) / Math.pow(10, toToken.decimals)) };
   }
 
+  @mutation updateEthToken(token: any) {
+    this.ethTokensList = this.ethTokensList.map((existingToken: any) => token.id == existingToken.id ? token : existingToken)
+  }
+
+
+  @action async getDecimals(symbolId: string) {
+    const existingDecimals = this.ethTokensList.find((token: any) => token.id == symbolId && token.decimals);
+    if (existingDecimals) {
+      return existingDecimals.decimals
+    } else {
+      const res = await ethBancorApi.getTokenTicker(symbolId);
+      const existingToken = this.ethTokensList.find((existingToken: any) => existingToken.id == symbolId);
+      this.updateEthToken({
+        ...existingToken,
+        decimals: res.decimals
+      })
+      return res.decimals
+    }
+  }
+
   @action async getReturnEth({
     fromSymbol,
     toSymbol,
@@ -252,17 +272,17 @@ export class RelaysModule extends VuexModule {
   }: ProposedTransaction) {
     const fromSymbolApiInstance = this.ethSymbolNameToApiObj(fromSymbol);
     const toSymbolApiInstance = this.ethSymbolNameToApiObj(toSymbol);
-    const [fromTokenDetail, toTokenDetail] = await Promise.all([
-      ethBancorApi.getTokenTicker(fromSymbolApiInstance.id),
-      ethBancorApi.getTokenTicker(toSymbolApiInstance.id)
+    const [fromTokenDecimals, toTokenDecimals] = await Promise.all([
+      this.getDecimals(fromSymbolApiInstance.id),
+      this.getDecimals(toSymbolApiInstance.id)
     ]);
     const result = await ethBancorApi.calculateReturn(
       fromSymbolApiInstance.id,
       toSymbolApiInstance.id,
-      String(amount * Math.pow(10, fromTokenDetail.decimals))
+      String(amount * Math.pow(10, fromTokenDecimals))
     );
     return {
-      amount: String(Number(result) / Math.pow(10, toTokenDetail.decimals))
+      amount: String(Number(result) / Math.pow(10, toTokenDecimals))
     };
   }
 
