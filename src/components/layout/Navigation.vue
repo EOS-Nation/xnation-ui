@@ -97,7 +97,13 @@
           <font-awesome-icon icon="search" fixed-width />
         </b-btn>
         <!-- Toggle Sidebar -->
-        <b-btn @click="loginAction" variant="dual" size="sm">
+        <b-btn
+          @click="loginAction"
+          variant="dual"
+          size="sm"
+          v-b-tooltip.hover
+          :title="loginTooltip"
+        >
           {{ loginButtonLabel }}
           <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
         </b-btn>
@@ -155,6 +161,10 @@ export default class Navigation extends Vue {
   // computed
   get language() {
     return vxm.general.language;
+  }
+
+  get loginTooltip() {
+    return this.routedNetwork == 'eth' && vxm.eth.isAuthenticated ? 'Logout via MetaMask' : ''
   }
 
   set language(lang: string) {
