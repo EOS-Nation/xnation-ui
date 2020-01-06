@@ -136,7 +136,6 @@
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
-import HeroConvertRelay from "@/components/convert/HeroConvertRelay.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import * as bancorx from "@/assets/_ts/bancorx";
@@ -165,7 +164,6 @@ import { getBalance, getBankBalance } from "@/api/helpers";
     ModalSelectAll,
     ModalSelectToken,
     ModalConvertLiquidity,
-    HeroConvertRelay,
     TokenAmountInput,
     HeroWrapper
   }

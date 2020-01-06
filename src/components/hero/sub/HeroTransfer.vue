@@ -87,7 +87,6 @@ import { vxm } from "@/store";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
 import ModalSelectAll from "@/components/modals/ModalSelectAll.vue";
-import HeroConvertRelay from "@/components/convert/HeroConvertRelay.vue";
 import ModalTransferToken from "@/components/modals/ModalTransferToken.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
@@ -97,7 +96,6 @@ import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
     HeroWrapper,
     ModalSelectAll,
     ModalTransferToken,
-    HeroConvertRelay,
     TokenAmountInput
   }
 })

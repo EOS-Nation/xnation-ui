@@ -133,7 +133,6 @@
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
-import HeroConvertRelay from "@/components/convert/HeroConvertRelay.vue";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
 import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue";
@@ -161,8 +160,7 @@ import { multiContract } from "@/api/multiContractTx";
     ModalConvertLiquidity,
     HeroWrapper,
     ModalTx,
-    TokenSwap,
-    HeroConvertRelay
+    TokenSwap
   }
 })
 export default class HeroConvert extends Vue {
