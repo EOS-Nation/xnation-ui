@@ -125,10 +125,6 @@
           </transition>
         </b-col>
       </b-row>
-      <modal-select-all />
-      <modal-select-token />
-      <modal-select-relays />
-      <modal-convert-liquidity />
     </div>
   </hero-wrapper>
 </template>
@@ -140,9 +136,6 @@ import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
-import ModalSelectAll from "@/components/modals/ModalSelectAll.vue";
-import ModalSelectToken from "@/components/modals/ModalSelectToken.vue";
-import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
 import { calculateReturn, calculateFundReturn, fund } from "bancorx";
 import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
@@ -159,9 +152,6 @@ import { getBalance, getBankBalance } from "@/api/helpers";
     next();
   },
   components: {
-    ModalSelectRelays,
-    ModalSelectAll,
-    ModalSelectToken,
     TokenAmountInput,
     HeroWrapper
   }
