@@ -135,7 +135,6 @@ import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
-import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue";
 import ModalTx from "@/components/modals/ModalTx.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
@@ -157,7 +156,6 @@ import { multiContract } from "@/api/multiContractTx";
   components: {
     TokenAmountInput,
     ModalSelect,
-    ModalConvertLiquidity,
     HeroWrapper,
     ModalTx,
     TokenSwap

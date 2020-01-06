@@ -141,7 +141,6 @@ import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
 import ModalSelectAll from "@/components/modals/ModalSelectAll.vue";
-import ModalConvertLiquidity from "@/components/modals/ModalConvertLiquidity.vue";
 import ModalSelectToken from "@/components/modals/ModalSelectToken.vue";
 import ModalSelectRelays from "@/components/modals/ModalSelectRelays.vue";
 import { calculateReturn, calculateFundReturn, fund } from "bancorx";
@@ -163,7 +162,6 @@ import { getBalance, getBankBalance } from "@/api/helpers";
     ModalSelectRelays,
     ModalSelectAll,
     ModalSelectToken,
-    ModalConvertLiquidity,
     TokenAmountInput,
     HeroWrapper
   }
