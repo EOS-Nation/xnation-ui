@@ -92,7 +92,7 @@
         :tokens="tokens"
         @onSelect="selectedToken"
       />
-      <modal-tx title="Convert" v-model="txModal">
+      <modal-tx title="Convert" v-model="txModal" :busy="txBusy">
         <token-swap
           :error="error"
           :success="success"
@@ -167,6 +167,8 @@ export default class HeroConvert extends Vue {
   modal = false;
   txModal = false;
   flipped = false;
+
+  txBusy= false;
 
   error = "";
   success = "";
@@ -305,13 +307,17 @@ export default class HeroConvert extends Vue {
 
   swapTokens() {
     this.flipped = !this.flipped;
-    this.token1Key = this.reverseString(this.token1Key)
-    this.token2Key = this.reverseString(this.token2Key)
+    this.token1Key = this.reverseString(this.token1Key);
+    this.token2Key = this.reverseString(this.token2Key);
   }
 
   async initConvert() {
     try {
       this.txModal = true;
+      this.txBusy = true;
+
+      this.success = "";
+      this.error = "";
 
       const result = await vxm.relays.convert({
         fromSymbol: this.fromTokenSymbol,
@@ -328,6 +334,7 @@ export default class HeroConvert extends Vue {
       this.error = e.message;
       this.success = "";
     }
+    this.txBusy = false;
   }
 
   networkChange() {
@@ -368,11 +375,18 @@ export default class HeroConvert extends Vue {
     }
   }
 
+  cleanUpAfterTx() {
+    this.token1Amount = "";
+    this.token2Amount = "";
+    this.success = "";
+    this.error = "";
+    console.log("clean up after tx was called", this.txModal, 'was tx modal state.')
+  }
+
   @Watch("txModal")
   modalChange(visible: boolean) {
     if (!visible) {
-      this.token1Amount = "";
-      this.token2Amount = "";
+      this.cleanUpAfterTx();
     }
   }
 
@@ -393,7 +407,7 @@ export default class HeroConvert extends Vue {
   }
 
   async updatePriceReturn() {
-    if (!Number(this.token1Amount) && !Number(this.token2Amount)) return
+    if (!Number(this.token1Amount) && !Number(this.token2Amount)) return;
     this.loadingConversion = true;
     const amount = Number(this.fromTokenAmount);
     const reward = await vxm.relays.getReturn({

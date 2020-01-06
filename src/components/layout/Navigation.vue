@@ -31,6 +31,7 @@
         </b-btn>
         <b-btn
           :to="{ name: `${this.selected}-Relays` }"
+          v-if="selected == 'eos'"
           variant="primary"
           size="sm"
           exact
@@ -39,8 +40,7 @@
           <font-awesome-icon icon="star-of-life" fixed-width class="mr-1" />
           Relays
         </b-btn>
-        <b-btn
-          v-if="selected == 'eos'"
+        <!-- <b-btn
           :to="{ name: 'eos-Create' }"
           variant="primary"
           size="sm"
@@ -50,7 +50,7 @@
         >
           <font-awesome-icon icon="plus" fixed-width class="mr-1" />
           Create
-        </b-btn>
+        </b-btn> -->
         <b-btn
           v-if="!isAuthenticated"
           :to="{ name: `${this.selected}-Wallet` }"

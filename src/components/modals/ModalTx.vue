@@ -5,7 +5,10 @@
     centered
     hide-footer
     :visible="value"
+    :hide-header-close="busy"
     @close="onClose"
+    @cancel="onCancel"
+    @hide="onHide"
   >
     <template slot="modal-title">
       {{ title }}
@@ -26,10 +29,22 @@ import * as bancorx from "@/assets/_ts/bancorx";
 export default class ModalConvertToken extends Vue {
   @Prop() title!: string;
   @Prop() value!: boolean;
+  @Prop() busy!: boolean;
 
   onClose(event: any) {
     event.preventDefault();
     this.$emit("input", false);
+  }
+
+  onCancel(event: any) {
+    event.preventDefault();
+    this.$emit("input", false);
+  }
+
+  onHide(event: any) {
+    if (this.busy) {
+      event.preventDefault();
+    }
   }
 }
 </script>
