@@ -232,7 +232,7 @@ export default class HeroConvert extends Vue {
   get isAuthenticated() {
     return (
       // @ts-ignore
-      vxm.eosTransit.isAuthenticated && vxm.eosTransit.wallet.auth.accountName
+      vxm.eosWallet.isAuthenticated && vxm.eosWallet.wallet.auth.accountName
     );
   }
 
@@ -240,7 +240,7 @@ export default class HeroConvert extends Vue {
     return (
       this.isAuthenticated &&
       // @ts-ignore
-      this.owner == vxm.eosTransit.wallet.auth.accountName
+      this.owner == vxm.eosWallet.wallet.auth.accountName
     );
   }
 
@@ -435,7 +435,7 @@ export default class HeroConvert extends Vue {
     );
     this.smartSupply = smartStats.supply.toString();
 
-    if (vxm.eosTransit.isAuthenticated) this.fetchUserBalances();
+    if (vxm.eosWallet.isAuthenticated) this.fetchUserBalances();
   }
 
   async setFee() {

@@ -30,7 +30,7 @@ export const getBalance = async (
   symbolName: string
 ): Promise<any> => {
   // @ts-ignore
-  const account = vxm.eosTransit.wallet.auth.accountName;
+  const account = vxm.eosWallet.wallet.auth.accountName;
   const tableResult = await eosRpc.get_currency_balance(
     contract,
     account,
@@ -115,7 +115,7 @@ export const getBankBalance = async (): Promise<{
   symbl: string;
 }[]> => {
   // @ts-ignore
-  const account = vxm.eosTransit.wallet.auth.accountName;
+  const account = vxm.eosWallet.wallet.auth.accountName;
   const res = await client.stateTable(
     process.env.VUE_APP_MULTICONTRACT!,
     account,

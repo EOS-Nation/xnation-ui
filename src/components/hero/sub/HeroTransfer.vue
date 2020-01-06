@@ -114,7 +114,7 @@ export default class HeroTransfer extends Vue {
   }
 
   get isAuthenticated() {
-    return vxm.eosTransit.isAuthenticated;
+    return vxm.eosWallet.isAuthenticated;
   }
 
   get focusedToken() {

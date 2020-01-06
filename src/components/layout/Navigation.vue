@@ -172,7 +172,7 @@ export default class Navigation extends Vue {
   }
 
   get loginStatus() {
-    return vxm.eosTransit.loginStatus;
+    return vxm.eosWallet.loginStatus;
   }
 
   get shortenedEthAddress() {
@@ -211,7 +211,7 @@ export default class Navigation extends Vue {
   }
 
   get isAuthenticated() {
-    return vxm.eosTransit.isAuthenticated;
+    return vxm.eosWallet.isAuthenticated;
   }
 
   createRelay() {
@@ -229,7 +229,7 @@ export default class Navigation extends Vue {
       status !== "Connecting" &&
       status !== "Fetching"
     ) {
-      vxm.eosTransit.logout();
+      vxm.eosWallet.logout();
     }
   }
 

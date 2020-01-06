@@ -104,7 +104,7 @@ export default class ModalTransferToken extends Vue {
   }
 
   get selectedProvider() {
-    return vxm.eosTransit.selectedProvider
+    return vxm.eosWallet.selectedProvider
   }
 
   closeModal() {
@@ -137,7 +137,7 @@ export default class ModalTransferToken extends Vue {
   }
 
   async convert() {
-    const wallet = vxm.eosTransit.wallet
+    const wallet = vxm.eosWallet.wallet
     if (wallet && wallet.auth)
       wallet.eosApi
         .transact(

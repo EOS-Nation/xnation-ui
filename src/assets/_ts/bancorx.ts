@@ -68,7 +68,7 @@ export async function relayBalances(from: string, to: string) {
 
   // Get Relay Balance FROM
   const balanceFrom = parseFloat(
-    await vxm.eosTransit.accessContext.eosRpc.get_currency_balance(
+    await vxm.eosWallet.accessContext.eosRpc.get_currency_balance(
       relayFrom.code,
       relayFrom.account,
       relayFrom.symbol
@@ -77,7 +77,7 @@ export async function relayBalances(from: string, to: string) {
 
   // Get Relay Balance BNT FROM
   const balanceBnt = parseFloat(
-    await vxm.eosTransit.accessContext.eosRpc.get_currency_balance(
+    await vxm.eosWallet.accessContext.eosRpc.get_currency_balance(
       relayBnt.code,
       relayFrom.account,
       relayBnt.symbol
@@ -86,7 +86,7 @@ export async function relayBalances(from: string, to: string) {
 
   // Get Relay Balance BNT TO
   const balanceBntFrom = parseFloat(
-    await vxm.eosTransit.accessContext.eosRpc.get_currency_balance(
+    await vxm.eosWallet.accessContext.eosRpc.get_currency_balance(
       relayBnt.code,
       relayTo.account,
       relayBnt.symbol
@@ -95,7 +95,7 @@ export async function relayBalances(from: string, to: string) {
 
   // Get Relay Balance TO
   const balanceTo = parseFloat(
-    await vxm.eosTransit.accessContext.eosRpc.get_currency_balance(
+    await vxm.eosWallet.accessContext.eosRpc.get_currency_balance(
       relayTo.code,
       relayTo.account,
       relayTo.symbol

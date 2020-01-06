@@ -26,18 +26,13 @@ export default class Wallet extends Vue {
   balances: any = []
   numeral = numeral
 
-  // computed
-  get wallet() {
-    return vxm.eosTransit.wallet
-  }
-
   get isAuthenticated() {
-    return vxm.eosTransit.walletState && vxm.eosTransit.walletState.authenticated
+    return vxm.eosWallet.walletState && vxm.eosWallet.walletState.authenticated
   }
 
   // methods
   logout() {
-    vxm.eosTransit.logout()
+    vxm.eosWallet.logout()
   }
 
   async getRelays() {
@@ -50,7 +45,7 @@ export default class Wallet extends Vue {
 
   async getBalances() {
     for (const relay of this.relays) {
-      await vxm.eosTransit.accessContext.eosRpc
+      await vxm.eosWallet.accessContext.eosRpc
         .get_currency_balance(relay.code, 'hodlhodlhodl')
         .then(result => {
           if (parseFloat(result[0])) {

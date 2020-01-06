@@ -213,17 +213,6 @@ export default class WalletAccount extends Vue {
   currentSort = 'value'
   currentSortDir = 'desc'
 
-  // computed
-  get wallet() {
-    return vxm.eosTransit.wallet
-  }
-
-  get isAuthenticated() {
-    if (vxm.eosTransit.walletState)
-      return vxm.eosTransit.walletState.authenticated
-    else return false
-  }
-
   get totalBalance() {
     let total = 0
     for (const balance of this.balances) {
@@ -273,64 +262,6 @@ export default class WalletAccount extends Vue {
   }
 
   async getBalancesOld() {
-    this.balances = []
-    for (const relay of this.relays) {
-      const reserve = bancorx.reserveTokens[relay.symbol]
-      await vxm.eosTransit.accessContext.eosRpc
-        .get_currency_balance(reserve.code, this.account, reserve.symbol)
-        .then(result => {
-          if (parseFloat(result[0])) {
-            const balance = parseFloat(result[0].split(' ')[0])
-            const symbol = result[0].split(' ')[1]
-            const token = this.tokens.find(
-              (t: TokenPrice) => t.code === relay.symbol
-            )
-            this.balances.push({
-              reserveToken: true,
-              name: token.name,
-              logo_url:
-                token.primaryCommunityImageName,
-              contract: relay.code,
-              symbol: symbol,
-              balance: balance,
-              price: 0,
-              c24h: 0,
-              value: 0,
-              value24hChange: 0,
-              tokenPrice: token
-            })
-          }
-        })
-        .catch(error => {
-          console.log(error)
-        })
-      await vxm.eosTransit.accessContext.eosRpc
-        .get_currency_balance(relay.code, this.account, relay.symbol)
-        .then(result => {
-          if (parseFloat(result[0])) {
-            const balance = parseFloat(result[0].split(' ')[0])
-            const symbol = result[0].split(' ')[1]
-            const token = this.tokens.find((t: TokenPrice) => t.code === symbol)
-            this.balances.push({
-              reserveToken: false,
-              name: token.name,
-              logo_url:
-                token.primaryCommunityImageName,
-              contract: relay.code,
-              symbol: symbol,
-              balance: balance,
-              price: token.price,
-              c24h: token.change24h,
-              value: balance * token.price,
-              value24hChange: ((balance * token.price) / 100) * token.change24h,
-              tokenPrice: token
-            })
-          }
-        })
-        .catch(error => {
-          console.log(error)
-        })
-    }
   }
   async getBalances() {
   

@@ -28,14 +28,10 @@ class MultiContractTx {
   triggerTx: any;
   table: TableWrapper;
 
-  constructor(
-    contractName: string,
-    getAuth: GetAuth,
-    tableApi: TableWrapper
-  ) {
+  constructor(contractName: string, getAuth: GetAuth, tableApi: TableWrapper) {
     this.contractName = contractName;
     this.getAuth = getAuth;
-    this.triggerTx = () => console.log('MultiContract needs to be updated');
+    this.triggerTx = () => console.log("MultiContract needs to be updated");
     this.table = tableApi;
   }
 
@@ -110,19 +106,19 @@ class MultiContractTx {
     ) as SemiAction;
     return this.tx([action]);
   }
-  
+
   convert(tokenContract: string, amount: Asset, memo: string) {
     const action = {
       account: tokenContract,
-      name: 'transfer',
+      name: "transfer",
       data: {
         from: this.getAuth()[0].actor,
         to: "thisisbancor",
         quantity: amount.toString(),
         memo
       }
-    }
-    return this.tx([action])
+    };
+    return this.tx([action]);
   }
 
   updateFee(symbolCode: string, percent: number): Promise<TxResponse> {
@@ -277,15 +273,15 @@ class MultiContractTx {
     return this.tx([
       {
         account: tokenContract,
-        name: 'transfer',
+        name: "transfer",
         data: {
           from: this.getAuth()[0].actor,
           to: this.contractName,
           quantity: quantity.toString(),
-          memo: 'liquidate;'
+          memo: "liquidate;"
         }
       }
-    ])
+    ]);
   }
 
   addLiquidityActions(
@@ -326,7 +322,7 @@ class MultiContractTx {
 }
 
 const getAuth: GetAuth = () => {
-  const wallet = vxm.eosTransit.wallet;
+  const wallet = vxm.eosWallet.wallet;
   return [
     {
       // @ts-ignore

@@ -2,16 +2,18 @@ import Vue from "vue";
 import Vuex from "vuex";
 
 import { general, GeneralModule } from "./modules/general";
-import { eosTransit, EosTransitModule } from "./modules/eosTransit";
+import { eosWallet, EosTransitModule } from "./modules/eosWallet";
 import { relays, RelaysModule } from "./modules/relays";
 import { eth, EthereumModule } from "./modules/eth";
+import { wallet, WalletModule } from "./modules/wallet";
 
 Vue.use(Vuex);
 
 export const store = new Vuex.Store({
   modules: {
     general,
-    eosTransit,
+    wallet,
+    eosWallet,
     relays,
     eth
   },
@@ -20,7 +22,8 @@ export const store = new Vuex.Store({
 
 export const vxm = {
   general: GeneralModule.CreateProxy(store, GeneralModule) as GeneralModule,
-  eosTransit: EosTransitModule.CreateProxy(
+  wallet: WalletModule.CreateProxy(store, WalletModule) as WalletModule,
+  eosWallet: EosTransitModule.CreateProxy(
     store,
     EosTransitModule
   ) as EosTransitModule,

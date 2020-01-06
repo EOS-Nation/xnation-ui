@@ -28,10 +28,10 @@ export default class App extends Vue {
   async created() {
     const autoLogin = localStorage.getItem("autoLogin");
     if (autoLogin) {
-      const provider = vxm.eosTransit.walletProviders.find(
+      const provider = vxm.eosWallet.walletProviders.find(
         (p: WalletProvider) => p.id === autoLogin
       );
-      if (provider) vxm.eosTransit.initLogin(provider);
+      if (provider) vxm.eosWallet.initLogin(provider);
     }
     vxm.general.setLanguage();
   }
