@@ -396,9 +396,6 @@ export default class WalletAccount extends Vue {
       left: 0,
       behavior: 'smooth'
     })
-    const tokenInfo = bancorx.getTokenInfo(symbol)
-    if (tokenInfo) vxm.liquidity.setFromToken(tokenInfo)
-    vxm.general.setHeroAction(action)
   }
 
   sort(s: string) {

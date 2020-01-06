@@ -122,7 +122,8 @@ export default class HeroTransfer extends Vue {
   }
 
   get token() {
-    return vxm.liquidity.fromToken;
+    return ''
+    // return vxm.liquidity.fromToken;
   }
 
   async loadHistory() {
@@ -176,16 +177,16 @@ export default class HeroTransfer extends Vue {
   }
 
   async loadBalance() {
-    if (this.isAuthenticated) {
-      this.loadingBalance = true;
-      const balance = await vxm.wallet.availableBalance({
-        symbol: this.token.symbol,
-        reserve: false,
-        account: this.isAuthenticated
-      });
-      this.loadingBalance = false;
-      return balance;
-    } else return "0";
+    // if (this.isAuthenticated) {
+    //   this.loadingBalance = true;
+    //   const balance = await vxm.wallet.availableBalance({
+    //     symbol: this.token.symbol,
+    //     reserve: false,
+    //     account: this.isAuthenticated
+    //   });
+    //   this.loadingBalance = false;
+    //   return balance;
+    // } else return "0";
   }
 
   get selectedSymbolOrDefault() {
