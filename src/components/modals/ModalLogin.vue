@@ -46,60 +46,60 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store/'
-import { WalletProvider } from 'eos-transit'
+import { Component, Prop, Vue } from "vue-property-decorator";
+import { vxm } from "@/store/";
+import { WalletProvider } from "eos-transit";
 
 @Component
 export default class ModalLogin extends Vue {
   // data
-  loading = false
-  error: any = false
+  loading = false;
+  error: any = false;
   // computed
   get walletProviders(): WalletProvider[] {
-    return vxm.eosTransit.walletProviders
+    return vxm.eosWallet.walletProviders;
   }
 
   get selectedProvider() {
-    return vxm.eosTransit.selectedProvider
+    return vxm.eosWallet.selectedProvider;
   }
 
   get loginStatus() {
-    return vxm.eosTransit.loginStatus
+    return vxm.eosWallet.loginStatus;
   }
 
   // methods
   async initLogin(p: WalletProvider) {
-    this.loading = true
+    this.loading = true;
     try {
-      await vxm.eosTransit.initLogin(p)
-      this.$bvModal.hide('modal-login')
+      await vxm.eosWallet.initLogin(p);
+      this.$bvModal.hide("modal-login");
     } catch (e) {
-      this.error = e
-      console.log(e)
+      this.error = e;
+      console.log(e);
     } finally {
-      this.loading = false
+      this.loading = false;
     }
   }
 
   providerLogoUrl(p: WalletProvider) {
     switch (p.id) {
-      case 'scatter':
-        return 'scatter.svg'
-      case 'ledger':
-        return 'ledger.png'
-      case 'meetone_provider':
-        return 'meetone.jpg'
-      case 'Keycat':
-        return 'keycat.svg'
-      case 'TokenPocket':
-        return 'tp.jpg'
-      case 'EOS Lynx':
-        return 'lynx.jpg'
-      case 'whalevault':
-        return 'whalevault.png'
+      case "scatter":
+        return "scatter.svg";
+      case "ledger":
+        return "ledger.png";
+      case "meetone_provider":
+        return "meetone.jpg";
+      case "Keycat":
+        return "keycat.svg";
+      case "TokenPocket":
+        return "tp.jpg";
+      case "EOS Lynx":
+        return "lynx.jpg";
+      case "whalevault":
+        return "whalevault.png";
       default:
-        return 'eos.png'
+        return "eos.png";
     }
   }
 }
