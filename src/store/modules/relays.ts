@@ -15,8 +15,8 @@ import { multiContract } from "@/api/multiContractTx";
 import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 
-import { createAsset, getTokenBalances, getEthRelays } from "@/api/helpers";
-import web3 from "web3";
+import { createAsset, getTokenBalances, getEthRelays, web3 } from "@/api/helpers";
+import { ABIConverter, ABISmartToken } from "@/api/ethConfig";
 import { rpc } from "@/api/rpc";
 import { vxm } from "@/store";
 
@@ -340,6 +340,16 @@ export class RelaysModule extends VuexModule {
     return txRes.transaction_id;
   }
 
+  @action async fundEth({
+    smartToken,
+    converterAddress,
+    smartTokenAddress,
+  }: {smartToken: string, converterAddress: string, smartTokenAddress: string }): Promise<any> {
+
+    console.log("Things won't change until we do. ")
+
+  }
+
   @action async convertEth({
     fromSymbol,
     toSymbol,
@@ -432,6 +442,9 @@ export class RelaysModule extends VuexModule {
         decimals: ethRelay.tokenDecimals,
         symbol: ethRelay.symbol,
         smartTokenSymbol: ethRelay.smartTokenSymbol,
+        converterAddress: ethRelay.converterAddress,
+        smartTokenAddress: ethRelay.smartTokenAddress,
+        tokenAddress: ethRelay.tokenAddress,
         meta: { ...ethRelay },
         // @ts-ignore
         liqDepth: ethToken.liqDepth

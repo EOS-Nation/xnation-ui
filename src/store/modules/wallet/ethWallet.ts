@@ -1,5 +1,7 @@
 import { VuexModule, mutation, action, Module } from "vuex-class-component";
 import { web3 } from "@/api/helpers";
+import { ABISmartToken } from '@/api/ethConfig';
+import { EthAddress } from '@/types/bancor';
 
 const tx = (data: any) =>
   new Promise((resolve, reject) => {
@@ -71,6 +73,12 @@ export class EthereumModule extends VuexModule {
         this.startListener();
       }
     }
+  }
+
+  @action async getBalance({ accountHolder, tokenContractAddress }: { accountHolder: EthAddress, tokenContractAddress: EthAddress }) {
+      // @ts-ignore
+      const tokenContract = new web3.eth.Contract(ABISmartToken, tokenContractAddress);
+      return tokenContract.methods.balanceOf(accountHolder).call();
   }
 
   @action async tx(params: any) {

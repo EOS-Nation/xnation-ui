@@ -91,13 +91,20 @@ import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
-import { calculateReturn, calculateFundReturn, fund } from "bancorx";
+import { calculateReturn, calculateFundReturn } from "bancorx";
 import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { tableApi } from "@/api/TableWrapper";
-import { getBalance, getBankBalance, web3 } from "@/api/helpers";
+import {
+  getBalance,
+  getBankBalance,
+  web3,
+  getBancorGasPriceLimit
+} from "@/api/helpers";
+import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
+import { toWei, toHex, fromWei } from "web3-utils";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
@@ -228,6 +235,99 @@ export default class HeroConvert extends Vue {
 
   async addLiquidity() {
     console.log("add liquidity triggered");
+    console.log(this.relay, "w as re");
+    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay;
+    console.log(converterAddress, smartTokenAddress, tokenAddress);
+
+    const maxGasPrice = await getBancorGasPriceLimit();
+    console.log({ converterAddress, smartTokenAddress });
+
+    const converterContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverter,
+      converterAddress
+    );
+    const smartTokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      smartTokenAddress
+    );
+
+    const tokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      tokenAddress
+    );
+
+    const smartTokenDecimals: string = await smartTokenContract.methods
+      .decimals()
+      .call();
+
+    const bancorTokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      BntTokenContract
+    );
+
+    const batch = new web3.BatchRequest();
+
+    const approveBancorData = bancorTokenContract.methods
+      .approve(converterAddress, toWei("0.001"))
+      .encodeABI({ from: this.isAuthenticated });
+
+    const approveTokenData = tokenContract.methods
+      .approve(converterAddress, toWei("0.001"))
+      .encodeABI({ from: this.isAuthenticated });
+
+    const fundData = converterContract.methods
+      .fund(toWei("0.001"))
+      .encodeABI({ from: this.isAuthenticated });
+
+    const approveBancor = {
+      from: this.isAuthenticated,
+      to: BntTokenContract,
+      value: "0x0",
+      data: approveBancorData,
+      gasPrice: toHex(maxGasPrice),
+      gas: toHex(85000)
+    };
+
+    const approveConnector = {
+      from: this.isAuthenticated,
+      to: tokenAddress,
+      value: "0x0",
+      data: approveTokenData,
+      gasPrice: toHex(maxGasPrice),
+      gas: toHex(85000)
+    };
+
+    const fund = {
+      from: this.isAuthenticated,
+      to: converterAddress,
+      value: "0x0",
+      data: fundData,
+      gasPrice: toHex(maxGasPrice),
+      gas: toHex(950000)
+    };
+
+    batch.add(
+      // @ts-ignore
+      web3.eth.sendTransaction.request(approveBancor, () =>
+        console.log("Approve Bancor")
+      )
+    );
+    batch.add(
+      // @ts-ignore
+      web3.eth.sendTransaction.request(approveConnector, () =>
+        console.log("Approve connector")
+      )
+    );
+    batch.add(
+      // @ts-ignore
+      web3.eth.sendTransaction.request(fund, () => console.log("Pool"))
+    );
+    console.log(batch, "is batch");
+    // batch.execute();
   }
 
   swapTokens() {
@@ -277,6 +377,31 @@ export default class HeroConvert extends Vue {
 
   async checkBankBalance() {}
 
+  async fetchUserTokenBalances() {
+    console.log('fetch user balance was triggered')
+    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay;
+
+    const getBalance = async (contractAddress: string) =>
+      vxm.ethWallet.getBalance({
+        accountHolder: this.isAuthenticated,
+        tokenContractAddress: contractAddress
+      });
+
+
+    const [bntBalance, tokenBalance, smartTokenBalance] = await Promise.all([
+      getBalance(BntTokenContract),
+      getBalance(tokenAddress),
+      getBalance(smartTokenAddress)
+    ]);
+
+    console.log({bntBalance, tokenBalance, smartTokenBalance}, 'balances received')
+  }
+
+  @Watch("focusedSymbol")
+  symbolChange(newSymbol: string) {
+    this.fetchUserTokenBalances();
+  }
+
   @Watch("isAuthenticated")
   onAuthChange(val: any) {
     if (val) {
@@ -302,7 +427,15 @@ export default class HeroConvert extends Vue {
     const few = await web3.eth.getBalance(
       "0x8a81E3058574A7c1D9A979BfC59A00E96209FdE7"
     );
-    console.log(few, 'was the balance');
+    console.log(few, "was the balance");
+    const x = await getBancorGasPriceLimit();
+    console.log(x, "was the X");
+
+    const y = await vxm.ethWallet.getBalance({
+      accountHolder: "0xaeb70953077c1eceff54b0c65b2a3c54ed7ea185",
+      tokenContractAddress: "0x960b236A07cf122663c4303350609A66A7B288C0"
+    });
+    console.log("Balance of ANT:", fromWei(y));
   }
 }
 </script>

@@ -63,6 +63,8 @@ export interface TokenDetail {
   liquidityDepth: string;
 }
 
+export type EthAddress = string;
+
 export interface CoTrade {
   tokenAddress:             string;
   symbol:                   string;
