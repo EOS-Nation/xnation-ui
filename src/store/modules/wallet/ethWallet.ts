@@ -1,15 +1,22 @@
 import { VuexModule, mutation, action, Module } from "vuex-class-component";
-import web3 from "web3";
+import { web3 } from "@/api/helpers";
 
 const tx = (data: any) =>
   new Promise((resolve, reject) => {
-    // @ts-ignore
-    const ethereum = window["ethereum"];
-    ethereum.sendAsync(data, function(err: any, result: any) {
-      if (err && err.message) {
-        reject(err)
-      } else resolve(result)
-    });
+    console.log("pumping into web3.eth.sendTransaction is...", data);
+    web3.eth
+      .sendTransaction(data)
+      .on("transactionHash", hash => {
+        console.log("returning a tx hash!", hash);
+        resolve(hash);
+      })
+      .on("receipt", (receipt: any) => {
+        console.log("receipt received", receipt);
+      })
+      .on("confirmation", (confirmationNumber: any, receipt: any) => {
+        console.log({ confirmationNumber, receipt });
+      })
+      .on("error", error => reject(error));
   });
 
 @Module({ namespacedPath: "ethWallet/" })
@@ -28,27 +35,33 @@ export class EthereumModule extends VuexModule {
     // @ts-ignore
     return window["ethereum"];
   }
-  
+
   @action async logout() {
     console.warn("Client cannot logout by itself, log out via MetaMask.");
   }
 
   @action async connect() {
     // @ts-ignore
-    if (typeof window.ethereum !== "undefined") {
-      const accounts = await this.ethereum.enable();
-      this.setLoggedInAccount(accounts[0]);
-      this.startListener();
-      return accounts[0];
-    } else {
-      throw new Error("Ethereum not found or user rejected");
-    }
+    const accounts = await web3.currentProvider.enable();
+    if (!accounts) throw new Error("Failed to find a Web3 compatible wallet.");
+    this.setLoggedInAccount(accounts[0]);
+    this.startListener();
+    return accounts[0];
   }
 
   @action async startListener() {
-    this.ethereum.on("accountsChanged", (accounts: string[]) => {
-      this.setLoggedInAccount(accounts[0]);
-    });
+    // @ts-ignore
+    web3.currentProvider.publicConfigStore.on(
+      "update",
+      (x: {
+        isUnlocked: boolean;
+        isEnabled: boolean;
+        selectedAddress: string;
+        networkVersion: string;
+        onboardingcomplete: boolean;
+        chainId: string;
+      }) => this.setLoggedInAccount(x.selectedAddress)
+    );
   }
 
   @action async checkAlreadySignedIn() {
@@ -61,11 +74,9 @@ export class EthereumModule extends VuexModule {
   }
 
   @action async tx(params: any) {
-    return tx({
-      method: "eth_sendTransaction",
-      params,
-      from: this.isAuthenticated
-    });
+    console.log("TX on eth wallet hit with", params);
+    console.log("will now be returning new promise");
+    return tx(params);
   }
 
   @action async transfer({

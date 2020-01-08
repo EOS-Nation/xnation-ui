@@ -297,6 +297,7 @@ export class RelaysModule extends VuexModule {
   }
 
   @action async triggerTx(actions: any[]) {
+    console.log('trigger tx getting hit with', actions)
     if (this.selectedNetwork == "eos") {
       return this.$store.dispatch("eosWallet/tx", actions, { root: true });
     } else {
@@ -349,12 +350,12 @@ export class RelaysModule extends VuexModule {
     const toObj = this.ethSymbolNameToApiObj(toSymbol);
 
     const fromAmountWei = web3.utils.toWei(String(fromAmount));
-
-    const minimumReturn = toAmount * 0.98;
-    const minimumReturnWei = web3.utils.toWei(String(minimumReturn));
+    const toAmountWei = web3.utils.toWei(String(toAmount));
+    const minimumReturnWei = String((Number(toAmountWei) * 0.98).toFixed(0));
 
     // @ts-ignore
     const ownerAddress = this.$store.rootGetters["ethWallet/isAuthenticated"];
+    console.log('is the owner address going out', ownerAddress)
     const convertPost = {
       fromCurrencyId: fromObj.id,
       toCurrencyId: toObj.id,
@@ -362,14 +363,16 @@ export class RelaysModule extends VuexModule {
       minimumReturn: minimumReturnWei,
       ownerAddress
     };
+    console.log({ convertPost })
     const res = await ethBancorApi.convert(convertPost);
     if (res.errorCode) {
       throw new Error(res.errorCode);
     }
     const params = res.data;
-    const txRes = await this.triggerTx(params);
+    console.log(params, 'came from the bancor API')
+    const txRes = await this.triggerTx(params[0]);
     console.log(txRes, 'was tx Res')
-    return txRes.result;
+    return txRes;
   }
 
   @mutation
@@ -415,7 +418,6 @@ export class RelaysModule extends VuexModule {
     })) : this.ethRelays.filter(ethRelay => ethRelay.connectorType == 'BNT').map(ethRelay => {
       const ethToken = this.token(ethRelay.symbol)!
       if (!ethToken) return;
-      console.log(ethRelay, 'was the ETH relay', ethToken, 'was the ETH token')
       return {
         reserves: [{
           symbol: ethToken.symbol,

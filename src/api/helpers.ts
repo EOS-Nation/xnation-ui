@@ -6,6 +6,7 @@ import { EosAccount, nRelay, TokenSymbol } from "bancorx/build/interfaces";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
 import { TokenBalances, CoTrade } from '@/types/bancor';
+import Web3 from 'web3';
 
 
 const tokenMetaDataEndpoint =
@@ -26,6 +27,33 @@ interface TraditionalStat {
   supply: Asset;
   max_supply: Asset;
 }
+
+
+// import { ABIBancorGasPriceLimit, BancorGasLimit, netId } from '../config'
+// import getWeb3ForRead from './getWeb3ForRead'
+// import { hexToNumberString } from 'web3-utils'
+
+// const getBancorGasLimit = async () => {
+//     const web3 = getWeb3ForRead(null);
+//     const contract = new web3.eth.Contract(ABIBancorGasPriceLimit, BancorGasLimit)
+//     const res = await contract.methods.gasPrice().call()
+//     const numberString = hexToNumberString(res._hex)
+//     return numberString
+// }
+
+// export default getBancorGasLimit
+export const web3 = new Web3(Web3.givenProvider || "https://api.myetherapi.com/eth");
+
+
+// export const getWeb3 = async () => {
+//   const web3 = 
+//   const x = await web3.eth.getBalance("0x8a81E3058574A7c1D9A979BfC59A00E96209FdE7")
+//   console.log(x ? "IT WORKED!" : "sad face", x);
+//   const stringForm = web3.utils.fromWei(x);
+//   console.log({ x, stringForm })
+//   return x
+// }
+
 
 export const getBalance = async (
   contract: string,

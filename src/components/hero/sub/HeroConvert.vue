@@ -335,12 +335,14 @@ export default class HeroConvert extends Vue {
       this.success = "";
       this.error = "";
 
+      console.log(this.toTokenAmount, Number(this.toTokenAmount));
       const result = await vxm.relays.convert({
         fromSymbol: this.fromTokenSymbol,
         toSymbol: this.toTokenSymbol,
         fromAmount: Number(this.fromTokenAmount),
         toAmount: Number(this.toTokenAmount)
       });
+      console.log('Promise returned of the TX', result)
 
       this.success = result;
       this.error = "";

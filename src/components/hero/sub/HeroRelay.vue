@@ -1,25 +1,12 @@
 <template>
   <hero-wrapper>
     <div>
-      <b-modal id="bv-modal-example" title="Update Fee" @ok="setFee">
-        <div class="d-block text-center">
-          <b-input-group append="%" class="mb-2 mr-sm-2 mb-sm-0">
-            <b-input
-              id="fee"
-              placeholder="2"
-              type="number"
-              v-model="newFee"
-            ></b-input>
-          </b-input-group>
-        </div>
-      </b-modal>
       <b-row>
         <b-col md="4">
           <transition name="slide-fade-down" mode="out-in">
             <token-amount-input
               :key="token1Symbol"
               @onUpdate="onTokenAmountChange(1)"
-              :status="token1Enabled"
               :amount.sync="token1Amount"
               :symbol="token1Symbol"
               :balance="displayedToken1Balance"
@@ -64,49 +51,18 @@
               >
                 <template v-slot:button-content>
                   <font-awesome-icon
-                    :icon="
-                      loadingTokens
-                        ? 'circle-notch'
-                        : !enabled
-                        ? 'play'
-                        : buttonFlipped
-                        ? 'arrow-down'
-                        : 'arrow-up'
-                    "
+                    :icon="buttonFlipped ? 'arrow-down' : 'arrow-up'"
                     :spin="loadingTokens"
                     fixed-width
                     class="mr-2"
                   />
                   <span class="font-w700">
-                    {{
-                      !enabled
-                        ? "Resume Relay"
-                        : buttonFlipped
-                        ? "Remove Liquidity"
-                        : "Add Liquidity"
-                    }}
+                    {{ buttonFlipped ? "Remove Liquidity" : "Add Liquidity" }}
                   </span>
                 </template>
-                <b-dropdown-item-button
-                  v-if="enabled"
-                  @click="buttonFlipped = !buttonFlipped"
-                >
+                <b-dropdown-item-button @click="buttonFlipped = !buttonFlipped">
                   {{ buttonFlipped ? "Add Liquidity" : "Remove Liquidity" }}
                 </b-dropdown-item-button>
-                <b-dropdown-divider
-                  v-if="isAdmin && enabled"
-                ></b-dropdown-divider>
-                <b-dropdown-item-button
-                  v-if="isAdmin"
-                  @click="$bvModal.show('bv-modal-example')"
-                  >Update Fee</b-dropdown-item-button
-                >
-                <b-dropdown-item-button
-                  v-if="isAdmin && enabled"
-                  variant="warning"
-                  @click="toggleRelay"
-                  >Pause Relay</b-dropdown-item-button
-                >
               </b-dropdown>
             </div>
           </div>
@@ -116,7 +72,6 @@
             <token-amount-input
               @onUpdate="onTokenAmountChange(2)"
               :key="token2Symbol"
-              :status="token2Enabled"
               :amount.sync="token2Amount"
               :symbol="token2Symbol"
               :balance="displayedToken2Balance"
@@ -142,12 +97,12 @@ import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { tableApi } from "@/api/TableWrapper";
-import { getBalance, getBankBalance } from "@/api/helpers";
+import { getBalance, getBankBalance, web3 } from "@/api/helpers";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
-    if (vxm.relays.relays.length == 0) {
-      await vxm.relays.fetchRelays();
+    if (vxm.relays.tokens.length == 0) {
+      await vxm.relays.init();
     }
     next();
   },
@@ -157,41 +112,60 @@ import { getBalance, getBankBalance } from "@/api/helpers";
   }
 })
 export default class HeroConvert extends Vue {
-  // data
-  ltr = true;
-  focusedSymbol = "";
   rate = "";
   rateLoading = false;
   numeral = numeral;
   spinning = false;
   loadingTokens = false;
-  newFee = "";
   token1Amount = "";
   token2Amount = "";
-  token1Symbol = "";
   token1Balance = "";
-  token1Enabled = false;
   token2Balance = "";
   token1Contract = "";
   token1UserBalance = "";
-  token2Symbol = "";
   token2Contract = "";
   token2UserBalance = "";
-  token1Precision = 0;
-  token2Precision = 0;
-  token2Enabled = false;
   smartSupply = "";
   smartUserBalance = "";
-  enabled = false;
-  owner = "";
-  fee = "";
   buttonFlipped = false;
-  token1Img =
-    "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
-  token2Img =
-    "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png";
+  flipped = false;
 
-  // computed
+  get owner() {
+    return this.relay.owner;
+  }
+
+  get token1Img() {
+    return this.token1!.logo;
+  }
+
+  get token2Img() {
+    return this.token2!.logo;
+  }
+
+  get token1Symbol() {
+    return this.token1.symbol;
+  }
+
+  get token2Symbol() {
+    return this.token2.symbol;
+  }
+
+  get token1() {
+    return vxm.relays.token(this.relay.reserves[this.flipped ? 1 : 0].symbol)!;
+  }
+
+  get token2() {
+    return vxm.relays.token(this.relay.reserves[this.flipped ? 0 : 1].symbol)!;
+  }
+
+  get relay() {
+    return vxm.relays.relay(this.focusedSymbol);
+  }
+
+  get fee() {
+    return this.relay.fee;
+  }
+
   get displayedToken1Balance() {
     return this.buttonFlipped
       ? this.token1SmartBalance
@@ -205,43 +179,19 @@ export default class HeroConvert extends Vue {
   }
 
   get token1SmartBalance() {
-    const smartUserBalance = split(this.smartUserBalance);
-    const smartSupply = split(this.smartSupply);
-    const percent = smartUserBalance.amount / smartSupply.amount;
-    const token1Balance = split(this.token1Balance);
-    const maxWithdraw = token1Balance.toNumber() * percent;
-
-    return new Asset(
-      maxWithdraw * Math.pow(10, smartUserBalance.symbol.precision),
-      smartUserBalance.symbol
-    ).toString();
+    return "Burt";
   }
 
   get token2SmartBalance() {
-    const smartUserBalance = split(this.smartUserBalance);
-    const smartSupply = split(this.smartSupply);
-    const percent = smartUserBalance.amount / smartSupply.amount;
-    const token2Balance = split(this.token2Balance);
-    const maxWithdraw = token2Balance.toNumber() * percent;
-    return new Asset(
-      maxWithdraw * Math.pow(10, smartUserBalance.symbol.precision),
-      smartUserBalance.symbol
-    ).toString();
+    return "Bart";
   }
 
   get isAuthenticated() {
-    return (
-      // @ts-ignore
-      vxm.eosWallet.isAuthenticated && vxm.eosWallet.wallet.auth.accountName
-    );
+    return vxm.wallet.isAuthenticated;
   }
 
   get isAdmin() {
-    return (
-      this.isAuthenticated &&
-      // @ts-ignore
-      this.owner == vxm.eosWallet.wallet.auth.accountName
-    );
+    return this.owner == this.isAuthenticated;
   }
 
   get simpleReward() {
@@ -257,152 +207,31 @@ export default class HeroConvert extends Vue {
     return `${reward.toNumber().toFixed(4)} ${reward.symbol.code()}`;
   }
 
-  async toggleRelay() {
-    try {
-      await multiContract.enableConversion(this.focusedSymbol, !this.enabled);
-      this.enabled = !this.enabled;
-      await wait(700);
-      this.fetchRelay();
-    } catch (e) {}
-  }
+  async toggleRelay() {}
 
   async onTokenAmountChange(selectedToken: number) {
     this.rateLoading = true;
     const isToken1 = selectedToken == 1;
-    const [token, bnt] = await tableApi.getReservesMulti(this.focusedSymbol);
-
-    const suggestedDeposit = isToken1
-      ? new Asset(
-          Number(this.token1Amount) * Math.pow(10, this.token1Precision),
-          new Symbol(this.token1Symbol, this.token1Precision)
-        )
-      : new Asset(
-          Number(this.token2Amount) * Math.pow(10, this.token2Precision),
-          new Symbol(this.token2Symbol, this.token2Precision)
-        );
-
-    const percentageIncrease =
-      suggestedDeposit.toNumber() /
-      (isToken1 ? token.balance.toNumber() : bnt.balance.toNumber());
-
-    const number = isToken1 ? bnt.balance.toNumber() : token.balance.toNumber();
-    const result = number * percentageIncrease;
-    const newAsset = new Asset(
-      result *
-        Math.pow(
-          10,
-          isToken1
-            ? bnt.balance.symbol.precision
-            : token.balance.symbol.precision
-        ),
-      isToken1 ? bnt.balance.symbol : token.balance.symbol
-    );
-
-    this.rateLoading = false;
-    this[isToken1 ? "token2Amount" : "token1Amount"] = String(
-      newAsset.toNumber().toFixed(newAsset.symbol.precision)
-    );
   }
 
   async toggleMain() {
-    if (this.enabled) {
-      if (this.buttonFlipped) {
-        this.removeLiquidity();
-      } else {
-        this.addLiquidity();
-      }
+    if (this.buttonFlipped) {
+      this.removeLiquidity();
     } else {
-      this.toggleRelay();
+      this.addLiquidity();
     }
   }
 
   async removeLiquidity() {
-    const userBalance = split(
-      await getBalance(
-        process.env.VUE_APP_SMARTTOKENCONTRACT!,
-        this.focusedSymbol
-      )
-    );
-
-    const amountRequested = new Asset(
-      Number(this.token1Amount) * Math.pow(10, this.token1Precision),
-      new Symbol(this.token1Symbol, this.token1Precision)
-    );
-    const smartSupply = split(this.smartSupply);
-
-    const percentageRequested = amountRequested
-      .toDecimal()
-      .div(smartSupply.toDecimal());
-    const entitledAmount = percentageRequested.times(smartSupply.toDecimal());
-    const entitledAsset = new Asset(
-      entitledAmount.toNumber() * Math.pow(10, smartSupply.symbol.precision),
-      smartSupply.symbol
-    );
-
-    await multiContract.removeLiquidity(
-      entitledAsset,
-      process.env.VUE_APP_SMARTTOKENCONTRACT!
-    );
+    console.log("remove liquidity");
   }
 
   async addLiquidity() {
-    const token1NumberAmount =
-      Math.pow(10, this.token1Precision) * Number(this.token1Amount);
-    const token1Asset = new Asset(
-      token1NumberAmount,
-      new Symbol(this.token1Symbol, this.token1Precision)
-    );
-    const token2NumberAmount =
-      Math.pow(10, this.token2Precision) * Number(this.token2Amount);
-    const token2Asset = new Asset(
-      token2NumberAmount,
-      new Symbol(this.token2Symbol, this.token2Precision)
-    );
-
-    const tokens = [
-      {
-        contract: this.token1Contract,
-        amount: token1Asset
-      },
-      {
-        contract: this.token2Contract,
-        amount: token2Asset
-      }
-    ];
-
-    const buyingAmount = token1Asset;
-    const token1Balance = split(this.token1Balance);
-    const percent = buyingAmount.toNumber() / token1Balance.toNumber();
-
-    const smartSupply = split(this.smartSupply);
-
-    const returns = tokens.map(({ amount }, index) => {
-      const tokenBalance = split(
-        index == 0 ? this.token1Balance : this.token2Balance
-      );
-      const result = calculateFundReturn(amount, tokenBalance, smartSupply);
-      return result;
-    });
-    const lowestReturn = returns.reduce((acc, val) =>
-      val.amount <= acc.amount ? val : acc
-    );
-
-    try {
-      await multiContract.addLiquidity(this.focusedSymbol, tokens);
-      await multiContract.fund(lowestReturn.toString());
-      await wait(700);
-      this.fetchRelay();
-    } catch (e) {
-      console.warn("Error creating transaction", e);
-    }
+    console.log("add liquidity triggered");
   }
 
-  // methods
   swapTokens() {
-    this.spinning = true;
-    setTimeout(() => {
-      this.spinning = false;
-    }, 1000);
+    this.flipped = !this.flipped;
   }
 
   async fetchRelay() {
@@ -414,20 +243,9 @@ export default class HeroConvert extends Vue {
 
     const [token1, token2] = relay.reserves;
     this.token1Contract = token1.contract;
-    this.token1Symbol = token1.symbol;
-    this.token1Precision = token1.precision;
     this.token1Balance = token1.balance;
-    this.token1Enabled = token1.sale_enabled;
-    this.token2Enabled = token2.sale_enabled;
     this.token2Balance = token2.balance;
     this.token2Contract = token2.contract;
-    this.token2Symbol = token2.symbol;
-    this.token2Precision = token2.precision;
-    this.fee = String(relay.settings.fee / 10000);
-    this.owner = relay.settings.owner;
-    this.enabled = relay.settings.enabled;
-    this.token1Img = token1.logo;
-    this.token2Img = token2.logo;
 
     const smartStats = await fetchTokenStats(
       process.env.VUE_APP_SMARTTOKENCONTRACT!,
@@ -436,18 +254,6 @@ export default class HeroConvert extends Vue {
     this.smartSupply = smartStats.supply.toString();
 
     if (vxm.eosWallet.isAuthenticated) this.fetchUserBalances();
-  }
-
-  async setFee() {
-    try {
-      await multiContract.updateFee(
-        this.focusedSymbol,
-        Number(this.newFee) / 100
-      );
-      this.fee = this.newFee;
-      await wait(1200);
-      this.fetchRelay();
-    } catch (e) {}
   }
 
   async fetchUserBalances() {
@@ -462,21 +268,14 @@ export default class HeroConvert extends Vue {
   }
 
   get defaultFocusedSymbol() {
-    return ''
-    // return vxm.relays.relays[0].settings.symbolName;
+    return vxm.relays.relays[0].symbol;
   }
 
-  async checkBankBalance() {
-    // if (this.isAuthenticated) {
-    //   const balances = await getBankBalance();
-    //   balances
-    //     .reverse()
-    //     .forEach(
-    //       async ({ quantity, symbl }) =>
-    //         // await multiContract.withdraw(symbl, split(quantity))
-    //     );
-    // }
+  get focusedSymbol() {
+    return this.$route.params.account || this.defaultFocusedSymbol;
   }
+
+  async checkBankBalance() {}
 
   @Watch("isAuthenticated")
   onAuthChange(val: any) {
@@ -493,12 +292,17 @@ export default class HeroConvert extends Vue {
 
   @Watch("$route")
   listen(to: any) {
-    this.focusedSymbol = to.params.account || this.defaultFocusedSymbol;
+    console.log(
+      "router is offering",
+      to.params.account || this.defaultFocusedSymbol
+    );
   }
 
   async created() {
-    this.focusedSymbol =
-      this.$route.params.account || this.defaultFocusedSymbol;
+    const few = await web3.eth.getBalance(
+      "0x8a81E3058574A7c1D9A979BfC59A00E96209FdE7"
+    );
+    console.log(few, 'was the balance');
   }
 }
 </script>

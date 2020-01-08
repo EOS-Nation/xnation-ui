@@ -88,9 +88,7 @@
                 <td class="text-right font-w700">
                   {{ numeral(token.liqDepth).format("$0,0.00") }}
                 </td>
-                <td class="text-right font-w700">
-                  {{ token.fee }}%
-                </td>
+                <td class="text-right font-w700">{{ token.fee }}%</td>
                 <td class="text-right">
                   <b-btn
                     @click="goToRelay(token.symbol)"
@@ -137,7 +135,6 @@ const debounce = require("lodash.debounce");
   }
 })
 export default class Relays extends Vue {
-
   numeral = numeral;
   private tokenSearch: String = "";
   private searchOptions = {
@@ -156,27 +153,22 @@ export default class Relays extends Vue {
   private currentSort = "v24h";
   private currentSortDir = "desc";
 
-
   // computed
 
   shortenEthAddress(ethAddress: string) {
     return ethAddress.length > 13
       ? ethAddress.substring(0, 4) +
           "..." +
-          ethAddress.substring(
-            ethAddress.length - 6,
-            ethAddress.length
-          )
+          ethAddress.substring(ethAddress.length - 6, ethAddress.length)
       : ethAddress;
-
   }
 
   get searchedTokens() {
-    return this.searchResults.length > 0 ? this.searchResults : this.tokens
+    return this.searchResults.length > 0 ? this.searchResults : this.tokens;
   }
 
   get tokens() {
-    console.log(vxm.relays.relays, 'are the tokens inbound')
+    console.log(vxm.relays.relays, "are the tokens inbound");
     return vxm.relays.relays;
   }
 
