@@ -31,7 +31,7 @@
         </b-btn>
         <b-btn
           :to="{ name: `${this.selected}-Relays` }"
-          v-if="selected == 'eos'"
+          v-if="selected == 'eth'"
           variant="primary"
           size="sm"
           exact

@@ -2,7 +2,7 @@
   <!-- Tokens Table -->
   <div class="block">
     <div class="block-header">
-      <h3 class="block-title">All Tokens <small> - EOS</small></h3>
+      <h3 class="block-title">All Tokens <small> - {{ name }}</small></h3>
       <div class="block-options">
         <!-- <b-input-group size="sm">
           <b-input-group-text
@@ -174,7 +174,6 @@
       </div>
     </div>
   </div>
-  <!-- END Tokens Table -->
 </template>
 
 <script lang="ts">
@@ -215,6 +214,7 @@ export default class TokensTable extends Vue {
 
   @Prop() tokens!: SimpleToken[] | SimpleTokenWithMarketData[];
   @Prop() value!: string;
+  @Prop() name!: string;
 
   // data
   numeral = numeral;

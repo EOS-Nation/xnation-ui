@@ -3,6 +3,7 @@
     <div class="d-none d-md-block content content-boxed">
       <tokens-table
         :loading="false"
+        :name="name"
         :tokens="filteredTokens"
         @convert="onConvert"
         @transfer="onTransfer"
@@ -38,6 +39,14 @@ export default class Token extends Vue {
         )
       : vxm.relays.tokens;
   }
+
+  get network() {
+    return this.$route.fullPath.split('/')[1]
+  }
+
+  get name() {
+    return this.network.toUpperCase()
+  } 
 
   @Watch("searchTerm")
   change(newSearch: string) {

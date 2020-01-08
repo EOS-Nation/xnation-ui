@@ -114,7 +114,6 @@
         </div>
       </div>
     </div>
-    <!-- END Page Content -->
   </div>
 </template>
 
@@ -138,9 +137,7 @@ const debounce = require("lodash.debounce");
   }
 })
 export default class Relays extends Vue {
-  // props
 
-  // data
   numeral = numeral;
   private tokenSearch: String = "";
   private searchOptions = {
