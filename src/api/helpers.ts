@@ -5,7 +5,7 @@ import { Asset, split, Symbol } from "eos-common";
 import { EosAccount, nRelay, TokenSymbol } from "bancorx/build/interfaces";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
-import { TokenBalances } from '@/types/bancor';
+import { TokenBalances, CoTrade } from '@/types/bancor';
 
 
 const tokenMetaDataEndpoint =
@@ -79,6 +79,11 @@ let shouldDownload = true;
 export const getTokenBalances = async(accountName: string): Promise<TokenBalances> => {
   const res = await axios.get(`http://mainnet.eosn.io/v2/state/get_tokens?account=${accountName}`);
   return res.data;
+}
+
+export const getEthRelays = async(): Promise<CoTrade[]> => {
+  const res = await axios.get('https://api-bancor.cotrader.com/official');
+  return res.data.result;
 }
 
 

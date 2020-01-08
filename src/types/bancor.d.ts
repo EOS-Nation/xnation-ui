@@ -63,6 +63,29 @@ export interface TokenDetail {
   liquidityDepth: string;
 }
 
+export interface CoTrade {
+  tokenAddress:             string;
+  symbol:                   string;
+  smartTokenSymbol:         string;
+  converterAddress:         string;
+  smartTokenAddress:        string;
+  owner:                    string;
+  isOfficial:               number;
+  isCoTraderVerified:       number;
+  isBlacklisted:            number;
+  connectorType:            string;
+  smartTokenSupply:         string;
+  connectorBancorReserve:   string;
+  connectorOriginalReserve: string;
+  smartTokenInETH:          null;
+  smartTokeninUSD:          null;
+  tokenDecimals:            number;
+  conversionFee:            string;
+  converterVersion:         string;
+}
+
+
+
 export interface Detail {
   blockchain: Blockchain;
   blockchainId: string;

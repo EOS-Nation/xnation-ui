@@ -462,7 +462,8 @@ export default class HeroConvert extends Vue {
   }
 
   get defaultFocusedSymbol() {
-    return vxm.relays.relays[0].settings.symbolName;
+    return ''
+    // return vxm.relays.relays[0].settings.symbolName;
   }
 
   async checkBankBalance() {

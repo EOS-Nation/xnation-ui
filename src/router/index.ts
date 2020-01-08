@@ -7,7 +7,6 @@ import Relays from "@/views/Relays.vue";
 import HeroConvert from "@/components/hero/sub/HeroConvert.vue";
 import HeroTransfer from "@/components/hero/sub/HeroTransfer.vue";
 import HeroRelay from "@/components/hero/sub/HeroRelay.vue";
-import HeroCreate from "@/components/hero/sub/HeroCreate.vue";
 import Navigation from "@/components/layout/Navigation.vue";
 import { vxm } from "@/store/";
 
@@ -122,15 +121,6 @@ export const router = new Router({
       redirect: "/eos"
     },
     ...builtRoutes,
-    {
-      path: "/eos/relays/create",
-      name: "eos-Create",
-      components: {
-        Nav: Navigation,
-        default: Relays,
-        Hero: HeroCreate
-      }
-    }
   ]
 });
 

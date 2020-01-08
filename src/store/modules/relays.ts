@@ -10,12 +10,12 @@ import { client } from "@/api/dFuse";
 import { calculateCost } from "bancorx";
 import axios from "axios";
 import { bancorApi, ethBancorApi } from "@/api/bancor";
-import { SimpleToken, SimpleTokenWithMarketData } from "@/types/bancor";
+import { SimpleToken, SimpleTokenWithMarketData, CoTrade } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
 import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 
-import { createAsset, getTokenBalances } from "@/api/helpers";
+import { createAsset, getTokenBalances, getEthRelays } from "@/api/helpers";
 import web3 from "web3";
 import { rpc } from "@/api/rpc";
 import { vxm } from "@/store";
@@ -85,8 +85,10 @@ export class RelaysModule extends VuexModule {
   ethTokensList: any = [];
   eosTokensList: any = [];
   usdValueOfEth: number = 0;
+  ethRelays: CoTrade[] = [];
 
   @action async init() {
+    console.log('init called!!')
     if (this.initComplete) {
       console.log("Init already called");
     }
@@ -139,8 +141,10 @@ export class RelaysModule extends VuexModule {
   }
 
   @action async initEth() {
-    const tokens = await ethBancorApi.getTokens();
+    const [tokens, relays] = await Promise.all([ethBancorApi.getTokens(), getEthRelays()])
     this.ethTokensList = tokens;
+    this.ethRelays = relays;
+    console.log(relays, 'was eth relays')
   }
 
   @mutation
@@ -388,12 +392,12 @@ export class RelaysModule extends VuexModule {
   }
 
   get relay() {
-    return (symbolName: string) =>
-      this.relays.find(relay => relay.settings.symbolName == symbolName);
+    return (symbolName: string) => 
+      this.relays.find((relay: any) => relay.symbol == symbolName)
   }
 
-  get relays() {
-    return this.relaysList.map(relay => ({
+  get relays(): any {
+    return this.network == 'eos' ? this.relaysList.map(relay => ({
       ...relay,
       liqDepth: this.usdPrice * Number(relay.reserves[1].balance.split(" ")[0]),
       reserves: relay.reserves.map(reserve => ({
@@ -408,7 +412,29 @@ export class RelaysModule extends VuexModule {
         ...relay.settings,
         symbolName: relay.settings.currency.split(",")[1]
       }
-    }));
+    })) : this.ethRelays.filter(ethRelay => ethRelay.connectorType == 'BNT').map(ethRelay => {
+      const ethToken = this.token(ethRelay.symbol)!
+      if (!ethToken) return;
+      console.log(ethRelay, 'was the ETH relay', ethToken, 'was the ETH token')
+      return {
+        reserves: [{
+          symbol: ethToken.symbol,
+          logo: ethToken.logo
+        },
+        {
+          symbol: ethRelay.connectorType,
+          logo: this.token(ethRelay.connectorType)!.logo
+        }],
+        owner: ethRelay.owner,
+        fee: ethRelay.conversionFee,
+        decimals: ethRelay.tokenDecimals,
+        symbol: ethRelay.symbol,
+        smartTokenSymbol: ethRelay.smartTokenSymbol,
+        meta: { ...ethRelay },
+        // @ts-ignore
+        liqDepth: ethToken.liqDepth
+      }
+    }).filter(relay => !!relay)
   }
 
   get ethSymbolNameToApiObj() {

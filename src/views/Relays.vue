@@ -4,7 +4,7 @@
       <div class="block">
         <div class="block-header">
           <h3 class="block-title">
-            EOS
+            ETH
             <small>Relays</small>
           </h3>
           <div class="block-options">
@@ -78,22 +78,22 @@
                 </td>
                 <td>
                   <span class="text-muted font-size-sm">
-                    {{ token.settings.currency.split(",")[1] }}
+                    {{ token.smartTokenSymbol }}
                   </span>
                 </td>
                 <td class="text-center font-w700">
-                  {{ token.settings.owner }}
+                  {{ shortenEthAddress(token.owner) }}
                 </td>
                 <td class="text-center font-w700">50 - 50</td>
                 <td class="text-right font-w700">
                   {{ numeral(token.liqDepth).format("$0,0.00") }}
                 </td>
                 <td class="text-right font-w700">
-                  {{ token.settings.fee / 1000000 }}%
+                  {{ token.fee }}%
                 </td>
                 <td class="text-right">
                   <b-btn
-                    @click="goToRelay(token.settings.currency.split(',')[1])"
+                    @click="goToRelay(token.symbol)"
                     size="sm"
                     variant="success"
                     class="mr-1"
@@ -159,11 +159,24 @@ export default class Relays extends Vue {
 
   // computed
 
+  shortenEthAddress(ethAddress: string) {
+    return ethAddress.length > 13
+      ? ethAddress.substring(0, 4) +
+          "..." +
+          ethAddress.substring(
+            ethAddress.length - 6,
+            ethAddress.length
+          )
+      : ethAddress;
+
+  }
+
   get searchedTokens() {
     return this.searchResults.length > 0 ? this.searchResults : this.tokens
   }
 
   get tokens() {
+    console.log(vxm.relays.relays, 'are the tokens inbound')
     return vxm.relays.relays;
   }
 
