@@ -22,7 +22,7 @@
           <div>
             <transition name="fade" mode="out-in">
               <font-awesome-icon
-                icon="exchange-alt"
+                :icon="buttonFlipped ? 'minus' : 'plus'"
                 class="fa-2x text-white cursor"
                 :spin="spinning"
                 @click="swapTokens"
