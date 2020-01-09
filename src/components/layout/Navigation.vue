@@ -37,8 +37,8 @@
           exact
           class="mr-2"
         >
-          <font-awesome-icon icon="star-of-life" fixed-width class="mr-1" />
-          Relays
+          <font-awesome-icon icon="swimming-pool" fixed-width class="mr-1" />
+          Pools
         </b-btn>
         <!-- <b-btn
           :to="{ name: 'eos-Create' }"

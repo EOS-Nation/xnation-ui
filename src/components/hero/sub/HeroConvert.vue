@@ -243,7 +243,7 @@ export default class HeroConvert extends Vue {
   }
 
   get defaultSymbolName() {
-    return vxm.relays.tokens.find(token => token.symbol !== "BNT")!.symbol;
+    return vxm.relays.ethRelays[0].symbol;
   }
 
   get fromTokenSymbol() {

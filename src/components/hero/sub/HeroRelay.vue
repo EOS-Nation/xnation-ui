@@ -37,7 +37,7 @@
                 </span>
                 {{ simpleReward }}
               </div>
-              <div class="text-white font-size-sm">Fee: {{ fee }} %</div>
+              <!-- <div class="text-white font-size-sm">Fee: {{ fee }} %</div> -->
             </div>
             <div class="d-flex justify-content-center">
               <b-dropdown

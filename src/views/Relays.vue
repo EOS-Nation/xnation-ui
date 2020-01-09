@@ -5,7 +5,7 @@
         <div class="block-header">
           <h3 class="block-title">
             ETH
-            <small>Relays</small>
+            <small>Pools</small>
           </h3>
           <div class="block-options">
             <b-form-input
