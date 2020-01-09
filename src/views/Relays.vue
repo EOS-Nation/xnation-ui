@@ -91,7 +91,7 @@
                 <td class="text-right font-w700">{{ token.fee }}%</td>
                 <td class="text-right">
                   <b-btn
-                    @click="goToRelay(token.symbol)"
+                    @click="goToRelay(token.smartTokenSymbol)"
                     size="sm"
                     variant="success"
                     class="mr-1"
@@ -99,7 +99,7 @@
                     <font-awesome-icon icon="exchange-alt" />
                   </b-btn>
                   <b-btn
-                    @click="initAction('transfer', token.symbol)"
+                    @click="initAction('transfer', token.smartTokenSymbol)"
                     size="sm"
                     variant="info"
                   >

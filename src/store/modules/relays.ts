@@ -406,7 +406,7 @@ export class RelaysModule extends VuexModule {
 
   get relay() {
     return (symbolName: string) => 
-      this.relays.find((relay: any) => relay.symbol == symbolName)
+      this.relays.find((relay: any) => relay.smartTokenSymbol == symbolName)
   }
 
   get relays(): any {

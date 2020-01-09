@@ -129,11 +129,11 @@ export default class HeroConvert extends Vue {
   token1Balance = "";
   token2Balance = "";
   token1Contract = "";
-  token1UserBalance = "";
   token2Contract = "";
+  token1UserBalance = "";
   token2UserBalance = "";
-  smartSupply = "";
   smartUserBalance = "";
+  smartSupply = "";
   buttonFlipped = false;
   flipped = false;
 
@@ -334,39 +334,6 @@ export default class HeroConvert extends Vue {
     this.flipped = !this.flipped;
   }
 
-  async fetchRelay() {
-    const symbolName = this.focusedSymbol;
-    const relay = vxm.relays.relay(symbolName);
-    if (!relay) {
-      throw new Error(`Failed to find relay ${symbolName} in Relays module.`);
-    }
-
-    const [token1, token2] = relay.reserves;
-    this.token1Contract = token1.contract;
-    this.token1Balance = token1.balance;
-    this.token2Balance = token2.balance;
-    this.token2Contract = token2.contract;
-
-    const smartStats = await fetchTokenStats(
-      process.env.VUE_APP_SMARTTOKENCONTRACT!,
-      this.focusedSymbol
-    );
-    this.smartSupply = smartStats.supply.toString();
-
-    if (vxm.eosWallet.isAuthenticated) this.fetchUserBalances();
-  }
-
-  async fetchUserBalances() {
-    const [token1Balance, token2Balance, smartUserBalance] = await Promise.all([
-      getBalance(this.token1Contract, this.token1Symbol),
-      getBalance(this.token2Contract, this.token2Symbol),
-      getBalance(process.env.VUE_APP_SMARTTOKENCONTRACT!, this.focusedSymbol)
-    ]);
-    this.token1UserBalance = token1Balance;
-    this.token2UserBalance = token2Balance;
-    this.smartUserBalance = smartUserBalance;
-  }
-
   get defaultFocusedSymbol() {
     return vxm.relays.relays[0].symbol;
   }
@@ -378,7 +345,7 @@ export default class HeroConvert extends Vue {
   async checkBankBalance() {}
 
   async fetchUserTokenBalances() {
-    console.log('fetch user balance was triggered')
+    if (!this.isAuthenticated) return;
     const { converterAddress, smartTokenAddress, tokenAddress } = this.relay;
 
     const getBalance = async (contractAddress: string) =>
@@ -387,14 +354,15 @@ export default class HeroConvert extends Vue {
         tokenContractAddress: contractAddress
       });
 
-
     const [bntBalance, tokenBalance, smartTokenBalance] = await Promise.all([
       getBalance(BntTokenContract),
       getBalance(tokenAddress),
       getBalance(smartTokenAddress)
     ]);
 
-    console.log({bntBalance, tokenBalance, smartTokenBalance}, 'balances received')
+    this.token1UserBalance = tokenBalance;
+    this.token2UserBalance = bntBalance;
+    this.smartUserBalance = smartTokenBalance;
   }
 
   @Watch("focusedSymbol")
@@ -405,14 +373,9 @@ export default class HeroConvert extends Vue {
   @Watch("isAuthenticated")
   onAuthChange(val: any) {
     if (val) {
-      this.fetchUserBalances();
+      this.fetchUserTokenBalances();
       this.checkBankBalance();
     }
-  }
-
-  @Watch("focusedSymbol")
-  onSymbolChange() {
-    this.fetchRelay();
   }
 
   @Watch("$route")
@@ -430,12 +393,6 @@ export default class HeroConvert extends Vue {
     console.log(few, "was the balance");
     const x = await getBancorGasPriceLimit();
     console.log(x, "was the X");
-
-    const y = await vxm.ethWallet.getBalance({
-      accountHolder: "0xaeb70953077c1eceff54b0c65b2a3c54ed7ea185",
-      tokenContractAddress: "0x960b236A07cf122663c4303350609A66A7B288C0"
-    });
-    console.log("Balance of ANT:", fromWei(y));
   }
 }
 </script>

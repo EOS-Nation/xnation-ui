@@ -151,6 +151,8 @@ import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
+import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
+
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
@@ -471,6 +473,35 @@ export default class HeroConvert extends Vue {
     this.loadSimpleRewards();
   }
 
+  @Watch("selectedSymbolOrDefault")
+  newSymbol(symbol: string) {
+    this.fetchUserTokenBalances()
+  }
+
+  
+  get relay() {
+    return vxm.relays.relay(this.selectedSymbolOrDefault);
+  }
+
+  async fetchUserTokenBalances() {
+    if (!this.isAuthenticated) return;
+    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay;
+
+    const getBalance = async (contractAddress: string) =>
+      vxm.ethWallet.getBalance({
+        accountHolder: this.isAuthenticated,
+        tokenContractAddress: contractAddress
+      });
+
+    const [bntBalance, tokenBalance] = await Promise.all([
+      getBalance(BntTokenContract),
+      getBalance(tokenAddress),
+    ]);
+
+    this.token1Balance = tokenBalance;
+    this.token2Balance = bntBalance;
+  }
+
   async loadSimpleRewards() {
     this.loading = true;
 
@@ -495,6 +526,7 @@ export default class HeroConvert extends Vue {
   async created() {
     this.fromTokenSymbol = this.selectedSymbolOrDefault;
     this.loadSimpleRewards();
+    this.fetchUserTokenBalances()
   }
 }
 </script>

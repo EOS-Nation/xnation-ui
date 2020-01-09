@@ -1,7 +1,8 @@
 import { VuexModule, mutation, action, Module } from "vuex-class-component";
 import { web3 } from "@/api/helpers";
-import { ABISmartToken } from '@/api/ethConfig';
-import { EthAddress } from '@/types/bancor';
+import { ABISmartToken } from "@/api/ethConfig";
+import { EthAddress } from "@/types/bancor";
+import { fromWei } from "web3-utils";
 
 const tx = (data: any) =>
   new Promise((resolve, reject) => {
@@ -75,10 +76,23 @@ export class EthereumModule extends VuexModule {
     }
   }
 
-  @action async getBalance({ accountHolder, tokenContractAddress }: { accountHolder: EthAddress, tokenContractAddress: EthAddress }) {
+  @action async getBalance({
+    accountHolder,
+    tokenContractAddress
+  }: {
+    accountHolder: EthAddress;
+    tokenContractAddress: EthAddress;
+  }) {
+    const tokenContract = new web3.eth.Contract(
       // @ts-ignore
-      const tokenContract = new web3.eth.Contract(ABISmartToken, tokenContractAddress);
-      return tokenContract.methods.balanceOf(accountHolder).call();
+      ABISmartToken,
+      tokenContractAddress
+    );
+    const weiBalance = await tokenContract.methods
+      .balanceOf(accountHolder)
+      .call();
+    console.log({ weiBalance });
+    return fromWei(weiBalance);
   }
 
   @action async tx(params: any) {
