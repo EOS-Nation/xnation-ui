@@ -64,12 +64,15 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(token, index) in tokens" :key="index">
+              <tr
+                v-for="(token, index) in tokens"
+                :key="token.smartTokenSymbol"
+              >
                 <td class="text-center" v-text="index + 1"></td>
                 <td class="text-left font-w700" style="width: 180px">
                   <img
-                    v-for="reserve in token.reserves"
-                    :key="reserve.symbol"
+                    v-for="(reserve, index) in token.reserves"
+                    :key="index"
                     class="img-avatar img-avatar-thumb img-avatar32 mr-3"
                     :src="reserve.logo"
                     :alt="`${reserve.symbol} Token Logo`"
