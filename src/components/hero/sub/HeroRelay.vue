@@ -88,7 +88,7 @@
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
-import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
+import { fetchTokenMeta, fetchTokenStats, Wei } from "@/api/helpers";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
 import { calculateReturn, calculateFundReturn } from "bancorx";
@@ -105,6 +105,9 @@ import {
 } from "@/api/helpers";
 import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 import { toWei, toHex, fromWei } from "web3-utils";
+import { Ether } from "@/api/helpers";
+import Decimal from "decimal.js";
+import debounce from "lodash.debounce";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
@@ -136,6 +139,7 @@ export default class HeroConvert extends Vue {
   smartSupply = "";
   buttonFlipped = false;
   flipped = false;
+  fundReward = "";
 
   get owner() {
     return this.relay.owner;
@@ -216,9 +220,176 @@ export default class HeroConvert extends Vue {
 
   async toggleRelay() {}
 
-  async onTokenAmountChange(selectedToken: number) {
+  async getReserveCount(
+    converterContract: any,
+    versionNumber: number | string
+  ): Promise<number> {
+    try {
+      if (Number(versionNumber) >= 17) {
+        const tokenCount = await converterContract.methods
+          .reserveTokenCount()
+          .call();
+        return Number(tokenCount);
+      } else {
+        const connectorCount = await converterContract.methods
+          .connectorTokenCount()
+          .call();
+        return Number(connectorCount);
+      }
+    } catch (e) {
+      throw new Error("Failed getting reserve count" + e);
+    }
+  }
+
+  async fetchReserveBalance(
+    converterContract: any,
+    reserveTokenAddress: string,
+    versionNumber: number | string
+  ): Promise<string> {
+    try {
+      return converterContract.methods[
+        Number(versionNumber) >= 17
+          ? "getReserveBalance"
+          : "getConnectorBalance"
+      ](reserveTokenAddress).call();
+    } catch (e) {
+      throw new Error("Failed getting reserve balance" + e);
+    }
+  }
+
+  async fetchRelayBalances() {
+    const {
+      converterAddress,
+      meta,
+      tokenAddress,
+      smartTokenAddress
+    } = this.relay;
+    const { converterVersion } = meta;
+
+    const converterContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverter,
+      converterAddress
+    );
+
+    const smartTokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      smartTokenAddress
+    );
+
+    try {
+      this.getReserveCount(converterContract, converterVersion).then(
+        reserveCount => {
+          if (reserveCount !== 2) throw new Error("Reserve count is not 2");
+        }
+      );
+    } catch (e) {
+      console.warn("Failed to confirm if the reserve count is 2");
+    }
+
+    const [
+      tokenReserveBalance,
+      bntReserveBalance,
+      totalSupply
+    ] = await Promise.all([
+      this.fetchReserveBalance(
+        converterContract,
+        tokenAddress,
+        converterVersion
+      ),
+      this.fetchReserveBalance(
+        converterContract,
+        BntTokenContract,
+        converterVersion
+      ),
+      smartTokenContract.methods.totalSupply().call()
+    ]);
+    return { tokenReserveBalance, bntReserveBalance, totalSupply };
+  }
+
+  percentageIncrease(deposit: string, existingSupply: string): number {
+    return new Decimal(deposit).div(existingSupply).toNumber();
+  }
+
+  percentageOfReserve(percent: number, existingSupply: string): string {
+    return new Decimal(percent).times(existingSupply).toFixed(0);
+  }
+
+  async getDecimalsOfToken(symbolName: string): Promise<number> {
+    const res = await vxm.relays.getEthTokenWithDecimals(symbolName);
+    return res.decimals;
+  }
+
+  calculateFundReward(reserveAmount: string, reserveSupply: string, smartSupply: string) {
+    Decimal.set({ rounding: 0 })
+    return new Decimal(reserveAmount).div(reserveSupply).times(smartSupply).toFixed(0)
+  }
+
+  async mutateOppositeTokenAmount(isToken1: any) {
+    console.log("mutate got called");
     this.rateLoading = true;
+    const {
+      tokenReserveBalance,
+      bntReserveBalance,
+      totalSupply
+    } = await this.fetchRelayBalances();
+
+    if (isToken1) {
+      const decimals = await this.getDecimalsOfToken(this.token1.symbol);
+      const token1Wei = String(
+        Number(this.token1Amount) * Math.pow(10, decimals)
+      );
+      console.log({
+        token1Wei,
+        tokenReserveBalance,
+        bntReserveBalance,
+        totalSupply
+      });
+      const token2Value = this.calculateOppositeFundRequirement(
+        token1Wei,
+        tokenReserveBalance,
+        bntReserveBalance
+      );
+      this.token2Amount = fromWei(token2Value);
+      const fundReward = this.calculateFundReward(token1Wei, tokenReserveBalance, totalSupply) 
+      console.log("fund reward being set to", fundReward)
+      this.fundReward = fundReward
+    } else {
+      const decimals = await this.getDecimalsOfToken(this.token2.symbol);
+      const token2Wei = String(
+        Number(this.token2Amount) * Math.pow(10, decimals)
+      );
+      const token1Value = this.calculateOppositeFundRequirement(
+        token2Wei,
+        bntReserveBalance,
+        tokenReserveBalance
+      );
+      this.token1Amount = fromWei(token1Value);
+      const fundReward = this.calculateFundReward(token2Wei, bntReserveBalance, totalSupply) 
+      console.log("fund reward being set to", fundReward)
+      this.fundReward = fundReward
+    }
+    this.rateLoading = false;
+  }
+
+  mutateDebouncer = debounce(
+    isToken1 => this.mutateOppositeTokenAmount(isToken1),
+    500
+  );
+
+  async onTokenAmountChange(selectedToken: number) {
     const isToken1 = selectedToken == 1;
+    this.mutateDebouncer(isToken1);
+  }
+
+  calculateOppositeFundRequirement(
+    deposit: string,
+    depositsSupply: string,
+    oppositesSupply: string
+  ): string {
+    const increase = this.percentageIncrease(deposit, depositsSupply);
+    return this.percentageOfReserve(increase, oppositesSupply);
   }
 
   async toggleMain() {
@@ -259,9 +430,9 @@ export default class HeroConvert extends Vue {
       tokenAddress
     );
 
-    const smartTokenDecimals: string = await smartTokenContract.methods
-      .decimals()
-      .call();
+    // const smartTokenDecimals: string = await smartTokenContract.methods
+    //   .decimals()
+    //   .call();
 
     const bancorTokenContract = new web3.eth.Contract(
       // @ts-ignore
@@ -269,19 +440,29 @@ export default class HeroConvert extends Vue {
       BntTokenContract
     );
 
+    const bancorApproved = await bancorTokenContract.methods
+        .allowance(this.isAuthenticated, converterAddress)
+        .call();
+
+    console.log(bancorApproved, 'is the bancor approved allowance')
+
     const batch = new web3.BatchRequest();
 
     const approveBancorData = bancorTokenContract.methods
-      .approve(converterAddress, toWei("0.001"))
+      .approve(converterAddress, toWei(this.token1Amount))
       .encodeABI({ from: this.isAuthenticated });
 
     const approveTokenData = tokenContract.methods
-      .approve(converterAddress, toWei("0.001"))
+      .approve(converterAddress, toWei(this.token2Amount))
       .encodeABI({ from: this.isAuthenticated });
 
+
+    console.log("seeking a fund reward of", this.fundReward)
     const fundData = converterContract.methods
-      .fund(toWei("0.001"))
+      .fund(this.fundReward)
       .encodeABI({ from: this.isAuthenticated });
+
+
 
     const approveBancor = {
       from: this.isAuthenticated,
@@ -310,6 +491,8 @@ export default class HeroConvert extends Vue {
       gas: toHex(950000)
     };
 
+       
+
     batch.add(
       // @ts-ignore
       web3.eth.sendTransaction.request(approveBancor, () =>
@@ -327,15 +510,15 @@ export default class HeroConvert extends Vue {
       web3.eth.sendTransaction.request(fund, () => console.log("Pool"))
     );
     console.log(batch, "is batch");
-    // batch.execute();
+    batch.execute();
   }
 
   swapTokens() {
-    this.flipped = !this.flipped;
+    // this.flipped = !this.flipped;
   }
 
   get defaultFocusedSymbol() {
-    return vxm.relays.relays[0].symbol;
+    return vxm.relays.relays[0].smartTokenSymbol;
   }
 
   get focusedSymbol() {

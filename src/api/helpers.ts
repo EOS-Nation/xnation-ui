@@ -28,7 +28,8 @@ interface TraditionalStat {
   max_supply: Asset;
 }
 
-type Wei = string | number;
+export type Wei = string | number;
+export type Ether = string | number;
 
 // import { ABIBancorGasPriceLimit, BancorGasLimit, netId } from '../config'
 // import getWeb3ForRead from './getWeb3ForRead'

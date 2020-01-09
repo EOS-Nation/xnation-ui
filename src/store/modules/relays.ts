@@ -10,12 +10,21 @@ import { client } from "@/api/dFuse";
 import { calculateCost } from "bancorx";
 import axios from "axios";
 import { bancorApi, ethBancorApi } from "@/api/bancor";
-import { SimpleToken, SimpleTokenWithMarketData, CoTrade } from "@/types/bancor";
+import {
+  SimpleToken,
+  SimpleTokenWithMarketData,
+  CoTrade
+} from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
 import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 
-import { createAsset, getTokenBalances, getEthRelays, web3 } from "@/api/helpers";
+import {
+  createAsset,
+  getTokenBalances,
+  getEthRelays,
+  web3
+} from "@/api/helpers";
 import { ABIConverter, ABISmartToken } from "@/api/ethConfig";
 import { rpc } from "@/api/rpc";
 import { vxm } from "@/store";
@@ -88,7 +97,7 @@ export class RelaysModule extends VuexModule {
   ethRelays: CoTrade[] = [];
 
   @action async init() {
-    console.log('init called!!')
+    console.log("init called!!");
     if (this.initComplete) {
       console.log("Init already called");
     }
@@ -108,7 +117,7 @@ export class RelaysModule extends VuexModule {
 
   @action async fetchBalancesEos() {
     const balances = await getTokenBalances(vxm.wallet.isAuthenticated);
-    
+
     this.eosTokensList = this.eosTokensList.map((token: any) => {
       const existingToken = balances.tokens.find(
         balanceObj => balanceObj.symbol == token.code
@@ -141,10 +150,20 @@ export class RelaysModule extends VuexModule {
   }
 
   @action async initEth() {
-    const [tokens, relays] = await Promise.all([ethBancorApi.getTokens(), getEthRelays()])
+    const [tokens, relays] = await Promise.all([
+      ethBancorApi.getTokens(),
+      getEthRelays()
+    ]);
     this.ethTokensList = tokens;
     this.ethRelays = relays;
-    console.log(relays, 'was eth relays')
+    console.log(relays, "was eth relays");
+    console.log(
+      relays
+        .filter(relay => Number(relay.converterVersion) < 17 && relay.converterVersion !== "0")
+        .map(x => [x.symbol, web3.utils.fromWei(x.connectorBancorReserve), x.converterVersion]),
+      "above version 17 out of",
+      relays.length
+    );
   }
 
   @mutation
@@ -204,6 +223,28 @@ export class RelaysModule extends VuexModule {
     }
   }
 
+  @action async getEthTokenWithDecimals(symbolName: string): Promise<any> {
+    const token = this.ethTokensList.find(
+      (token: any) => token.code == symbolName
+    );
+    if (token.decimals) {
+      return token;
+    } else {
+      const detailApiInstance = await ethBancorApi.getTokenTicker(symbolName);
+      this.ethTokensList = this.ethTokensList.map((existingToken: any) => {
+        if (existingToken.code == symbolName) {
+          return {
+            ...existingToken,
+            decimals: detailApiInstance.decimals
+          };
+        } else {
+          return existingToken;
+        }
+      });
+      return this.getEthTokenWithDecimals(symbolName);
+    }
+  }
+
   @action async getCostEth({
     fromSymbol,
     toSymbol,
@@ -250,22 +291,27 @@ export class RelaysModule extends VuexModule {
   }
 
   @mutation updateEthToken(token: any) {
-    this.ethTokensList = this.ethTokensList.map((existingToken: any) => token.id == existingToken.id ? token : existingToken)
+    this.ethTokensList = this.ethTokensList.map((existingToken: any) =>
+      token.id == existingToken.id ? token : existingToken
+    );
   }
 
-
   @action async getDecimals(symbolId: string) {
-    const existingDecimals = this.ethTokensList.find((token: any) => token.id == symbolId && token.decimals);
+    const existingDecimals = this.ethTokensList.find(
+      (token: any) => token.id == symbolId && token.decimals
+    );
     if (existingDecimals) {
-      return existingDecimals.decimals
+      return existingDecimals.decimals;
     } else {
       const res = await ethBancorApi.getTokenTicker(symbolId);
-      const existingToken = this.ethTokensList.find((existingToken: any) => existingToken.id == symbolId);
+      const existingToken = this.ethTokensList.find(
+        (existingToken: any) => existingToken.id == symbolId
+      );
       this.updateEthToken({
         ...existingToken,
         decimals: res.decimals
-      })
-      return res.decimals
+      });
+      return res.decimals;
     }
   }
 
@@ -297,7 +343,7 @@ export class RelaysModule extends VuexModule {
   }
 
   @action async triggerTx(actions: any[]) {
-    console.log('trigger tx getting hit with', actions)
+    console.log("trigger tx getting hit with", actions);
     if (this.selectedNetwork == "eos") {
       return this.$store.dispatch("eosWallet/tx", actions, { root: true });
     } else {
@@ -343,11 +389,13 @@ export class RelaysModule extends VuexModule {
   @action async fundEth({
     smartToken,
     converterAddress,
-    smartTokenAddress,
-  }: {smartToken: string, converterAddress: string, smartTokenAddress: string }): Promise<any> {
-
-    console.log("Things won't change until we do. ")
-
+    smartTokenAddress
+  }: {
+    smartToken: string;
+    converterAddress: string;
+    smartTokenAddress: string;
+  }): Promise<any> {
+    console.log("Things won't change until we do. ");
   }
 
   @action async convertEth({
@@ -365,7 +413,7 @@ export class RelaysModule extends VuexModule {
 
     // @ts-ignore
     const ownerAddress = this.$store.rootGetters["ethWallet/isAuthenticated"];
-    console.log('is the owner address going out', ownerAddress)
+    console.log("is the owner address going out", ownerAddress);
     const convertPost = {
       fromCurrencyId: fromObj.id,
       toCurrencyId: toObj.id,
@@ -373,15 +421,15 @@ export class RelaysModule extends VuexModule {
       minimumReturn: minimumReturnWei,
       ownerAddress
     };
-    console.log({ convertPost })
+    console.log({ convertPost });
     const res = await ethBancorApi.convert(convertPost);
     if (res.errorCode) {
       throw new Error(res.errorCode);
     }
     const params = res.data;
-    console.log(params, 'came from the bancor API')
+    console.log(params, "came from the bancor API");
     const txRes = await this.triggerTx(params[0]);
-    console.log(txRes, 'was tx Res')
+    console.log(txRes, "was tx Res");
     return txRes;
   }
 
@@ -405,51 +453,59 @@ export class RelaysModule extends VuexModule {
   }
 
   get relay() {
-    return (symbolName: string) => 
-      this.relays.find((relay: any) => relay.smartTokenSymbol == symbolName)
+    return (symbolName: string) =>
+      this.relays.find((relay: any) => relay.smartTokenSymbol == symbolName);
   }
 
   get relays(): any {
-    return this.network == 'eos' ? this.relaysList.map(relay => ({
-      ...relay,
-      liqDepth: this.usdPrice * Number(relay.reserves[1].balance.split(" ")[0]),
-      reserves: relay.reserves.map(reserve => ({
-        ...reserve,
-        logo:
-          this.tokenMeta.find(
-            (tokenMeta: TokenMeta) => tokenMeta.symbol == reserve.symbol
-          )!.logo ||
-          "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png"
-      })),
-      settings: {
-        ...relay.settings,
-        symbolName: relay.settings.currency.split(",")[1]
-      }
-    })) : this.ethRelays.filter(ethRelay => ethRelay.connectorType == 'BNT').map(ethRelay => {
-      const ethToken = this.token(ethRelay.symbol)!
-      if (!ethToken) return;
-      return {
-        reserves: [{
-          symbol: ethToken.symbol,
-          logo: ethToken.logo
-        },
-        {
-          symbol: ethRelay.connectorType,
-          logo: this.token(ethRelay.connectorType)!.logo
-        }],
-        owner: ethRelay.owner,
-        fee: ethRelay.conversionFee,
-        decimals: ethRelay.tokenDecimals,
-        symbol: ethRelay.symbol,
-        smartTokenSymbol: ethRelay.smartTokenSymbol,
-        converterAddress: ethRelay.converterAddress,
-        smartTokenAddress: ethRelay.smartTokenAddress,
-        tokenAddress: ethRelay.tokenAddress,
-        meta: { ...ethRelay },
-        // @ts-ignore
-        liqDepth: ethToken.liqDepth
-      }
-    }).filter(relay => !!relay)
+    return this.network == "eos"
+      ? this.relaysList.map(relay => ({
+          ...relay,
+          liqDepth:
+            this.usdPrice * Number(relay.reserves[1].balance.split(" ")[0]),
+          reserves: relay.reserves.map(reserve => ({
+            ...reserve,
+            logo:
+              this.tokenMeta.find(
+                (tokenMeta: TokenMeta) => tokenMeta.symbol == reserve.symbol
+              )!.logo ||
+              "https://d1nhio0ox7pgb.cloudfront.net/_img/o_collection_png/green_dark_grey/128x128/plain/symbol_questionmark.png"
+          })),
+          settings: {
+            ...relay.settings,
+            symbolName: relay.settings.currency.split(",")[1]
+          }
+        }))
+      : this.ethRelays
+          .filter(ethRelay => ethRelay.connectorType == "BNT")
+          .map(ethRelay => {
+            const ethToken = this.token(ethRelay.symbol)!;
+            if (!ethToken) return;
+            return {
+              reserves: [
+                {
+                  symbol: ethToken.symbol,
+                  logo: ethToken.logo
+                },
+                {
+                  symbol: ethRelay.connectorType,
+                  logo: this.token(ethRelay.connectorType)!.logo
+                }
+              ],
+              owner: ethRelay.owner,
+              fee: ethRelay.conversionFee,
+              decimals: ethRelay.tokenDecimals,
+              symbol: ethRelay.symbol,
+              smartTokenSymbol: ethRelay.smartTokenSymbol,
+              converterAddress: ethRelay.converterAddress,
+              smartTokenAddress: ethRelay.smartTokenAddress,
+              tokenAddress: ethRelay.tokenAddress,
+              meta: { ...ethRelay },
+              // @ts-ignore
+              liqDepth: ethToken.liqDepth
+            };
+          })
+          .filter(relay => !!relay);
   }
 
   get ethSymbolNameToApiObj() {
