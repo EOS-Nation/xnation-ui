@@ -550,7 +550,7 @@ export default class HeroConvert extends Vue {
 
   @Watch("focusedSymbol")
   symbolChange(newSymbol: string) {
-    this.fetchUserTokenBalances();
+    // this.fetchUserTokenBalances();
   }
 
   @Watch("isAuthenticated")
@@ -563,13 +563,11 @@ export default class HeroConvert extends Vue {
 
   @Watch("$route")
   listen(to: any) {
-    console.log(
-      "router is offering",
-      to.params.account || this.defaultFocusedSymbol
-    );
+    this.fetchUserTokenBalances();
   }
 
   async created() {
+    this.fetchUserTokenBalances();
     const few = await web3.eth.getBalance(
       "0x8a81E3058574A7c1D9A979BfC59A00E96209FdE7"
     );

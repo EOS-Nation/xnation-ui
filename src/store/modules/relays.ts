@@ -154,13 +154,26 @@ export class RelaysModule extends VuexModule {
       ethBancorApi.getTokens(),
       getEthRelays()
     ]);
-    this.ethTokensList = tokens;
     this.ethRelays = relays;
-    console.log(relays, "was eth relays");
+    this.ethTokensList = tokens.map(token => ({
+      ...token,
+      tokenAddress:
+        relays.find(relay => relay.symbol == token.code) &&
+        relays.find(relay => relay.symbol == token.code)!.tokenAddress
+    }));
+    console.log({ tokens, relays });
     console.log(
       relays
-        .filter(relay => Number(relay.converterVersion) < 17 && relay.converterVersion !== "0")
-        .map(x => [x.symbol, web3.utils.fromWei(x.connectorBancorReserve), x.converterVersion]),
+        .filter(
+          relay =>
+            Number(relay.converterVersion) < 17 &&
+            relay.converterVersion !== "0"
+        )
+        .map(x => [
+          x.symbol,
+          web3.utils.fromWei(x.connectorBancorReserve),
+          x.converterVersion
+        ]),
       "above version 17 out of",
       relays.length
     );
@@ -413,7 +426,6 @@ export class RelaysModule extends VuexModule {
 
     // @ts-ignore
     const ownerAddress = this.$store.rootGetters["ethWallet/isAuthenticated"];
-    console.log("is the owner address going out", ownerAddress);
     const convertPost = {
       fromCurrencyId: fromObj.id,
       toCurrencyId: toObj.id,
@@ -427,9 +439,7 @@ export class RelaysModule extends VuexModule {
       throw new Error(res.errorCode);
     }
     const params = res.data;
-    console.log(params, "came from the bancor API");
     const txRes = await this.triggerTx(params[0]);
-    console.log(txRes, "was tx Res");
     return txRes;
   }
 
@@ -526,7 +536,8 @@ export class RelaysModule extends VuexModule {
       liqDepth: token.liquidityDepth * Number(ethToken.price),
       logo: token.primaryCommunityImageName,
       change24h: token.change24h,
-      volume24h: token.volume24h.USD
+      volume24h: token.volume24h.USD,
+      tokenAddress: token.tokenAddress || ""
     }));
   }
 

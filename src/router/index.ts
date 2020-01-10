@@ -36,7 +36,7 @@ const commonRoutes = [
     props: true
   },
   {
-    path: "/relays",
+    path: "/pools",
     name: "Relays",
     components: {
       Nav: Navigation,
@@ -45,7 +45,7 @@ const commonRoutes = [
     }
   },
   {
-    path: "/relay/:account",
+    path: "/pool/:account",
     name: "Relay",
     components: {
       Nav: Navigation,

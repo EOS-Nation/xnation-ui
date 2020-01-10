@@ -7,7 +7,7 @@
             <token-amount-input
               :key="token1Key"
               :amount.sync="token1Amount"
-              :balance="String(token(token1Symbol).balance)"
+              :balance="token1Balance"
               :img="token(token1Symbol).logo"
               :symbol="token1Symbol"
               dropdown
@@ -83,7 +83,7 @@
             <token-amount-input
               :key="token2Key"
               :amount.sync="token2Amount"
-              :balance="String(token(token2Symbol).balance)"
+              :balance="token2Balance"
               :img="token(token2Symbol).logo"
               :symbol="token2Symbol"
               dropdown
@@ -105,7 +105,11 @@
           :success="success"
           :leftImg="fromToken.logo"
           :leftTitle="`${fromTokenAmount} ${fromTokenSymbol}`"
-          :leftSubtitle="`${fromToken.name} ($${(token(fromTokenSymbol).price * Number(fromTokenAmount)).toFixed(2)} USD)`"
+          :leftSubtitle="
+            `${fromToken.name} ($${(
+              token(fromTokenSymbol).price * Number(fromTokenAmount)
+            ).toFixed(2)} USD)`
+          "
           :rightImg="toToken.logo"
           :rightTitle="`${toTokenAmount} ${toTokenSymbol}`"
           :rightSubtitle="toToken.name"
@@ -152,7 +156,6 @@ import wait from "waait";
 import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
-
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
@@ -243,7 +246,7 @@ export default class HeroConvert extends Vue {
   }
 
   get defaultSymbolName() {
-    return vxm.relays.ethRelays[0].symbol;
+    return vxm.relays.tokens.find(token => token.symbol !== "BNT")!.symbol;
   }
 
   get fromTokenSymbol() {
@@ -344,7 +347,7 @@ export default class HeroConvert extends Vue {
         fromAmount: Number(this.fromTokenAmount),
         toAmount: Number(this.toTokenAmount)
       });
-      console.log('Promise returned of the TX', result)
+      console.log("Promise returned of the TX", result);
 
       this.success = result;
       this.error = "";
@@ -475,17 +478,22 @@ export default class HeroConvert extends Vue {
 
   @Watch("selectedSymbolOrDefault")
   newSymbol(symbol: string) {
-    this.fetchUserTokenBalances()
+    this.fetchUserTokenBalances();
   }
 
-  
   get relay() {
     return vxm.relays.relay(this.selectedSymbolOrDefault);
   }
 
   async fetchUserTokenBalances() {
     if (!this.isAuthenticated) return;
-    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay;
+    console.log(this.token(this.token1Symbol), 'was this.token')
+    // @ts-ignore
+    const { tokenAddress } = this.token(this.token1Symbol);
+    if (!tokenAddress) {
+      console.warn("Token address wasn't found for", tokenAddress);
+      return;
+    }
 
     const getBalance = async (contractAddress: string) =>
       vxm.ethWallet.getBalance({
@@ -495,7 +503,7 @@ export default class HeroConvert extends Vue {
 
     const [bntBalance, tokenBalance] = await Promise.all([
       getBalance(BntTokenContract),
-      getBalance(tokenAddress),
+      getBalance(tokenAddress)
     ]);
 
     this.token1Balance = tokenBalance;
@@ -526,7 +534,7 @@ export default class HeroConvert extends Vue {
   async created() {
     this.fromTokenSymbol = this.selectedSymbolOrDefault;
     this.loadSimpleRewards();
-    this.fetchUserTokenBalances()
+    this.fetchUserTokenBalances();
   }
 }
 </script>
