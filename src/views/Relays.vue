@@ -156,8 +156,6 @@ export default class Relays extends Vue {
   private currentSort = "v24h";
   private currentSortDir = "desc";
 
-  // computed
-
   shortenEthAddress(ethAddress: string) {
     return ethAddress.length > 13
       ? ethAddress.substring(0, 4) +
@@ -166,32 +164,26 @@ export default class Relays extends Vue {
       : ethAddress;
   }
 
-  get searchedTokens() {
-    return this.searchResults.length > 0 ? this.searchResults : this.tokens;
-  }
-
   get tokens() {
-    console.log(vxm.relays.relays, "are the tokens inbound");
-    return vxm.relays.relays;
-  }
-
-  get sortedTokens() {
-    let tokens = this.searchedTokens;
-    return tokens.sort((a: any, b: any) => {
-      let modifier = 1;
-      if (this.currentSortDir === "desc") modifier = -1;
-      if (this.currentSort === "symbol" || this.currentSort === "contract") {
-        if (a[this.currentSort] < b[this.currentSort]) return -1 * modifier;
-        if (a[this.currentSort] > b[this.currentSort]) return 1 * modifier;
-        return 0;
-      } else {
-        if (parseFloat(a[this.currentSort]) < parseFloat(b[this.currentSort]))
-          return -1 * modifier;
-        if (parseFloat(a[this.currentSort]) > parseFloat(b[this.currentSort]))
-          return 1 * modifier;
-        return 0;
-      }
-    });
+    return this.tokenSearch
+      ? vxm.relays.relays.filter(
+          (relay: any) =>
+            relay.symbol
+              .toLowerCase()
+              .includes(this.tokenSearch.toLowerCase()) ||
+            relay.smartTokenSymbol
+              .toLowerCase()
+              .includes(this.tokenSearch.toLowerCase())
+        )
+      : vxm.relays.relays.sort((a: any, b: any) => {
+          const aTokenIndex = vxm.relays.tokens.findIndex(
+            token => token.symbol == a.symbol
+          );
+          const bTokenIndex = vxm.relays.tokens.findIndex(
+            token => token.symbol == b.symbol
+          );
+          return aTokenIndex < bTokenIndex ? -1 : 1;
+        });
   }
 
   goToRelay(symbolCode: string) {
@@ -217,16 +209,6 @@ export default class Relays extends Vue {
     });
   }
 
-  searchTokens() {
-    // @ts-ignore
-    this.$search(this.tokenSearch, this.tokens, this.searchOptions).then(
-      (results: any) => {
-        this.searchResults = results;
-        this.searchState = this.tokenSearch === "" ? "search" : "check";
-      }
-    );
-  }
-
   sort(s: string) {
     if (s === this.currentSort) {
       this.currentSortDir = this.currentSortDir === "asc" ? "desc" : "asc";
@@ -234,23 +216,8 @@ export default class Relays extends Vue {
     this.currentSort = s;
   }
 
-  @Watch("tokenSearch")
-  async onSearchChange(val: any, oldVal: any) {
-    if (val !== "") {
-      this.searchState = "keyboard";
-      this.debouncedGetSearch();
-    } else {
-      this.searchTokens();
-    }
-  }
-
-  // methods
   async created() {
     vxm.relays.fetchRelays();
-
-    this.debouncedGetSearch = debounce(() => {
-      this.searchTokens();
-    }, 500);
   }
 }
 </script>

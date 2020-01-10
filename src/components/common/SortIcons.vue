@@ -18,7 +18,6 @@ import { Prop, Component, Vue } from 'vue-property-decorator'
 
 @Component
 export default class SortIcons extends Vue {
-  // props
   @Prop() currentSort!: string
   @Prop() currentSortDir!: string
   @Prop() category!: string
