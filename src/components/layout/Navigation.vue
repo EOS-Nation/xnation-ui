@@ -51,7 +51,7 @@
           <font-awesome-icon icon="plus" fixed-width class="mr-1" />
           Create
         </b-btn> -->
-        <b-btn
+        <!-- <b-btn
           v-if="!isAuthenticated"
           :to="{ name: `${this.selected}-Wallet` }"
           variant="primary"
@@ -70,14 +70,14 @@
           size="sm"
         >
           <font-awesome-icon icon="wallet" fixed-width /> Wallet
-        </b-btn>
+        </b-btn> -->
       </div>
 
       <div
         class="d-flex align-items-center float-right justify-content-end"
         style="width: 180px"
       >
-        <b-btn
+        <!-- <b-btn
           class="mr-2"
           v-if="isAuthenticated"
           :to="{ name: 'Wallet' }"
@@ -86,7 +86,7 @@
           exact
         >
           <font-awesome-icon icon="search" fixed-width />
-        </b-btn>
+        </b-btn> -->
         <b-btn
           @click="loginAction"
           variant="dual"

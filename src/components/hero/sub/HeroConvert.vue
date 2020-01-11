@@ -67,7 +67,7 @@
                 <span class="font-w700">CONVERT</span>
               </b-btn>
             </div>
-            <span
+            <!-- <span
               @click="navTransfer"
               class="cursor font-size-sm text-white-50"
             >
@@ -75,7 +75,7 @@
                 icon="long-arrow-alt-right"
                 fixed-width
               />TRANSFER
-            </span>
+            </span> -->
           </div>
         </b-col>
         <b-col md="4">
