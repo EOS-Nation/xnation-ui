@@ -66,6 +66,7 @@
         :balance="balance"
         :amount="amount"
         :loading="loadingBalance"
+        :label="label"
       />
     </div>
   </div>
@@ -95,6 +96,7 @@ export default class TokenAmountInput extends Vue {
   @Prop(Boolean) toggle?: boolean;
   @Prop(Boolean) dropdown?: boolean;
   @Prop(Boolean) small?: boolean;
+  @Prop(String) label?: string;
 
   @Watch("amount")
   listen() {

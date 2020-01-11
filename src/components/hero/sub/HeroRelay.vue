@@ -10,6 +10,7 @@
               :amount.sync="token1Amount"
               :symbol="token1Symbol"
               :balance="displayedToken1Balance"
+              :label="buttonFlipped ? 'Pool Balance:' : 'Wallet Balance:'"
               :img="token1Img"
             />
           </transition>
@@ -76,6 +77,7 @@
               :symbol="token2Symbol"
               :balance="displayedToken2Balance"
               :img="token2Img"
+              :label="buttonFlipped ? 'Pool Balance:' : 'Wallet Balance:'"
             />
           </transition>
         </b-col>
@@ -91,7 +93,7 @@ import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import { fetchTokenMeta, fetchTokenStats, Wei } from "@/api/helpers";
 import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
-import { calculateReturn, calculateFundReturn } from "bancorx";
+import { calculateReturn, calculateFundReturn, liquidate } from "bancorx";
 import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
@@ -140,6 +142,9 @@ export default class HeroConvert extends Vue {
   buttonFlipped = false;
   flipped = false;
   fundReward = "";
+  liquidateCost = "";
+  token1SmartBalance = "";
+  token2SmartBalance = "";
 
   get owner() {
     return this.relay.owner;
@@ -187,14 +192,6 @@ export default class HeroConvert extends Vue {
     return this.buttonFlipped
       ? this.token2SmartBalance
       : this.token2UserBalance;
-  }
-
-  get token1SmartBalance() {
-    return "Burt";
-  }
-
-  get token2SmartBalance() {
-    return "Bart";
   }
 
   get isAuthenticated() {
@@ -321,9 +318,25 @@ export default class HeroConvert extends Vue {
     return res.decimals;
   }
 
-  calculateFundReward(reserveAmount: string, reserveSupply: string, smartSupply: string) {
-    Decimal.set({ rounding: 0 })
-    return new Decimal(reserveAmount).div(reserveSupply).times(smartSupply).toFixed(0)
+  calculateFundReward(
+    reserveAmount: string,
+    reserveSupply: string,
+    smartSupply: string
+  ) {
+    Decimal.set({ rounding: 0 });
+    return new Decimal(reserveAmount)
+      .div(reserveSupply)
+      .times(smartSupply)
+      .toFixed(0);
+  }
+
+  calculateLiquidateCost(
+    reserveAmount: string,
+    reserveBalance: string,
+    smartSupply: string
+  ) {
+    const percent = this.percentageIncrease(reserveAmount, reserveBalance);
+    return this.percentageOfReserve(percent, smartSupply);
   }
 
   async mutateOppositeTokenAmount(isToken1: any) {
@@ -335,41 +348,106 @@ export default class HeroConvert extends Vue {
       totalSupply
     } = await this.fetchRelayBalances();
 
-    if (isToken1) {
-      const decimals = await this.getDecimalsOfToken(this.token1.symbol);
-      const token1Wei = String(
-        Number(this.token1Amount) * Math.pow(10, decimals)
-      );
-      console.log({
-        token1Wei,
-        tokenReserveBalance,
-        bntReserveBalance,
-        totalSupply
-      });
-      const token2Value = this.calculateOppositeFundRequirement(
-        token1Wei,
-        tokenReserveBalance,
-        bntReserveBalance
-      );
-      this.token2Amount = fromWei(token2Value);
-      const fundReward = this.calculateFundReward(token1Wei, tokenReserveBalance, totalSupply) 
-      console.log("fund reward being set to", fundReward)
-      this.fundReward = fundReward
+    if (this.buttonFlipped) {
+      // Liquidating
+      if (isToken1) {
+        // token 1 was changed
+        const decimals = await this.getDecimalsOfToken(this.token1.symbol);
+        const token1Wei = String(
+          Number(this.token1Amount) * Math.pow(10, decimals)
+        );
+        console.log({
+          token1Wei,
+          tokenReserveBalance,
+          bntReserveBalance,
+          totalSupply
+        });
+        const token2Value = this.calculateOppositeLiquidateRequirement(
+          token1Wei,
+          tokenReserveBalance,
+          bntReserveBalance
+        );
+        this.token2Amount = fromWei(token2Value);
+        const liquidateCost = this.calculateLiquidateCost(
+          token1Wei,
+          tokenReserveBalance,
+          totalSupply
+        );
+        console.log(fromWei(liquidateCost), "is the liquidate cost");
+        this.liquidateCost = liquidateCost;
+      } else {
+        // token2 was changed
+        const decimals = await this.getDecimalsOfToken(this.token2.symbol);
+        const token2Wei = String(
+          Number(this.token2Amount) * Math.pow(10, decimals)
+        );
+        console.log({
+          token2Wei,
+          tokenReserveBalance,
+          bntReserveBalance,
+          totalSupply
+        });
+        const token1Value = this.calculateOppositeLiquidateRequirement(
+          token2Wei,
+          tokenReserveBalance,
+          bntReserveBalance
+        );
+        this.token1Amount = fromWei(token1Value);
+        const liquidateCost = this.calculateLiquidateCost(
+          token2Wei,
+          tokenReserveBalance,
+          totalSupply
+        );
+        console.log(fromWei(liquidateCost), "is the liquidate cost");
+        this.liquidateCost = liquidateCost;
+      }
     } else {
-      const decimals = await this.getDecimalsOfToken(this.token2.symbol);
-      const token2Wei = String(
-        Number(this.token2Amount) * Math.pow(10, decimals)
-      );
-      const token1Value = this.calculateOppositeFundRequirement(
-        token2Wei,
-        bntReserveBalance,
-        tokenReserveBalance
-      );
-      this.token1Amount = fromWei(token1Value);
-      const fundReward = this.calculateFundReward(token2Wei, bntReserveBalance, totalSupply) 
-      console.log("fund reward being set to", fundReward)
-      this.fundReward = fundReward
+      // Funding
+      if (isToken1) {
+        const decimals = await this.getDecimalsOfToken(this.token1.symbol);
+        const token1Wei = String(
+          Number(this.token1Amount) * Math.pow(10, decimals)
+        );
+        console.log({
+          token1Wei,
+          tokenReserveBalance,
+          bntReserveBalance,
+          totalSupply
+        });
+        const token2Value = this.calculateOppositeFundRequirement(
+          token1Wei,
+          tokenReserveBalance,
+          bntReserveBalance
+        );
+        this.token2Amount = fromWei(token2Value);
+        const fundReward = this.calculateFundReward(
+          token1Wei,
+          tokenReserveBalance,
+          totalSupply
+        );
+        console.log("fund reward being set to", fundReward);
+        this.fundReward = fundReward;
+      } else {
+        const decimals = await this.getDecimalsOfToken(this.token2.symbol);
+        const token2Wei = String(
+          Number(this.token2Amount) * Math.pow(10, decimals)
+        );
+        const token1Value = this.calculateOppositeFundRequirement(
+          token2Wei,
+          bntReserveBalance,
+          tokenReserveBalance
+        );
+        this.token1Amount = fromWei(token1Value);
+        const fundReward = this.calculateFundReward(
+          token2Wei,
+          bntReserveBalance,
+          totalSupply
+        );
+        console.log("fund reward being set to", fundReward);
+        this.fundReward = fundReward;
+      }
     }
+
     this.rateLoading = false;
   }
 
@@ -392,6 +470,15 @@ export default class HeroConvert extends Vue {
     return this.percentageOfReserve(increase, oppositesSupply);
   }
 
+  calculateOppositeLiquidateRequirement(
+    reserveAmount: string,
+    reserveBalance: string,
+    oppositeReserveBalance: string
+  ) {
+    const increase = this.percentageIncrease(reserveAmount, reserveBalance);
+    return this.percentageOfReserve(increase, oppositeReserveBalance);
+  }
+
   async toggleMain() {
     if (this.buttonFlipped) {
       this.removeLiquidity();
@@ -401,17 +488,54 @@ export default class HeroConvert extends Vue {
   }
 
   async removeLiquidity() {
-    console.log("remove liquidity");
+    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay;
+
+    const maxGasPrice = await getBancorGasPriceLimit();
+
+    const converterContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverter,
+      converterAddress
+    );
+    const smartTokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      smartTokenAddress
+    );
+
+    const bancorTokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      BntTokenContract
+    );
+
+    const batch = new web3.BatchRequest();
+
+    const liquidateData = converterContract.methods
+      .liquidate(this.liquidateCost)
+      .encodeABI({ from: this.isAuthenticated });
+
+    const liquidate = {
+      from: this.isAuthenticated,
+      to: converterAddress,
+      value: "0x0",
+      data: liquidateData,
+      gasPrice: toHex(maxGasPrice),
+      gas: toHex(950000)
+    };
+
+    batch.add(
+      // @ts-ignore
+      web3.eth.sendTransaction.request(liquidate, () => console.log("Pool"))
+    );
+    console.log(batch, "is batch");
+    batch.execute();
   }
 
   async addLiquidity() {
-    console.log("add liquidity triggered");
-    console.log(this.relay, "w as re");
     const { converterAddress, smartTokenAddress, tokenAddress } = this.relay;
-    console.log(converterAddress, smartTokenAddress, tokenAddress);
 
     const maxGasPrice = await getBancorGasPriceLimit();
-    console.log({ converterAddress, smartTokenAddress });
 
     const converterContract = new web3.eth.Contract(
       // @ts-ignore
@@ -441,10 +565,10 @@ export default class HeroConvert extends Vue {
     );
 
     const bancorApproved = await bancorTokenContract.methods
-        .allowance(this.isAuthenticated, converterAddress)
-        .call();
+      .allowance(this.isAuthenticated, converterAddress)
+      .call();
 
-    console.log(bancorApproved, 'is the bancor approved allowance')
+    console.log(bancorApproved, "is the bancor approved allowance");
 
     const batch = new web3.BatchRequest();
 
@@ -456,13 +580,10 @@ export default class HeroConvert extends Vue {
       .approve(converterAddress, toWei(this.token2Amount))
       .encodeABI({ from: this.isAuthenticated });
 
-
-    console.log("seeking a fund reward of", this.fundReward)
+    console.log("seeking a fund reward of", this.fundReward);
     const fundData = converterContract.methods
       .fund(this.fundReward)
       .encodeABI({ from: this.isAuthenticated });
-
-
 
     const approveBancor = {
       from: this.isAuthenticated,
@@ -491,8 +612,6 @@ export default class HeroConvert extends Vue {
       gas: toHex(950000)
     };
 
-       
-
     batch.add(
       // @ts-ignore
       web3.eth.sendTransaction.request(approveBancor, () =>
@@ -513,10 +632,6 @@ export default class HeroConvert extends Vue {
     batch.execute();
   }
 
-  swapTokens() {
-    // this.flipped = !this.flipped;
-  }
-
   get defaultFocusedSymbol() {
     return vxm.relays.relays[0].smartTokenSymbol;
   }
@@ -524,8 +639,6 @@ export default class HeroConvert extends Vue {
   get focusedSymbol() {
     return this.$route.params.account || this.defaultFocusedSymbol;
   }
-
-  async checkBankBalance() {}
 
   async fetchUserTokenBalances() {
     if (!this.isAuthenticated) return;
@@ -546,28 +659,67 @@ export default class HeroConvert extends Vue {
     this.token1UserBalance = tokenBalance;
     this.token2UserBalance = bntBalance;
     this.smartUserBalance = smartTokenBalance;
-  }
-
-  @Watch("focusedSymbol")
-  symbolChange(newSymbol: string) {
-    // this.fetchUserTokenBalances();
+    return smartTokenBalance
   }
 
   @Watch("isAuthenticated")
   onAuthChange(val: any) {
     if (val) {
       this.fetchUserTokenBalances();
-      this.checkBankBalance();
     }
+  }
+
+  @Watch("buttonFlipped")
+  buttonFlip() {
+    this.token1Amount = "";
+    this.token2Amount = "";
   }
 
   @Watch("$route")
   listen(to: any) {
     this.fetchUserTokenBalances();
+    this.setMaxWithdrawals();
+  }
+
+  async fetchSmartSupply() {
+    const { totalSupply } = await this.fetchRelayBalances();
+    this.smartSupply = totalSupply;
+  }
+
+  async setMaxWithdrawals() {
+    const userSmartTokenBalance = await this.fetchUserTokenBalances();
+    if (!userSmartTokenBalance) return;
+    const {
+      totalSupply,
+      bntReserveBalance,
+      tokenReserveBalance
+    } = await this.fetchRelayBalances();
+    try {
+      const percent = new Decimal(userSmartTokenBalance)
+        .times(Math.pow(10, 18))
+        .div(totalSupply);
+      const token2SmartBalance = percent.times(bntReserveBalance);
+      const token1SmartBalance = percent.times(tokenReserveBalance);
+
+      const token2SmartInt = token2SmartBalance.toFixed(0);
+      const token1SmartInt = token1SmartBalance.toFixed(0);
+      console.log({
+        percent: percent.toNumber(),
+        token2x: token2SmartInt,
+        userSmartTokenBalance,
+        totalSupply
+      });
+
+      this.token2SmartBalance = fromWei(token2SmartInt);
+      this.token1SmartBalance = fromWei(token1SmartInt);
+    } catch (e) {
+      console.log("Something went wrong in setMaxWithdrawals" + e);
+    }
   }
 
   async created() {
     this.fetchUserTokenBalances();
+    this.setMaxWithdrawals();
     const few = await web3.eth.getBalance(
       "0x8a81E3058574A7c1D9A979BfC59A00E96209FdE7"
     );

@@ -2,7 +2,7 @@
     <div>
         <span class="text-white font-size-sm" style="min-height: 50px">
             <div>
-                Available:
+                {{ label || "Available:" }}
                 <span v-if="loading">
                     <font-awesome-icon icon="circle-notch" class="text-white" spin />
                 </span>
@@ -37,6 +37,7 @@ export default class TokenAmountInput extends Vue {
     @Prop(String) balance!: string;
     @Prop(Boolean) loading?: boolean;
     @Prop(String) amount!: number;
+    @Prop(String) label?: string;
 
     // data
     numeral = numeral;
