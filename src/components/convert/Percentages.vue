@@ -52,11 +52,6 @@ export default class TokenAmountInput extends Vue {
         this.$emit("percentUpdate", String(percentage));
     }
 
-    // Lifecycle hooks
-    async created() { }
-    mounted() { }
-    updated() { }
-    destroyed() { }
 }
 </script>
 

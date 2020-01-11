@@ -104,7 +104,7 @@ export default class TokenAmountInput extends Vue {
   }
 
   updatePercent(percentage: string) {
-    const newAmount =
+    const newAmount = percentage == "100" ? this.balance :
       (Number(this.balance.split(" ")[0]) * Number(percentage)) / 100;
     this.$emit("update:amount", String(newAmount));
     this.$emit("onUpdate");
