@@ -40,14 +40,13 @@ export const web3 = new Web3(
   Web3.givenProvider || "https://api.myetherapi.com/eth"
 );
 
-export const getBancorGasPriceLimit = async (): Promise<Wei> => {
+export const getBancorGasPriceLimit = async (): Promise<string> => {
   const contract = new web3.eth.Contract(
     // @ts-ignore
     ABIBancorGasPriceLimit,
     BancorGasLimit
   );
-  const res = await contract.methods.gasPrice().call();
-  return res;
+  return contract.methods.gasPrice().call();
 };
 
 export const getBalance = async (

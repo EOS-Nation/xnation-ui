@@ -145,6 +145,7 @@ export default class HeroConvert extends Vue {
   liquidateCost = "";
   token1SmartBalance = "";
   token2SmartBalance = "";
+  gasPriceLimit = "";
 
   get owner() {
     return this.relay.owner;
@@ -723,9 +724,7 @@ export default class HeroConvert extends Vue {
     const few = await web3.eth.getBalance(
       "0x8a81E3058574A7c1D9A979BfC59A00E96209FdE7"
     );
-    console.log(few, "was the balance");
-    const x = await getBancorGasPriceLimit();
-    console.log(x, "was the X");
+    this.gasPriceLimit = await getBancorGasPriceLimit();
   }
 }
 </script>
