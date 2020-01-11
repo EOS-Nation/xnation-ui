@@ -218,6 +218,8 @@ export default class Relays extends Vue {
 
   async created() {
     vxm.relays.fetchRelays();
+    console.log(process.env.VUE_APP_BASE_URL, process.env.BASE_URL, 'exactly look')
+
   }
 }
 </script>

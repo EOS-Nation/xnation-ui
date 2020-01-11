@@ -96,6 +96,7 @@ const builtRoutes: RouteConfig[] = networkNamespaces
   .flat(1);
 console.log(builtRoutes);
 
+
 export const router = new Router({
   mode: "history",
   base: process.env.BASE_URL,
