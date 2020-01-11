@@ -198,7 +198,9 @@ class BancorCalculator {
   }
 
   async fetchRelays() {
+    // @ts-ignore
     return vxm.relays.relays.map(relay => ({
+      // @ts-ignore
       reserves: relay.reserves.map(reserve => ({
         contract: reserve.contract,
         symbol: split(reserve.balance).symbol
@@ -222,8 +224,10 @@ class BancorCalculator {
 
   async fetchMultiRelayReserves(contract: string, symbolCode: string) {
     const relay = vxm.relays.relays.find(
+      // @ts-ignore
       relay => relay.settings.currency.split(",")[1] == symbolCode
     )!;
+    // @ts-ignore
     return relay.reserves.map(reserve => split(reserve.balance));
   }
 }
