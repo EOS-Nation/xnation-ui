@@ -329,6 +329,7 @@ export default class HeroConvert extends Vue {
     return new Decimal(reserveAmount)
       .div(reserveSupply)
       .times(smartSupply)
+      .times(0.99)
       .toFixed(0);
   }
 
@@ -390,12 +391,12 @@ export default class HeroConvert extends Vue {
           "is the percent difference"
         );
         if (percentDifferenceBetweenSmartBalance > 0.99) {
-          console.log('should just use the whole balance')
+          console.log("should just use the whole balance");
           const userSmartTokenBalance = toWei(this.smartUserBalance);
-          console.log({ userSmartTokenBalance })
-          this.liquidateCost = userSmartTokenBalance
+          console.log({ userSmartTokenBalance });
+          this.liquidateCost = userSmartTokenBalance;
         } else {
-          console.log('not using whole balance')
+          console.log("not using whole balance");
           this.liquidateCost = liquidateCost;
         }
       } else {
@@ -442,7 +443,10 @@ export default class HeroConvert extends Vue {
           tokenReserveBalance,
           totalSupply
         );
-        console.log("fund reward being set to", fundReward);
+        console.log(
+          "fund reward being set to",
+          fromWei(String(Number(fundReward) * 0.99))
+        );
         this.fundReward = fundReward;
       } else {
         const decimals = await this.getDecimalsOfToken(this.token2.symbol);
@@ -546,7 +550,9 @@ export default class HeroConvert extends Vue {
       web3.eth.sendTransaction.request(liquidate, () => console.log("Pool"))
     );
     console.log(batch, "is batch");
-    batch.execute();
+    await batch.execute();
+    this.fetchUserTokenBalances();
+    this.setMaxWithdrawals();
   }
 
   async addLiquidity() {
@@ -571,10 +577,6 @@ export default class HeroConvert extends Vue {
       tokenAddress
     );
 
-    // const smartTokenDecimals: string = await smartTokenContract.methods
-    //   .decimals()
-    //   .call();
-
     const bancorTokenContract = new web3.eth.Contract(
       // @ts-ignore
       ABISmartToken,
@@ -592,67 +594,101 @@ export default class HeroConvert extends Vue {
     console.log(fromWei(bancorApproved), "is the bancor approved allowance");
     console.log(fromWei(tokenApproved), "is the token approved allowance");
 
-
     const batch = new web3.BatchRequest();
-    
-    const approveBancorData = bancorTokenContract.methods
-      .approve(converterAddress, toWei(this.token1Amount))
-      .encodeABI({ from: this.isAuthenticated });
-
-    const approveTokenData = tokenContract.methods
-      .approve(converterAddress, toWei(this.token2Amount))
-      .encodeABI({ from: this.isAuthenticated });
 
     console.log("seeking a fund reward of", fromWei(this.fundReward));
-    const fundData = converterContract.methods
-      .fund(this.fundReward)
-      .encodeABI({ from: this.isAuthenticated });
 
-    const approveBancor = {
-      from: this.isAuthenticated,
-      to: BntTokenContract,
-      value: "0x0",
-      data: approveBancorData,
-      gasPrice: toHex(maxGasPrice),
-      gas: toHex(85000)
-    };
+    let transactions: any = [
+      {
+        to: converterAddress,
+        data: converterContract.methods.fund(this.fundReward),
+        gas: toHex(950000)
+      }
+    ];
 
-    const approveConnector = {
-      from: this.isAuthenticated,
-      to: tokenAddress,
-      value: "0x0",
-      data: approveTokenData,
-      gasPrice: toHex(maxGasPrice),
-      gas: toHex(85000)
-    };
-
-    const fund = {
-      from: this.isAuthenticated,
-      to: converterAddress,
-      value: "0x0",
-      data: fundData,
-      gasPrice: toHex(maxGasPrice),
-      gas: toHex(950000)
+    if (Number(fromWei(bancorApproved)) < Number(this.token2Amount)) {
+      console.log(
+        `changing ${fromWei(bancorApproved)} to ${this.token2Amount}`
+      );
+      console.log(
+        fromWei(bancorApproved) !== "0"
+          ? "bancorApproved is not zero"
+          : "bancorApproved is zero"
+      );
+      transactions = [
+        fromWei(bancorApproved) !== "0" && {
+          to: BntTokenContract,
+          data: bancorTokenContract.methods.approve(
+            converterAddress,
+            toWei("0")
+          ),
+          gas: toHex(84999)
+        },
+        {
+          to: BntTokenContract,
+          data: bancorTokenContract.methods.approve(
+            converterAddress,
+            toWei(this.token2Amount)
+          ),
+          gas: toHex(85000)
+        },
+        ...transactions
+      ];
+      console.log({ transactions });
     }
 
-    batch.add(
-      // @ts-ignore
-      web3.eth.sendTransaction.request(approveBancor, () =>
-        console.log("Approve Bancor")
-      )
-    );
-    batch.add(
-      // @ts-ignore
-      web3.eth.sendTransaction.request(approveConnector, () =>
-        console.log("Approve connector")
-      )
-    );
-    batch.add(
-      // @ts-ignore
-      web3.eth.sendTransaction.request(fund, () => console.log("Pool"))
-    );
+    if (Number(fromWei(tokenApproved)) < Number(this.token1Amount)) {
+      console.log(`changing ${fromWei(tokenApproved)} to ${this.token1Amount}`);
+      console.log(
+        fromWei(tokenApproved) !== "0"
+          ? "tokenApproved is not zero"
+          : "tokenapproved is zero"
+      );
+      transactions = [
+        fromWei(tokenApproved) !== "0" && {
+          to: tokenAddress,
+          data: tokenContract.methods.approve(converterAddress, toWei("0")),
+          gas: toHex(84999)
+        },
+        {
+          to: tokenAddress,
+          data: tokenContract.methods.approve(
+            converterAddress,
+            toWei(this.token1Amount)
+          ),
+          gas: toHex(85000)
+        },
+        ...transactions
+      ];
+      console.log({ transactions });
+    }
+
+    const fillOuter = (outer: any) => ({
+      from: outer.from || this.isAuthenticated,
+      to: outer.to,
+      value: outer.value || "0x0",
+      data: outer.data,
+      ...(outer.gas && { gas: outer.gas }),
+      ...(outer.gasPrice && { gasPrice: outer.gasPrice })
+    });
+
+    transactions
+      .filter((x: any) => x)
+      .map((tx: any) => ({
+        ...tx,
+        data: tx.data.encodeABI({ from: this.isAuthenticated })
+      }))
+      .forEach((transaction: any, index: number) => {
+        batch.add(
+          // @ts-ignore
+          web3.eth.sendTransaction.request(fillOuter(transaction))
+        );
+      });
+
     console.log(batch, "is batch");
-    batch.execute();
+    await batch.execute();
+    this.fetchUserTokenBalances();
+    this.setMaxWithdrawals();
   }
 
   get defaultFocusedSymbol() {
@@ -718,9 +754,9 @@ export default class HeroConvert extends Vue {
       tokenReserveBalance
     } = await this.fetchRelayBalances();
     try {
-      const percent = new Decimal(userSmartTokenBalance)
-        .times(Math.pow(10, 18))
-        .div(totalSupply);
+      const percent = new Decimal(userSmartTokenBalance).div(
+        fromWei(totalSupply)
+      );
       const token2SmartBalance = percent.times(bntReserveBalance);
       const token1SmartBalance = percent.times(tokenReserveBalance);
 
