@@ -12,6 +12,9 @@
               :balance="displayedToken1Balance"
               :label="buttonFlipped ? 'Staked Balance:' : 'Wallet Balance:'"
               :img="token1Img"
+              dropdown
+              @dropdown="modal = true"
+              @click="modal = true"
             />
           </transition>
         </b-col>
@@ -83,6 +86,12 @@
           </transition>
         </b-col>
       </b-row>
+      <modal-select
+        :modalShow.sync="modal"
+        :tokens="relayTokens"
+        @onSelect="selectedToken"
+        :filterable="false"
+      />
     </div>
   </hero-wrapper>
 </template>
@@ -111,6 +120,7 @@ import { toWei, toHex, fromWei } from "web3-utils";
 import { Ether } from "@/api/helpers";
 import Decimal from "decimal.js";
 import debounce from "lodash.debounce";
+import ModalSelect from "@/components/modals/ModalSelect.vue";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
@@ -121,6 +131,7 @@ import debounce from "lodash.debounce";
   },
   components: {
     TokenAmountInput,
+    ModalSelect,
     HeroWrapper
   }
 })
@@ -147,6 +158,30 @@ export default class HeroConvert extends Vue {
   token1SmartBalance = "";
   token2SmartBalance = "";
   gasPriceLimit = "";
+  modal = false;
+
+  selectedToken(account: string) {
+    this.modal = false;
+    this.$router.push({
+      name: "Relay",
+      params: { account }
+    });
+  }
+
+  isFromToken(numberSelection: number): boolean {
+    return (
+      (!this.flipped && numberSelection == 1) ||
+      (this.flipped && numberSelection == 2)
+    );
+  }
+
+  get relayTokens() {
+    return vxm.relays.relays.map((relay: any) => ({
+      logo: relay.reserves[0].logo,
+      symbol: relay.smartTokenSymbol,
+      userBalance: 0
+    }));
+  }
 
   get owner() {
     return this.relay.owner;

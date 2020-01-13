@@ -19,7 +19,12 @@
             ></b-form-input>
           </b-input-group>
         </b-col>
-        <b-col md="6" lg="4" class="d-flex align-items-center py-2">
+        <b-col
+          md="6"
+          v-if="filterable"
+          lg="4"
+          class="d-flex align-items-center py-2"
+        >
           <span class="mr-2">Filter:</span>
           <b-dropdown size="sm" id="dropdown-1" :text="filter" class="m-md-2">
             <b-dropdown-item @click="setFilter('All')">All</b-dropdown-item>
@@ -37,7 +42,7 @@
           cols="6"
           md="6"
           lg="4"
-          v-for="(token, index) in tokens"
+          v-for="(token, index) in searchedTokens"
           :key="index"
           class="text-center mb-2"
           @click="setToken(token.symbol)"
@@ -68,6 +73,7 @@ import { TokenInfo } from "@/assets/_ts/bancorx";
 export default class ModalSelect extends Vue {
   @Prop(Boolean) modalShow!: boolean;
   @Prop(Array) tokens!: any[];
+  @Prop(Boolean) filterable!: boolean;
   visible = false;
 
   onChange(value: boolean) {
@@ -91,11 +97,13 @@ export default class ModalSelect extends Vue {
   relayBalances: any[] = [];
 
   get searchedTokens() {
-    if (this.searchResults.length > 0) return this.searchResults;
-    else return this.relayBalances;
+    return this.tokenSearch
+      ? this.tokens.filter(token =>
+          token.symbol.toLowerCase().includes(this.tokenSearch.toLowerCase())
+        )
+      : this.tokens;
   }
 
-  // methods
   setToken(symbol: string) {
     this.$emit("onSelect", symbol);
   }
@@ -125,14 +133,11 @@ export default class ModalSelect extends Vue {
     }
   }
 
-  mounted() {}
   created() {
     this.debouncedGetSearch = debounce(() => {
       this.searchTokens();
     }, 500);
   }
-  updated() {}
-  destroyed() {}
 }
 </script>
 
