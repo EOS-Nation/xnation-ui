@@ -159,7 +159,7 @@ import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 @Component({
   beforeRouteEnter: async (to, from, next) => {
     if (vxm.relays.tokens.length == 0) {
-      await vxm.relays.init();
+      await vxm.relays.init()
     }
     next();
   },
@@ -534,6 +534,8 @@ export default class HeroConvert extends Vue {
     this.fromTokenSymbol = this.selectedSymbolOrDefault;
     this.loadSimpleRewards();
     this.fetchUserTokenBalances();
+
+    console.log(vxm.bancor.tokens[0], 'was what came in from hero convert')
   }
 }
 </script>

@@ -47,7 +47,6 @@ export interface ProposedConvertTransaction {
   toAmount: FloatAmount;
 }
 
-
 export interface TokenDetail {
   _id: string;
   type: string;

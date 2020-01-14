@@ -1,10 +1,8 @@
-import { VuexModule, mutation, action, Module, getter } from "vuex-class-component";
-import i18n from "@/i18n";
-import { vxm } from '@/store/index';
+import { VuexModule, mutation, action, Module } from "vuex-class-component";
+import { vxm } from "@/store/index";
 
 @Module({ namespacedPath: "wallet/" })
 export class WalletModule extends VuexModule {
-
   wallet = "eos";
 
   get currentNetwork() {
@@ -12,13 +10,8 @@ export class WalletModule extends VuexModule {
   }
 
   get isAuthenticated() {
-      // @ts-ignore
-      return vxm[`${this.wallet}Wallet`].isAuthenticated
-  }
-
-  getStatus() {
-      console.log('this was on status', this);
-      return 'fhweuifuiwe'
+    // @ts-ignore
+    return vxm[`${this.wallet}Wallet`].isAuthenticated;
   }
 
   @mutation setWallet(wallet: string) {
@@ -26,11 +19,13 @@ export class WalletModule extends VuexModule {
   }
 
   @action async dispatcher(methodName: string, params: any = null) {
-    return params ? this.$store.dispatch(`${this.currentNetwork}/${methodName}`, params) : this.$store.dispatch(`${this.currentNetwork}/${methodName}`)
+    return params
+      ? this.$store.dispatch(`${this.currentNetwork}/${methodName}`, params)
+      : this.$store.dispatch(`${this.currentNetwork}/${methodName}`);
   }
 
   @action async tx(actions: any[]) {
-    return this.dispatcher('tx', actions);
+    return this.dispatcher("tx", actions);
   }
 
   @action async initLogin() {

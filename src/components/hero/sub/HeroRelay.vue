@@ -335,7 +335,7 @@ export default class HeroConvert extends Vue {
       return { tokenReserveBalance, bntReserveBalance, totalSupply };
     } catch (e) {
       console.log("failed to TJ hooker", e);
-      throw new Error("What")
+      throw new Error("What" + e)
     }
   }
 
