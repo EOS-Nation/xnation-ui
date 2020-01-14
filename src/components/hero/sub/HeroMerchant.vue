@@ -71,6 +71,8 @@ export default class SortIcons extends Vue {
         this.error = "ERROR: installed cameras are not suitable";
       } else if (error.name === "StreamApiNotSupportedError") {
         this.error = "ERROR: Stream API is not supported in this browser";
+      } else {
+          this.error = error;
       }
     }
   }
