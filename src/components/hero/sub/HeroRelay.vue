@@ -280,12 +280,15 @@ export default class HeroConvert extends Vue {
     reserveTokenAddress: string,
     versionNumber: number | string
   ): Promise<string> {
+    console.log({ converterContract, reserveTokenAddress, versionNumber });
     try {
-      return converterContract.methods[
+      const res = await converterContract.methods[
         Number(versionNumber) >= 17
           ? "getReserveBalance"
           : "getConnectorBalance"
       ](reserveTokenAddress).call();
+      console.log({ res }, "was resturent");
+      return res;
     } catch (e) {
       throw new Error("Failed getting reserve balance" + e);
     }
@@ -313,33 +316,27 @@ export default class HeroConvert extends Vue {
     );
 
     try {
-      this.getReserveCount(converterContract, converterVersion).then(
-        reserveCount => {
-          if (reserveCount !== 2) throw new Error("Reserve count is not 2");
-        }
-      );
+      const [
+        tokenReserveBalance,
+        bntReserveBalance,
+        totalSupply
+      ] = await Promise.all([
+        this.fetchReserveBalance(
+          converterContract,
+          tokenAddress,
+          converterVersion
+        ),
+        this.fetchReserveBalance(
+          converterContract,
+          BntTokenContract,
+          converterVersion
+        ),
+        smartTokenContract.methods.totalSupply().call()
+      ]);
+      return { tokenReserveBalance, bntReserveBalance, totalSupply };
     } catch (e) {
-      console.warn("Failed to confirm if the reserve count is 2");
+      console.log("failed to TJ hooker", e);
     }
-
-    const [
-      tokenReserveBalance,
-      bntReserveBalance,
-      totalSupply
-    ] = await Promise.all([
-      this.fetchReserveBalance(
-        converterContract,
-        tokenAddress,
-        converterVersion
-      ),
-      this.fetchReserveBalance(
-        converterContract,
-        BntTokenContract,
-        converterVersion
-      ),
-      smartTokenContract.methods.totalSupply().call()
-    ]);
-    return { tokenReserveBalance, bntReserveBalance, totalSupply };
   }
 
   percentageIncrease(deposit: string, existingSupply: string): number {
@@ -633,6 +630,7 @@ export default class HeroConvert extends Vue {
 
     console.log("seeking a fund reward of", fromWei(this.fundReward));
 
+    console.log(converterContract, 'was converter contract')
     let transactions: any = [
       {
         to: converterAddress,
@@ -781,34 +779,34 @@ export default class HeroConvert extends Vue {
   }
 
   async setMaxWithdrawals() {
-    const userSmartTokenBalance = await this.fetchUserTokenBalances();
-    if (!userSmartTokenBalance) return;
+    // const userSmartTokenBalance = await this.fetchUserTokenBalances();
+    // if (!userSmartTokenBalance) return;
     const {
       totalSupply,
       bntReserveBalance,
       tokenReserveBalance
     } = await this.fetchRelayBalances();
-    try {
-      const percent = new Decimal(userSmartTokenBalance).div(
-        fromWei(totalSupply)
-      );
-      const token2SmartBalance = percent.times(bntReserveBalance);
-      const token1SmartBalance = percent.times(tokenReserveBalance);
+    // try {
+    //   const percent = new Decimal(userSmartTokenBalance).div(
+    //     fromWei(totalSupply)
+    //   );
+    //   const token2SmartBalance = percent.times(bntReserveBalance);
+    //   const token1SmartBalance = percent.times(tokenReserveBalance);
 
-      const token2SmartInt = token2SmartBalance.toFixed(0);
-      const token1SmartInt = token1SmartBalance.toFixed(0);
-      console.log({
-        percent: percent.toNumber(),
-        token2x: token2SmartInt,
-        userSmartTokenBalance,
-        totalSupply
-      });
+    //   const token2SmartInt = token2SmartBalance.toFixed(0);
+    //   const token1SmartInt = token1SmartBalance.toFixed(0);
+    //   console.log({
+    //     percent: percent.toNumber(),
+    //     token2x: token2SmartInt,
+    //     userSmartTokenBalance,
+    //     totalSupply
+    //   });
 
-      this.token2SmartBalance = fromWei(token2SmartInt);
-      this.token1SmartBalance = fromWei(token1SmartInt);
-    } catch (e) {
-      console.log("Something went wrong in setMaxWithdrawals" + e);
-    }
+    //   this.token2SmartBalance = fromWei(token2SmartInt);
+    //   this.token1SmartBalance = fromWei(token1SmartInt);
+    // } catch (e) {
+    //   console.log("Something went wrong in setMaxWithdrawals" + e);
+    // }
   }
 
   async created() {

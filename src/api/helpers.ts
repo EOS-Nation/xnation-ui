@@ -3347,7 +3347,7 @@ export const getEthRelays = async (): Promise<CoTrade[]> => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0.1",
-      converterVersion: "32"
+      converterVersion: "10"
     }
   ];
   const res = await axios.get("https://api-bancor.cotrader.com/official");
