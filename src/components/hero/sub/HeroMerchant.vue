@@ -44,6 +44,7 @@ export default class SortIcons extends Vue {
   toAccount = "";
   amount = "0";
   error = "";
+  result = "";
 
   get value() {
     return `${this.toAccount}:${this.amount}`;
@@ -51,6 +52,7 @@ export default class SortIcons extends Vue {
 
   onDecode(result: string) {
       alert(result);
+      this.result = result;
   }
 
   async onInit(promise: any) {
