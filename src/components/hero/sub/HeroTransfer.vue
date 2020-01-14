@@ -46,9 +46,6 @@
             <span @click="navConvert" class="cursor font-size-sm text-white-50">
               <font-awesome-icon icon="exchange-alt" fixed-width />CONVERT
             </span>
-            <div @click="navMerchant" class="cursor font-size-sm text-white-50">
-              <font-awesome-icon icon="store" fixed-width />MERCHANT
-            </div>
           </div>
         </b-col>
         <b-col md="4">
@@ -85,7 +82,6 @@
 <script lang="ts">
 import { Watch, Component, Vue, Prop } from "vue-property-decorator";
 import { vxm } from "@/store";
-import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
@@ -208,12 +204,6 @@ export default class HeroTransfer extends Vue {
       params: {
         symbolName: this.selectedSymbolOrDefault
       }
-    });
-  }
-
-  navMerchant() {
-    this.$router.push({
-      name: "Merchant"
     });
   }
 

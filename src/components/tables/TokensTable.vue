@@ -180,7 +180,6 @@
 import { Watch, Component, Vue, Prop } from "vue-property-decorator";
 import { vxm } from "@/store";
 import numeral from "numeral";
-import * as bancorx from "@/assets/_ts/bancorx";
 import SortIcons from "@/components/common/SortIcons.vue";
 import {
   TokenPrice,

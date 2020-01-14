@@ -122,7 +122,6 @@
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import axios from "axios";
-import * as bancorx from "@/assets/_ts/bancorx";
 import SortIcons from "@/components/common/SortIcons.vue";
 import { TokenPrice } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";

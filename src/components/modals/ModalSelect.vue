@@ -64,8 +64,6 @@ import { vxm } from "@/store/";
 import { TokenPrice } from "@/types/bancor";
 import TokenBalanceBlock from "@/components/common/TokenBalanceBlock.vue";
 const debounce = require("lodash.debounce");
-import * as bancorx from "@/assets/_ts/bancorx";
-import { TokenInfo } from "@/assets/_ts/bancorx";
 
 @Component({
   components: { TokenBalanceBlock }

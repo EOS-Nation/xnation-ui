@@ -101,7 +101,6 @@ import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import { fetchTokenMeta, fetchTokenStats, Wei } from "@/api/helpers";
-import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
 import { calculateReturn, calculateFundReturn, liquidate } from "bancorx";
 import { split, Asset, Symbol } from "eos-common";

@@ -23,7 +23,6 @@
 import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store/";
 import { TokenPrice } from "@/types/bancor";
-import * as bancorx from "@/assets/_ts/bancorx";
 
 @Component
 export default class ModalConvertToken extends Vue {

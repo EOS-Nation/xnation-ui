@@ -143,7 +143,6 @@
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
-import * as bancorx from "@/assets/_ts/bancorx";
 import numeral from "numeral";
 import ModalTx from "@/components/modals/ModalTx.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";

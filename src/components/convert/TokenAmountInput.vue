@@ -76,8 +76,6 @@
 import { Prop, Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import debounce from "lodash.debounce";
-import { TokenInfo } from "@/assets/_ts/bancorx";
-import * as bancorx from "@/assets/_ts/bancorx";
 import Percentages from "./Percentages.vue";
 
 @Component({

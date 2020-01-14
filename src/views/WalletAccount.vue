@@ -189,11 +189,9 @@
 import { Prop, Watch, Component, Vue } from 'vue-property-decorator'
 import { vxm } from '@/store'
 import { bancorApi } from '@/api/bancor'
-import * as bancorx from '@/assets/_ts/bancorx'
 import { TokenPrice } from '@/types/bancor'
 import SortIcons from '@/components/common/SortIcons.vue'
 import numeral from 'numeral'
-import { TokenInfo } from '@/assets/_ts/bancorx'
 
 @Component({
   components: {
@@ -253,12 +251,7 @@ export default class WalletAccount extends Vue {
 
   // methods
   async getRelays() {
-    this.relays = []
-    for (const token of this.tokens) {
-      const resp = await bancorx.relays[token.code]
-      if (resp) this.relays.push(resp)
-    }
-    return
+
   }
 
   async getBalancesOld() {
