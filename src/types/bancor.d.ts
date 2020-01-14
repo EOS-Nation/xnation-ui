@@ -26,7 +26,12 @@ export type FloatAmount = number;
 export interface TokenBalances {
   query_time: number;
   account: string;
-  tokens: { symbol: string, precision: number, amount: number, contract: string }[]
+  tokens: {
+    symbol: string;
+    precision: number;
+    amount: number;
+    contract: string;
+  }[];
 }
 
 export interface ProposedTransaction {
@@ -41,6 +46,7 @@ export interface ProposedConvertTransaction {
   fromAmount: FloatAmount;
   toAmount: FloatAmount;
 }
+
 
 export interface TokenDetail {
   _id: string;
@@ -66,27 +72,25 @@ export interface TokenDetail {
 export type EthAddress = string;
 
 export interface CoTrade {
-  tokenAddress:             string;
-  symbol:                   string;
-  smartTokenSymbol:         string;
-  converterAddress:         string;
-  smartTokenAddress:        string;
-  owner:                    string;
-  isOfficial:               number;
-  isCoTraderVerified:       number;
-  isBlacklisted:            number;
-  connectorType:            string;
-  smartTokenSupply:         string;
-  connectorBancorReserve:   string;
+  tokenAddress: string;
+  symbol: string;
+  smartTokenSymbol: string;
+  converterAddress: string;
+  smartTokenAddress: string;
+  owner: string;
+  isOfficial: number;
+  isCoTraderVerified: number;
+  isBlacklisted: number;
+  connectorType: string;
+  smartTokenSupply: string;
+  connectorBancorReserve: string;
   connectorOriginalReserve: string;
-  smartTokenInETH:          null;
-  smartTokeninUSD:          null;
-  tokenDecimals:            number;
-  conversionFee:            string;
-  converterVersion:         string;
+  smartTokenInETH: null;
+  smartTokeninUSD: null;
+  tokenDecimals: number;
+  conversionFee: string;
+  converterVersion: string;
 }
-
-
 
 export interface Detail {
   blockchain: Blockchain;

@@ -336,6 +336,7 @@ export default class HeroConvert extends Vue {
       return { tokenReserveBalance, bntReserveBalance, totalSupply };
     } catch (e) {
       console.log("failed to TJ hooker", e);
+      throw new Error("What")
     }
   }
 
@@ -779,34 +780,34 @@ export default class HeroConvert extends Vue {
   }
 
   async setMaxWithdrawals() {
-    // const userSmartTokenBalance = await this.fetchUserTokenBalances();
-    // if (!userSmartTokenBalance) return;
+    const userSmartTokenBalance = await this.fetchUserTokenBalances();
+    if (!userSmartTokenBalance) return;
     const {
       totalSupply,
       bntReserveBalance,
       tokenReserveBalance
     } = await this.fetchRelayBalances();
-    // try {
-    //   const percent = new Decimal(userSmartTokenBalance).div(
-    //     fromWei(totalSupply)
-    //   );
-    //   const token2SmartBalance = percent.times(bntReserveBalance);
-    //   const token1SmartBalance = percent.times(tokenReserveBalance);
+    try {
+      const percent = new Decimal(userSmartTokenBalance).div(
+        fromWei(totalSupply)
+      );
+      const token2SmartBalance = percent.times(bntReserveBalance);
+      const token1SmartBalance = percent.times(tokenReserveBalance);
 
-    //   const token2SmartInt = token2SmartBalance.toFixed(0);
-    //   const token1SmartInt = token1SmartBalance.toFixed(0);
-    //   console.log({
-    //     percent: percent.toNumber(),
-    //     token2x: token2SmartInt,
-    //     userSmartTokenBalance,
-    //     totalSupply
-    //   });
+      const token2SmartInt = token2SmartBalance.toFixed(0);
+      const token1SmartInt = token1SmartBalance.toFixed(0);
+      console.log({
+        percent: percent.toNumber(),
+        token2x: token2SmartInt,
+        userSmartTokenBalance,
+        totalSupply
+      });
 
-    //   this.token2SmartBalance = fromWei(token2SmartInt);
-    //   this.token1SmartBalance = fromWei(token1SmartInt);
-    // } catch (e) {
-    //   console.log("Something went wrong in setMaxWithdrawals" + e);
-    // }
+      this.token2SmartBalance = fromWei(token2SmartInt);
+      this.token1SmartBalance = fromWei(token1SmartInt);
+    } catch (e) {
+      console.log("Something went wrong in setMaxWithdrawals" + e);
+    }
   }
 
   async created() {
