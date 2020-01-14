@@ -6,6 +6,7 @@ import Tokens from "@/views/Tokens.vue";
 import Relays from "@/views/Relays.vue";
 import HeroConvert from "@/components/hero/sub/HeroConvert.vue";
 import HeroTransfer from "@/components/hero/sub/HeroTransfer.vue";
+import HeroMerchant from "@/components/hero/sub/HeroMerchant.vue";
 import HeroRelay from "@/components/hero/sub/HeroRelay.vue";
 import Navigation from "@/components/layout/Navigation.vue";
 import { vxm } from "@/store/";
@@ -23,6 +24,13 @@ const commonRoutes = [
       Nav: Navigation,
       default: Tokens,
       Hero: HeroConvert
+    }
+  },
+  {
+    path: "/merchant",
+    name: "Merchant",
+    components: {
+      Hero: HeroMerchant
     }
   },
   {
