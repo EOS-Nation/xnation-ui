@@ -17,11 +17,11 @@ export class BancorModule extends VuexModule {
 
   get tokens() {
     // @ts-ignore
-    return this.$store.rootGetters[`${this.currentNetwork}Bancor/tokens`]
+    return vxm[`${this.currentNetwork}Bancor`]["tokens"];
   }
 
   get token() {
-    return "";
+    return this.$store["rootGetters"][`${this.currentNetwork}Bancor/token`];
   }
 
   @action async init() {
@@ -32,16 +32,36 @@ export class BancorModule extends VuexModule {
     );
   }
 
-  @action async convert(tx: ProposedConvertTransaction) {}
+  @action async convert(tx: ProposedConvertTransaction) {
+    return this.dispatcher(["convert", tx]);
+  }
 
-  @action async getCost(proposedTransaction: ProposedTransaction) {}
+  @action async getCost(proposedTransaction: ProposedTransaction) {
+    return this.dispatcher(["getCost", proposedTransaction]);
+  }
 
-  @action async getReturn(proposedTransaction: ProposedTransaction) {}
+  @action async getReturn(proposedTransaction: ProposedTransaction) {
+    return this.dispatcher(["getReturn", proposedTransaction]);
+  }
 
-  @action async dispatcher(methodName: string, params: any = null) {
-    return params
-      ? this.$store.dispatch(`${this.currentNetwork}/${methodName}`, params)
-      : this.$store.dispatch(`${this.currentNetwork}/${methodName}`);
+  @action async dispatcher([methodName, params]: any) {
+    return this.$store.dispatch(
+      `${this.currentNetwork}Bancor/${methodName}`,
+      params,
+      { root: true }
+    );
+  }
+
+  @action async fetchBalances() {
+    return (
+      vxm.wallet.currentNetwork == "eos" &&
+      vxm.wallet.isAuthenticated &&
+      this.fetchBalancesEos()
+    );
+  }
+
+  @action async fetchBalancesEos() {
+    console.log("Hello world, this is fetch Balances EOS");
   }
 }
 

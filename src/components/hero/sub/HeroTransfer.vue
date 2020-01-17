@@ -119,7 +119,7 @@ export default class HeroTransfer extends Vue {
   }
 
   get focusedToken() {
-    return vxm.relays.token(this.selectedSymbolOrDefault)!;
+    return vxm.bancor.token(this.selectedSymbolOrDefault)!;
   }
 
   get token() {
@@ -195,7 +195,7 @@ export default class HeroTransfer extends Vue {
   }
 
   get defaultSymbolName() {
-    return vxm.relays.tokens.find(token => token.symbol !== "BNT")!.symbol;
+    return vxm.bancor.tokens.find(token => token.symbol !== "BNT")!.symbol;
   }
 
   navConvert() {

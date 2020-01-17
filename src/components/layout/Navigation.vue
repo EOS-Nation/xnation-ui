@@ -133,7 +133,7 @@ export default class Navigation extends Vue {
   @Watch("isAuthenticated")
   onAuthentication(account: string) {
     if (account) {
-      vxm.relays.fetchBalances();
+      vxm.bancor.fetchBalances();
     }
   }
 
@@ -145,7 +145,6 @@ export default class Navigation extends Vue {
       });
     }
     vxm.wallet.setWallet(selectedNetwork);
-    vxm.relays.setNetwork(selectedNetwork);
   }
 
   get language() {

@@ -123,8 +123,8 @@ import ModalSelect from "@/components/modals/ModalSelect.vue";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
-    if (vxm.relays.tokens.length == 0) {
-      await vxm.relays.init();
+    if (vxm.bancor.tokens.length == 0) {
+      await vxm.bancor.init();
     }
     next();
   },
@@ -175,7 +175,7 @@ export default class HeroConvert extends Vue {
   }
 
   get relayTokens() {
-    return vxm.relays.relays.map((relay: any) => ({
+    return vxm.bancor.relays.map((relay: any) => ({
       logo: relay.reserves[0].logo,
       symbol: relay.smartTokenSymbol,
       userBalance: 0
@@ -203,15 +203,15 @@ export default class HeroConvert extends Vue {
   }
 
   get token1() {
-    return vxm.relays.token(this.relay.reserves[this.flipped ? 1 : 0].symbol)!;
+    return vxm.bancor.token(this.relay.reserves[this.flipped ? 1 : 0].symbol)!;
   }
 
   get token2() {
-    return vxm.relays.token(this.relay.reserves[this.flipped ? 0 : 1].symbol)!;
+    return vxm.bancor.token(this.relay.reserves[this.flipped ? 0 : 1].symbol)!;
   }
 
   get relay() {
-    return vxm.relays.relay(this.focusedSymbol);
+    return vxm.bancor.relay(this.focusedSymbol);
   }
 
   get fee() {
@@ -348,8 +348,7 @@ export default class HeroConvert extends Vue {
   }
 
   async getDecimalsOfToken(symbolName: string): Promise<number> {
-    const res = await vxm.relays.getEthTokenWithDecimals(symbolName);
-    return res.decimals;
+    return vxm.ethBancor.getDecimals(symbolName);
   }
 
   calculateFundReward(
@@ -725,7 +724,7 @@ export default class HeroConvert extends Vue {
   }
 
   get defaultFocusedSymbol() {
-    return vxm.relays.relays[0].smartTokenSymbol;
+    return vxm.bancor.relays[0].smartTokenSymbol;
   }
 
   get focusedSymbol() {

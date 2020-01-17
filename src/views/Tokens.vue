@@ -30,14 +30,14 @@ export default class Token extends Vue {
 
   get filteredTokens() {
     return this.searchTerm
-      ? vxm.relays.tokens.filter(
+      ? vxm.bancor.tokens.filter(
           token =>
             token.symbol
               .toLowerCase()
               .includes(this.searchTerm.toLowerCase()) ||
             token.name.toLowerCase().includes(this.searchTerm.toLowerCase())
         )
-      : vxm.relays.tokens;
+      : vxm.bancor.tokens;
   }
 
   get network() {
@@ -72,7 +72,7 @@ export default class Token extends Vue {
   }
 
   async created() {
-    vxm.relays.fetchRelays();
+    // vxm.relays.fetchRelays();
   }
 }
 </script>

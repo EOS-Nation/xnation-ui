@@ -158,8 +158,8 @@ import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
-    if (vxm.relays.tokens.length == 0) {
-      await vxm.relays.init()
+    if (vxm.bancor.tokens.length == 0) {
+      await vxm.bancor.init()
     }
     next();
   },
@@ -232,12 +232,12 @@ export default class HeroConvert extends Vue {
 
   get token() {
     return (symbolName: string) => {
-      return vxm.relays.token(symbolName);
+      return vxm.bancor.tokens.find(x => x.symbol == symbolName)
     };
   }
 
   get tokens() {
-    return vxm.relays.tokens;
+    return vxm.bancor.tokens;
   }
 
   get selectedSymbolOrDefault() {
@@ -245,7 +245,7 @@ export default class HeroConvert extends Vue {
   }
 
   get defaultSymbolName() {
-    return vxm.relays.tokens.find(token => token.symbol !== "BNT")!.symbol;
+    return vxm.bancor.tokens.find((token: any) => token.symbol !== "BNT")!.symbol;
   }
 
   get fromTokenSymbol() {
@@ -340,7 +340,7 @@ export default class HeroConvert extends Vue {
       this.error = "";
 
       console.log(this.toTokenAmount, Number(this.toTokenAmount));
-      const result = await vxm.relays.convert({
+      const result = await vxm.bancor.convert({
         fromSymbol: this.fromTokenSymbol,
         toSymbol: this.toTokenSymbol,
         fromAmount: Number(this.fromTokenAmount),
@@ -351,21 +351,21 @@ export default class HeroConvert extends Vue {
       this.success = result;
       this.error = "";
 
-      vxm.relays.init();
+      vxm.bancor.init();
     } catch (e) {
       this.error = e.message;
       this.success = "";
     }
     this.txBusy = false;
     await wait(500);
-    vxm.relays.fetchBalances();
+    vxm.bancor.fetchBalances();
   }
 
   networkChange() {
     const fromSymbol = this.fromTokenSymbol;
     const toSymbol = this.toTokenSymbol;
-    const fromToken = vxm.relays.token(fromSymbol);
-    const toToken = vxm.relays.token(toSymbol);
+    const fromToken = vxm.bancor.token(fromSymbol);
+    const toToken = vxm.bancor.token(toSymbol);
     this.token2Key = this.reverseString(this.token2Key);
     this.token1Key = this.reverseString(this.token1Key);
     if (!fromToken) {
@@ -438,7 +438,7 @@ export default class HeroConvert extends Vue {
     if (!Number(this.token1Amount) && !Number(this.token2Amount)) return;
     this.loadingConversion = true;
     const amount = Number(this.fromTokenAmount);
-    const reward = await vxm.relays.getReturn({
+    const reward = await vxm.bancor.getReturn({
       fromSymbol: this.fromTokenSymbol,
       amount,
       toSymbol: this.toTokenSymbol
@@ -451,7 +451,7 @@ export default class HeroConvert extends Vue {
     this.loading = true;
 
     const amount = Number(this.toTokenAmount);
-    const reward = await vxm.relays.getCost({
+    const reward = await vxm.bancor.getCost({
       amount,
       toSymbol: this.toTokenSymbol,
       fromSymbol: this.fromTokenSymbol
@@ -481,7 +481,7 @@ export default class HeroConvert extends Vue {
   }
 
   get relay() {
-    return vxm.relays.relay(this.selectedSymbolOrDefault);
+    return vxm.bancor.relay(this.selectedSymbolOrDefault);
   }
 
   async fetchUserTokenBalances() {
@@ -513,12 +513,12 @@ export default class HeroConvert extends Vue {
     this.loading = true;
 
     const [fromToken1, fromToken2] = await Promise.all([
-      vxm.relays.getReturn({
+      vxm.bancor.getReturn({
         fromSymbol: this.token1Symbol,
         amount: 1,
         toSymbol: this.token2Symbol
       }),
-      vxm.relays.getReturn({
+      vxm.bancor.getReturn({
         fromSymbol: this.token2Symbol,
         amount: 1,
         toSymbol: this.token1Symbol

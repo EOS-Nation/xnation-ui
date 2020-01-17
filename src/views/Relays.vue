@@ -165,7 +165,7 @@ export default class Relays extends Vue {
 
   get tokens() {
     return this.tokenSearch
-      ? vxm.relays.relays.filter(
+      ? vxm.bancor.relays.filter(
           (relay: any) =>
             relay.symbol
               .toLowerCase()
@@ -174,11 +174,11 @@ export default class Relays extends Vue {
               .toLowerCase()
               .includes(this.tokenSearch.toLowerCase())
         )
-      : vxm.relays.relays.sort((a: any, b: any) => {
-          const aTokenIndex = vxm.relays.tokens.findIndex(
+      : vxm.bancor.relays.sort((a: any, b: any) => {
+          const aTokenIndex = vxm.bancor.tokens.findIndex(
             token => token.symbol == a.symbol
           );
-          const bTokenIndex = vxm.relays.tokens.findIndex(
+          const bTokenIndex = vxm.bancor.tokens.findIndex(
             token => token.symbol == b.symbol
           );
           return aTokenIndex < bTokenIndex ? -1 : 1;
@@ -216,7 +216,7 @@ export default class Relays extends Vue {
   }
 
   async created() {
-    vxm.relays.fetchRelays();
+    // vxm.bancor.fetchRelays();
     console.log(process.env.VUE_APP_BASE_URL, process.env.BASE_URL, 'exactly look')
 
   }

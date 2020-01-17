@@ -12,7 +12,7 @@ import {
   TokenAmount,
   calculateReserveToSmart,
   calculateSmartToReserve,
-  chargeFee,
+  chargeFee
 } from "bancorx";
 
 const reserveToReserveHopping = (lastReward: Asset, relay: HydratedRelay) => {
@@ -199,7 +199,7 @@ class BancorCalculator {
 
   async fetchRelays() {
     // @ts-ignore
-    return vxm.relays.relays.map(relay => ({
+    return vxm.bancor.relays.map(relay => ({
       // @ts-ignore
       reserves: relay.reserves.map(reserve => ({
         contract: reserve.contract,
@@ -223,7 +223,7 @@ class BancorCalculator {
   }
 
   async fetchMultiRelayReserves(contract: string, symbolCode: string) {
-    const relay = vxm.relays.relays.find(
+    const relay = vxm.bancor.relays.find(
       // @ts-ignore
       relay => relay.settings.currency.split(",")[1] == symbolCode
     )!;

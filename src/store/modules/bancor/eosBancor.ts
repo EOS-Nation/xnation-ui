@@ -1,29 +1,190 @@
-import { VuexModule, action, Module } from "vuex-class-component";
-import { SimpleToken, SimpleTokenWithMarketData, ProposedTransaction, ProposedConvertTransaction} from "@/types/bancor";
+import { VuexModule, action, Module, mutation } from "vuex-class-component";
+import {
+  ProposedTransaction,
+  ProposedConvertTransaction,
+  TokenPrice
+} from "@/types/bancor";
+import { bancorApi } from "@/api/bancor";
+import { getTokenBalances } from "@/api/helpers";
+
+interface ViewToken {
+  symbol: string;
+  name: string;
+  price: number;
+  liqDepth: number;
+  logo: string;
+  change24h: number;
+  volume24h: number;
+  balance?: string;
+}
+
+interface TokenPriceExtended extends TokenPrice {
+  balance: number;
+}
 
 @Module({ namespacedPath: "eosBancor/" })
 export class EosBancorModule extends VuexModule {
+  tokensList: TokenPrice[] | TokenPriceExtended[] = [];
+  usdPrice = 0;
 
-  tokensList: any[] = []
-
-  get tokens() {
-    return ''
+  get tokens(): ViewToken[] {
+    return this.tokensList.map((token: TokenPrice | TokenPriceExtended) => ({
+      symbol: token.code,
+      name: token.name,
+      price: token.price,
+      liqDepth: token.liquidityDepth * this.usdPrice,
+      logo: token.primaryCommunityImageName,
+      change24h: token.change24h,
+      volume24h: token.volume24h.USD,
+      balance: token.balance || 0
+    }));
   }
 
-  get token() {
-    return ''
+  get token(): (arg0: string) => ViewToken | undefined {
+    return (symbolName: string) =>
+      this.tokens.find(token => token.symbol == symbolName);
   }
-  
+
+  get backgroundToken(): (arg0: string) => TokenPrice | TokenPriceExtended {
+    return (symbolName: string) => {
+      const res = this.tokensList.find(token => token.code == symbolName);
+      if (!res)
+        throw new Error(`Failed to find ${symbolName} on this.tokensList`);
+      return res;
+    };
+  }
+
+  @action async fetchUsdPrice() {
+    this.setUsdPrice(Number(await bancorApi.getRate("BNT", "USD")));
+  }
+
   @action async init() {
-    console.log('Init was called on eosBancor');
+    const [usdValueOfEth, tokens] = await Promise.all([
+      bancorApi.getTokenTicker("ETH"),
+      bancorApi.getTokens()
+    ]);
+    this.setUsdPrice(Number(usdValueOfEth.price));
+    this.setTokens(tokens);
   }
 
-  @action async convert(tx: ProposedConvertTransaction) {}
+  @action async fetchBalances() {
+    const isAuthenticated = this.$store.rootGetters[
+      "ethWallet/isAuthenticated"
+    ];
 
-  @action async getCost(proposedTransaction: ProposedTransaction) {}
+    const balances = await getTokenBalances(isAuthenticated);
 
-  @action async getReturn(proposedTransaction: ProposedTransaction) {}
+    // @ts-ignore
+    this.tokensList = this.tokensList.map((token: any) => {
+      // @ts-ignore
+      const existingToken = balances.tokens.find(
+        balanceObj => balanceObj.symbol == token.code
+      );
+      return {
+        ...token,
+        balance: (existingToken && existingToken.amount) || 0
+      };
+    });
+  }
 
+  @action async convert({
+    fromAmount,
+    fromSymbol,
+    toAmount,
+    toSymbol
+  }: ProposedConvertTransaction) {
+    // @ts-ignore
+    console.log(this.$store.rootState, "was state");
+    // @ts-ignore
+    const accountName = this.$store.rootState.eosWallet.walletState.auth
+      .accountName;
+    const fromObj = await this.getEosTokenWithDecimals(fromSymbol);
+    const toObj = await this.getEosTokenWithDecimals(toSymbol);
+
+    const res = await bancorApi.convert({
+      fromCurrencyId: fromObj.id,
+      toCurrencyId: toObj.id,
+      amount: String((fromAmount * Math.pow(10, fromObj.decimals)).toFixed(0)),
+      minimumReturn: String(
+        (toAmount * 0.98 * Math.pow(10, toObj.decimals)).toFixed(0)
+      ),
+      ownerAddress: accountName
+    });
+
+    const { actions } = res.data[0];
+    const txRes = await this.triggerTx(actions);
+    return txRes.transaction_id;
+  }
+
+  @action async getEosTokenWithDecimals(symbolName: string): Promise<any> {
+    const token = this.backgroundToken(symbolName);
+    if (token.decimals) {
+      return token;
+    } else {
+      const detailApiInstance = await bancorApi.getTokenTicker(symbolName);
+      this.tokensList = this.tokensList.map(
+        (existingToken: TokenPrice | TokenPriceExtended) => ({
+          ...existingToken,
+          ...(existingToken.code == symbolName && {
+            decimals: detailApiInstance.decimals
+          })
+        })
+      );
+      return this.getEosTokenWithDecimals(symbolName);
+    }
+  }
+
+  @action async getReturn({
+    fromSymbol,
+    toSymbol,
+    amount
+  }: ProposedTransaction) {
+    const [fromToken, toToken] = await Promise.all([
+      this.getEosTokenWithDecimals(fromSymbol),
+      this.getEosTokenWithDecimals(toSymbol)
+    ]);
+
+    const reward = await bancorApi.calculateReturn(
+      fromToken.id,
+      toToken.id,
+      String(amount * Math.pow(10, fromToken.decimals))
+    );
+    return { amount: String(Number(reward) / Math.pow(10, toToken.decimals)) };
+  }
+
+  @action async getCost({ fromSymbol, toSymbol, amount }: ProposedTransaction) {
+    const [fromToken, toToken] = await Promise.all([
+      this.getEosTokenWithDecimals(fromSymbol),
+      this.getEosTokenWithDecimals(toSymbol)
+    ]);
+    const result = await bancorApi.calculateCost(
+      fromToken.id,
+      toToken.id,
+      String(amount * Math.pow(10, toToken.decimals))
+    );
+    return {
+      amount: String(Number(result) / Math.pow(10, fromToken.decimals))
+    };
+  }
+
+  @action async triggerTx(actions: any[]) {
+    // @ts-ignore
+    return this.$store.dispatch("eosWallet/tx", actions, { root: true });
+  }
+
+  @mutation setTokens(tokens: any) {
+    this.tokensList = tokens.map((token: any) => {
+      if (token.code == "BNT") {
+        return { ...token, decimals: 10 };
+      } else {
+        return token;
+      }
+    });
+  }
+
+  @mutation setUsdPrice(price: number) {
+    this.usdPrice = price;
+  }
 }
 
 export const eosBancor = EosBancorModule.ExtractVuexModule(EosBancorModule);

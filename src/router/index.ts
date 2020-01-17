@@ -136,15 +136,15 @@ export const router = new Router({
 router.beforeEach((to, from, next) => {
   if (to && to.name && to.name.includes("-")) {
     const originNetwork = to.name.split('-')[0]
-    if (vxm.relays.selectedNetwork !== originNetwork) {
-      vxm.relays.setNetwork(originNetwork)
+    if (vxm.wallet.currentNetwork !== originNetwork) {
+      vxm.wallet.setWallet(originNetwork)
     }
     next();
   }
   else {
     const originNetwork = from && from && from.name && from.name.split("-")[0];
     if (originNetwork) {
-      vxm.relays.setNetwork(originNetwork);
+      vxm.wallet.setWallet(originNetwork);
       next({ name: `${originNetwork}-${to.name}`, params: to.params });
     } else {
       next();
