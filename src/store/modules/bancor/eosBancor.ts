@@ -28,6 +28,7 @@ export class EosBancorModule extends VuexModule {
   usdPrice = 0;
 
   get tokens(): ViewToken[] {
+    // @ts-ignore
     return this.tokensList.map((token: TokenPrice | TokenPriceExtended) => ({
       symbol: token.code,
       name: token.name,
@@ -36,6 +37,7 @@ export class EosBancorModule extends VuexModule {
       logo: token.primaryCommunityImageName,
       change24h: token.change24h,
       volume24h: token.volume24h.USD,
+      // @ts-ignore
       balance: token.balance || 0
     }));
   }
@@ -119,10 +121,12 @@ export class EosBancorModule extends VuexModule {
 
   @action async getEosTokenWithDecimals(symbolName: string): Promise<any> {
     const token = this.backgroundToken(symbolName);
+    // @ts-ignore
     if (token.decimals) {
       return token;
     } else {
       const detailApiInstance = await bancorApi.getTokenTicker(symbolName);
+      // @ts-ignore
       this.tokensList = this.tokensList.map(
         (existingToken: TokenPrice | TokenPriceExtended) => ({
           ...existingToken,

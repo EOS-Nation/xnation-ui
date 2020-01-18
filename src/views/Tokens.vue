@@ -31,7 +31,7 @@ export default class Token extends Vue {
   get filteredTokens() {
     return this.searchTerm
       ? vxm.bancor.tokens.filter(
-          token =>
+          (token: any) =>
             token.symbol
               .toLowerCase()
               .includes(this.searchTerm.toLowerCase()) ||
@@ -41,12 +41,12 @@ export default class Token extends Vue {
   }
 
   get network() {
-    return this.$route.fullPath.split('/')[1]
+    return this.$route.fullPath.split("/")[1];
   }
 
   get name() {
-    return this.network.toUpperCase()
-  } 
+    return this.network.toUpperCase();
+  }
 
   @Watch("searchTerm")
   change(newSearch: string) {
@@ -69,10 +69,6 @@ export default class Token extends Vue {
       name: "Transfer",
       params: { symbolName }
     });
-  }
-
-  async created() {
-    // vxm.relays.fetchRelays();
   }
 }
 </script>

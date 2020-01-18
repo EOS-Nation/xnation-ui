@@ -165,7 +165,7 @@ export default class Relays extends Vue {
 
   get tokens() {
     return this.tokenSearch
-      ? vxm.bancor.relays.filter(
+      ? vxm.ethBancor.relays.filter(
           (relay: any) =>
             relay.symbol
               .toLowerCase()
@@ -174,11 +174,13 @@ export default class Relays extends Vue {
               .toLowerCase()
               .includes(this.tokenSearch.toLowerCase())
         )
-      : vxm.bancor.relays.sort((a: any, b: any) => {
+      : vxm.ethBancor.relays.sort((a: any, b: any) => {
           const aTokenIndex = vxm.bancor.tokens.findIndex(
+            // @ts-ignore
             token => token.symbol == a.symbol
           );
           const bTokenIndex = vxm.bancor.tokens.findIndex(
+            // @ts-ignore
             token => token.symbol == b.symbol
           );
           return aTokenIndex < bTokenIndex ? -1 : 1;

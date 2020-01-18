@@ -150,7 +150,6 @@ import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { parseTokens, fetchTokenMeta } from "@/api/helpers";
-import { bancorCalculator } from "@/api/bancorCalculator";
 import wait from "waait";
 import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
@@ -232,7 +231,7 @@ export default class HeroConvert extends Vue {
 
   get token() {
     return (symbolName: string) => {
-      return vxm.bancor.tokens.find(x => x.symbol == symbolName);
+      return vxm.bancor.tokens.find((x: any) => x.symbol == symbolName);
     };
   }
 

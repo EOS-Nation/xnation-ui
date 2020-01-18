@@ -195,7 +195,7 @@ export default class HeroTransfer extends Vue {
   }
 
   get defaultSymbolName() {
-    return vxm.bancor.tokens.find(token => token.symbol !== "BNT")!.symbol;
+    return vxm.bancor.tokens.find((token: any) => token.symbol !== "BNT")!.symbol;
   }
 
   navConvert() {

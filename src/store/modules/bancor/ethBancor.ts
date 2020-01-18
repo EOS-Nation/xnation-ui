@@ -42,6 +42,11 @@ export class EthBancorModule extends VuexModule {
     };
   }
 
+  get relay() {
+    return (symbolName: string) =>
+      this.relays.find((relay: any) => relay.smartTokenSymbol == symbolName);
+  }
+
   get relays() {
     return this.relaysList
       .filter(relay => relay.connectorType == "BNT")
@@ -106,7 +111,7 @@ export class EthBancorModule extends VuexModule {
   }
 
   @action async fetchBalances() {
-    console.log('fetch Balances called on ETH')
+    console.log("fetch Balances called on ETH");
   }
 
   @mutation setTokensList(tokens: any) {

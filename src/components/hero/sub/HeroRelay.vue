@@ -175,7 +175,7 @@ export default class HeroConvert extends Vue {
   }
 
   get relayTokens() {
-    return vxm.bancor.relays.map((relay: any) => ({
+    return vxm.ethBancor.relays.map((relay: any) => ({
       logo: relay.reserves[0].logo,
       symbol: relay.smartTokenSymbol,
       userBalance: 0
@@ -183,7 +183,7 @@ export default class HeroConvert extends Vue {
   }
 
   get owner() {
-    return this.relay.owner;
+    return this.relay!.owner;
   }
 
   get token1Img() {
@@ -203,19 +203,19 @@ export default class HeroConvert extends Vue {
   }
 
   get token1() {
-    return vxm.bancor.token(this.relay.reserves[this.flipped ? 1 : 0].symbol)!;
+    return vxm.bancor.token(this.relay!.reserves[this.flipped ? 1 : 0].symbol)!;
   }
 
   get token2() {
-    return vxm.bancor.token(this.relay.reserves[this.flipped ? 0 : 1].symbol)!;
+    return vxm.bancor.token(this.relay!.reserves[this.flipped ? 0 : 1].symbol)!;
   }
 
   get relay() {
-    return vxm.bancor.relay(this.focusedSymbol);
+    return vxm.ethBancor.relay(this.focusedSymbol);
   }
 
   get fee() {
-    return this.relay.fee;
+    return this.relay!.fee;
   }
 
   get displayedToken1Balance() {
@@ -299,7 +299,7 @@ export default class HeroConvert extends Vue {
       meta,
       tokenAddress,
       smartTokenAddress
-    } = this.relay;
+    } = this.relay!;
     const { converterVersion } = meta;
 
     const converterContract = new web3.eth.Contract(
@@ -540,7 +540,7 @@ export default class HeroConvert extends Vue {
   }
 
   async removeLiquidity() {
-    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay;
+    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay!;
 
     const maxGasPrice = await getBancorGasPriceLimit();
 
@@ -587,7 +587,7 @@ export default class HeroConvert extends Vue {
   }
 
   async addLiquidity() {
-    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay;
+    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay!;
 
     const maxGasPrice = await getBancorGasPriceLimit();
 
@@ -627,9 +627,6 @@ export default class HeroConvert extends Vue {
 
     const batch = new web3.BatchRequest();
 
-    console.log("seeking a fund reward of", fromWei(this.fundReward));
-
-    console.log(converterContract, 'was converter contract')
     let transactions: any = [
       {
         to: converterAddress,
@@ -724,7 +721,7 @@ export default class HeroConvert extends Vue {
   }
 
   get defaultFocusedSymbol() {
-    return vxm.bancor.relays[0].smartTokenSymbol;
+    return vxm.ethBancor.relays[0]!.smartTokenSymbol;
   }
 
   get focusedSymbol() {
@@ -733,7 +730,7 @@ export default class HeroConvert extends Vue {
 
   async fetchUserTokenBalances() {
     if (!this.isAuthenticated) return;
-    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay;
+    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay!;
 
     const getBalance = async (contractAddress: string) =>
       vxm.ethWallet.getBalance({
