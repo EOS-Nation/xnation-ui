@@ -335,7 +335,7 @@ export default class HeroConvert extends Vue {
       return { tokenReserveBalance, bntReserveBalance, totalSupply };
     } catch (e) {
       console.log("failed to TJ hooker", e);
-      throw new Error("What" + e)
+      throw new Error("What" + e);
     }
   }
 
@@ -767,6 +767,7 @@ export default class HeroConvert extends Vue {
   listen(to: any) {
     this.fetchUserTokenBalances();
     this.setMaxWithdrawals();
+    this.buttonFlipped = to.params.mode == "liquidate";
   }
 
   async fetchSmartSupply() {

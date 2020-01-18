@@ -94,19 +94,19 @@
                 <td class="text-right font-w700">{{ token.fee }}%</td>
                 <td class="text-right">
                   <b-btn
-                    @click="goToRelay(token.smartTokenSymbol)"
+                    @click="goToRelay(token.smartTokenSymbol, 'liquidate')"
                     size="sm"
                     variant="success"
                     class="mr-1"
                   >
-                    <font-awesome-icon icon="exchange-alt" />
+                    <font-awesome-icon icon="minus" />
                   </b-btn>
                   <b-btn
-                    @click="initAction('transfer', token.smartTokenSymbol)"
+                    @click="goToRelay(token.smartTokenSymbol)"
                     size="sm"
                     variant="info"
                   >
-                    <font-awesome-icon icon="arrow-right" />
+                    <font-awesome-icon icon="plus" />
                   </b-btn>
                 </td>
               </tr>
@@ -187,7 +187,7 @@ export default class Relays extends Vue {
         });
   }
 
-  goToRelay(symbolCode: string) {
+  goToRelay(symbolCode: string, mode = 'addLiquidity') {
     window.scroll({
       top: 0,
       left: 0,
@@ -197,7 +197,8 @@ export default class Relays extends Vue {
     this.$router.push({
       name: "Relay",
       params: {
-        account: symbolCode
+        account: symbolCode,
+        mode
       }
     });
   }
