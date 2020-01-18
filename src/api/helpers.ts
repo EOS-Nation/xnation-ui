@@ -104,6 +104,7 @@ export const getTokenBalances = async (
   const res = await axios.get(
     `http://mainnet.eosn.io/v2/state/get_tokens?account=${accountName}`
   );
+  console.log(res.data, 'was the get TOken Balances', accountName)
   return res.data;
 };
 

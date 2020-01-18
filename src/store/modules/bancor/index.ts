@@ -53,16 +53,11 @@ export class BancorModule extends VuexModule {
   }
 
   @action async fetchBalances() {
-    return (
-      vxm.wallet.currentNetwork == "eos" &&
-      vxm.wallet.isAuthenticated &&
-      this.fetchBalancesEos()
-    );
+    if (vxm.wallet.isAuthenticated) {
+      return this.dispatcher(['fetchBalances'])
+    }
   }
 
-  @action async fetchBalancesEos() {
-    console.log("Hello world, this is fetch Balances EOS");
-  }
 }
 
 export const bancor = BancorModule.ExtractVuexModule(BancorModule);

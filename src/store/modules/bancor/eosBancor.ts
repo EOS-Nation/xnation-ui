@@ -70,7 +70,7 @@ export class EosBancorModule extends VuexModule {
   @action async fetchBalances() {
     // @ts-ignore
     const isAuthenticated = this.$store.rootGetters[
-      "ethWallet/isAuthenticated"
+      "eosWallet/isAuthenticated"
     ];
 
     const balances = await getTokenBalances(isAuthenticated);

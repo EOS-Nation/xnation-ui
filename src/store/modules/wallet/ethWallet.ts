@@ -96,8 +96,6 @@ export class EthereumModule extends VuexModule {
   }
 
   @action async tx(params: any) {
-    console.log("TX on eth wallet hit with", params);
-    console.log("will now be returning new promise");
     return tx(params);
   }
 

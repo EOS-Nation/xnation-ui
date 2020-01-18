@@ -105,6 +105,10 @@ export class EthBancorModule extends VuexModule {
     this.setTokensList(tokensWithAddresses);
   }
 
+  @action async fetchBalances() {
+    console.log('fetch Balances called on ETH')
+  }
+
   @mutation setTokensList(tokens: any) {
     this.tokensList = tokens;
   }

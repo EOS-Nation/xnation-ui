@@ -159,7 +159,7 @@ import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 @Component({
   beforeRouteEnter: async (to, from, next) => {
     if (vxm.bancor.tokens.length == 0) {
-      await vxm.bancor.init()
+      await vxm.bancor.init();
     }
     next();
   },
@@ -232,7 +232,7 @@ export default class HeroConvert extends Vue {
 
   get token() {
     return (symbolName: string) => {
-      return vxm.bancor.tokens.find(x => x.symbol == symbolName)
+      return vxm.bancor.tokens.find(x => x.symbol == symbolName);
     };
   }
 
@@ -245,7 +245,8 @@ export default class HeroConvert extends Vue {
   }
 
   get defaultSymbolName() {
-    return vxm.bancor.tokens.find((token: any) => token.symbol !== "BNT")!.symbol;
+    return vxm.bancor.tokens.find((token: any) => token.symbol !== "BNT")!
+      .symbol;
   }
 
   get fromTokenSymbol() {
@@ -480,33 +481,35 @@ export default class HeroConvert extends Vue {
     this.fetchUserTokenBalances();
   }
 
-  get relay() {
-    return vxm.bancor.relay(this.selectedSymbolOrDefault);
-  }
-
   async fetchUserTokenBalances() {
     if (!this.isAuthenticated) return;
-    console.log(this.token(this.token1Symbol), 'was this.token')
-    // @ts-ignore
-    const { tokenAddress } = this.token(this.token1Symbol);
-    if (!tokenAddress) {
-      console.warn("Token address wasn't found for", tokenAddress);
-      return;
+    console.log(this.token(this.token1Symbol), "was this.token");
+    if (vxm.wallet.currentNetwork == "eos") {
+      await vxm.bancor.fetchBalances();
+      this.token1Balance = String(this.token(this.token1Symbol).balance);
+      this.token2Balance = String(this.token(this.token2Symbol).balance);
+    } else {
+      // @ts-ignore
+      const { tokenAddress } = this.token(this.token1Symbol);
+      if (!tokenAddress) {
+        console.warn("Token address wasn't found for", tokenAddress);
+        return;
+      }
+
+      const getBalance = async (contractAddress: string) =>
+        vxm.ethWallet.getBalance({
+          accountHolder: this.isAuthenticated,
+          tokenContractAddress: contractAddress
+        });
+
+      const [bntBalance, tokenBalance] = await Promise.all([
+        getBalance(BntTokenContract), 
+        getBalance(tokenAddress)
+      ]);
+
+      this.token1Balance = tokenBalance;
+      this.token2Balance = bntBalance;
     }
-
-    const getBalance = async (contractAddress: string) =>
-      vxm.ethWallet.getBalance({
-        accountHolder: this.isAuthenticated,
-        tokenContractAddress: contractAddress
-      });
-
-    const [bntBalance, tokenBalance] = await Promise.all([
-      getBalance(BntTokenContract),
-      getBalance(tokenAddress)
-    ]);
-
-    this.token1Balance = tokenBalance;
-    this.token2Balance = bntBalance;
   }
 
   async loadSimpleRewards() {
@@ -534,8 +537,6 @@ export default class HeroConvert extends Vue {
     this.fromTokenSymbol = this.selectedSymbolOrDefault;
     this.loadSimpleRewards();
     this.fetchUserTokenBalances();
-
-    console.log(vxm.bancor.tokens[0], 'was what came in from hero convert')
   }
 }
 </script>
