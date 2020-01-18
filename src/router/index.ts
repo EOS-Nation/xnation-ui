@@ -123,11 +123,11 @@ export const router = new Router({
   routes: [
     {
       path: "*",
-      redirect: "/eos"
+      redirect: "/eth"
     },
     {
       path: "/",
-      redirect: "/eos"
+      redirect: "/eth"
     },
     ...builtRoutes,
   ]

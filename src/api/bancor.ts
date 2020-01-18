@@ -67,17 +67,11 @@ export class BancorApi implements BancorWrapper {
   }
 
   public async convert(payload: ConvertPayload) {
-
-    let final = {
+    const final = {
       ...payload,
-      blockchainType: this.blockchain == Blockchain.EOS ? 'eos': 'ethereum'
-    }
-    if (this.blockchain == Blockchain.EOS) {
-      final = {
-        ...final,
-        format: "json"
-      }
-    }
+      blockchainType: this.blockchain == Blockchain.EOS ? "eos" : "ethereum",
+      ...(this.blockchain == Blockchain.EOS && { format: "json" })
+    };
     return this.post("currencies/convert", final);
   }
 

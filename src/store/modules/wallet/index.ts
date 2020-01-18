@@ -3,7 +3,7 @@ import { vxm } from "@/store/index";
 
 @Module({ namespacedPath: "wallet/" })
 export class WalletModule extends VuexModule {
-  wallet = "eos";
+  wallet = "eth";
 
   get currentNetwork() {
     return this.wallet;
