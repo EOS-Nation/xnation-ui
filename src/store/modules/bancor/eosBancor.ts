@@ -77,17 +77,19 @@ export class EosBancorModule extends VuexModule {
 
     const balances = await getTokenBalances(isAuthenticated);
 
-    // @ts-ignore
-    this.tokensList = this.tokensList.map((token: any) => {
+    this.setTokens(
       // @ts-ignore
-      const existingToken = balances.tokens.find(
-        balanceObj => balanceObj.symbol == token.code
-      );
-      return {
-        ...token,
-        balance: (existingToken && existingToken.amount) || 0
-      };
-    });
+      this.tokensList.map((token: any) => {
+        // @ts-ignore
+        const existingToken = balances.tokens.find(
+          balanceObj => balanceObj.symbol == token.code
+        );
+        return {
+          ...token,
+          balance: (existingToken && existingToken.amount) || 0
+        };
+      })
+    );
   }
 
   @action async convert({
@@ -126,14 +128,16 @@ export class EosBancorModule extends VuexModule {
       return token;
     } else {
       const detailApiInstance = await bancorApi.getTokenTicker(symbolName);
-      // @ts-ignore
-      this.tokensList = this.tokensList.map(
-        (existingToken: TokenPrice | TokenPriceExtended) => ({
-          ...existingToken,
-          ...(existingToken.code == symbolName && {
-            decimals: detailApiInstance.decimals
+      this.setTokens(
+        // @ts-ignore
+        this.tokensList.map(
+          (existingToken: TokenPrice | TokenPriceExtended) => ({
+            ...existingToken,
+            ...(existingToken.code == symbolName && {
+              decimals: detailApiInstance.decimals
+            })
           })
-        })
+        )
       );
       return this.getEosTokenWithDecimals(symbolName);
     }
