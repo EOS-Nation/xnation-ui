@@ -68,6 +68,7 @@ export class EosBancorModule extends VuexModule {
   }
 
   @action async fetchBalances() {
+    // @ts-ignore
     const isAuthenticated = this.$store.rootGetters[
       "ethWallet/isAuthenticated"
     ];
@@ -94,12 +95,12 @@ export class EosBancorModule extends VuexModule {
     toSymbol
   }: ProposedConvertTransaction) {
     // @ts-ignore
-    console.log(this.$store.rootState, "was state");
-    // @ts-ignore
     const accountName = this.$store.rootState.eosWallet.walletState.auth
       .accountName;
-    const fromObj = await this.getEosTokenWithDecimals(fromSymbol);
-    const toObj = await this.getEosTokenWithDecimals(toSymbol);
+    const [fromObj, toObj] = await Promise.all([
+      this.getEosTokenWithDecimals(fromSymbol),
+      this.getEosTokenWithDecimals(toSymbol)
+    ]);
 
     const res = await bancorApi.convert({
       fromCurrencyId: fromObj.id,
