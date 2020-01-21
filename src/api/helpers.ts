@@ -111,7 +111,7 @@ export const getTokenBalancesEthplorerRequest = async (
   accountAddress: string
 ): Promise<EthplorerBalance> => {
   const res = await axios.get(
-    `http://api.ethplorer.io/getAddressInfo/${accountAddress}?apiKey=freekey`
+    `https://api.ethplorer.io/getAddressInfo/${accountAddress}?apiKey=freekey`
   );
   return res.data;
 };
