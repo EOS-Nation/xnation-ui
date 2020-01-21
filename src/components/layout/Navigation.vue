@@ -6,7 +6,7 @@
         style="width: 180px"
       >
         <router-link :to="{ name: 'Tokens' }">
-          <img src="@/assets/media/logos/eosn.png" height="40px" class="mr-4" />
+          <img src="@/assets/media/logos/eosn.png" height="30px" class="mr-4" />
         </router-link>
         <b-form-group id="form-group">
           <b-form-radio-group
