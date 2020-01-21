@@ -184,12 +184,10 @@ export default class HeroConvert extends Vue {
 
   promptedTokenNumber = 0;
   token1Amount = "";
-  token1Balance = "";
   token1Symbol = "";
   token1Key = "token1K";
 
   token2Amount = "";
-  token2Balance = "";
   token2Symbol = "BNT";
   token2Key = "token2K";
 
@@ -262,6 +260,14 @@ export default class HeroConvert extends Vue {
 
   get toTokenAmount() {
     return this.flipped ? this.token1Amount : this.token2Amount;
+  }
+
+  get token1Balance() {
+    return this.token(this.token1Symbol).balance;
+  }
+
+  get token2Balance() {
+    return this.token(this.token2Symbol).balance;
   }
 
   get disableConvert() {
@@ -339,14 +345,12 @@ export default class HeroConvert extends Vue {
       this.success = "";
       this.error = "";
 
-      console.log(this.toTokenAmount, Number(this.toTokenAmount));
       const result = await vxm.bancor.convert({
         fromSymbol: this.fromTokenSymbol,
         toSymbol: this.toTokenSymbol,
         fromAmount: Number(this.fromTokenAmount),
         toAmount: Number(this.toTokenAmount)
       });
-      console.log("Promise returned of the TX", result);
 
       this.success = result;
       this.error = "";
@@ -376,6 +380,7 @@ export default class HeroConvert extends Vue {
     }
     this.updatePriceReturn();
     this.loadSimpleRewards();
+    vxm.bancor.fetchBalances();
   }
 
   parseNetwork(fullPath: string) {
@@ -404,11 +409,6 @@ export default class HeroConvert extends Vue {
     this.token2Amount = "";
     this.success = "";
     this.error = "";
-    console.log(
-      "clean up after tx was called",
-      this.txModal,
-      "was tx modal state."
-    );
   }
 
   @Watch("txModal")
@@ -475,6 +475,13 @@ export default class HeroConvert extends Vue {
     this.loadSimpleRewards();
   }
 
+  @Watch("isAuthenticated")
+  authChange(value: any) {
+    if (value) {
+      vxm.bancor.fetchBalances();
+    }
+  }
+
   @Watch("selectedSymbolOrDefault")
   newSymbol(symbol: string) {
     this.fetchUserTokenBalances();
@@ -482,33 +489,7 @@ export default class HeroConvert extends Vue {
 
   async fetchUserTokenBalances() {
     if (!this.isAuthenticated) return;
-    console.log(this.token(this.token1Symbol), "was this.token");
-    if (vxm.wallet.currentNetwork == "eos") {
-      await vxm.bancor.fetchBalances();
-      this.token1Balance = String(this.token(this.token1Symbol).balance);
-      this.token2Balance = String(this.token(this.token2Symbol).balance);
-    } else {
-      // @ts-ignore
-      const { tokenAddress } = this.token(this.token1Symbol);
-      if (!tokenAddress) {
-        console.warn("Token address wasn't found for", tokenAddress);
-        return;
-      }
-
-      const getBalance = async (contractAddress: string) =>
-        vxm.ethWallet.getBalance({
-          accountHolder: this.isAuthenticated,
-          tokenContractAddress: contractAddress
-        });
-
-      const [bntBalance, tokenBalance] = await Promise.all([
-        getBalance(BntTokenContract), 
-        getBalance(tokenAddress)
-      ]);
-
-      this.token1Balance = tokenBalance;
-      this.token2Balance = bntBalance;
-    }
+    await vxm.bancor.fetchBalances();
   }
 
   async loadSimpleRewards() {

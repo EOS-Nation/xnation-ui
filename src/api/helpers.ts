@@ -5,7 +5,7 @@ import { Asset, split, Symbol } from "eos-common";
 import { EosAccount, nRelay, TokenSymbol } from "bancorx/build/interfaces";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
-import { TokenBalances, CoTrade } from "@/types/bancor";
+import { TokenBalances, CoTrade, EthplorerBalance } from "@/types/bancor";
 import Web3 from "web3";
 import { ABIBancorGasPriceLimit, BancorGasLimit } from "./ethConfig";
 
@@ -105,6 +105,31 @@ export const getTokenBalances = async (
     `https://mainnet.eosn.io/v2/state/get_tokens?account=${accountName}`
   );
   return res.data;
+};
+
+export const getTokenBalancesEthplorerRequest = async (
+  accountAddress: string
+): Promise<EthplorerBalance> => {
+  const res = await axios.get(
+    `http://api.ethplorer.io/getAddressInfo/${accountAddress}?apiKey=freekey`
+  );
+  return res.data;
+};
+
+export const getTokenBalancesEthplorer = async (
+  accountAddress: string
+): Promise<{ symbol: string; amount: string }[]> => {
+  const res = await getTokenBalancesEthplorerRequest(accountAddress);
+  return [
+    {
+      symbol: "ETH",
+      amount: String(res.ETH.balance)
+    },
+    ...res.tokens.map(token => ({
+      symbol: token.tokenInfo.symbol,
+      amount: Web3.utils.fromWei(String(token.balance))
+    }))
+  ];
 };
 
 export const getEthRelays = async (): Promise<CoTrade[]> => {

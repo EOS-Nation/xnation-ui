@@ -135,3 +135,49 @@ export interface SimpleTokenWithMarketData extends SimpleToken {
   price: string;
   liqDepth: number;
 }
+
+
+export interface Price {
+  rate: number;
+  diff: number;
+  diff7d: number;
+  ts: number;
+  marketCapUsd: number;
+  availableSupply: number;
+  volume24h: number;
+  diff30d: number;
+}
+
+export interface ETH {
+  balance: number;
+  price: Price;
+}
+
+export interface TokenInfo {
+  address: string;
+  name: string;
+  decimals: any;
+  symbol: string;
+  totalSupply: string;
+  owner: string;
+  lastUpdated: number;
+  issuancesCount: number;
+  holdersCount: number;
+  price: any;
+  description: string;
+  ethTransfersCount?: number;
+}
+
+export interface Token {
+  tokenInfo: TokenInfo;
+  balance: number;
+  totalIn: number;
+  totalOut: number;
+}
+
+export interface EthplorerBalance {
+  address: string;
+  ETH: ETH;
+  countTxs: number;
+  tokens: Token[];
+}

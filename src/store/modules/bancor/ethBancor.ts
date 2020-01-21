@@ -5,6 +5,7 @@ import {
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancor";
 import { getEthRelays, web3 } from "@/api/helpers";
+import { getTokenBalancesEthplorer } from "@/api/helpers";
 
 @Module({ namespacedPath: "ethBancor/" })
 export class EthBancorModule extends VuexModule {
@@ -24,7 +25,8 @@ export class EthBancorModule extends VuexModule {
       logo: token.primaryCommunityImageName,
       change24h: token.change24h,
       volume24h: token.volume24h.USD,
-      tokenAddress: token.tokenAddress || ""
+      tokenAddress: token.tokenAddress || "",
+      balance: token.balance || "0"
     }));
   }
 
@@ -111,7 +113,26 @@ export class EthBancorModule extends VuexModule {
   }
 
   @action async fetchBalances() {
-    console.log("fetch Balances called on ETH");
+    // @ts-ignore
+    const isAuthenticated = this.$store.rootGetters[
+      "ethWallet/isAuthenticated"
+    ];
+
+    const balances = await getTokenBalancesEthplorer(isAuthenticated);
+    
+    this.setTokensList(
+      // @ts-ignore
+      this.tokensList.map((token: any) => {
+        // @ts-ignore
+        const existingToken = balances.find(
+          balanceObj => balanceObj.symbol == token.code
+        );
+        return {
+          ...token,
+          balance: (existingToken && existingToken.amount) || "0"
+        };
+      })
+    );
   }
 
   @mutation setTokensList(tokens: any) {

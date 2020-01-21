@@ -83,16 +83,20 @@ export class EthereumModule extends VuexModule {
     accountHolder: EthAddress;
     tokenContractAddress: EthAddress;
   }) {
-    const tokenContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABISmartToken,
-      tokenContractAddress
-    );
-    const weiBalance = await tokenContract.methods
-      .balanceOf(accountHolder)
-      .call();
-    console.log({ weiBalance });
-    return fromWei(weiBalance);
+    if (tokenContractAddress == "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315") {
+      const weiBalance = await web3.eth.getBalance(accountHolder);
+      return fromWei(weiBalance);
+    } else {
+      const tokenContract = new web3.eth.Contract(
+        // @ts-ignore
+        ABISmartToken,
+        tokenContractAddress
+      );
+      const weiBalance = await tokenContract.methods
+        .balanceOf(accountHolder)
+        .call();
+      return fromWei(weiBalance);
+    }
   }
 
   @action async tx(params: any) {
