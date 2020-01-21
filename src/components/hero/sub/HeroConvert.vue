@@ -404,11 +404,6 @@ export default class HeroConvert extends Vue {
     }
   }
 
-  @Watch("selectedSymbolOrDefault")
-  symbolChange(symbol: string) {
-    console.log("symbolChange", symbol);
-  }
-
   cleanUpAfterTx() {
     this.token1Amount = "";
     this.token2Amount = "";

@@ -77,7 +77,6 @@ export class EosBancorModule extends VuexModule {
     ];
     if (!isAuthenticated) return;
     const balances = await getTokenBalances(isAuthenticated);
-    console.log(balances, "eos balances came thorugh");
 
     this.setTokens(
       // @ts-ignore
