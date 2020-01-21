@@ -67,6 +67,7 @@ export class EosBancorModule extends VuexModule {
     ]);
     this.setUsdPrice(Number(usdValueOfEth.price));
     this.setTokens(tokens);
+    this.fetchBalances()
   }
 
   @action async fetchBalances() {
@@ -74,7 +75,7 @@ export class EosBancorModule extends VuexModule {
     const isAuthenticated = this.$store.rootGetters[
       "eosWallet/isAuthenticated"
     ];
-
+    if (!isAuthenticated) return;
     const balances = await getTokenBalances(isAuthenticated);
 
     this.setTokens(

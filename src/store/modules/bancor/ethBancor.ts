@@ -108,6 +108,7 @@ export class EthBancorModule extends VuexModule {
         relays.find(relay => relay.symbol == token.code) &&
         relays.find(relay => relay.symbol == token.code)!.tokenAddress
     }));
+    this.fetchBalances()
 
     this.setTokensList(tokensWithAddresses);
   }
@@ -117,6 +118,8 @@ export class EthBancorModule extends VuexModule {
     const isAuthenticated = this.$store.rootGetters[
       "ethWallet/isAuthenticated"
     ];
+    if (!isAuthenticated) return;
+
 
     const balances = await getTokenBalancesEthplorer(isAuthenticated);
     
