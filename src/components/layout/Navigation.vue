@@ -14,6 +14,7 @@
             size="sm"
             v-model="selected"
             :options="options"
+            button-variant="branded"
             buttons
           ></b-form-radio-group>
         </b-form-group>
@@ -239,8 +240,23 @@ export default class Navigation extends Vue {
 }
 </script>
 
-<style scoped>
+<style>
 #form-group {
   margin-bottom: unset;
+}
+
+.btn-branded {
+  color: grey !important;
+  background-color: #1b262e !important;
+}
+
+.btn-branded:hover {
+  color: black !important;
+  background-color: #fa932b !important;
+}
+
+label.active {
+  color: black !important;
+  background-color: #d18235 !important;
 }
 </style>
