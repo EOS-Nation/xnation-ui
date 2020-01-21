@@ -6,6 +6,7 @@ import {
 import { ethBancorApi } from "@/api/bancor";
 import { getEthRelays, web3 } from "@/api/helpers";
 import { getTokenBalancesEthplorer } from "@/api/helpers";
+import { vxm } from "@/store";
 
 @Module({ namespacedPath: "ethBancor/" })
 export class EthBancorModule extends VuexModule {
@@ -26,7 +27,7 @@ export class EthBancorModule extends VuexModule {
       change24h: token.change24h,
       volume24h: token.volume24h.USD,
       tokenAddress: token.tokenAddress || "",
-      balance: token.balance || "0"
+      balance: token.balance || ""
     }));
   }
 
@@ -108,34 +109,43 @@ export class EthBancorModule extends VuexModule {
         relays.find(relay => relay.symbol == token.code) &&
         relays.find(relay => relay.symbol == token.code)!.tokenAddress
     }));
-    this.fetchBalances()
-
     this.setTokensList(tokensWithAddresses);
   }
 
-  @action async fetchBalances() {
+  @action async focusSymbol(symbolName: string) {
     // @ts-ignore
     const isAuthenticated = this.$store.rootGetters[
       "ethWallet/isAuthenticated"
     ];
     if (!isAuthenticated) return;
+    const token = this.token(symbolName);
+    if (!token.balance) {
+      const balance = await vxm.ethWallet.getBalance({
+        accountHolder: isAuthenticated,
+        tokenContractAddress: token.tokenAddress
+      });
+      this.updateBalance([symbolName, balance]);
+    }
+  }
 
-
-    const balances = await getTokenBalancesEthplorer(isAuthenticated);
-    
-    this.setTokensList(
-      // @ts-ignore
-      this.tokensList.map((token: any) => {
-        // @ts-ignore
-        const existingToken = balances.find(
-          balanceObj => balanceObj.symbol == token.code
-        );
-        return {
-          ...token,
-          balance: (existingToken && existingToken.amount) || "0"
-        };
-      })
+  @mutation updateBalance([symbolName, balance]: [string, string]) {
+    this.tokensList = this.tokensList.map(token =>
+      token.code == symbolName ? { ...token, balance } : token
     );
+  }
+
+  @mutation resetBalances() {
+    this.tokensList = this.tokensList.map(token => ({
+      ...token,
+      balance: undefined
+    }));
+  }
+
+  @action async fetchBalances(symbols: string[]) {
+    this.resetBalances();
+    if (symbols) {
+      symbols.forEach(symbol => this.focusSymbol(symbol));
+    }
   }
 
   @mutation setTokensList(tokens: any) {

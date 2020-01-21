@@ -45,6 +45,10 @@ export class BancorModule extends VuexModule {
     return this.dispatcher(["getReturn", proposedTransaction]);
   }
 
+  @action async focusSymbol(symbolName: string) {
+    return this.dispatcher(['focusSymbol', symbolName])
+  }
+
   @action async dispatcher([methodName, params]: any) {
     return this.$store.dispatch(
       `${this.currentNetwork}Bancor/${methodName}`,
@@ -53,9 +57,9 @@ export class BancorModule extends VuexModule {
     );
   }
 
-  @action async fetchBalances() {
+  @action async fetchBalances(symbols: string[] = []) {
     if (vxm.wallet.isAuthenticated) {
-      return this.dispatcher(['fetchBalances'])
+      return this.dispatcher(['fetchBalances', symbols])
     }
   }
 

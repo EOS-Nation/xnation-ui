@@ -63,20 +63,21 @@ export class EosBancorModule extends VuexModule {
   @action async init() {
     const [usdValueOfEth, tokens] = await Promise.all([
       bancorApi.getTokenTicker("ETH"),
-      bancorApi.getTokens()
+      bancorApi.getTokens(),
+      this.fetchBalances()
     ]);
     this.setUsdPrice(Number(usdValueOfEth.price));
     this.setTokens(tokens);
-    this.fetchBalances()
   }
 
-  @action async fetchBalances() {
+  @action async fetchBalances(symbols: string[] = []) {
     // @ts-ignore
     const isAuthenticated = this.$store.rootGetters[
       "eosWallet/isAuthenticated"
     ];
     if (!isAuthenticated) return;
     const balances = await getTokenBalances(isAuthenticated);
+    console.log(balances, "eos balances came thorugh");
 
     this.setTokens(
       // @ts-ignore
@@ -91,6 +92,10 @@ export class EosBancorModule extends VuexModule {
         };
       })
     );
+  }
+
+  @action async focusSymbol(symbolName: string) {
+    // EOS module doesnt bother with focusSymbol as we can pull token balances in bulk;
   }
 
   @action async convert({

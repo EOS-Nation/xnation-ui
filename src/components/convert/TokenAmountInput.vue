@@ -62,6 +62,7 @@
         </b-input-group-append>
       </b-input-group>
       <percentages
+        :v-if="balance"
         @percentUpdate="updatePercent"
         :balance="balance"
         :amount="amount"
@@ -84,7 +85,6 @@ import Percentages from "./Percentages.vue";
   }
 })
 export default class TokenAmountInput extends Vue {
-  // props
   @Prop(String) amount!: string;
   @Prop(String) balance!: string;
   @Prop(String) img!: string;
@@ -102,8 +102,10 @@ export default class TokenAmountInput extends Vue {
   }
 
   updatePercent(percentage: string) {
-    const newAmount = percentage == "100" ? this.balance :
-      (Number(this.balance.split(" ")[0]) * Number(percentage)) / 100;
+    const newAmount =
+      percentage == "100"
+        ? this.balance
+        : (Number(this.balance.split(" ")[0]) * Number(percentage)) / 100;
     this.$emit("update:amount", String(newAmount));
     this.$emit("onUpdate");
   }

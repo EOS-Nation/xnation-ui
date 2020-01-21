@@ -362,7 +362,7 @@ export default class HeroConvert extends Vue {
     }
     this.txBusy = false;
     await wait(500);
-    this.fetchUserTokenBalances()
+    this.fetchUserTokenBalances();
   }
 
   networkChange() {
@@ -380,7 +380,7 @@ export default class HeroConvert extends Vue {
     }
     this.updatePriceReturn();
     this.loadSimpleRewards();
-    this.fetchUserTokenBalances()
+    // this.fetchUserTokenBalances();
   }
 
   parseNetwork(fullPath: string) {
@@ -402,6 +402,11 @@ export default class HeroConvert extends Vue {
       this.updatePriceReturn();
       this.loadSimpleRewards();
     }
+  }
+
+  @Watch("selectedSymbolOrDefault")
+  symbolChange(symbol: string) {
+    console.log("symbolChange", symbol);
   }
 
   cleanUpAfterTx() {
@@ -471,18 +476,20 @@ export default class HeroConvert extends Vue {
 
   @Watch("token1Symbol")
   @Watch("token2Symbol")
-  tokenChange() {
+  tokenChange(symbol: string) {
     this.loadSimpleRewards();
+    vxm.bancor.focusSymbol(this.token1Symbol);
+    vxm.bancor.focusSymbol(this.token2Symbol);
   }
 
   @Watch("isAuthenticated")
   authChange(value: any) {
-    this.fetchUserTokenBalances()
+    this.fetchUserTokenBalances();
   }
 
   async fetchUserTokenBalances() {
     if (!this.isAuthenticated) return;
-    await vxm.bancor.fetchBalances();
+    await vxm.bancor.fetchBalances([this.token1Symbol, this.token2Symbol]);
   }
 
   async loadSimpleRewards() {
