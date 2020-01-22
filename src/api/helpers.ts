@@ -31,11 +31,6 @@ interface TraditionalStat {
 export type Wei = string | number;
 export type Ether = string | number;
 
-// import { ABIBancorGasPriceLimit, BancorGasLimit, netId } from '../config'
-// import getWeb3ForRead from './getWeb3ForRead'
-// import { hexToNumberString } from 'web3-utils'
-
-// export default getBancorGasLimit
 export const web3 = new Web3(
   Web3.givenProvider || "https://api.myetherapi.com/eth"
 );
