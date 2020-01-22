@@ -64,13 +64,13 @@ export class EosBancorModule extends VuexModule {
     const [usdValueOfEth, tokens] = await Promise.all([
       bancorApi.getTokenTicker("ETH"),
       bancorApi.getTokens(),
-      this.fetchBalances()
+      this.refreshBalances()
     ]);
     this.setUsdPrice(Number(usdValueOfEth.price));
     this.setTokens(tokens);
   }
 
-  @action async fetchBalances(symbols: string[] = []) {
+  @action async refreshBalances(symbols: string[] = []) {
     // @ts-ignore
     const isAuthenticated = this.$store.rootGetters[
       "eosWallet/isAuthenticated"

@@ -484,7 +484,7 @@ export default class HeroConvert extends Vue {
 
   async fetchUserTokenBalances() {
     if (!this.isAuthenticated) return;
-    await vxm.bancor.fetchBalances([this.token1Symbol, this.token2Symbol]);
+    await vxm.bancor.refreshBalances([this.token1Symbol, this.token2Symbol]);
   }
 
   async loadSimpleRewards() {

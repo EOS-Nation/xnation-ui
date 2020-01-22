@@ -57,9 +57,9 @@ export class BancorModule extends VuexModule {
     );
   }
 
-  @action async fetchBalances(symbols: string[] = []) {
+  @action async refreshBalances(symbols: string[] = []) {
     if (vxm.wallet.isAuthenticated) {
-      return this.dispatcher(['fetchBalances', symbols])
+      return this.dispatcher(['refreshBalances', symbols])
     }
   }
 

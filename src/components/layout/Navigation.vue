@@ -134,7 +134,7 @@ export default class Navigation extends Vue {
   @Watch("isAuthenticated")
   onAuthentication(account: string) {
     if (account) {
-      vxm.bancor.fetchBalances();
+      vxm.bancor.refreshBalances();
     }
   }
 

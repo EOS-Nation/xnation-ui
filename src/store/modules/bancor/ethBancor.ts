@@ -141,7 +141,7 @@ export class EthBancorModule extends VuexModule {
     }));
   }
 
-  @action async fetchBalances(symbols: string[]) {
+  @action async refreshBalances(symbols: string[]) {
     this.resetBalances();
     if (symbols) {
       symbols.forEach(symbol => this.focusSymbol(symbol));
