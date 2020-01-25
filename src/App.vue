@@ -5,6 +5,7 @@
     <main id="main-container" class="bg-primary">
       <router-view name="Hero"></router-view>
       <router-view></router-view>
+      <my-footer></my-footer>
     </main>
     <modal-login />
     <modal-tx />
@@ -15,13 +16,15 @@
 import { Component, Vue } from "vue-property-decorator";
 import ModalLogin from "@/components/modals/ModalLogin.vue";
 import ModalTx from "@/components/modals/ModalTx.vue";
+import MyFooter from "@/components/common/MyFooter.vue";
 import { vxm } from "@/store/";
 import { WalletProvider } from "eos-transit";
 
 @Component({
   components: {
     ModalLogin,
-    ModalTx
+    ModalTx,
+    MyFooter
   }
 })
 export default class App extends Vue {

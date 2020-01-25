@@ -9,8 +9,8 @@ import HeroTransfer from "@/components/hero/sub/HeroTransfer.vue";
 import HeroMerchant from "@/components/hero/sub/HeroMerchant.vue";
 import HeroRelay from "@/components/hero/sub/HeroRelay.vue";
 import Navigation from "@/components/layout/Navigation.vue";
+import Privacy from "@/components/common/Privacy.vue";
 import { vxm } from "@/store/";
-
 
 Vue.use(Router);
 
@@ -102,8 +102,6 @@ const builtRoutes: RouteConfig[] = networkNamespaces
     }))
   )
   .flat(1);
-console.log(builtRoutes);
-
 
 export const router = new Router({
   mode: "history",
@@ -129,20 +127,33 @@ export const router = new Router({
       path: "/",
       redirect: "/eth"
     },
-    ...builtRoutes,
+    {
+      path: "/privacy",
+      name: "Privacy",
+      components: {
+        Nav: Navigation,
+        default: Privacy
+      }
+    },
+    ...builtRoutes
   ]
 });
 
 router.beforeEach((to, from, next) => {
-  if (to && to.name && to.name.includes("-")) {
-    const originNetwork = to.name.split('-')[0]
+  if (to && to.name == "Privacy") {
+    next();
+  } else if (to && to.name && to.name.includes("-")) {
+    const originNetwork = to.name.split("-")[0];
     if (vxm.wallet.currentNetwork !== originNetwork) {
-      vxm.wallet.setWallet(originNetwork)
+      vxm.wallet.setWallet(originNetwork);
     }
     next();
-  }
-  else {
-    const originNetwork = from && from && from.name && from.name.split("-")[0];
+  } else {
+    const originNetwork =
+      from && from.name && from.name.split("-")[0] == "Privacy"
+        ? vxm.wallet.currentNetwork
+      // @ts-ignore
+        : from.name.split("-")[0];
     if (originNetwork) {
       vxm.wallet.setWallet(originNetwork);
       next({ name: `${originNetwork}-${to.name}`, params: to.params });

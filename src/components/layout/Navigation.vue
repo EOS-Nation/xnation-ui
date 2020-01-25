@@ -110,7 +110,7 @@ import wait from "waait";
 
 @Component
 export default class Navigation extends Vue {
-  selected = "eos";
+  selected = "eth";
   options = [
     {
       text: "EOS",
@@ -123,12 +123,14 @@ export default class Navigation extends Vue {
   ];
 
   created() {
-    this.selected = this.routedNetwork;
+    if (this.routedNetwork) {
+      this.selected = this.routedNetwork;
+    }
     vxm.ethWallet.checkAlreadySignedIn();
   }
 
   get routedNetwork() {
-    return this.$route.path.split("/")[1];
+    return vxm.wallet.currentNetwork;
   }
 
   @Watch("isAuthenticated")
