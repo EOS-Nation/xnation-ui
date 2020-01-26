@@ -4,10 +4,9 @@
       <tokens-table
         :loading="false"
         :name="name"
-        :tokens="filteredTokens"
+        :tokens="tokens"
         @convert="onConvert"
         @transfer="onTransfer"
-        v-model="searchTerm"
         scrollToTop
       />
     </div>
@@ -27,23 +26,9 @@ import Fuse from "fuse.js";
   }
 })
 export default class Token extends Vue {
-  searchTerm = "";
-  private searchOptions = {
-    shouldSort: true,
-    threshold: 0.3,
-    location: 0,
-    distance: 100,
-    maxPatternLength: 24,
-    minMatchCharLength: 1,
-    keys: ["symbol", "name"]
-  };
 
-  get filteredTokens() {
-    console.log('this is filtered tokens', this.searchTerm)
-    const fuse = new Fuse(vxm.bancor.tokens, this.searchOptions);
-    return this.searchTerm == ""
-      ? vxm.bancor.tokens
-      : fuse.search(this.searchTerm);
+  get tokens() {
+    return vxm.bancor.tokens;
   }
 
   get network() {
