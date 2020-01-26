@@ -1,6 +1,6 @@
 <template>
   <!-- Tokens Table -->
-  <div class="block">
+  <div class="block" style="min-height: 1000px;">
     <div class="block-header">
       <h3 class="block-title">
         All Tokens <small> - {{ name }}</small>
@@ -13,7 +13,7 @@
         ></b-form-input>
       </div>
     </div>
-    <div class="block-content px-0 px-md-3">
+    <div class="block-content px-0 px-md-3 ">
       <div class="table-responsive">
         <b-table
           id="tokens-table"
@@ -22,7 +22,8 @@
           :fields="fields"
           :filter="filter"
           primary-key="symbol"
-          :tbody-transition-props="{ name: 'flip-list' }"
+          :tbody-transition-props="transProps"
+          :tbody-transition-handlers="transHandler"
         >
           <template v-slot:head(change24h)="data">
             <span class="cursor text-center" style="min-width: 1500px;">{{
@@ -105,6 +106,7 @@ const {
   ListLoader
 } = require("vue-content-loader");
 const debounce = require("lodash.debounce");
+import Velocity from "velocity-animate";
 
 @Component({
   components: {
@@ -147,11 +149,30 @@ export default class TokensTable extends Vue {
   transProps = {
     name: "flip-list"
   };
+  transHandler = {
+    beforeEnter: function(el: any) {
+      el.style.opacity = 0;
+      el.style.height = 0;
+    },
+    enter: function(el: any, done: any) {
+      var delay = el.dataset.index * 150;
+      setTimeout(function() {
+        Velocity(el, { opacity: 1, height: "1.6em" }, { complete: done });
+      }, delay);
+    },
+    leave: function(el: any, done: any) {
+      var delay = el.dataset.index * 150;
+      setTimeout(function() {
+        Velocity(el, { opacity: 0, height: 0 }, { complete: done });
+      }, delay);
+    }
+  };
 
   fields = [
     {
       key: "index",
-      label: "#"
+      label: "#",
+      class: "index-header"
     },
     {
       key: "symbol",
@@ -165,12 +186,14 @@ export default class TokensTable extends Vue {
     {
       key: "change24h",
       sortable: true,
-      label: "24H Change"
+      label: "24H Change",
+      class: "text-center"
     },
     {
       key: "price",
       sortable: true,
       label: "Price USD",
+      class: ["text-center"],
       formatter: (value: any, key: any, item: any) =>
         numeral(value).format("$0,0.00")
     },
@@ -178,6 +201,7 @@ export default class TokensTable extends Vue {
       key: "volume24h",
       sortable: true,
       label: "24H Volume",
+      class: ["text-center"],
       formatter: (value: any, key: any, item: any) =>
         numeral(value).format("$0,0.00")
     },
@@ -185,6 +209,7 @@ export default class TokensTable extends Vue {
       key: "liqDepth",
       sortable: true,
       label: "Liquidity Depth",
+      class: ["text-right"],
       formatter: (value: any, key: any, item: any) =>
         numeral(value).format("$0,0.00")
     },
@@ -217,6 +242,10 @@ export default class TokensTable extends Vue {
 <style lang="scss">
 table#tokens-table .flip-list-move {
   transition: transform 0.7s;
+}
+
+.index-header {
+  min-width: 15px;
 }
 
 @keyframes fa-blink {
