@@ -39,6 +39,7 @@ export default class Token extends Vue {
   };
 
   get filteredTokens() {
+    console.log('this is filtered tokens', this.searchTerm)
     const fuse = new Fuse(vxm.bancor.tokens, this.searchOptions);
     return this.searchTerm == ""
       ? vxm.bancor.tokens

@@ -2,175 +2,85 @@
   <!-- Tokens Table -->
   <div class="block">
     <div class="block-header">
-      <h3 class="block-title">All Tokens <small> - {{ name }}</small></h3>
+      <h3 class="block-title">
+        All Tokens <small> - {{ name }}</small>
+      </h3>
       <div class="block-options">
-        <!-- <b-input-group size="sm">
-          <b-input-group-text
-            slot="prepend"
-            class="bg-body border-0 text-muted"
-          >
-            <font-awesome-icon
-              :icon="['fas', searchState]"
-              fixed-width
-              :class="{ 'fa-blink': searchState === 'keyboard' }"
-            />
-          </b-input-group-text> -->
         <b-form-input
           class="form-control form-control-alt"
-          :value="value"
-          @input="$emit('input', $event)"
+          v-model="filter"
           placeholder="Search Token"
         ></b-form-input>
-        <!-- </b-input-group> -->
       </div>
     </div>
     <div class="block-content px-0 px-md-3">
       <div class="table-responsive">
-        <table class="table table-striped table-vcenter">
-          <thead>
-            <tr>
-              <th
-                class="text-center d-none d-md-table-cell"
-                style="width: 55px;"
+        <b-table
+          id="tokens-table"
+          striped
+          :items="tokens"
+          :fields="fields"
+          :filter="filter"
+          primary-key="symbol"
+          :tbody-transition-props="{ name: 'flip-list' }"
+        >
+          <template v-slot:head(change24h)="data">
+            <span class="cursor text-center" style="min-width: 1500px;">{{
+              data.label
+            }}</span>
+          </template>
+          <template v-slot:cell(index)="data">
+            {{ data.index + 1 }}
+          </template>
+          <template v-slot:cell(symbol)="data">
+            <img
+              v-b-tooltip.hover
+              class="img-avatar img-avatar-thumb img-avatar32"
+              :src="data.item.logo"
+              alt="Token Logo"
+            />
+            {{ data.item.symbol }}
+          </template>
+          <template v-slot:cell(change24h)="data">
+            <span
+              :class="
+                data.item.change24h > 0
+                  ? `text-success font-w700`
+                  : 'text-danger font-w700'
+              "
+              >{{ numeral(data.item.change24h).format("0.00") + "%" }}</span
+            >
+          </template>
+          <template v-slot:cell(price)="data">
+            <span class="text-center font-w700">
+              <span v-if="data.item.price < 1">{{
+                numeral(data.item.price).format("$0,0.000000")
+              }}</span>
+              <span v-else>{{
+                numeral(data.item.price).format("$0,0.00")
+              }}</span>
+            </span>
+          </template>
+          <template v-slot:cell(actions)="data">
+            <span>
+              <b-btn
+                @click="initAction('convert', data.item.symbol)"
+                size="sm"
+                variant="success"
+                class="mr-1"
               >
-                #
-              </th>
-              <th @click="sort('symbol')" class="cursor text-left">
-                <sort-icons
-                  :currentSort="currentSort"
-                  :currentSortDir="currentSortDir"
-                  category="symbol"
-                />
-                Token
-              </th>
-              <th class="d-none d-md-table-cell"></th>
-              <th
-                @click="sort('price')"
-                class="cursor text-center"
-                style="min-width: 150px;"
-                v-if="bonusProps"
+                <font-awesome-icon icon="exchange-alt" />
+              </b-btn>
+              <b-btn
+                @click="initAction('transfer', data.item.symbol)"
+                size="sm"
+                variant="info"
               >
-                <sort-icons
-                  :currentSort="currentSort"
-                  :currentSortDir="currentSortDir"
-                  category="price"
-                />
-                24H CHANGE
-              </th>
-              <th
-                @click="sort('price')"
-                class="cursor text-center"
-                style="min-width: 150px;"
-              >
-                <sort-icons
-                  :currentSort="currentSort"
-                  :currentSortDir="currentSortDir"
-                  category="price"
-                />
-                Price USD
-              </th>
-              <th
-                @click="sort('price')"
-                class="cursor text-center"
-                style="min-width: 150px;"
-                v-if="bonusProps"
-              >
-                <sort-icons
-                  :currentSort="currentSort"
-                  :currentSortDir="currentSortDir"
-                  category="price"
-                />
-                24H VOLUME
-              </th>
-              <th
-                @click="sort('liqDepth')"
-                class="cursor text-right d-none d-md-table-cell"
-                style="min-width: 150px;"
-              >
-                <sort-icons
-                  :currentSort="currentSort"
-                  :currentSortDir="currentSortDir"
-                  category="liqDepth"
-                />
-                Liquidity Depth
-              </th>
-              <th class="text-right" style="width: 130px;">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-if="loading">
-              <tr v-for="i in 15" :key="i">
-                <th class="text-center">{{ i }}</th>
-                <td colspan="8">
-                  <content-loader :height="10" :width="1000" :speed="5">
-                  </content-loader>
-                </td>
-              </tr>
-            </template>
-            <template v-else>
-              <tr v-for="(token, index) in tokens" :key="index">
-                <td
-                  class="text-center d-none d-md-table-cell"
-                  v-text="index + 1"
-                ></td>
-                <td class="d-flex justify-content-start align-items-center">
-                  <img
-                    v-b-tooltip.hover
-                    :title="true ? 'Sale is Enabled' : 'Sale is Disabled'"
-                    class="img-avatar img-avatar-thumb img-avatar32"
-                    :src="token.logo"
-                    alt="Token Logo"
-                  />
-                  {{ token.symbol }}
-                </td>
-                <td class="d-none d-md-table-cell">
-                  <span class="text-muted font-size-sm">{{ token.name }}</span>
-                </td>
-                <td class="text-center font-w700" v-if="bonusProps">
-                  <span
-                    :class="
-                      token.change24h > 0 ? `text-success` : 'text-danger'
-                    "
-                    >{{ numeral(token.change24h).format("0.00") + "%" }}</span
-                  >
-                </td>
-                <td class="text-center font-w700">
-                  <span v-if="token.price < 1">{{
-                    numeral(token.price).format("$0,0.000000")
-                  }}</span>
-                  <span v-else>{{
-                    numeral(token.price).format("$0,0.00")
-                  }}</span>
-                </td>
-                <td class="text-center" v-if="bonusProps">
-                  <span>{{ numeral(token.volume24h).format("$0,0.00") }}</span>
-                </td>
-                <td class="text-right d-none d-md-table-cell">
-                  {{ numeral(token.liqDepth).format("$0,0.00") }}
-                </td>
-                <td class="text-right">
-                  <b-btn
-                    @click="initAction('convert', token.symbol)"
-                    size="sm"
-                    variant="success"
-                    class="mr-1"
-                  >
-                    <font-awesome-icon icon="exchange-alt" />
-                  </b-btn>
-                  <b-btn
-                    @click="initAction('transfer', token.symbol)"
-                    size="sm"
-                    variant="info"
-                  >
-                    <font-awesome-icon icon="arrow-right" />
-                  </b-btn>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
+                <font-awesome-icon icon="arrow-right" />
+              </b-btn>
+            </span>
+          </template>
+        </b-table>
       </div>
     </div>
   </div>
@@ -215,6 +125,7 @@ export default class TokensTable extends Vue {
   @Prop() value!: string;
   @Prop() name!: string;
 
+  filter = "";
   // data
   numeral = numeral;
   private tokenSearch: String = "";
@@ -233,6 +144,56 @@ export default class TokensTable extends Vue {
   private currentSort = "v24h";
   private currentSortDir = "desc";
 
+  transProps = {
+    name: "flip-list"
+  };
+
+  fields = [
+    {
+      key: "index",
+      label: "#"
+    },
+    {
+      key: "symbol",
+      sortable: true,
+      label: "Token"
+    },
+    {
+      key: "name",
+      sortable: false
+    },
+    {
+      key: "change24h",
+      sortable: true,
+      label: "24H Change"
+    },
+    {
+      key: "price",
+      sortable: true,
+      label: "Price USD",
+      formatter: (value: any, key: any, item: any) =>
+        numeral(value).format("$0,0.00")
+    },
+    {
+      key: "volume24h",
+      sortable: true,
+      label: "24H Volume",
+      formatter: (value: any, key: any, item: any) =>
+        numeral(value).format("$0,0.00")
+    },
+    {
+      key: "liqDepth",
+      sortable: true,
+      label: "Liquidity Depth",
+      formatter: (value: any, key: any, item: any) =>
+        numeral(value).format("$0,0.00")
+    },
+    {
+      key: "actions",
+      label: "Actions"
+    }
+  ];
+
   get bonusProps() {
     return this.tokens.every(
       token =>
@@ -250,38 +211,14 @@ export default class TokensTable extends Vue {
     }
     this.$emit(action, symbol);
   }
-
-  searchTokens() {
-    // @ts-ignore
-    this.$search(this.tokenSearch, this.tokens, this.searchOptions).then(
-      (results: any) => {
-        this.searchResults = results;
-        if (this.tokenSearch === "") this.searchState = "search";
-        else this.searchState = "check";
-      }
-    );
-  }
-
-  sort(s: string) {
-    if (s === this.currentSort) {
-      this.currentSortDir = this.currentSortDir === "asc" ? "desc" : "asc";
-    }
-    this.currentSort = s;
-  }
-
-  @Watch("tokenSearch")
-  async onSearchChange(val: any, oldVal: any) {
-    if (val !== "") {
-      this.searchState = "keyboard";
-      this.debouncedGetSearch();
-    } else {
-      this.searchTokens();
-    }
-  }
 }
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
+table#tokens-table .flip-list-move {
+  transition: transform 0.7s;
+}
+
 @keyframes fa-blink {
   0% {
     opacity: 1;
