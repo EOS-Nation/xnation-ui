@@ -1,5 +1,4 @@
 <template>
-  <!-- Tokens Table -->
   <div class="block" style="min-height: 1000px;">
     <div class="block-header">
       <h3 class="block-title">
@@ -89,7 +88,6 @@
 
 <script lang="ts">
 import { Watch, Component, Vue, Prop } from "vue-property-decorator";
-import { vxm } from "@/store";
 import numeral from "numeral";
 import SortIcons from "@/components/common/SortIcons.vue";
 import {
@@ -130,21 +128,6 @@ export default class TokensTable extends Vue {
   filter = "";
   // data
   numeral = numeral;
-  private tokenSearch: String = "";
-  private searchOptions = {
-    shouldSort: true,
-    threshold: 0.3,
-    location: 0,
-    distance: 100,
-    maxPatternLength: 24,
-    minMatchCharLength: 1,
-    keys: ["symbol", "name"]
-  };
-  searchResults: any = [];
-  private searchState: string = "search";
-  public debouncedGetSearch: any;
-  private currentSort = "v24h";
-  private currentSortDir = "desc";
 
   transProps = {
     name: "flip-list"
@@ -218,13 +201,6 @@ export default class TokensTable extends Vue {
       label: "Actions"
     }
   ];
-
-  get bonusProps() {
-    return this.tokens.every(
-      token =>
-        token.hasOwnProperty("change24h") && token.hasOwnProperty("volume24h")
-    );
-  }
 
   initAction(action: "convert" | "transfer", symbol: string) {
     if (this.scrollToTop) {
