@@ -7,6 +7,7 @@
       <div class="block-options">
         <b-form-input
           class="form-control form-control-alt"
+          debounce="500"
           v-model="filter"
           placeholder="Search Token"
         ></b-form-input>
@@ -217,7 +218,7 @@ export default class TokensTable extends Vue {
 
 <style lang="scss">
 table#tokens-table .flip-list-move {
-  transition: transform 0.7s;
+  transition: transform 0.5s;
 }
 
 .index-header {

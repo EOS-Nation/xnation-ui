@@ -11,7 +11,7 @@
             <b-form-input
               class="form-control form-control-alt"
               v-model="filter"
-              debounce="700"
+              debounce="500"
               placeholder="Search Token"
             ></b-form-input>
           </div>
@@ -207,7 +207,7 @@ export default class Relays extends Vue {
 
 <style lang="scss">
 table#relays-table .flip-list-move {
-  transition: transform 0.7s;
+  transition: transform 0.5s;
 }
 
 .block-options {
