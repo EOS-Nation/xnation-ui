@@ -37,6 +37,7 @@
     "eos-transit-tokenpocket-provider": "^4.0.1",
     "eos-transit-whalevault-provider": "^4.0.1",
     "eosjs": "^20.0.0",
+    "fuse.js": "^3.4.6",
     "lodash.debounce": "^4.0.8",
     "numeral": "^2.0.6",
     "opencollective": "^1.0.3",

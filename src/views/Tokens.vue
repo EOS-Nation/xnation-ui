@@ -19,6 +19,7 @@ import { Component, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store";
 import TokensTable from "@/components/tables/TokensTable.vue";
 import { SimpleToken } from "@/types/bancor";
+import Fuse from "fuse.js";
 
 @Component({
   components: {
@@ -27,17 +28,21 @@ import { SimpleToken } from "@/types/bancor";
 })
 export default class Token extends Vue {
   searchTerm = "";
+  private searchOptions = {
+    shouldSort: true,
+    threshold: 0.3,
+    location: 0,
+    distance: 100,
+    maxPatternLength: 24,
+    minMatchCharLength: 1,
+    keys: ["symbol", "name"]
+  };
 
   get filteredTokens() {
-    return this.searchTerm
-      ? vxm.bancor.tokens.filter(
-          (token: any) =>
-            token.symbol
-              .toLowerCase()
-              .includes(this.searchTerm.toLowerCase()) ||
-            token.name.toLowerCase().includes(this.searchTerm.toLowerCase())
-        )
-      : vxm.bancor.tokens;
+    const fuse = new Fuse(vxm.bancor.tokens, this.searchOptions);
+    return this.searchTerm == ""
+      ? vxm.bancor.tokens
+      : fuse.search(this.searchTerm);
   }
 
   get network() {
@@ -46,15 +51,6 @@ export default class Token extends Vue {
 
   get name() {
     return this.network.toUpperCase();
-  }
-
-  @Watch("searchTerm")
-  change(newSearch: string) {
-    this.search(newSearch);
-  }
-
-  search(searchString: string) {
-    console.log("received search string", searchString);
   }
 
   onConvert(symbolName: string) {

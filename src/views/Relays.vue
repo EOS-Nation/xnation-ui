@@ -128,6 +128,7 @@ import { multiContract } from "@/api/multiContractTx";
 import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import { tableApi } from "../api/TableWrapper";
 import { split } from "eos-common";
+import Fuse from "fuse.js";
 const numeral = require("numeral");
 const debounce = require("lodash.debounce");
 
@@ -138,7 +139,7 @@ const debounce = require("lodash.debounce");
 })
 export default class Relays extends Vue {
   numeral = numeral;
-  private tokenSearch: String = "";
+  private tokenSearch: string = "";
   private searchOptions = {
     shouldSort: true,
     threshold: 0.3,
@@ -146,9 +147,8 @@ export default class Relays extends Vue {
     distance: 100,
     maxPatternLength: 24,
     minMatchCharLength: 1,
-    keys: ["symbol", "name"]
+    keys: ["symbol", "smartTokenSymbol"]
   };
-  searchResults: any = [];
   private searchState: string = "search";
   public debouncedGetSearch: any;
   public debouncedSuggestPrecision: any;
@@ -163,31 +163,25 @@ export default class Relays extends Vue {
       : ethAddress;
   }
 
-  get tokens() {
-    return this.tokenSearch
-      ? vxm.ethBancor.relays.filter(
-          (relay: any) =>
-            relay.symbol
-              .toLowerCase()
-              .includes(this.tokenSearch.toLowerCase()) ||
-            relay.smartTokenSymbol
-              .toLowerCase()
-              .includes(this.tokenSearch.toLowerCase())
-        )
-      : vxm.ethBancor.relays.sort((a: any, b: any) => {
-          const aTokenIndex = vxm.bancor.tokens.findIndex(
-            // @ts-ignore
-            token => token.symbol == a.symbol
-          );
-          const bTokenIndex = vxm.bancor.tokens.findIndex(
-            // @ts-ignore
-            token => token.symbol == b.symbol
-          );
-          return aTokenIndex < bTokenIndex ? -1 : 1;
-        });
+  get searchedTokens() {
+    const fuse = new Fuse(vxm.ethBancor.relays, this.searchOptions);
+    const searchedTokens =
+      this.tokenSearch == ""
+        ? vxm.ethBancor.relays
+        : fuse.search(this.tokenSearch);
+
+    return searchedTokens;
   }
 
-  goToRelay(symbolCode: string, mode = 'addLiquidity') {
+  get sortedTokens() {
+    return this.searchedTokens;
+  }
+
+  get tokens() {
+    return this.sortedTokens;
+  }
+
+  goToRelay(symbolCode: string, mode = "addLiquidity") {
     window.scroll({
       top: 0,
       left: 0,
@@ -220,8 +214,11 @@ export default class Relays extends Vue {
 
   async created() {
     // vxm.bancor.fetchRelays();
-    console.log(process.env.VUE_APP_BASE_URL, process.env.BASE_URL, 'exactly look')
-
+    console.log(
+      process.env.VUE_APP_BASE_URL,
+      process.env.BASE_URL,
+      "exactly look"
+    );
   }
 }
 </script>
