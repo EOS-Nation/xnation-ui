@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="content content-boxed">
-      <div class="block">
+      <div class="block" style="min-height: 1000px;">
         <div class="block-header">
           <h3 class="block-title">
             ETH
@@ -10,108 +10,67 @@
           <div class="block-options">
             <b-form-input
               class="form-control form-control-alt"
-              v-model="tokenSearch"
+              v-model="filter"
+              debounce="700"
               placeholder="Search Token"
             ></b-form-input>
           </div>
         </div>
         <div class="block-content">
-          <table class="table table-striped table-vcenter">
-            <thead>
-              <tr>
-                <th class="text-center" style="width: 50px;">#</th>
-                <th
-                  @click="sort('symbol')"
-                  colspan="2"
-                  class="cursor"
-                  style="min-width: 260px;"
+          <b-table
+            id="relays-table"
+            striped
+            :items="tokens"
+            :fields="fields"
+            :filter="filter"
+            primary-key="smartTokenSymbol"
+            :tbody-transition-props="transProps"
+            :tbody-transition-handlers="transHandler"
+          >
+            <template v-slot:table-colgroup>
+              <col key="index" style="width: 46px;" />
+              <col key="symbol" style="width: 260px;" />
+              <col key="smart" style="width: 200px;" />
+            </template>
+            <template v-slot:cell(symbol)="data">
+              <img
+                v-for="(reserve, index) in data.item.reserves"
+                :key="index"
+                class="img-avatar img-avatar-thumb img-avatar32 mr-3"
+                :src="reserve.logo"
+                :alt="`${reserve.symbol} Token Logo`"
+              />
+              {{ data.item.symbol }}
+            </template>
+            <template v-slot:cell(index)="data">
+              {{ data.index + 1 }}
+            </template>
+            <template v-slot:cell(ratio)>
+              50 - 50
+            </template>
+            <template v-slot:cell(fee)="data">
+              <span class="text-right font-w700">{{ data.item.fee }}%</span>
+            </template>
+            <template v-slot:cell(actions)="data">
+              <div>
+                <b-btn
+                  @click="goToRelay(data.item.smartTokenSymbol, 'liquidate')"
+                  size="sm"
+                  variant="success"
+                  class="mr-1"
                 >
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="symbol"
-                  />Token
-                </th>
-                <th @click="sort('contract')" class="cursor text-center">
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="contract"
-                  />Owner
-                </th>
-                <th @click="sort('ratio1')" class="cursor text-center">
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="ratio1"
-                  />Ratio
-                </th>
-                <th @click="sort('liqDepth')" class="cursor text-right">
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="liqDepth"
-                  />Liquidity Depth
-                </th>
-                <th @click="sort('fee')" class="cursor text-right">
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="fee"
-                  />Fee
-                </th>
-                <th class="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(token, index) in tokens"
-                :key="token.smartTokenSymbol"
-              >
-                <td class="text-center" v-text="index + 1"></td>
-                <td class="text-left font-w700" style="width: 180px">
-                  <img
-                    v-for="(reserve, index) in token.reserves"
-                    :key="index"
-                    class="img-avatar img-avatar-thumb img-avatar32 mr-3"
-                    :src="reserve.logo"
-                    :alt="`${reserve.symbol} Token Logo`"
-                  />
-                  {{ token.symbol }}
-                </td>
-                <td>
-                  <span class="text-muted font-size-sm">
-                    {{ token.smartTokenSymbol }}
-                  </span>
-                </td>
-                <td class="text-center font-w700">
-                  {{ shortenEthAddress(token.owner) }}
-                </td>
-                <td class="text-center font-w700">50 - 50</td>
-                <td class="text-right font-w700">
-                  {{ numeral(token.liqDepth).format("$0,0.00") }}
-                </td>
-                <td class="text-right font-w700">{{ token.fee }}%</td>
-                <td class="text-right">
-                  <b-btn
-                    @click="goToRelay(token.smartTokenSymbol, 'liquidate')"
-                    size="sm"
-                    variant="success"
-                    class="mr-1"
-                  >
-                    <font-awesome-icon icon="minus" />
-                  </b-btn>
-                  <b-btn
-                    @click="goToRelay(token.smartTokenSymbol)"
-                    size="sm"
-                    variant="info"
-                  >
-                    <font-awesome-icon icon="plus" />
-                  </b-btn>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <font-awesome-icon icon="minus" />
+                </b-btn>
+                <b-btn
+                  @click="goToRelay(data.item.smartTokenSymbol)"
+                  size="sm"
+                  variant="info"
+                >
+                  <font-awesome-icon icon="plus" />
+                </b-btn>
+              </div>
+            </template>
+          </b-table>
         </div>
       </div>
     </div>
@@ -129,6 +88,8 @@ import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import { tableApi } from "../api/TableWrapper";
 import { split } from "eos-common";
 import Fuse from "fuse.js";
+import Velocity from "velocity-animate";
+
 const numeral = require("numeral");
 const debounce = require("lodash.debounce");
 
@@ -139,21 +100,72 @@ const debounce = require("lodash.debounce");
 })
 export default class Relays extends Vue {
   numeral = numeral;
-  private tokenSearch: string = "";
-  private searchOptions = {
-    shouldSort: true,
-    threshold: 0.3,
-    location: 0,
-    distance: 100,
-    maxPatternLength: 24,
-    minMatchCharLength: 1,
-    keys: ["symbol", "smartTokenSymbol"]
+  private filter: string = "";
+
+  fields = [
+    {
+      key: "index",
+      label: "#",
+      class: "index-header"
+    },
+    {
+      key: "symbol",
+      sortable: true,
+      label: "Token"
+    },
+    {
+      key: "smartTokenSymbol",
+      sortable: false
+    },
+    {
+      key: "owner",
+      class: "text-center",
+      tdClass: "font-w700",
+      formatter: (value: any) => this.shortenEthAddress(value)
+    },
+    {
+      key: "ratio",
+      tdClass: "font-w700"
+    },
+    {
+      key: "liqDepth",
+      sortable: true,
+      label: "Liquidity Depth",
+      class: ["text-right", "font-w700"],
+      formatter: (value: any) => numeral(value).format("$0,0.00")
+    },
+    {
+      key: "fee",
+      sortable: true
+    },
+    {
+      key: "actions",
+      label: "Actions"
+    }
+  ];
+
+  transProps = {
+    name: "flip-list"
   };
-  private searchState: string = "search";
-  public debouncedGetSearch: any;
-  public debouncedSuggestPrecision: any;
-  private currentSort = "v24h";
-  private currentSortDir = "desc";
+
+  transHandler = {
+    beforeEnter: function(el: any) {
+      el.style.opacity = 0;
+      el.style.height = 0;
+    },
+    enter: function(el: any, done: any) {
+      var delay = el.dataset.index * 150;
+      setTimeout(function() {
+        Velocity(el, { opacity: 1, height: "1.6em" }, { complete: done });
+      }, delay);
+    },
+    leave: function(el: any, done: any) {
+      var delay = el.dataset.index * 150;
+      setTimeout(function() {
+        Velocity(el, { opacity: 0, height: 0 }, { complete: done });
+      }, delay);
+    }
+  };
 
   shortenEthAddress(ethAddress: string) {
     return ethAddress.length > 13
@@ -163,22 +175,8 @@ export default class Relays extends Vue {
       : ethAddress;
   }
 
-  get searchedTokens() {
-    const fuse = new Fuse(vxm.ethBancor.relays, this.searchOptions);
-    const searchedTokens =
-      this.tokenSearch == ""
-        ? vxm.ethBancor.relays
-        : fuse.search(this.tokenSearch);
-
-    return searchedTokens;
-  }
-
-  get sortedTokens() {
-    return this.searchedTokens;
-  }
-
   get tokens() {
-    return this.sortedTokens;
+    return vxm.ethBancor.relays;
   }
 
   goToRelay(symbolCode: string, mode = "addLiquidity") {
@@ -204,26 +202,14 @@ export default class Relays extends Vue {
       behavior: "smooth"
     });
   }
-
-  sort(s: string) {
-    if (s === this.currentSort) {
-      this.currentSortDir = this.currentSortDir === "asc" ? "desc" : "asc";
-    }
-    this.currentSort = s;
-  }
-
-  async created() {
-    // vxm.bancor.fetchRelays();
-    console.log(
-      process.env.VUE_APP_BASE_URL,
-      process.env.BASE_URL,
-      "exactly look"
-    );
-  }
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
+table#relays-table .flip-list-move {
+  transition: transform 0.7s;
+}
+
 .block-options {
   display: flex;
 }
