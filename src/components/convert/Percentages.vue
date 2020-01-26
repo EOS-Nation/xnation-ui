@@ -1,24 +1,27 @@
 <template>
-    <div>
-        <span class="text-white font-size-sm" style="min-height: 50px">
-            <div>
-                {{ label || "Available:" }}
-                <span v-if="loading">
-                    <font-awesome-icon icon="circle-notch" class="text-white" spin />
-                </span>
-                <span v-else>{{ formattedBalance }}</span>
-            </div>
-            <div v-if="Number(balance.split(' ')[0]) > 0" class="text-white-50 cursor">
-                <span @click="setPercentage(10)">10%</span>
-                -
-                <span @click="setPercentage(25)">25%</span>
-                -
-                <span @click="setPercentage(50)">50%</span>
-                -
-                <span @click="setPercentage(100)">100%</span>
-            </div>
+  <div>
+    <span class="text-white font-size-sm" style="min-height: 50px">
+      <div>
+        {{ label || "Available:" }}
+        <span v-if="loading">
+          <font-awesome-icon icon="circle-notch" class="text-white" spin />
         </span>
-    </div>
+        <span v-else>{{ formattedBalance }}</span>
+      </div>
+      <div
+        v-if="Number(balance.split(' ')[0]) > 0"
+        class="text-white-50 cursor"
+      >
+        <span @click="setPercentage(10)">10%</span>
+        -
+        <span @click="setPercentage(25)">25%</span>
+        -
+        <span @click="setPercentage(50)">50%</span>
+        -
+        <span @click="setPercentage(100)">100%</span>
+      </div>
+    </span>
+  </div>
 </template>
 
 <script lang="ts">
@@ -28,31 +31,32 @@ import debounce from "lodash.debounce";
 import numeral from "numeral";
 
 @Component({
-    components: {}
+  components: {}
 })
 export default class TokenAmountInput extends Vue {
-    // props
-    @Prop(String) balance!: string;
-    @Prop(Boolean) loading?: boolean;
-    @Prop(String) amount!: number;
-    @Prop(String) label?: string;
+  // props
+  @Prop(String) balance!: string;
+  @Prop(Boolean) loading?: boolean;
+  @Prop(String) amount!: number;
+  @Prop(String) label?: string;
 
-    // data
-    numeral = numeral;
+  // data
+  numeral = numeral;
 
-    // computed
-    get formattedBalance() {
-        return numeral(this.balance).format(Number(this.balance.split(' ')[0]) > 0.0001 ? '0,0[.][0000]' : '0,0[.][000000000]')
-    }
+  // computed
+  get formattedBalance() {
+    return numeral(this.balance).format(
+      Number(this.balance.split(" ")[0]) > 0.0001
+        ? "0,0[.][0000]"
+        : "0,0[.][000000000]"
+    );
+  }
 
-    // method
-    setPercentage(percentage: number) {
-        this.$emit("percentUpdate", String(percentage));
-    }
-
+  // method
+  setPercentage(percentage: number) {
+    this.$emit("percentUpdate", String(percentage));
+  }
 }
 </script>
 
-<style lang="scss" scoped>
-
-</style>
+<style lang="scss" scoped></style>
