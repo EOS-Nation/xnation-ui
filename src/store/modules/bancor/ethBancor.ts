@@ -123,7 +123,9 @@ export class EthBancorModule extends VuexModule {
     const tokensWithAddresses = tokens.map(token => ({
       ...token,
       tokenAddress:
-        relays.find(relay => relay.symbol == token.code) &&
+      // @ts-ignore
+      relays.find(relay => relay.symbol == token.code) &&
+      // @ts-ignore
         relays.find(relay => relay.symbol == token.code)!.tokenAddress
     }));
     this.setTokensList(tokensWithAddresses);

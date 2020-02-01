@@ -2,6 +2,7 @@ import axios from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
 import { Asset, split, Symbol } from "eos-common";
+// @ts-ignore
 import { EosAccount, nRelay, TokenSymbol } from "bancorx/build/interfaces";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
@@ -127,7 +128,7 @@ export const getTokenBalancesEthplorer = async (
   ];
 };
 
-export const getEthRelays = async (): Promise<Relay[]> => {
+export const getEthRelays = async (): Promise<any[]> => {
   return [
     {
       tokenAddress: "0x83cee9e086A77e492eE0bB93C2B0437aD6fdECCc",
