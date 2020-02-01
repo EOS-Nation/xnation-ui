@@ -19,6 +19,7 @@ import VueAnalytics from "vue-analytics";
 import Ripple from "vue-ripple-directive";
 // @ts-ignore
 import VueFuse from "vue-fuse";
+import ImageFallback from "vue-image-fallback";
 
 Vue.use(VueFuse);
 Vue.use(VueAnalytics, {
@@ -34,6 +35,7 @@ Ripple.zIndex = 1055;
 Vue.directive("ripple", Ripple);
 
 Vue.use(BootstrapVue);
+Vue.use(ImageFallback);
 
 library.add(fas, far, fab);
 
