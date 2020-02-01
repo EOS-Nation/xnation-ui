@@ -33,11 +33,11 @@
               <col key="smart" style="width: 200px;" />
             </template>
             <template v-slot:cell(symbol)="data">
-              <img
+              <b-img
                 v-for="(reserve, index) in data.item.reserves"
                 :key="index"
                 class="img-avatar img-avatar-thumb img-avatar32 mr-3"
-                :src="reserve.logo"
+                :src="reserve.logo[0]"
                 :alt="`${reserve.symbol} Token Logo`"
               />
               {{ data.item.symbol }}

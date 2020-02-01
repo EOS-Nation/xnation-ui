@@ -589,6 +589,16 @@ export default class HeroConvert extends Vue {
   async addLiquidity() {
     const { converterAddress, smartTokenAddress, tokenAddress } = this.relay!;
 
+    console.table(
+      {
+        converterAddress,
+        smartTokenAddress,
+        tokenAddress,
+        mySingle: "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315"
+      },
+      "were things"
+    );
+
     const maxGasPrice = await getBancorGasPriceLimit();
 
     const converterContract = new web3.eth.Contract(
@@ -692,11 +702,21 @@ export default class HeroConvert extends Vue {
       console.log({ transactions });
     }
 
+    if (tokenAddress == "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315") {
+      transactions = [
+        {
+          to: "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315",
+          value: web3.utils.toHex(toWei(this.token1Amount))
+        },
+        ...transactions
+      ];
+    }
+
     const fillOuter = (outer: any) => ({
       from: outer.from || this.isAuthenticated,
       to: outer.to,
       value: outer.value || "0x0",
-      data: outer.data,
+      ...(outer.data && { data: outer.data }),
       ...(outer.gas && { gas: outer.gas }),
       ...(outer.gasPrice && { gasPrice: outer.gasPrice })
     });
@@ -705,7 +725,9 @@ export default class HeroConvert extends Vue {
       .filter((x: any) => x)
       .map((tx: any) => ({
         ...tx,
-        data: tx.data.encodeABI({ from: this.isAuthenticated })
+        ...(tx.data && {
+          data: tx.data.encodeABI({ from: this.isAuthenticated })
+        })
       }))
       .forEach((transaction: any, index: number) => {
         batch.add(

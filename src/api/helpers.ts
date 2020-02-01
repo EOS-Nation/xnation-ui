@@ -127,7 +127,7 @@ export const getTokenBalancesEthplorer = async (
   ];
 };
 
-export const getEthRelays = async (): Promise<CoTrade[]> => {
+export const getEthRelays = async (): Promise<Relay[]> => {
   return [
     {
       tokenAddress: "0x83cee9e086A77e492eE0bB93C2B0437aD6fdECCc",
@@ -3369,10 +3369,36 @@ export const getEthRelays = async (): Promise<CoTrade[]> => {
       conversionFee: "0.1",
       converterVersion: "10"
     }
-  ];
-  const res = await axios.get("https://api-bancor.cotrader.com/official");
-  return res.data.result;
+  ].map(relay => ({
+    ...relay,
+    symbol: relay.symbol.includes("(")
+      ? relay.symbol.split("(")[0]
+      : relay.symbol
+  })).map(relay => ({
+    ...relay
+  }))
 };
+
+export type EosAccount = string;
+export type EthereumAddress = string;
+export type ContractAccount = EosAccount | EthereumAddress;
+
+export interface Token {
+  symbol: string;
+  contract: string;
+  decimals: number;
+  network: string;
+  protocol: string;
+}
+
+export interface Relay {
+  reserves: Token[];
+  smartToken: Token;
+  contract: ContractAccount;
+  isMultiContract: boolean;
+  fee: number;
+  network: string;
+}
 
 export const cacheMetaData = async () => {
   const res = await axios.get(tokenMetaDataEndpoint);

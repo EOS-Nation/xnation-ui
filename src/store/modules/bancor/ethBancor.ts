@@ -51,20 +51,25 @@ export class EthBancorModule extends VuexModule {
   }
 
   get relays() {
-    return this.relaysList
-      .filter(relay => relay.connectorType == "BNT")
+    const relays = this.relaysList
       .map(relay => {
-        const ethToken = this.token(relay.symbol)!;
-        if (!ethToken) return;
+        const ethToken = this.token(relay.symbol);
+        if (!ethToken) {
+          console.warn(relay.symbol, `failed to find MetaData`);
+          // return;
+        }
         return {
           reserves: [
             {
-              symbol: ethToken.symbol,
-              logo: ethToken.logo
+              symbol: relay.symbol,
+              logo:
+                [(ethToken && ethToken.logo), `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${relay.tokenAddress}/logo.png`, 'https://via.placeholder.com/150'].filter(Boolean)
             },
             {
               symbol: relay.connectorType,
-              logo: this.token(relay.connectorType)!.logo
+              logo:
+                [this.token(relay.connectorType).logo,
+                "https://via.placeholder.com/150"].filter(Boolean)
             }
           ],
           owner: relay.owner,
@@ -76,11 +81,23 @@ export class EthBancorModule extends VuexModule {
           smartTokenAddress: relay.smartTokenAddress,
           tokenAddress: relay.tokenAddress,
           meta: { ...relay },
-          // @ts-ignore
-          liqDepth: ethToken.liqDepth
+          liqDepth: (ethToken && ethToken.liqDepth) || "Not found"
         };
       })
       .filter(relay => !!relay);
+
+    const duplicated = relays
+      .map(relay => relay.smartTokenSymbol)
+      .filter(
+        (smartTokenSymbol, index, array) =>
+          array.indexOf(smartTokenSymbol) !== index
+      );
+
+      console.log(relays, 'were relays')
+
+    return relays.filter(relay =>
+      duplicated.every(dup => dup !== relay.smartTokenSymbol)
+    );
   }
 
   @action async fetchUsdPrice() {
