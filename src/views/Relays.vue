@@ -102,6 +102,7 @@ const debounce = require("lodash.debounce");
 export default class Relays extends Vue {
   numeral = numeral;
   private filter: string = "";
+  small = false;
 
   fields = [
     {
@@ -203,6 +204,25 @@ export default class Relays extends Vue {
       left: 0,
       behavior: "smooth"
     });
+  }
+
+  get filteredFields() {
+    return this.small
+      ? this.fields.filter(field =>
+          ["key", "volume24h", "index", "name"].every(
+            fieldName => fieldName !== field.key
+          )
+        )
+      : this.fields;
+  }
+
+  handleResize() {
+    this.small = window.innerWidth < 768;
+  }
+
+  created() {
+    window.addEventListener("resize", this.handleResize);
+    this.handleResize();
   }
 }
 </script>

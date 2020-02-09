@@ -19,7 +19,7 @@
           id="tokens-table"
           striped
           :items="tokens"
-          :fields="fields"
+          :fields="filteredFields"
           :filter="filter"
           primary-key="symbol"
           :tbody-transition-props="transProps"
@@ -126,6 +126,8 @@ export default class TokensTable extends Vue {
   @Prop() value!: string;
   @Prop() name!: string;
 
+  small = false;
+
   filter = "";
   // data
   numeral = numeral;
@@ -212,6 +214,25 @@ export default class TokensTable extends Vue {
       });
     }
     this.$emit(action, symbol);
+  }
+
+  get filteredFields() {
+    return this.small
+      ? this.fields.filter(field =>
+          ["key", "volume24h", "index", "name"].every(
+            fieldName => fieldName !== field.key
+          )
+        )
+      : this.fields;
+  }
+
+  handleResize() {
+    this.small = window.innerWidth < 768;
+  }
+
+  created() {
+    window.addEventListener("resize", this.handleResize);
+    this.handleResize();
   }
 }
 </script>
