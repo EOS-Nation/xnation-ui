@@ -133,7 +133,8 @@ export default class Relays extends Vue {
       sortable: true,
       label: "Liquidity Depth",
       class: ["text-right", "font-w700"],
-      formatter: (value: any) => numeral(value).format("$0,0.00")
+      formatter: (value: any) =>
+        value ? numeral(value).format("$0,0.00") : "Not Available"
     },
     {
       key: "fee",

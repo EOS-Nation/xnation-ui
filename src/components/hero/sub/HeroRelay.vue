@@ -112,7 +112,8 @@ import {
   getBalance,
   getBankBalance,
   web3,
-  getBancorGasPriceLimit
+  getBancorGasPriceLimit,
+  fetchReserveBalance
 } from "@/api/helpers";
 import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 import { toWei, toHex, fromWei } from "web3-utils";
@@ -203,7 +204,9 @@ export default class HeroConvert extends Vue {
   }
 
   get token1() {
-    return vxm.bancor.token(this.relay!.reserves[this.flipped ? 1 : 0].symbol)!;
+    const x = vxm.bancor.token(this.relay!.reserves[this.flipped ? 1 : 0].symbol)!;
+    console.log('got', x)
+    return x;
   }
 
   get token2() {
@@ -274,33 +277,13 @@ export default class HeroConvert extends Vue {
     }
   }
 
-  async fetchReserveBalance(
-    converterContract: any,
-    reserveTokenAddress: string,
-    versionNumber: number | string
-  ): Promise<string> {
-    console.log({ converterContract, reserveTokenAddress, versionNumber });
-    try {
-      const res = await converterContract.methods[
-        Number(versionNumber) >= 17
-          ? "getReserveBalance"
-          : "getConnectorBalance"
-      ](reserveTokenAddress).call();
-      console.log({ res }, "was resturent");
-      return res;
-    } catch (e) {
-      throw new Error("Failed getting reserve balance" + e);
-    }
-  }
-
   async fetchRelayBalances() {
     const {
       converterAddress,
-      meta,
       tokenAddress,
-      smartTokenAddress
+      smartTokenAddress,
+      version
     } = this.relay!;
-    const { converterVersion } = meta;
 
     const converterContract = new web3.eth.Contract(
       // @ts-ignore
@@ -320,16 +303,8 @@ export default class HeroConvert extends Vue {
         bntReserveBalance,
         totalSupply
       ] = await Promise.all([
-        this.fetchReserveBalance(
-          converterContract,
-          tokenAddress,
-          converterVersion
-        ),
-        this.fetchReserveBalance(
-          converterContract,
-          BntTokenContract,
-          converterVersion
-        ),
+        fetchReserveBalance(converterContract, tokenAddress, version),
+        fetchReserveBalance(converterContract, BntTokenContract, version),
         smartTokenContract.methods.totalSupply().call()
       ]);
       return { tokenReserveBalance, bntReserveBalance, totalSupply };
@@ -395,12 +370,6 @@ export default class HeroConvert extends Vue {
         const token1Wei = String(
           Number(this.token1Amount) * Math.pow(10, decimals)
         );
-        console.log({
-          token1Wei,
-          tokenReserveBalance,
-          bntReserveBalance,
-          totalSupply
-        });
         const token2Value = this.calculateOppositeLiquidateRequirement(
           token1Wei,
           tokenReserveBalance,
@@ -412,14 +381,9 @@ export default class HeroConvert extends Vue {
           tokenReserveBalance,
           totalSupply
         );
-        console.log(fromWei(liquidateCost), "is the liquidate cost");
         const percentDifferenceBetweenSmartBalance = this.percentDifference(
           liquidateCost,
           String(Number(this.smartUserBalance) * Math.pow(10, 18))
-        );
-        console.log(
-          percentDifferenceBetweenSmartBalance,
-          "is the percent difference"
         );
         if (percentDifferenceBetweenSmartBalance > 0.99) {
           console.log("should just use the whole balance");
@@ -473,10 +437,6 @@ export default class HeroConvert extends Vue {
           token1Wei,
           tokenReserveBalance,
           totalSupply
-        );
-        console.log(
-          "fund reward being set to",
-          fromWei(String(Number(fundReward) * 0.99))
         );
         this.fundReward = fundReward;
       } else {
@@ -631,9 +591,6 @@ export default class HeroConvert extends Vue {
     const tokenApproved = await tokenContract.methods
       .allowance(this.isAuthenticated, converterAddress)
       .call();
-
-    console.log(fromWei(bancorApproved), "is the bancor approved allowance");
-    console.log(fromWei(tokenApproved), "is the token approved allowance");
 
     const batch = new web3.BatchRequest();
 

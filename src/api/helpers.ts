@@ -36,6 +36,30 @@ export const web3 = new Web3(
   Web3.givenProvider || "https://api.myetherapi.com/eth"
 );
 
+export const fetchReserveBalance = async (
+  converterContract: any,
+  reserveTokenAddress: string,
+  versionNumber: number | string
+): Promise<string> => {
+  try {
+    const res = await converterContract.methods[
+      Number(versionNumber) >= 17 ? "getReserveBalance" : "getConnectorBalance"
+    ](reserveTokenAddress).call();
+    return res;
+  } catch (e) {
+    try {
+      const res = await converterContract.methods[
+        Number(versionNumber) >= 17
+          ? "getConnectorBalance"
+          : "getReserveBalance"
+      ](reserveTokenAddress).call();
+      return res;
+    } catch (e) {
+      throw new Error("Failed getting reserve balance" + e);
+    }
+  }
+};
+
 export const getBancorGasPriceLimit = async (): Promise<string> => {
   const contract = new web3.eth.Contract(
     // @ts-ignore
@@ -128,7 +152,7 @@ export const getTokenBalancesEthplorer = async (
   ];
 };
 
-export const getEthRelays = async (): Promise<any[]> => {
+export const getEthRelays = async (): Promise<Relay[]> => {
   return [
     {
       tokenAddress: "0x83cee9e086A77e492eE0bB93C2B0437aD6fdECCc",
@@ -2933,7 +2957,7 @@ export const getEthRelays = async (): Promise<any[]> => {
     {
       tokenAddress: "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
       symbol: "BNT",
-      smartTokenSymbol: "BNT-USD",
+      smartTokenSymbol: "BNTUSD",
       converterAddress: "0xDdA1BFaF552b0F303d27853a4a13Dd440C7E849f",
       smartTokenAddress: "0x607108c46bCE4cF6f86698E9B46E3270A734FeFe",
       owner: "0x734C2afF51c4589E6310E0c0ac7D84D244c6Ce1A",
@@ -2973,7 +2997,7 @@ export const getEthRelays = async (): Promise<any[]> => {
     {
       tokenAddress: "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
       symbol: "BNT(USDB)",
-      smartTokenSymbol: "USDB / BNT",
+      smartTokenSymbol: "USDBBNT",
       converterAddress: "0xE03374cAcf4600F56BDDbDC82c07b375f318fc5C",
       smartTokenAddress: "0xd1146B08e8104EeDBa44a73B7bda1d102c6ceDC9",
       owner: "0x68d6aC0Aedf140e18058E3d848B199D09D3a6310",
@@ -3370,14 +3394,44 @@ export const getEthRelays = async (): Promise<any[]> => {
       conversionFee: "0.1",
       converterVersion: "10"
     }
-  ].map(relay => ({
-    ...relay,
-    symbol: relay.symbol.includes("(")
-      ? relay.symbol.split("(")[0]
-      : relay.symbol
-  })).map(relay => ({
-    ...relay
-  }))
+  ]
+    .map(relay => ({
+      ...relay,
+      symbol: relay.symbol.includes("(")
+        ? relay.symbol.split("(")[0]
+        : relay.symbol
+    }))
+    .map(relay => ({
+      reserves: [
+        {
+          symbol: relay.symbol,
+          decimals: relay.tokenDecimals,
+          network: "ETH",
+          contract: relay.tokenAddress
+        },
+        {
+          symbol: relay.connectorType,
+          decimals: 18,
+          contract:
+            relay.connectorType == "BNT"
+              ? `0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c`
+              : "0x309627af60f0926daa6041b8279484312f2bf060",
+          network: "ETH"
+        }
+      ],
+      contract: relay.converterAddress,
+      smartToken: {
+        decimals: 18,
+        contract: relay.smartTokenAddress,
+        network: "ETH",
+        symbol: relay.smartTokenSymbol
+      },
+      fee: Number(relay.conversionFee),
+      network: "ETH",
+      isMultiContract: false,
+      version: relay.converterVersion,
+      owner: relay.owner
+    }));
 };
 
 export type EosAccount = string;
@@ -3389,7 +3443,6 @@ export interface Token {
   contract: string;
   decimals: number;
   network: string;
-  protocol: string;
 }
 
 export interface Relay {
@@ -3398,7 +3451,10 @@ export interface Relay {
   contract: ContractAccount;
   isMultiContract: boolean;
   fee: number;
+  liqDepth?: string;
   network: string;
+  version: string;
+  owner: string;
 }
 
 export const cacheMetaData = async () => {

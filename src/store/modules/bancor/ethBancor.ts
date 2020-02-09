@@ -4,15 +4,34 @@ import {
   ProposedConvertTransaction
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancor";
-import { getEthRelays, web3 } from "@/api/helpers";
-import { getTokenBalancesEthplorer } from "@/api/helpers";
+import {
+  getEthRelays,
+  web3,
+  Relay,
+  Token,
+  fetchReserveBalance
+} from "@/api/helpers";
+import { ABIConverter } from "@/api/ethConfig";
+
 import { vxm } from "@/store";
+
+const getPoolReserveToken = (
+  relay: Relay,
+  networkSymbols = ["BNT", "USDB"]
+) => {
+  return (
+    relay.reserves.find(reserve =>
+      networkSymbols.every(networkSymbol => reserve.symbol !== networkSymbol)
+    ) || relay.reserves[0]
+  );
+};
 
 @Module({ namespacedPath: "ethBancor/" })
 export class EthBancorModule extends VuexModule {
   tokensList: any[] = [];
   usdPrice: number = 0;
-  relaysList: any[] = [];
+  relaysList: Relay[] = [];
+  tokenBalances: { symbol: string; balance: string }[] = [];
 
   get tokens(): any {
     const ethToken = this.tokensList.find((token: any) => token.code == "ETH")!;
@@ -32,8 +51,29 @@ export class EthBancorModule extends VuexModule {
   }
 
   get token(): (arg0: string) => any {
-    return (symbolName: string) =>
-      this.tokens.find((token: any) => token.symbol == symbolName);
+    return (symbolName: string) => {
+      const bancorApiToken = this.tokens.find(
+        (token: any) => token.symbol == symbolName
+      );
+      if (bancorApiToken) return bancorApiToken;
+
+      const reserve = this.relaysList
+        .find(relay =>
+          relay.reserves.some(reserve => reserve.symbol == symbolName)
+        )!
+        .reserves.find(reserve => reserve.symbol == symbolName)!;
+
+      return {
+        ...reserve,
+        tokenAddress: reserve.contract,
+        logo: `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${reserve.contract}/logo.png`,
+        balance:
+          (this.tokenBalances.find(balance => balance.symbol == symbolName) &&
+            this.tokenBalances.find(balance => balance.symbol == symbolName)!
+              .balance) ||
+          ""
+      };
+    };
   }
 
   get backgroundToken(): (arg0: string) => any {
@@ -51,40 +91,37 @@ export class EthBancorModule extends VuexModule {
   }
 
   get relays() {
-    const relays = this.relaysList
-      .map(relay => {
-        const ethToken = this.token(relay.symbol);
-        if (!ethToken) {
-          console.warn(relay.symbol, `failed to find MetaData`);
-          // return;
-        }
-        return {
-          reserves: [
-            {
-              symbol: relay.symbol,
-              logo:
-                [(ethToken && ethToken.logo), `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${relay.tokenAddress}/logo.png`, 'https://via.placeholder.com/150'].filter(Boolean)
-            },
-            {
-              symbol: relay.connectorType,
-              logo:
-                [this.token(relay.connectorType).logo,
-                "https://via.placeholder.com/150"].filter(Boolean)
-            }
-          ],
-          owner: relay.owner,
-          fee: relay.conversionFee,
-          decimals: relay.tokenDecimals,
-          symbol: relay.symbol,
-          smartTokenSymbol: relay.smartTokenSymbol,
-          converterAddress: relay.converterAddress,
-          smartTokenAddress: relay.smartTokenAddress,
-          tokenAddress: relay.tokenAddress,
-          meta: { ...relay },
-          liqDepth: (ethToken && ethToken.liqDepth) || "Not found"
-        };
-      })
-      .filter(relay => !!relay);
+    const relays = this.relaysList.map(relay => {
+      const reserveToken = getPoolReserveToken(relay);
+      const reserveTokenMeta = this.token(reserveToken.symbol);
+      const networkTokenIsBnt = relay.reserves.some(
+        reserve =>
+          reserve.contract == "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c"
+      );
+      return {
+        reserves: relay.reserves.map(reserve => ({
+          symbol: reserve.symbol,
+          logo: [
+            this.token(reserve.symbol) && this.token(reserve.symbol).logo,
+            `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${reserveToken.contract}/logo.png`,
+            "https://via.placeholder.com/50"
+          ].filter(Boolean)
+        })),
+        owner: relay.owner,
+        fee: relay.fee,
+        decimals: reserveToken.decimals,
+        symbol: reserveToken.symbol,
+        smartTokenSymbol: relay.smartToken.symbol,
+        converterAddress: relay.contract,
+        smartTokenAddress: relay.smartToken.contract,
+        tokenAddress: getPoolReserveToken(relay).contract,
+        version: relay.version,
+        liqDepth:
+          relay.liqDepth ||
+          (networkTokenIsBnt && reserveTokenMeta && reserveTokenMeta.liqDepth)
+      };
+    });
+    // .filter(relay => relay.liqDepth);
 
     const duplicated = relays
       .map(relay => relay.smartTokenSymbol)
@@ -93,7 +130,9 @@ export class EthBancorModule extends VuexModule {
           array.indexOf(smartTokenSymbol) !== index
       );
 
-      console.log(relays, 'were relays')
+    console.log(
+      relays.every(relay => relay.reserves.every(reserve => reserve.symbol))
+    );
 
     return relays.filter(relay =>
       duplicated.every(dup => dup !== relay.smartTokenSymbol)
@@ -122,13 +161,94 @@ export class EthBancorModule extends VuexModule {
     this.setRelaysList(relays);
     const tokensWithAddresses = tokens.map(token => ({
       ...token,
-      tokenAddress:
-      // @ts-ignore
-      relays.find(relay => relay.symbol == token.code) &&
-      // @ts-ignore
-        relays.find(relay => relay.symbol == token.code)!.tokenAddress
+      ...(relays.find((relay: Relay) =>
+        relay.reserves.find(reserve => reserve.symbol == token.code)
+      ) && {
+        tokenAddress: relays
+          .find((relay: Relay) =>
+            relay.reserves.find(reserve => reserve.symbol == token.code)
+          )!
+          .reserves.find(reserve => reserve.symbol == token.code)!.contract
+      })
     }));
+
+    const relaysNotTrackedOnApi = relays.filter(
+      relay =>
+        !tokens.find(token => token.code == getPoolReserveToken(relay).symbol)
+    );
+    this.fetchLiquidityDepths(relaysNotTrackedOnApi);
+
     this.setTokensList(tokensWithAddresses);
+  }
+
+  @action async fetchLiquidityDepths(relays: Relay[]) {
+    const relaysCaredAbout = relays.sort((a, b) =>
+      a.reserves.some(reserve => reserve.symbol.includes("USD")) ? -1 : 1
+    );
+    const newRelays: Relay[] = await Promise.all(
+      relaysCaredAbout.map(async relay => {
+        try {
+          const [balance, networkReserveSymbol] = await this.getNetworkReserve(
+            relay
+          );
+          const liqDepthN = networkReserveSymbol == "BNT" ? this.usdPrice : 1;
+          const liqDepth = String(
+            liqDepthN * Number(web3.utils.fromWei(balance))
+          );
+          return {
+            ...relay,
+            liqDepth
+          };
+        } catch (e) {
+          console.log(
+            "Failed fetching",
+            relay.reserves.map(x => x.symbol),
+            e
+          );
+          return relay;
+        }
+      })
+    );
+
+    const allRelays = [
+      ...newRelays.filter(x => x.liqDepth),
+      ...this.relaysList
+    ].filter(
+      (item, index, arr) =>
+        arr.findIndex(x => x.smartToken == item.smartToken) == index
+    );
+    this.setRelaysList(allRelays.filter(Boolean));
+
+    // for (const relay in relaysCaredAbout) {
+    //   const x = relaysCaredAbout[relay];
+    // const liqDepthN = x.smartToken.symbol == "BNT" ? this.usdPrice : 1;
+    // const liqDepth = String(liqDepthN * Number(web3.utils.fromWei(balance)));
+    //   const relays = this.relaysList.map(relay =>
+    //     relay.smartToken.symbol == x.smartToken.symbol
+    //       ? { ...relay, liqDepth }
+    //       : relay
+    //   );
+    //   this.setRelaysList(relays);
+    // }
+  }
+
+  @action async getNetworkReserve(relay: Relay) {
+    const converterContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverter,
+      relay.contract
+    );
+    const tokenReserve = getPoolReserveToken(relay);
+    const networkReserve = relay.reserves.find(
+      reserve => reserve.symbol !== tokenReserve.symbol
+    )!;
+
+    const reserveBalance = await fetchReserveBalance(
+      converterContract,
+      networkReserve.contract,
+      relay.version
+    );
+    return [reserveBalance, networkReserve.symbol];
   }
 
   @action async focusSymbol(symbolName: string) {
@@ -138,6 +258,7 @@ export class EthBancorModule extends VuexModule {
     ];
     if (!isAuthenticated) return;
     const token = this.token(symbolName);
+    console.log(token, "was the token for focus symbol");
     if (!token.balance) {
       const balance = await vxm.ethWallet.getBalance({
         accountHolder: isAuthenticated,
@@ -151,6 +272,11 @@ export class EthBancorModule extends VuexModule {
     this.tokensList = this.tokensList.map(token =>
       token.code == symbolName ? { ...token, balance } : token
     );
+    const newBalances = this.tokenBalances.filter(
+      balance => balance.symbol !== symbolName
+    );
+    newBalances.push({ symbol: symbolName, balance });
+    this.tokenBalances = newBalances;
   }
 
   @mutation resetBalances() {
@@ -171,8 +297,14 @@ export class EthBancorModule extends VuexModule {
     this.tokensList = tokens;
   }
 
-  @mutation setRelaysList(relaysList: any) {
-    this.relaysList = relaysList;
+  @mutation setRelaysList(relaysList: Relay[]) {
+    this.relaysList = relaysList.sort((a, b) =>
+      this.tokensList.find(token =>
+        a.reserves.find(reserve => reserve.symbol == token.code)
+      )
+        ? -1
+        : 1
+    );
   }
 
   @action async convert({
