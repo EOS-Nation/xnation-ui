@@ -36,7 +36,13 @@ export default class MyFooter extends Vue {
 <style lang="scss" scoped>
 .footer {
   background-color: #1f2d36;
-  padding: 15px 100px;
+  padding: 15px 15px;
+}
+
+@media (min-width: 768px) {
+  .footer {
+    padding: 15px 100px;
+  }
 }
 
 .text {

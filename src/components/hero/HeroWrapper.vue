@@ -18,16 +18,15 @@
 </template>
 
 <script lang="ts">
-import { Watch, Component, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store'
+import { Watch, Component, Vue } from "vue-property-decorator";
+import { vxm } from "@/store";
 
 export default class HeroWrapper extends Vue {}
 </script>
 
 <style scoped lang="scss">
-
 .main {
-  height: 360px;
+  min-height: 360px;
 }
 
 .slide-fade-up-enter-active {
