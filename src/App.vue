@@ -5,8 +5,8 @@
     <main id="main-container" class="bg-primary">
       <router-view name="Hero"></router-view>
       <router-view></router-view>
-      <my-footer></my-footer>
     </main>
+    <my-footer></my-footer>
     <modal-login />
     <modal-tx />
   </div>
