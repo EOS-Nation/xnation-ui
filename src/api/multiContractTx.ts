@@ -319,6 +319,28 @@ class MultiContractTx {
       }
     ]);
   }
+
+  tokenTransfer(
+    tokenContract: string,
+    transferParams: {
+      to: string;
+      quantity: string;
+      memo?: string;
+    }
+  ) {
+    return this.tx([
+      {
+        account: tokenContract,
+        name: "transfer",
+        data: {
+          from: this.getAuth()[0].actor,
+          to: transferParams.to,
+          quantity: transferParams.quantity,
+          memo: transferParams.memo || ""
+        }
+      }
+    ]);
+  }
 }
 
 const getAuth: GetAuth = () => {

@@ -22,7 +22,7 @@ export class BancorModule extends VuexModule {
 
   get token() {
     // @ts-ignore
-    return this.$store["rootGetters"][`${this.currentNetwork}Bancor/token`];
+    return vxm[`${this.currentNetwork}Bancor`]["token"];
   }
 
   @action async init() {

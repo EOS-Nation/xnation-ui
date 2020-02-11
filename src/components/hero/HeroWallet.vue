@@ -1,6 +1,6 @@
 <template>
   <div class="content content-full text-center">
-    <form v-on:submit.prevent="searchAccount()">
+    <form v-on:submit.prevent="searchAccount">
       <b-row class="items-push mt-5 d-flex justify-content-center">
         <b-col
           cols="12"
@@ -25,7 +25,7 @@
         </b-col>
         <b-col cols="12" class="d-flex justify-content-center mb-0">
           <b-btn
-            @click="searchAccount()"
+            @click="searchAccount"
             type="submit"
             variant="success"
             v-ripple
@@ -46,13 +46,10 @@ import { vxm } from "@/store";
 
 @Component
 export default class HeroWallet extends Vue {
-  // props
   @Prop() account!: string;
 
-  // data
   search = "";
 
-  // methods
   searchAccount() {
     this.$router.push({
       name: "WalletAccount",

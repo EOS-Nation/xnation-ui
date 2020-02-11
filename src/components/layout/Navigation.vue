@@ -52,8 +52,8 @@
           <font-awesome-icon icon="plus" fixed-width class="mr-1" />
           Create
         </b-btn> -->
-        <!-- <b-btn
-          v-if="!isAuthenticated"
+        <b-btn
+          v-if="!isAuthenticated && selected == 'eos'"
           :to="{ name: `${this.selected}-Wallet` }"
           variant="primary"
           size="sm"
@@ -62,7 +62,7 @@
           <font-awesome-icon icon="wallet" fixed-width /> Wallet
         </b-btn>
         <b-btn
-          v-else
+          v-else-if="selected == 'eos'"
           :to="{
             name: `${this.selected}-WalletAccount`,
             params: { account: isAuthenticated }
@@ -71,7 +71,7 @@
           size="sm"
         >
           <font-awesome-icon icon="wallet" fixed-width /> Wallet
-        </b-btn> -->
+        </b-btn>
       </div>
 
       <div

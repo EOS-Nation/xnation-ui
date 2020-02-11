@@ -38,7 +38,9 @@ export class EosBancorModule extends VuexModule {
       change24h: token.change24h,
       volume24h: token.volume24h.USD,
       // @ts-ignore
-      balance: token.balance || "0"
+      balance: token.balance || "0",
+      // @ts-ignore
+      ...(token.contract && { contract: token.contract })
     }));
   }
 
@@ -87,7 +89,8 @@ export class EosBancorModule extends VuexModule {
         );
         return {
           ...token,
-          balance: (existingToken && String(existingToken.amount)) || "0"
+          balance: (existingToken && String(existingToken.amount)) || "0",
+          ...(existingToken && { contract: existingToken.contract })
         };
       })
     );

@@ -1,58 +1,24 @@
 <template>
   <div>
     <div class="content content-boxed">
-      <b-row>
+      <b-row class="d-flex justify-content-around">
         <b-col md="4" lg="3">
           <div class="block">
             <div class="block-header">
               <h3 class="block-title">Token Diversity<small> - EOS</small></h3>
             </div>
             <div class="block-content text-center">
-              <h2>{{ balances.length }}/{{ tokens.length }}</h2>
+              <h2>{{ tokens.length }}/{{ allTokensLength }}</h2>
             </div>
           </div>
         </b-col>
         <b-col md="4" lg="3">
-          <div class="block" :class="{ 'block-mode-loading': loading }">
-            <div class="block-header">
-              <h3 class="block-title">24h Change<small> - %</small></h3>
-            </div>
-            <div class="block-content text-center">
-              <h2
-                :class="{
-                  'text-success': totalPercentage24h > 0,
-                  'text-danger': totalPercentage24h < 0
-                }"
-              >
-                {{ numeral(totalPercentage24h / 100).format('0.00%') }}
-              </h2>
-            </div>
-          </div>
-        </b-col>
-        <b-col md="4" lg="3">
-          <div class="block" :class="{ 'block-mode-loading': loading }">
-            <div class="block-header">
-              <h3 class="block-title">24h Gain<small> - USD</small></h3>
-            </div>
-            <div class="block-content text-center">
-              <h2
-                :class="{
-                  'text-success': totalBalance24h > 0,
-                  'text-danger': totalBalance24h < 0
-                }"
-              >
-                ${{ numeral(totalBalance24h).format('0,0.00') }}
-              </h2>
-            </div>
-          </div>
-        </b-col>
-        <b-col md="4" lg="3">
-          <div class="block" :class="{ 'block-mode-loading': loading }">
+          <div class="block">
             <div class="block-header">
               <h3 class="block-title">Total Balance<small> - USD</small></h3>
             </div>
             <div class="block-content text-center">
-              <h2>{{ numeral(totalBalance).format('$0,0.00') }}</h2>
+              <h2>{{ numeral(totalValue).format("$0,0.00") }}</h2>
             </div>
           </div>
         </b-col>
@@ -62,136 +28,68 @@
           <h3 class="block-title">EOS <small>Token Balances</small></h3>
         </div>
         <div class="block-content">
-          <table class="table table-striped table-vcenter">
-            <thead>
-              <tr>
-                <th class="text-center" style="width: 50px;">#</th>
-                <th
-                  @click="sort('symbol')"
-                  colspan="2"
-                  class="cursor"
-                  style="min-width: 250px;"
+          <b-table
+            id="tokens-table"
+            striped
+            :fields="fields"
+            :items="tokens"
+            primary-key="symbol"
+          >
+            <template v-slot:cell(index)="data">
+              {{ data.index + 1 }}
+            </template>
+            <template v-slot:cell(symbol)="data">
+              <img
+                v-b-tooltip.hover
+                class="img-avatar img-avatar-thumb img-avatar32"
+                :src="data.item.logo"
+                alt="Token Logo"
+              />
+              {{ data.item.symbol }}
+            </template>
+            <template v-slot:cell(price)="data">
+              <span class="text-center font-w700">
+                <span v-if="data.item.price < 1">{{
+                  numeral(data.item.price).format("$0,0.000000")
+                }}</span>
+                <span v-else>{{
+                  numeral(data.item.price).format("$0,0.00")
+                }}</span>
+              </span>
+            </template>
+            <template v-slot:cell(actions)="data">
+              <span>
+                <b-btn
+                  @click="initAction('convert', data.item.symbol)"
+                  size="sm"
+                  variant="success"
+                  class="mr-1"
                 >
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="symbol"
-                  />
-                  Token
-                </th>
-                <th @click="sort('balance')" class="cursor text-right">
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="balance"
-                  />
-                  Balance
-                </th>
-                <th @click="sort('c24h')" class="cursor text-center">
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="c24h"
-                  />
-                  24h Change
-                </th>
-                <th @click="sort('price')" class="cursor text-right">
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="price"
-                  />
-                  Price USD
-                </th>
-                <th @click="sort('value')" class="cursor text-right">
-                  <sort-icons
-                    :currentSort="currentSort"
-                    :currentSortDir="currentSortDir"
-                    category="value"
-                  />
-                  Value
-                </th>
-                <th class="text-right" style="width: 200px;">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(token, index) in sortedTokens" :key="index">
-                <th class="text-center" v-text="index + 1"></th>
-                <th class="text-left font-w700" style="width: 160px">
-                  <img
-                      class="img-avatar img-avatar-thumb img-avatar32 mr-3"
-                      :src="token.logo_url"
-                      alt=""
-                    />
-                    <span>{{ token.symbol }}</span>
-                </th>
-                <td>
-                  <span class="text-muted font-size-sm">{{
-                    token.name
-                  }}</span>
-                </td>
-                <td class="text-right font-w700">
-                  {{ numeral(token.balance).format('0,0.0000') }}
-                </td>
-                <td
-                  class="text-center font-w700"
-                  :class="{
-                    'text-danger': token.c24h < 0,
-                    'text-success': token.c24h > 0
-                  }"
+                  <font-awesome-icon icon="exchange-alt" />
+                </b-btn>
+                <b-btn
+                  @click="initAction('transfer', data.item.symbol)"
+                  size="sm"
+                  variant="info"
                 >
-                  {{ numeral(token.c24h).format('0,0.00') }}%
-                </td>
-                <td class="text-right font-w700">
-                  <span v-if="token.price < 1">{{
-                    numeral(token.price).format('$0,0.000000')
-                  }}</span>
-                  <span v-else>{{
-                    numeral(token.price).format('$0,0.00')
-                  }}</span>
-                </td>
-                <td class="text-right font-w700">
-                  <span v-if="token.value < 0.01" v-text="'< $0.01'"></span>
-                  <span v-else>{{
-                    numeral(token.value).format('$0,0.00')
-                  }}</span>
-                </td>
-                <td class="text-right">
-                  <b-btn
-                    @click="initAction('convert', token.symbol)"
-                    size="sm"
-                    variant="success"
-                    class="mr-1"
-                  >
-                    <font-awesome-icon icon="exchange-alt" />
-                  </b-btn>
-                  <b-btn
-                    @click="initAction('transfer', token.symbol)"
-                    size="sm"
-                    variant="info"
-                  >
-                    <font-awesome-icon icon="arrow-right" />
-                  </b-btn>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <font-awesome-icon icon="arrow-right" />
+                </b-btn>
+              </span>
+            </template>
+          </b-table>
         </div>
       </div>
     </div>
-    <!-- END Page Content -->
   </div>
 </template>
 
 <script lang="ts">
-import { Prop, Watch, Component, Vue } from 'vue-property-decorator'
-import { vxm } from '@/store'
-import { bancorApi } from '@/api/bancor'
-import { TokenPrice } from '@/types/bancor'
-import SortIcons from '@/components/common/SortIcons.vue'
-import numeral from 'numeral'
+import { Prop, Watch, Component, Vue } from "vue-property-decorator";
+import { vxm } from "@/store";
+import { bancorApi } from "@/api/bancor";
+import { TokenPrice } from "@/types/bancor";
+import SortIcons from "@/components/common/SortIcons.vue";
+import numeral from "numeral";
 
 @Component({
   components: {
@@ -199,99 +97,81 @@ import numeral from 'numeral'
   }
 })
 export default class WalletAccount extends Vue {
-  // props
-  @Prop() account!: string
+  @Prop() account!: string;
 
-  // data
-  tokens: any = []
-  relays: any = []
-  balances: any = []
-  numeral = numeral
-  loading = true
-  currentSort = 'value'
-  currentSortDir = 'desc'
+  numeral = numeral;
 
-  get totalBalance() {
-    let total = 0
-    for (const balance of this.balances) {
-      total += balance.value
+  fields = [
+    {
+      key: "index",
+      label: "#",
+      class: "index-header"
+    },
+    {
+      key: "symbol",
+      sortable: true,
+      label: "Token"
+    },
+    {
+      key: "name",
+      sortable: false
+    },
+    {
+      key: "balance",
+      class: ["text-center"],
+      sortable: true
+    },
+    {
+      key: "price",
+      sortable: true,
+      label: "Price USD",
+      class: ["text-center"],
+      formatter: (value: any, key: any, item: any) =>
+        numeral(value).format("$0,0.00")
+    },
+    {
+      key: "value",
+      sortable: true,
+      sortByFormatted: true,
+      class: ["text-center"],
+      formatter: (value: any, key: any, item: any) =>
+        numeral(item.price * item.balance).format("$0,0.00")
+    },
+    {
+      key: "actions",
+      class: ["text-right"],
+      label: "Actions"
     }
-    return total
+  ];
+
+  get totalValue() {
+    return this.tokens.reduce(
+      (acc: number, token: any) => acc + token.balance * token.price,
+      0
+    );
   }
 
-  get totalBalance24h() {
-    let total = 0
-    for (const balance of this.balances) {
-      total += balance.value24hChange
-    }
-    return total
+  get tokens() {
+    return vxm.bancor.tokens.filter(
+      (token: any) => Number(token.balance) > 0.0000001
+    );
   }
 
-  get totalPercentage24h() {
-    return (this.totalBalance24h * 100) / this.totalBalance
+  get allTokensLength() {
+    return vxm.bancor.tokens.length;
   }
 
-  get sortedTokens() {
-    return this.balances.sort((a: any, b: any) => {
-      let modifier = 1
-      if (this.currentSortDir === 'desc') modifier = -1
-      if (this.currentSort === 'symbol') {
-        if (a[this.currentSort] < b[this.currentSort]) return -1 * modifier
-        if (a[this.currentSort] > b[this.currentSort]) return 1 * modifier
-        return 0
-      } else {
-        if (parseFloat(a[this.currentSort]) < parseFloat(b[this.currentSort]))
-          return -1 * modifier
-        if (parseFloat(a[this.currentSort]) > parseFloat(b[this.currentSort]))
-          return 1 * modifier
-        return 0
-      }
-    })
-  }
-
-  // methods
-  async getRelays() {
-
-  }
-
-  async getBalancesOld() {
-  }
-  async getBalances() {
-  
-  }
-
-  async getTokens() {
-    this.tokens = await bancorApi.getTokens()
-  }
-
-  initAction(action: 'convert' | 'transfer', symbol: string) {
+  initAction(action: "convert" | "transfer", symbolName: string) {
     window.scroll({
       top: 0,
       left: 0,
-      behavior: 'smooth'
-    })
-  }
+      behavior: "smooth"
+    });
 
-  sort(s: string) {
-    if (s === this.currentSort) {
-      this.currentSortDir = this.currentSortDir === 'asc' ? 'desc' : 'asc'
-    }
-    this.currentSort = s
-  }
-
-  @Watch('account')
-  async onAccountChange(val: any, oldVal: any) {
-    this.loading = true
-    await this.getBalances()
-    this.loading = false
-  }
-
-  async created() {
-    this.loading = true
-    await this.getTokens()
-    //await this.getRelays()
-    await this.getBalances()
-    this.loading = false
+    this.$router.push({
+      name: action == "convert" ? "Token" : "Transfer",
+      params: { symbolName }
+    });
   }
 }
 </script>

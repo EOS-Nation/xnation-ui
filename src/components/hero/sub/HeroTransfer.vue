@@ -6,13 +6,12 @@
           <token-amount-input
             :key="focusedToken.symbol"
             :amount.sync="amount"
-            :balance="tokenBalance"
+            :balance="focusedToken.balance"
             :img="focusedToken.logo"
             :symbol="focusedToken.symbol"
             dropdown
             @dropdown="promptModal"
             @click="promptModal"
-            @onUpdate="tokenAmountChange"
           />
         </b-col>
         <b-col
@@ -26,12 +25,15 @@
               class="fa-2x text-white"
             />
             <div class="mb-3 mt-3">
-              <span class="text-white font-size-sm">Value: {{ usdValue }}</span>
+              <span class="text-white font-size-sm"
+                >Value: {{ usdValue }} USD</span
+              >
             </div>
             <div class="d-flex justify-content-center">
               <b-btn
                 @click="initTransfer"
                 variant="info"
+                :disabled="!isAuthenticated"
                 v-ripple
                 class="px-4 py-2 d-block"
               >
@@ -85,13 +87,19 @@ import { vxm } from "@/store";
 import numeral from "numeral";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
-
-
+import { multiContract } from "@/api/multiContractTx";
+import wait from "waait";
 
 @Component({
   components: {
     HeroWrapper,
     TokenAmountInput
+  },
+  beforeRouteEnter: async (to, from, next) => {
+    if (vxm.bancor.tokens.length == 0) {
+      await vxm.bancor.init();
+    }
+    next();
   }
 })
 export default class HeroTransfer extends Vue {
@@ -101,17 +109,11 @@ export default class HeroTransfer extends Vue {
   @Prop(String) symbolName!: string;
 
   amount = "";
-  tokenBalance = "0";
-
   memo = "";
   recipient = "";
 
   promptModal() {
     console.log("prompt triggered");
-  }
-
-  tokenAmountChange(e: any) {
-    console.log("token amount changed", e);
   }
 
   get isAuthenticated() {
@@ -120,11 +122,6 @@ export default class HeroTransfer extends Vue {
 
   get focusedToken() {
     return vxm.bancor.token(this.selectedSymbolOrDefault)!;
-  }
-
-  get token() {
-    return "";
-    // return vxm.liquidity.fromToken;
   }
 
   async loadHistory() {
@@ -148,46 +145,49 @@ export default class HeroTransfer extends Vue {
   }
 
   get usdValue() {
-    return numeral(0).format("$0,0.00");
+    return numeral(Number(this.amount) * this.focusedToken.price).format(
+      "$0,0.00"
+    );
   }
 
-  // methods
   openSelectTokenModal() {
     this.$bvModal.show("modal-select-relay");
   }
 
-  initTransfer() {
-    if (!this.isAuthenticated) this.$bvModal.show("modal-login");
-    else {
-      this.$bvModal.show("modal-transfer-token");
-      let transferHistory = localStorage.getItem("transferHistory");
-      const tx = {
-        from: this.isAuthenticated,
+  async initTransfer() {
+    const precision = Number(this.focusedToken.balance.split(".")[1].length);
+    const actions = await multiContract.tokenTransfer(
+      this.focusedToken.contract,
+      {
         to: this.recipient,
-        amount: Number(this.amount).toFixed(this.focusedToken.precision),
-        symbol: this.focusedToken.symbol,
+        quantity: `${String(Number(this.amount).toFixed(precision))} ${
+          this.focusedToken.symbol
+        }`,
         memo: this.memo
-      };
-      if (transferHistory) {
-        let history = JSON.parse(transferHistory);
-        history = history.concat([tx]);
-        localStorage.setItem("transferHistory", JSON.stringify(history));
-      } else localStorage.setItem("transferHistory", JSON.stringify([tx]));
-      this.loadHistory();
-    }
-  }
+      }
+    );
+    await vxm.eosWallet.tx(actions);
+    await wait(700);
+    await vxm.eosBancor.refreshBalances();
 
-  async loadBalance() {
-    // if (this.isAuthenticated) {
-    //   this.loadingBalance = true;
-    //   const balance = await vxm.wallet.availableBalance({
-    //     symbol: this.token.symbol,
-    //     reserve: false,
-    //     account: this.isAuthenticated
-    //   });
-    //   this.loadingBalance = false;
-    //   return balance;
-    // } else return "0";
+    // if (!this.isAuthenticated) this.$bvModal.show("modal-login");
+    // else {
+    //   this.$bvModal.show("modal-transfer-token");
+    //   let transferHistory = localStorage.getItem("transferHistory");
+    //   const tx = {
+    //     from: this.isAuthenticated,
+    //     to: this.recipient,
+    //     amount: Number(this.amount).toFixed(this.focusedToken.precision),
+    //     symbol: this.focusedToken.symbol,
+    //     memo: this.memo
+    //   };
+    //   if (transferHistory) {
+    //     let history = JSON.parse(transferHistory);
+    //     history = history.concat([tx]);
+    //     localStorage.setItem("transferHistory", JSON.stringify(history));
+    //   } else localStorage.setItem("transferHistory", JSON.stringify([tx]));
+    //   this.loadHistory();
+    // }
   }
 
   get selectedSymbolOrDefault() {
@@ -195,7 +195,8 @@ export default class HeroTransfer extends Vue {
   }
 
   get defaultSymbolName() {
-    return vxm.bancor.tokens.find((token: any) => token.symbol !== "BNT")!.symbol;
+    return vxm.bancor.tokens.find((token: any) => token.symbol !== "BNT")!
+      .symbol;
   }
 
   navConvert() {
