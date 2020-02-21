@@ -1,7 +1,5 @@
-import { VuexModule, mutation, action, Module } from "vuex-class-component";
+import { VuexModule, action, Module } from "vuex-class-component";
 import {
-  SimpleToken,
-  SimpleTokenWithMarketData,
   ProposedTransaction,
   ProposedConvertTransaction
 } from "@/types/bancor";
@@ -46,10 +44,10 @@ export class BancorModule extends VuexModule {
   }
 
   @action async focusSymbol(symbolName: string) {
-    return this.dispatcher(['focusSymbol', symbolName])
+    return this.dispatcher(["focusSymbol", symbolName]);
   }
 
-  @action async dispatcher([methodName, params]: any) {
+  @action async dispatcher([methodName, params]: [string, any]) {
     return this.$store.dispatch(
       `${this.currentNetwork}Bancor/${methodName}`,
       params,
@@ -59,10 +57,9 @@ export class BancorModule extends VuexModule {
 
   @action async refreshBalances(symbols: string[] = []) {
     if (vxm.wallet.isAuthenticated) {
-      return this.dispatcher(['refreshBalances', symbols])
+      return this.dispatcher(["refreshBalances", symbols]);
     }
   }
-
 }
 
 export const bancor = BancorModule.ExtractVuexModule(BancorModule);

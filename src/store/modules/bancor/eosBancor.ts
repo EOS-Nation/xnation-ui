@@ -2,28 +2,17 @@ import { VuexModule, action, Module, mutation } from "vuex-class-component";
 import {
   ProposedTransaction,
   ProposedConvertTransaction,
-  TokenPrice
+  TokenPrice,
+  TradingModule,
+  TokenPriceExtended,
+  ViewToken,
+  ConvertReturn
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import { getTokenBalances } from "@/api/helpers";
 
-interface ViewToken {
-  symbol: string;
-  name: string;
-  price: number;
-  liqDepth: number;
-  logo: string;
-  change24h: number;
-  volume24h: number;
-  balance?: string;
-}
-
-interface TokenPriceExtended extends TokenPrice {
-  balance: number;
-}
-
 @Module({ namespacedPath: "eosBancor/" })
-export class EosBancorModule extends VuexModule {
+export class EosBancorModule extends VuexModule implements TradingModule {
   tokensList: TokenPrice[] | TokenPriceExtended[] = [];
   usdPrice = 0;
 
@@ -44,9 +33,12 @@ export class EosBancorModule extends VuexModule {
     }));
   }
 
-  get token(): (arg0: string) => ViewToken | undefined {
-    return (symbolName: string) =>
-      this.tokens.find(token => token.symbol == symbolName);
+  get token(): (arg0: string) => ViewToken {
+    return (symbolName: string) => {
+      const token = this.tokens.find(token => token.symbol == symbolName);
+      if (!token) throw new Error("Failed to find token.");
+      return token;
+    };
   }
 
   get backgroundToken(): (arg0: string) => TokenPrice | TokenPriceExtended {
@@ -96,9 +88,8 @@ export class EosBancorModule extends VuexModule {
     );
   }
 
-  @action async focusSymbol(symbolName: string) {
-    // EOS module doesnt bother with focusSymbol as we can pull token balances in bulk;
-  }
+  // EOS module doesn't bother with focusSymbol as we can pull token balances in bulk;
+  @action async focusSymbol(symbolName: string) {}
 
   @action async convert({
     fromAmount,
@@ -155,7 +146,7 @@ export class EosBancorModule extends VuexModule {
     fromSymbol,
     toSymbol,
     amount
-  }: ProposedTransaction) {
+  }: ProposedTransaction): Promise<ConvertReturn> {
     const [fromToken, toToken] = await Promise.all([
       this.getEosTokenWithDecimals(fromSymbol),
       this.getEosTokenWithDecimals(toSymbol)
@@ -169,7 +160,11 @@ export class EosBancorModule extends VuexModule {
     return { amount: String(Number(reward) / Math.pow(10, toToken.decimals)) };
   }
 
-  @action async getCost({ fromSymbol, toSymbol, amount }: ProposedTransaction) {
+  @action async getCost({
+    fromSymbol,
+    toSymbol,
+    amount
+  }: ProposedTransaction): Promise<ConvertReturn> {
     const [fromToken, toToken] = await Promise.all([
       this.getEosTokenWithDecimals(fromSymbol),
       this.getEosTokenWithDecimals(toSymbol)

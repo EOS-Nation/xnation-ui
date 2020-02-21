@@ -112,6 +112,37 @@ export interface Converter {
   activatedAt: string;
 }
 
+export interface ConvertReturn {
+  amount: string;
+}
+
+export interface ViewToken {
+  symbol: string;
+  name: string;
+  price: number;
+  liqDepth: number;
+  logo: string;
+  change24h: number;
+  volume24h: number;
+  balance?: string;
+}
+
+export interface TokenPriceExtended extends TokenPrice {
+  balance: number;
+}
+
+export interface TradingModule {
+  init: () => Promise<void>;
+  usdPrice: number;
+  readonly tokens: ViewToken[];
+  readonly token: (arg0: string) => ViewToken;
+  refreshBalances: (symbols?: string[]) => Promise<void>;
+  convert: (propose: ProposedConvertTransaction) => Promise<string>;
+  focusSymbol: (symbolName: string) => Promise<void>;
+  getReturn: (propose: ProposedTransaction) => Promise<ConvertReturn>;
+  getCost: (propose: ProposedTransaction) => Promise<ConvertReturn>;
+}
+
 // Amount in an asset without reference to it's actual precision
 // E.g. "10000" will be 1.0000 EOS
 export type IntegerAmount = string;
