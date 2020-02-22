@@ -24,6 +24,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   bitcoinPrice: number = 0;
 
   get tokens(): ViewToken[] {
+    if (!this.tokensList) return []
     const tokens = Object.keys(this.tokensList["depth"]);
 
     return tokens.map(token => {
