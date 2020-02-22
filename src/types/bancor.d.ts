@@ -133,7 +133,6 @@ export interface TokenPriceExtended extends TokenPrice {
 
 export interface TradingModule {
   init: () => Promise<void>;
-  usdPrice: number;
   readonly tokens: ViewToken[];
   readonly token: (arg0: string) => ViewToken;
   refreshBalances: (symbols?: string[]) => Promise<void>;
@@ -211,4 +210,24 @@ export interface EthplorerBalance {
   ETH: ETH;
   countTxs: number;
   tokens: Token[];
+}
+
+export interface kv {
+  [symcode: string]: number;
+}
+
+export interface Settings {
+  paused: boolean;
+  pool_fee: number;
+  transaction_fee: string;
+  stability_fee: number;
+  min_convert: string;
+  min_stake: string;
+}
+
+export interface Pools {
+  depth: kv;
+  ratio: kv;
+  balance: kv;
+  pegged: kv;
 }

@@ -4,104 +4,20 @@ import Wallet from "@/views/Wallet.vue";
 import WalletAccount from "@/views/WalletAccount.vue";
 import Tokens from "@/views/Tokens.vue";
 import Relays from "@/views/Relays.vue";
+import PageNotFound from "@/views/PageNotFound.vue";
 import HeroConvert from "@/components/hero/sub/HeroConvert.vue";
 import HeroTransfer from "@/components/hero/sub/HeroTransfer.vue";
-import HeroMerchant from "@/components/hero/sub/HeroMerchant.vue";
 import HeroRelay from "@/components/hero/sub/HeroRelay.vue";
 import Navigation from "@/components/layout/Navigation.vue";
 import Privacy from "@/components/common/Privacy.vue";
-import { vxm } from "@/store/";
 
 Vue.use(Router);
 
-const networkNamespaces = ["eos", "eth"];
-
-const commonRoutes = [
-  {
-    path: "",
-    name: "Tokens",
-    components: {
-      Nav: Navigation,
-      default: Tokens,
-      Hero: HeroConvert
-    }
-  },
-  {
-    path: "/merchant",
-    name: "Merchant",
-    components: {
-      Hero: HeroMerchant
-    }
-  },
-  {
-    path: "/transfer/:symbolName",
-    name: "Transfer",
-    components: {
-      Nav: Navigation,
-      default: Tokens,
-      Hero: HeroTransfer
-    },
-    props: true
-  },
-  {
-    path: "/pools",
-    name: "Relays",
-    components: {
-      Nav: Navigation,
-      default: Relays,
-      Hero: HeroRelay
-    }
-  },
-  {
-    path: "/pool/:account",
-    name: "Relay",
-    components: {
-      Nav: Navigation,
-      default: Relays,
-      Hero: HeroRelay
-    },
-    props: true
-  },
-  {
-    path: "/wallet",
-    name: "Wallet",
-    components: {
-      Nav: Navigation,
-      default: Wallet
-    }
-  },
-  {
-    path: "/wallet/:account",
-    name: "WalletAccount",
-    components: {
-      Nav: Navigation,
-      Hero: HeroTransfer,
-      default: WalletAccount
-    },
-    props: true
-  },
-  {
-    path: "/:symbolName",
-    name: "Token",
-    components: {
-      Nav: Navigation,
-      default: Tokens,
-      Hero: HeroConvert
-    },
-    props: true
-  }
+const services = [
+  { namespace: "eos", features: ["Trade", "Wallet"] },
+  { namespace: "eth", features: ["Trade", "Relay"] },
+  { namespace: "usdc", features: ["Trade"] }
 ];
-
-//@ts-ignore
-const builtRoutes: RouteConfig[] = networkNamespaces
-  .map(network =>
-    commonRoutes.map(commonRoute => ({
-      ...commonRoute,
-      path: "/" + network + commonRoute.path,
-      name: `${network}-${commonRoute.name}`
-    }))
-  )
-  .flat(1);
 
 export const router = new Router({
   mode: "history",
@@ -135,30 +51,115 @@ export const router = new Router({
         default: Privacy
       }
     },
-    ...builtRoutes
+    {
+      path: "/wallet",
+      name: "Wallet",
+      components: {
+        Nav: Navigation,
+        default: Wallet
+      }
+    },
+    {
+      path: "/transfer/:symbolName",
+      name: "Transfer",
+      components: {
+        Nav: Navigation,
+        default: Tokens,
+        Hero: HeroTransfer
+      },
+      props: true
+    },
+    {
+      path: "/404",
+      name: "404",
+      components: {
+        Nav: Navigation,
+        default: PageNotFound
+      }
+    },
+    {
+      path: "/:service/wallet/:account",
+      name: "WalletAccount",
+      components: {
+        Nav: Navigation,
+        Hero: HeroTransfer,
+        default: WalletAccount
+      },
+      props: true
+    },
+    {
+      path: "/:service/pools",
+      name: "Relays",
+      components: {
+        Nav: Navigation,
+        default: Relays,
+        Hero: HeroRelay
+      },
+      props: true,
+      meta: {
+        feature: "Liquidity"
+      }
+    },
+    {
+      path: "/:service/pool/:account",
+      name: "Relay",
+      components: {
+        Nav: Navigation,
+        default: Relays,
+        Hero: HeroRelay
+      },
+      props: true,
+      meta: {
+        feature: "Liquidity"
+      }
+    },
+    {
+      path: "/:service/:symbolName",
+      name: "Token",
+      components: {
+        Nav: Navigation,
+        default: Tokens,
+        Hero: HeroConvert
+      },
+      props: true,
+      meta: {
+        feature: "Trade"
+      }
+    },
+    {
+      path: "/:service",
+      name: "Tokens",
+      components: {
+        Nav: Navigation,
+        default: Tokens,
+        Hero: HeroConvert
+      },
+      props: true,
+      meta: {
+        feature: "Trade"
+      }
+    }
   ]
 });
 
 router.beforeEach((to, from, next) => {
-  if (to && to.name == "Privacy") {
-    next();
-  } else if (to && to.name && to.name.includes("-")) {
-    const originNetwork = to.name.split("-")[0];
-    if (vxm.wallet.currentNetwork !== originNetwork) {
-      vxm.wallet.setWallet(originNetwork);
-    }
-    next();
-  } else {
-    const originNetwork =
-      from && from.name && from.name.split("-")[0] == "Privacy"
-        ? vxm.wallet.currentNetwork
-      // @ts-ignore
-        : from.name.split("-")[0];
-    if (originNetwork) {
-      vxm.wallet.setWallet(originNetwork);
-      next({ name: `${originNetwork}-${to.name}`, params: to.params });
-    } else {
-      next();
-    }
-  }
+  console.log({ to, from })
+  next()
+  // if (from.params.service && !to.params.service && to.meta.feature) {
+  //   console.log({...to, params: from.params}, 'is new destination')
+  //   next({...to, params: from.params})
+  //   return
+  // }
+  // if (to.params && to.params.service && to.meta.feature) {
+  //   const { service } = to.params;
+  //   const { feature } = to.meta;
+  //   const selectedService = services.find(
+  //     serviceItem => serviceItem.namespace == service
+  //   )!;
+  //   if (!selectedService) next("404");
+  //   const serviceHasFeature = selectedService.features.includes(feature);
+  //   serviceHasFeature ? next() : next("404")
+  // } else {
+  //   next();
+  // }
 });

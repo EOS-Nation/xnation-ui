@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
 import { Asset, split, Symbol } from "eos-common";
@@ -3573,4 +3573,23 @@ export const parseTokens = (
   networkToken = new Symbol("BNT", 10)
 ) => {
   return relays.map(getOppositeSymbol(networkToken));
+};
+
+export interface TickerPrice {
+  "15m": number;
+  last: number;
+  buy: number;
+  sell: number;
+  symbol: string;
+}
+
+interface BlockChainTickerRes {
+  [symcode: string]: TickerPrice;
+}
+
+export const getBitcoinPrice = async () => {
+  const res: AxiosResponse<BlockChainTickerRes> = await axios.get(
+    "https://blockchain.info/ticker"
+  );
+  return res.data["USD"].last;
 };

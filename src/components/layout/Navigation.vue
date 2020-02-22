@@ -21,7 +21,7 @@
       </div>
       <div class="d-none d-md-flex align-items-center justify-content-center">
         <b-btn
-          :to="{ name: `${this.selected}-Tokens` }"
+          :to="{ name: `Tokens` }"
           variant="primary"
           size="sm"
           exact
@@ -31,7 +31,7 @@
           Convert
         </b-btn>
         <b-btn
-          :to="{ name: `${this.selected}-Relays` }"
+          :to="{ name: `Relays` }"
           v-if="selected == 'eth'"
           variant="primary"
           size="sm"
@@ -54,7 +54,7 @@
         </b-btn> -->
         <b-btn
           v-if="!isAuthenticated && selected == 'eos'"
-          :to="{ name: `${this.selected}-Wallet` }"
+          :to="{ name: `Wallet` }"
           variant="primary"
           size="sm"
           exact
@@ -64,7 +64,7 @@
         <b-btn
           v-else-if="selected == 'eos'"
           :to="{
-            name: `${this.selected}-WalletAccount`,
+            name: `WalletAccount`,
             params: { account: isAuthenticated }
           }"
           variant="primary"
@@ -119,6 +119,10 @@ export default class Navigation extends Vue {
     {
       text: "ETH",
       value: "eth"
+    },
+    {
+      text: "USDC",
+      value: "usdc"
     }
   ];
 

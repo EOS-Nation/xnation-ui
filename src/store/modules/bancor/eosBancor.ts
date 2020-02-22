@@ -35,6 +35,7 @@ export class EosBancorModule extends VuexModule implements TradingModule {
 
   get token(): (arg0: string) => ViewToken {
     return (symbolName: string) => {
+      console.log(symbolName, this.tokens[0])
       const token = this.tokens.find(token => token.symbol == symbolName);
       if (!token) throw new Error("Failed to find token.");
       return token;
