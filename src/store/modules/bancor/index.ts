@@ -24,8 +24,6 @@ export class BancorModule extends VuexModule {
   }
 
   @action async init() {
-    console.log('init called...')
-    console.log(this.$store)
     return Promise.all(
       this.chains.map(chain =>
         this.$store.dispatch(`${chain}Bancor/init`, null, { root: true })

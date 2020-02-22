@@ -10,14 +10,9 @@ import HeroTransfer from "@/components/hero/sub/HeroTransfer.vue";
 import HeroRelay from "@/components/hero/sub/HeroRelay.vue";
 import Navigation from "@/components/layout/Navigation.vue";
 import Privacy from "@/components/common/Privacy.vue";
+import { services } from '@/api/helpers';
 
 Vue.use(Router);
-
-const services = [
-  { namespace: "eos", features: ["Trade", "Wallet"] },
-  { namespace: "eth", features: ["Trade", "Relay"] },
-  { namespace: "usdc", features: ["Trade"] }
-];
 
 export const router = new Router({
   mode: "history",
@@ -36,14 +31,6 @@ export const router = new Router({
   },
   routes: [
     {
-      path: "*",
-      redirect: "/eth"
-    },
-    {
-      path: "/",
-      redirect: "/eth"
-    },
-    {
       path: "/privacy",
       name: "Privacy",
       components: {
@@ -52,15 +39,15 @@ export const router = new Router({
       }
     },
     {
-      path: "/wallet",
-      name: "Wallet",
+      path: "/404",
+      name: "404",
       components: {
         Nav: Navigation,
-        default: Wallet
+        default: PageNotFound
       }
     },
     {
-      path: "/transfer/:symbolName",
+      path: "/:service/transfer/:symbolName",
       name: "Transfer",
       components: {
         Nav: Navigation,
@@ -70,11 +57,11 @@ export const router = new Router({
       props: true
     },
     {
-      path: "/404",
-      name: "404",
+      path: "/:service/wallet",
+      name: "Wallet",
       components: {
         Nav: Navigation,
-        default: PageNotFound
+        default: Wallet
       }
     },
     {
@@ -138,13 +125,22 @@ export const router = new Router({
       meta: {
         feature: "Trade"
       }
+    },
+    {
+      path: "*",
+      redirect: "/eth"
+    },
+    {
+      path: "/",
+      redirect: "/eth"
     }
   ]
 });
 
 router.beforeEach((to, from, next) => {
   console.log({ to, from })
-  next()
+  console.log(services, 'are services');
+  next();
   // if (from.params.service && !to.params.service && to.meta.feature) {
   //   console.log({...to, params: from.params}, 'is new destination')
   //   next({...to, params: from.params})

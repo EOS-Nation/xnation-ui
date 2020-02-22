@@ -3508,6 +3508,24 @@ export const getBankBalance = async (): Promise<{
   return res.rows.map(row => row.json);
 };
 
+export enum Feature {
+  Trade,
+  Wallet,
+  Liquidity,
+  CreatePool
+}
+
+export interface Service {
+  namespace: string;
+  features: Feature[];
+}
+
+export const services: Service[] = [
+  { namespace: "eos", features: [Feature.Trade, Feature.Wallet] },
+  { namespace: "eth", features: [Feature.Trade, Feature.Liquidity] },
+  { namespace: "usdc", features: [Feature.Trade] }
+];
+
 // export const fetchRelays = async (): Promise<nRelay[]> => {
 //   console.log(`fetchRelays was called`)
 //   const contractName = process.env.VUE_APP_MULTICONTRACT!;

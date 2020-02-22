@@ -231,3 +231,15 @@ export interface Pools {
   balance: kv;
   pegged: kv;
 }
+
+export enum Feature {
+  Trade,
+  Wallet,
+  Liquidity,
+  CreatePool
+}
+
+export interface Service {
+  namespace: string;
+  features: Feature[];
+}

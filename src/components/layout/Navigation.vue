@@ -22,6 +22,7 @@
       <div class="d-none d-md-flex align-items-center justify-content-center">
         <b-btn
           :to="{ name: `Tokens` }"
+          v-if="selectedService.features.includes(0)"
           variant="primary"
           size="sm"
           exact
@@ -32,7 +33,7 @@
         </b-btn>
         <b-btn
           :to="{ name: `Relays` }"
-          v-if="selected == 'eth'"
+          v-if="selectedService.features.includes(2)"
           variant="primary"
           size="sm"
           exact
@@ -41,8 +42,9 @@
           <font-awesome-icon icon="swimming-pool" fixed-width class="mr-1" />
           Pools
         </b-btn>
-        <!-- <b-btn
-          :to="{ name: 'eos-Create' }"
+        <b-btn
+          :to="{ name: 'Create' }"
+          v-if="selectedService.features.includes(3)"
           variant="primary"
           size="sm"
           :disabled="!isAuthenticated"
@@ -51,9 +53,9 @@
         >
           <font-awesome-icon icon="plus" fixed-width class="mr-1" />
           Create
-        </b-btn> -->
+        </b-btn>
         <b-btn
-          v-if="!isAuthenticated && selected == 'eos'"
+          v-if="!isAuthenticated && selectedService.features.includes(1)"
           :to="{ name: `Wallet` }"
           variant="primary"
           size="sm"
@@ -62,7 +64,7 @@
           <font-awesome-icon icon="wallet" fixed-width /> Wallet
         </b-btn>
         <b-btn
-          v-else-if="selected == 'eos'"
+          v-else-if="selectedService.features.includes(1)"
           :to="{
             name: `WalletAccount`,
             params: { account: isAuthenticated }
@@ -107,10 +109,36 @@
 import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store/";
 import wait from "waait";
+import { router } from "@/router";
+import { sync } from "vuex-router-sync";
+import { store } from "../../store";
+import { services, Feature } from "@/api/helpers";
 
 @Component
 export default class Navigation extends Vue {
-  selected = "eth";
+  get selected() {
+    // @ts-ignore
+    const x = store.state.routeModule.params.service;
+    if (
+      // @ts-ignore
+      store.state.routeModule &&
+      // @ts-ignore
+      store.state.routeModule.params &&
+      // @ts-ignore
+      store.state.routeModule.params.service
+    ) {
+      // @ts-ignore
+      return store.state.routeModule.params.service;
+    } else {
+      return "eth";
+    }
+  }
+
+  set selected(newSelection: string) {
+    this.$router.replace(`/${newSelection}`);
+    vxm.wallet.setWallet(newSelection);
+  }
+
   options = [
     {
       text: "EOS",
@@ -126,15 +154,12 @@ export default class Navigation extends Vue {
     }
   ];
 
-  created() {
-    if (this.routedNetwork) {
-      this.selected = this.routedNetwork;
-    }
-    vxm.ethWallet.checkAlreadySignedIn();
+  get selectedService() {
+    return services.find(service => service.namespace == this.selected);
   }
 
-  get routedNetwork() {
-    return vxm.wallet.currentNetwork;
+  created() {
+    vxm.ethWallet.checkAlreadySignedIn();
   }
 
   @Watch("isAuthenticated")
@@ -144,22 +169,12 @@ export default class Navigation extends Vue {
     }
   }
 
-  @Watch("selected")
-  onChange(selectedNetwork: string) {
-    if (this.routedNetwork !== selectedNetwork) {
-      this.$router.push({
-        path: `/${selectedNetwork}`
-      });
-    }
-    vxm.wallet.setWallet(selectedNetwork);
-  }
-
   get language() {
     return vxm.general.language;
   }
 
   get loginTooltip() {
-    return this.routedNetwork == "eth" && vxm.ethWallet.isAuthenticated
+    return this.selected == "eth" && vxm.ethWallet.isAuthenticated
       ? "Logout via MetaMask"
       : "";
   }
@@ -185,7 +200,7 @@ export default class Navigation extends Vue {
   }
 
   get loginButtonLabel() {
-    if (this.routedNetwork == "eos") {
+    if (this.selected == "eos") {
       return this.loginStatus[0];
     } else {
       const isAuthenticated = vxm.ethWallet.isAuthenticated;
@@ -196,7 +211,7 @@ export default class Navigation extends Vue {
   }
 
   get icon() {
-    if (this.routedNetwork == "eos") {
+    if (this.selected == "eos") {
       return this.loginStatus[1];
     } else {
       return vxm.ethWallet.isAuthenticated ? "power-off" : "arrow-circle-right";
@@ -239,7 +254,7 @@ export default class Navigation extends Vue {
   }
 
   async loginAction() {
-    const network = this.routedNetwork;
+    const network = this.selected;
     if (network == "eos") this.loginActionEos();
     else this.loginActionEth();
   }
