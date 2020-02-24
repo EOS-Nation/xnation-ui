@@ -1,5 +1,5 @@
 import Vue from "vue";
-import Router, { RouteConfig } from "vue-router";
+import Router from "vue-router";
 import Wallet from "@/views/Wallet.vue";
 import WalletAccount from "@/views/WalletAccount.vue";
 import Tokens from "@/views/Tokens.vue";
@@ -10,7 +10,7 @@ import HeroTransfer from "@/components/hero/sub/HeroTransfer.vue";
 import HeroRelay from "@/components/hero/sub/HeroRelay.vue";
 import Navigation from "@/components/layout/Navigation.vue";
 import Privacy from "@/components/common/Privacy.vue";
-import { services } from '@/api/helpers';
+import { services } from "@/api/helpers";
 
 Vue.use(Router);
 
@@ -138,24 +138,24 @@ export const router = new Router({
 });
 
 router.beforeEach((to, from, next) => {
-  console.log({ to, from })
-  console.log(services, 'are services');
-  next();
-  // if (from.params.service && !to.params.service && to.meta.feature) {
-  //   console.log({...to, params: from.params}, 'is new destination')
-  //   next({...to, params: from.params})
-  //   return
-  // }
-  // if (to.params && to.params.service && to.meta.feature) {
-  //   const { service } = to.params;
-  //   const { feature } = to.meta;
-  //   const selectedService = services.find(
-  //     serviceItem => serviceItem.namespace == service
-  //   )!;
-  //   if (!selectedService) next("404");
-  //   const serviceHasFeature = selectedService.features.includes(feature);
-  //   serviceHasFeature ? next() : next("404")
-  // } else {
-  //   next();
-  // }
+  if (to.meta && to.meta.feature) {
+    const service = services.find(
+      service => service.namespace == to.fullPath.split("/")[1]
+    )!;
+    if (!service) next("/404");
+    switch (to.meta.feature) {
+      case "Trade":
+        if (service.features.includes(0)) next();
+        else next("/404");
+        break;
+      case "Liquidity":
+        if (service.features.includes(2)) next();
+        else next("/404");
+        break;
+      default:
+        next();
+    }
+  } else {
+    next();
+  }
 });

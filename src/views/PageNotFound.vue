@@ -1,17 +1,51 @@
 <template>
-  <div>
-    <div class="container-md d-md-block content content-boxed">
-        <h2>Awh shit, it's a 404</h2>
+  <div class="parent container-fluid">
+    <div
+      class="content container-fluid d-flex flex-column align-items-center w-100"
+    >
+      <font-awesome-icon
+        icon="poo"
+        class="fa-2x text-black cursor"
+        size="10x"
+      />
+      <h1>That's a 404</h1>
+      <p>
+        Page not found.
+      </p>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue, Watch } from "vue-property-decorator";
+import { Prop, Component, Vue } from "vue-property-decorator";
 
-export default class Token extends Vue {
-
-}
+@Component({})
+export default class PageNotFound extends Vue {}
 </script>
 
-<style lang="scss"></style>
+<style lang="scss" scoped>
+.parent {
+  margin: 20px;
+  max-width: 80%;
+  display: flex;
+  align-self: center;
+}
+
+.content {
+  background-color: white;
+  padding: 15px;
+  min-width: 100px;
+}
+
+.wrapper {
+  padding: 20px;
+}
+
+.text {
+  color: white;
+}
+
+.orange {
+  color: #d18235;
+}
+</style>
