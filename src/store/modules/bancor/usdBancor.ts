@@ -2,23 +2,14 @@ import { VuexModule, action, Module, mutation } from "vuex-class-component";
 
 import { get_pools, get_volume } from "@/api/usdc";
 
-import { getTokenBalances, getBitcoinPrice } from "@/api/helpers";
 import {
   ProposedTransaction,
   ProposedConvertTransaction,
-  TokenPrice,
   TradingModule,
-  TokenPriceExtended,
   ViewToken,
-  ConvertReturn,
-  Settings,
-  Pools,
-  kv,
   ModulePools
 } from "@/types/bancor";
 import { vxm } from "@/store";
-import { waitFor } from "@dfuse/client";
-import wait from "waait";
 
 @Module({ namespacedPath: "usdcBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
@@ -42,16 +33,18 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const tokens = Object.keys(this.tokensList["depth"]);
 
     return tokens.map(token => {
-      let name, logo;
+      let name, logo, balance;
 
       try {
         const eosModuleBorrowed = vxm.eosBancor.token(token);
         name = eosModuleBorrowed.name;
         logo = eosModuleBorrowed.logo;
+        balance = eosModuleBorrowed.balance || "0";
       } catch (e) {
         name = token;
         logo =
           "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f39c32b0-cfae-11e9-9f7d-af4705d95e66.jpeg";
+        balance = "0";
       }
       return {
         symbol: token,
@@ -61,8 +54,9 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           this.tokensList["depth"][token] * this.tokensList["pegged"][token],
         logo,
         change24h: 0,
-        volume24h: this.tokensList["volume"][token] * this.tokensList["pegged"][token],
-        balance: "0"
+        volume24h:
+          this.tokensList["volume"][token] * this.tokensList["pegged"][token],
+        balance
       };
     });
   }
@@ -85,7 +79,6 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       ...pools,
       ...volume[0]
     });
-    console.log(this.tokensList, "is tokens list");
   }
 
   @action async focusSymbol(symbolName: string) {}

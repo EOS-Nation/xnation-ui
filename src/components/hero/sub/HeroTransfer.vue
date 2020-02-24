@@ -155,7 +155,8 @@ export default class HeroTransfer extends Vue {
   }
 
   async initTransfer() {
-    const precision = Number(this.focusedToken.balance.split(".")[1].length);
+    const token = await vxm.eosBancor.getEosTokenWithDecimals(this.focusedToken.symbol);
+    const precision = token.decimals;
     const actions = await multiContract.tokenTransfer(
       this.focusedToken.contract,
       {

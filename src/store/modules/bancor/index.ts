@@ -21,8 +21,6 @@ export class BancorModule extends VuexModule {
       store.state.routeModule.params.service
     ) {
       // @ts-ignore
-      console.log(store.state.routeModule.params.service, "is current service ", store.state)
-      // @ts-ignore
       return store.state.routeModule.params.service;
     } else {
       return "eth";
