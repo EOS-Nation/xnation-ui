@@ -1,6 +1,6 @@
 <template>
   <hero-wrapper>
-    <div>
+    <div v-if="token1Symbol">
       <b-row :class="flipped && 'd-flex flex-row-reverse'">
         <b-col md="4">
           <transition name="slide-fade-down" mode="out-in">
@@ -188,7 +188,7 @@ export default class HeroConvert extends Vue {
   token1Key = "token1K";
 
   token2Amount = "";
-  token2Symbol = "BNT";
+  token2Symbol = "";
   token2Key = "token2K";
 
   token1SimpleReward = "";
@@ -202,13 +202,27 @@ export default class HeroConvert extends Vue {
   }
 
   get explorerLink() {
-    return this.currentNetwork == "eos"
-      ? `https://bloks.io/transaction/${this.success}`
-      : `https://etherscan.io/tx/${this.success}`;
+    switch (this.currentNetwork) {
+      case "eos":
+      case "usdc":
+        return `https://bloks.io/transaction/${this.success}`;
+      case "eth":
+        return `https://etherscan.io/tx/${this.success}`;
+      default:
+        return `https://bloks.io/transaction/${this.success}`;
+    }
   }
 
   get explorerName() {
-    return this.currentNetwork == "eos" ? "Bloks.io" : "Etherscan";
+    switch (this.currentNetwork) {
+      case "eos":
+      case "usdc":
+        return `Bloks.io`;
+      case "eth":
+        return `Etherscan`;
+      default:
+        return `Bloks.io`;
+    }
   }
 
   get fromToken() {
@@ -237,13 +251,22 @@ export default class HeroConvert extends Vue {
     return vxm.bancor.tokens;
   }
 
-  get selectedSymbolOrDefault() {
-    return this.$route.params.symbolName || this.defaultSymbolName;
+  get selectedSymbolOrDefaultTo() {
+    return this.$route.params.symbolName || this.defaultToSymbolName;
   }
 
-  get defaultSymbolName() {
-    return vxm.bancor.tokens.find((token: any) => token.symbol !== "BNT")!
-      .symbol;
+  get defaultToSymbolName() {
+    const nonBnt = vxm.bancor.tokens.find(
+      (token: any) => token.symbol !== "BNT"
+    );
+    if (nonBnt) return nonBnt.symbol;
+    else return vxm.bancor.tokens[0].symbol;
+  }
+
+  get defaultFromSymbolName() {
+    return vxm.bancor.tokens.find(
+      (token: any) => token.symbol !== this.selectedSymbolOrDefaultTo
+    ).symbol;
   }
 
   get fromTokenSymbol() {
@@ -366,21 +389,22 @@ export default class HeroConvert extends Vue {
   }
 
   networkChange() {
-    const fromSymbol = this.fromTokenSymbol;
-    const toSymbol = this.toTokenSymbol;
-    const fromToken = vxm.bancor.token(fromSymbol);
-    const toToken = vxm.bancor.token(toSymbol);
+    const fromSymbol = this.fromTokenSymbol || this.defaultFromSymbolName;
+    const toSymbol = this.toTokenSymbol || this.selectedSymbolOrDefaultTo;
+    try {
+      const fromToken = vxm.bancor.token(fromSymbol);
+    } catch (e) {
+      this.fromTokenSymbol = this.defaultFromSymbolName;
+    }
+    try {
+      const toToken = vxm.bancor.token(toSymbol);
+    } catch (e) {
+      this.toTokenSymbol = this.selectedSymbolOrDefaultTo;
+    }
     this.token2Key = this.reverseString(this.token2Key);
     this.token1Key = this.reverseString(this.token1Key);
-    if (!fromToken) {
-      this.fromTokenSymbol = this.selectedSymbolOrDefault;
-    }
-    if (!toToken) {
-      this.toTokenSymbol = "BNT";
-    }
     this.updatePriceReturn();
     this.loadSimpleRewards();
-    // this.fetchUserTokenBalances();
   }
 
   parseNetwork(fullPath: string) {
@@ -395,10 +419,13 @@ export default class HeroConvert extends Vue {
 
   @Watch("$route")
   listen(to: any, from: any) {
+    console.log(to, from);
     if (this.networkChanged(to, from)) {
+      console.log('network changed')
       this.networkChange();
     } else {
-      this.fromTokenSymbol = this.selectedSymbolOrDefault;
+      console.log('No network change')
+      this.toTokenSymbol = this.selectedSymbolOrDefaultTo;
       this.updatePriceReturn();
       this.loadSimpleRewards();
     }
@@ -422,7 +449,7 @@ export default class HeroConvert extends Vue {
     this.$router.push({
       name: "Transfer",
       params: {
-        symbolName: this.selectedSymbolOrDefault
+        symbolName: this.selectedSymbolOrDefaultTo
       }
     });
   }
@@ -509,8 +536,9 @@ export default class HeroConvert extends Vue {
   }
 
   async created() {
-    this.fromTokenSymbol = this.selectedSymbolOrDefault;
-    this.loadSimpleRewards();
+    this.token1Symbol = this.defaultFromSymbolName;
+    this.token2Symbol = this.defaultToSymbolName;
+    this.networkChange();
   }
 }
 </script>

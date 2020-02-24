@@ -16,6 +16,10 @@ export class EosBancorModule extends VuexModule implements TradingModule {
   tokensList: TokenPrice[] | TokenPriceExtended[] = [];
   usdPrice = 0;
 
+  get wallet() {
+    return "eos";
+  }
+
   get tokens(): ViewToken[] {
     // @ts-ignore
     return this.tokensList.map((token: TokenPrice | TokenPriceExtended) => ({
@@ -35,7 +39,6 @@ export class EosBancorModule extends VuexModule implements TradingModule {
 
   get token(): (arg0: string) => ViewToken {
     return (symbolName: string) => {
-      console.log(symbolName, this.tokens[0])
       const token = this.tokens.find(token => token.symbol == symbolName);
       if (!token) throw new Error("Failed to find token.");
       return token;
@@ -76,7 +79,6 @@ export class EosBancorModule extends VuexModule implements TradingModule {
     this.setTokens(
       // @ts-ignore
       this.tokensList.map((token: any) => {
-        // @ts-ignore
         const existingToken = balances.tokens.find(
           balanceObj => balanceObj.symbol == token.code
         );
@@ -89,7 +91,9 @@ export class EosBancorModule extends VuexModule implements TradingModule {
     );
   }
 
-  // EOS module doesn't bother with focusSymbol as we can pull token balances in bulk;
+  // Focus Symbol is called when the UI focuses on a Symbol
+  // Should have token balances
+  // Could be an oppurtunity to get precision
   @action async focusSymbol(symbolName: string) {}
 
   @action async convert({

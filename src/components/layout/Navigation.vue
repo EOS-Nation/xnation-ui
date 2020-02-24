@@ -80,16 +80,6 @@
         class="d-flex align-items-center float-right justify-content-end"
         style="width: 180px"
       >
-        <!-- <b-btn
-          class="mr-2"
-          v-if="isAuthenticated"
-          :to="{ name: 'Wallet' }"
-          variant="primary"
-          size="sm"
-          exact
-        >
-          <font-awesome-icon icon="search" fixed-width />
-        </b-btn> -->
         <b-btn
           @click="loginAction"
           variant="dual"
@@ -111,51 +101,32 @@ import { vxm } from "@/store/";
 import wait from "waait";
 import { router } from "@/router";
 import { sync } from "vuex-router-sync";
-import { store } from "../../store";
 import { services, Feature } from "@/api/helpers";
+import { store } from "../../store";
 
 @Component
 export default class Navigation extends Vue {
+
+  get selectedNetwork() {
+    return vxm.bancor.currentNetwork;
+  }
+
+  get selectedWallet() {
+    return vxm.wallet.currentWallet;
+  }
+
   get selected() {
-    // @ts-ignore
-    const x = store.state.routeModule.params.service;
-    if (
-      // @ts-ignore
-      store.state.routeModule &&
-      // @ts-ignore
-      store.state.routeModule.params &&
-      // @ts-ignore
-      store.state.routeModule.params.service
-    ) {
-      // @ts-ignore
-      return store.state.routeModule.params.service;
-    } else {
-      return "eth";
-    }
+    return this.selectedNetwork;
   }
 
   set selected(newSelection: string) {
     this.$router.replace(`/${newSelection}`);
-    vxm.wallet.setWallet(newSelection);
   }
 
-  options = [
-    {
-      text: "EOS",
-      value: "eos"
-    },
-    {
-      text: "ETH",
-      value: "eth"
-    },
-    {
-      text: "USDC",
-      value: "usdc"
-    }
-  ];
+  options = vxm.bancor.chains.map(chain => ({ text: chain.toUpperCase(), value: chain.toLowerCase() }))
 
   get selectedService() {
-    return services.find(service => service.namespace == this.selected);
+    return services.find(service => service.namespace == this.selectedNetwork);
   }
 
   created() {
@@ -200,7 +171,7 @@ export default class Navigation extends Vue {
   }
 
   get loginButtonLabel() {
-    if (this.selected == "eos") {
+    if (this.selectedWallet == "eos") {
       return this.loginStatus[0];
     } else {
       const isAuthenticated = vxm.ethWallet.isAuthenticated;
@@ -211,7 +182,7 @@ export default class Navigation extends Vue {
   }
 
   get icon() {
-    if (this.selected == "eos") {
+    if (this.selectedWallet == "eos") {
       return this.loginStatus[1];
     } else {
       return vxm.ethWallet.isAuthenticated ? "power-off" : "arrow-circle-right";
@@ -254,8 +225,8 @@ export default class Navigation extends Vue {
   }
 
   async loginAction() {
-    const network = this.selected;
-    if (network == "eos") this.loginActionEos();
+    const wallet = this.selectedWallet;
+    if (wallet == "eos") this.loginActionEos();
     else this.loginActionEth();
   }
 }

@@ -16,33 +16,51 @@ import {
   kv
 } from "@/types/bancor";
 import { vxm } from "@/store";
+import { waitFor } from "@dfuse/client";
+import wait from "waait";
 
 @Module({ namespacedPath: "usdcBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
-  // @ts-ignore
-  tokensList: Pools;
-  bitcoinPrice: number = 0;
+  tokensList: Pools = {
+    depth: {},
+    ratio: {},
+    pegged: {},
+    balance: {}
+  };
+
+  get wallet() {
+    return "eos";
+  }
 
   get tokens(): ViewToken[] {
-    if (!this.tokensList) return []
+    if (!this.tokensList.depth) {
+      return [];
+    }
     const tokens = Object.keys(this.tokensList["depth"]);
 
     return tokens.map(token => {
+      let name, logo;
+
       try {
-        return vxm.eosBancor.token(token);
+        const eosModuleBorrowed = vxm.eosBancor.token(token);
+        name = eosModuleBorrowed.name;
+        logo = eosModuleBorrowed.logo;
       } catch (e) {
-        console.log(e);
-        return {
-          symbol: token,
-          name: token,
-          price: token.includes("BTC") ? this.bitcoinPrice : 2,
-          liqDepth: this.tokensList["depth"][token],
-          logo:
-            "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f39c32b0-cfae-11e9-9f7d-af4705d95e66.jpeg",
-          change24h: 5,
-          volume24h: 5
-        };
+        name = token;
+        logo =
+          "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f39c32b0-cfae-11e9-9f7d-af4705d95e66.jpeg";
       }
+      return {
+        symbol: token,
+        name,
+        price: this.tokensList["pegged"][token],
+        liqDepth:
+          this.tokensList["depth"][token] * this.tokensList["pegged"][token],
+        logo,
+        change24h: 0,
+        volume24h: 3,
+        balance: "0"
+      };
     });
   }
 
@@ -58,28 +76,29 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     this.tokensList = pools;
   }
 
-  @mutation setBitcoinPrice(bitcoinPrice: number) {
-    this.bitcoinPrice = bitcoinPrice;
-  }
-
   @action async init() {
-    const [bitcoinPrice, pools] = await Promise.all([
-      getBitcoinPrice(),
-      get_pools()
-    ]);
-
-    this.setBitcoinPrice(bitcoinPrice);
+    const pools = await get_pools();
     this.setTokensList(pools);
   }
 
-  // @ts-ignore
-  @action async convert() {}
+  @action async focusSymbol(symbolName: string) {}
+  @action async refreshBalances(symbols: string[] = []) {}
 
-  // @ts-ignore
-  @action async getReturn() {}
+  @action async convert(propose: ProposedConvertTransaction) {
+    return "ihui";
+  }
 
-  // @ts-ignore
-  @action async getCost() {}
+  @action async getReturn(propose: ProposedTransaction) {
+    return {
+      amount: String(propose.amount * 3)
+    };
+  }
+
+  @action async getCost(propose: ProposedTransaction) {
+    return {
+      amount: String(propose.amount * 3)
+    };
+  }
 }
 
 export const usdcBancor = UsdBancorModule.ExtractVuexModule(UsdBancorModule);

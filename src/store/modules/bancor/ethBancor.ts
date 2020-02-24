@@ -33,6 +33,10 @@ export class EthBancorModule extends VuexModule {
   relaysList: Relay[] = [];
   tokenBalances: { symbol: string; balance: string }[] = [];
 
+  get wallet() {
+    return "eth";
+  }
+
   get tokens(): any {
     const ethToken = this.tokensList.find((token: any) => token.code == "ETH")!;
     if (!ethToken) return [];
@@ -71,7 +75,7 @@ export class EthBancorModule extends VuexModule {
           (this.tokenBalances.find(balance => balance.symbol == symbolName) &&
             this.tokenBalances.find(balance => balance.symbol == symbolName)!
               .balance) ||
-          ""
+          "0"
       };
     };
   }

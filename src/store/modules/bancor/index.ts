@@ -4,13 +4,29 @@ import {
   ProposedConvertTransaction
 } from "@/types/bancor";
 import { vxm } from "@/store";
+import { store } from "../../../store";
 
 @Module({ namespacedPath: "bancor/" })
 export class BancorModule extends VuexModule {
   chains = ["eos", "eth", "usdc"];
 
   get currentNetwork() {
-    return vxm.wallet.currentNetwork;
+    // @ts-ignore
+    if (
+      // @ts-ignore
+      store.state.routeModule &&
+      // @ts-ignore
+      store.state.routeModule.params &&
+      // @ts-ignore
+      store.state.routeModule.params.service
+    ) {
+      // @ts-ignore
+      console.log(store.state.routeModule.params.service, "is current service ", store.state)
+      // @ts-ignore
+      return store.state.routeModule.params.service;
+    } else {
+      return "eth";
+    }
   }
 
   get tokens() {
@@ -21,6 +37,11 @@ export class BancorModule extends VuexModule {
   get token() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["token"];
+  }
+
+  get wallet() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["wallet"];
   }
 
   @action async init() {
