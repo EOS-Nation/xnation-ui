@@ -1,6 +1,6 @@
 import { VuexModule, action, Module, mutation } from "vuex-class-component";
 
-import { get_pools } from "@/api/usdc";
+import { get_pools, get_volume } from "@/api/usdc";
 
 import { getTokenBalances, getBitcoinPrice } from "@/api/helpers";
 import {
@@ -13,7 +13,8 @@ import {
   ConvertReturn,
   Settings,
   Pools,
-  kv
+  kv,
+  ModulePools
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { waitFor } from "@dfuse/client";
@@ -21,11 +22,13 @@ import wait from "waait";
 
 @Module({ namespacedPath: "usdcBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
-  tokensList: Pools = {
+  tokensList: ModulePools = {
     depth: {},
     ratio: {},
     pegged: {},
-    balance: {}
+    balance: {},
+    volume: {},
+    proceeds: {}
   };
 
   get wallet() {
@@ -58,7 +61,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           this.tokensList["depth"][token] * this.tokensList["pegged"][token],
         logo,
         change24h: 0,
-        volume24h: 3,
+        volume24h: this.tokensList["volume"][token] * this.tokensList["pegged"][token],
         balance: "0"
       };
     });
@@ -72,13 +75,17 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     };
   }
 
-  @mutation setTokensList(pools: Pools) {
+  @mutation setTokensList(pools: ModulePools) {
     this.tokensList = pools;
   }
 
   @action async init() {
-    const pools = await get_pools();
-    this.setTokensList(pools);
+    const [pools, volume] = await Promise.all([get_pools(), get_volume(1)]);
+    this.setTokensList({
+      ...pools,
+      ...volume[0]
+    });
+    console.log(this.tokensList, "is tokens list");
   }
 
   @action async focusSymbol(symbolName: string) {}

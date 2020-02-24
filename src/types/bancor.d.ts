@@ -232,6 +232,11 @@ export interface Pools {
   pegged: kv;
 }
 
+export interface ModulePools extends Pools {
+  volume: kv;
+  proceeds: kv;
+}
+
 export enum Feature {
   Trade,
   Wallet,

@@ -40,8 +40,8 @@ export async function get_settings(): Promise<Settings> {
   return results.rows[0];
 }
 
-export async function get_weekly_volume() {
-  const weekly: Array<{
+export async function get_volume(days = 7) {
+  const data: Array<{
     volume: kv;
     proceeds: kv;
   }> = [];
@@ -52,12 +52,12 @@ export async function get_weekly_volume() {
     scope: "stablestable",
     table: "v1.volume",
     reverse: true,
-    limit: 7
+    limit: days
   });
   for (const row of results.rows) {
-    weekly.push(parse_volume(row));
+    data.push(parse_volume(row));
   }
-  return weekly;
+  return data;
 }
 
 export async function get_account_balances(account: string): Promise<string[]> {
@@ -99,7 +99,7 @@ export async function get_weekly_aprs() {
   const aprs: kv[] = [];
   const { depth } = await get_pools();
 
-  for (const { proceeds } of await get_weekly_volume()) {
+  for (const { proceeds } of await get_volume()) {
     aprs.push(parse_daily_apr(depth, proceeds));
   }
   return aprs;
