@@ -151,9 +151,12 @@ import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { parseTokens, fetchTokenMeta } from "@/api/helpers";
 import wait from "waait";
-import { split, Asset, Symbol } from "eos-common";
+// @ts-ignore
+import { split, Asset, Symbol, symbol_code } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
+import { get_price, get_pools,  } from 'sx'
+import { rpc } from '../../../api/rpc';
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {

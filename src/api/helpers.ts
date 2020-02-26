@@ -3582,7 +3582,8 @@ export const services: Service[] = [
 
 const getOppositeSymbol = (symbol: Symbol) => {
   return function(relay: nRelay) {
-    return relay.reserves.find(reserve => !reserve.symbol.isEqual(symbol));
+    // @ts-ignore
+    return relay.reserves.find(reserve => !reserve.symbol.isEqual(symbol))
   };
 };
 

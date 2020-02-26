@@ -245,9 +245,12 @@ export default class HeroConvert extends Vue {
     if (!this.token1Balance && !this.token2Balance) return "";
     const token1 = split(this.token1Balance);
     const token2 = split(this.token2Balance);
+    // @ts-ignore
     const oneAmount = Math.pow(10, token1.symbol.precision);
+    // @ts-ignore
     const reward = calculateReturn(
-      token1,
+// @ts-ignore
+token1,
       token2,
       new Asset(oneAmount, token1.symbol)
     );

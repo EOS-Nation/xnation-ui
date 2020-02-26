@@ -1,3 +1,5 @@
+import { Pools, Pool } from "sx";
+
 export interface TokenPrice {
   id: string;
   code: string;
@@ -225,18 +227,6 @@ export interface Settings {
   min_stake: string;
 }
 
-export interface Pools {
-  depth: kv;
-  ratio: kv;
-  balance: kv;
-  pegged: kv;
-}
-
-export interface ModulePools extends Pools {
-  volume: kv;
-  proceeds: kv;
-}
-
 export enum Feature {
   Trade,
   Wallet,
@@ -247,4 +237,13 @@ export enum Feature {
 export interface Service {
   namespace: string;
   features: Feature[];
+}
+
+
+export interface ModulePool extends Pool {
+  volume24h: number;
+}
+
+export interface ModulePools {
+  [symcode: string]: ModulePool;
 }

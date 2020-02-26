@@ -1,37 +1,33 @@
 import { VuexModule, action, Module, mutation } from "vuex-class-component";
 
-import { get_pools, get_volume } from "@/api/usdc";
-
 import {
   ProposedTransaction,
   ProposedConvertTransaction,
   TradingModule,
   ViewToken,
+  ModulePool,
   ModulePools
 } from "@/types/bancor";
 import { vxm } from "@/store";
+import { get_pools, get_price, get_settings, Pools, get_fee, get_weekly_volume, Pool } from "sx";
+import { rpc } from "@/api/rpc";
+import { split, Asset, Symbol, double_to_asset } from "eos-common";
+
 
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
-  tokensList: ModulePools = {
-    depth: {},
-    ratio: {},
-    pegged: {},
-    balance: {},
-    volume: {},
-    proceeds: {}
-  };
+  tokensList: ModulePools | undefined = undefined;
+  initiated: boolean = false;
 
   get wallet() {
     return "eos";
   }
 
   get tokens(): ViewToken[] {
-    if (!this.tokensList.depth) {
+    if (!this.initiated) {
       return [];
     }
-    const tokens = Object.keys(this.tokensList["depth"]);
-
+    const tokens = Object.keys(this.tokensList!);
     return tokens.map(token => {
       let name, logo, balance;
 
@@ -49,13 +45,12 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       return {
         symbol: token,
         name,
-        price: this.tokensList["pegged"][token],
+        price: this.tokensList![token].pegged.to_double(),
         liqDepth:
-          this.tokensList["depth"][token] * this.tokensList["pegged"][token],
+          this.tokensList![token].depth.to_double() * this.tokensList![token].pegged.to_double(),
         logo,
         change24h: 0,
-        volume24h:
-          this.tokensList["volume"][token] * this.tokensList["pegged"][token],
+        volume24h: this.tokensList![token].volume24h,
         balance
       };
     });
@@ -72,13 +67,22 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   @mutation setTokensList(pools: ModulePools) {
     this.tokensList = pools;
   }
+  
+  @mutation moduleInitiated() {
+    this.initiated = true;
+  }
 
   @action async init() {
-    const [pools, volume] = await Promise.all([get_pools(), get_volume(1)]);
-    this.setTokensList({
-      ...pools,
-      ...volume[0]
-    });
+    // @ts-ignore
+    const [pools, volume] = await Promise.all([get_pools(rpc), get_weekly_volume(rpc, 1)])
+    for (const pool in pools) {
+      pools[pool] = {
+        ...pools[pool],
+        volume24h: pools[pool].pegged.to_double() * volume[0]['volume'][pool]
+      }
+    }
+    this.setTokensList(pools);
+    this.moduleInitiated()
   }
 
   @action async focusSymbol(symbolName: string) {}
@@ -89,8 +93,27 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   }
 
   @action async getReturn(propose: ProposedTransaction) {
+    const { fromSymbol, amount, toSymbol } = propose;
+    // @ts-ignore
+    const pools = await get_pools(rpc);
+    // @ts-ignore
+    const settings = await get_settings(rpc);
+
+    const fromPrecision = pools[fromSymbol].balance.symbol.precision();
+    const toPrecision = pools[toSymbol].balance.symbol.precision();
+
+    // @ts-ignore
+    const result = get_price(
+      // @ts-ignore
+      double_to_asset(amount, new Symbol(fromSymbol, fromPrecision)),
+      new Symbol(toSymbol, toPrecision).code(),
+      pools
+    );
+
+    const fee = get_fee(result, settings);
+
     return {
-      amount: String(propose.amount * 3)
+      amount: String(result.to_double() - fee.to_double())
     };
   }
 
