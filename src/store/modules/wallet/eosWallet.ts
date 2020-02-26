@@ -19,6 +19,16 @@ import meetone from "eos-transit-meetone-provider";
 import whalevault from "eos-transit-whalevault-provider";
 import keycat from "eos-transit-keycat-provider";
 
+interface EosWalletAction {
+  name: string;
+  data: any;
+  authorization?: {
+    actor: string;
+    permission: string;
+  }[];
+  account: string;
+}
+
 @Module({ namespacedPath: "eosWallet/" })
 export class EosTransitModule extends VuexModule {
   @getter accessContext = initAccessContext({
@@ -68,11 +78,29 @@ export class EosTransitModule extends VuexModule {
     return this.wallet && this.wallet.auth && this.wallet.auth.accountName;
   }
 
-  @action async tx(actions: any) {
+  @action async tx(actions: EosWalletAction[]) {
+    const authIncluded = actions.every(
+      (action: EosWalletAction) => action.authorization
+    );
+
+    const builtActions = authIncluded
+      ? actions
+      : actions.map((action: any) => ({
+          ...action,
+          authorization: [
+            {
+              // @ts-ignore
+              actor: this.wallet.auth.accountName,
+              // @ts-ignore
+              permission: this.wallet.auth.permission
+            }
+          ]
+        }));
+
     // @ts-ignore
     return this.wallet.eosApi.transact(
       {
-        actions
+        actions: builtActions
       },
       {
         broadcast: true,
@@ -87,7 +115,7 @@ export class EosTransitModule extends VuexModule {
 
     const wallet = this.accessContext.initWallet(provider);
 
-    wallet.subscribe(walletState => {
+    wallet.subscribe((walletState: any) => {
       if (walletState) this.setWalletState(walletState);
     });
 

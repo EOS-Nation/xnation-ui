@@ -9,10 +9,17 @@ import {
   ModulePools
 } from "@/types/bancor";
 import { vxm } from "@/store";
-import { get_pools, get_price, get_settings, Pools, get_fee, get_weekly_volume, Pool } from "sx";
+import {
+  get_pools,
+  get_price,
+  get_settings,
+  Pools,
+  get_fee,
+  get_weekly_volume,
+  Pool
+} from "sx";
 import { rpc } from "@/api/rpc";
 import { split, Asset, Symbol, double_to_asset } from "eos-common";
-
 
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
@@ -47,7 +54,8 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         name,
         price: this.tokensList![token].pegged.to_double(),
         liqDepth:
-          this.tokensList![token].depth.to_double() * this.tokensList![token].pegged.to_double(),
+          this.tokensList![token].depth.to_double() *
+          this.tokensList![token].pegged.to_double(),
         logo,
         change24h: 0,
         volume24h: this.tokensList![token].volume24h,
@@ -67,29 +75,68 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   @mutation setTokensList(pools: ModulePools) {
     this.tokensList = pools;
   }
-  
+
   @mutation moduleInitiated() {
     this.initiated = true;
   }
 
   @action async init() {
-    // @ts-ignore
-    const [pools, volume] = await Promise.all([get_pools(rpc), get_weekly_volume(rpc, 1)])
+    const [pools, volume] = await Promise.all([
+      // @ts-ignore
+      get_pools(rpc),
+      // @ts-ignore
+      get_weekly_volume(rpc, 1)
+    ]);
     for (const pool in pools) {
       pools[pool] = {
         ...pools[pool],
-        volume24h: pools[pool].pegged.to_double() * volume[0]['volume'][pool]
-      }
+        volume24h: pools[pool].pegged.to_double() * volume[0]["volume"][pool]
+      };
     }
     this.setTokensList(pools);
-    this.moduleInitiated()
+    this.moduleInitiated();
   }
 
   @action async focusSymbol(symbolName: string) {}
   @action async refreshBalances(symbols: string[] = []) {}
 
   @action async convert(propose: ProposedConvertTransaction) {
-    return "ihui";
+    console.log(propose, "one of the cases");
+    console.log(this.tokensList);
+
+    // @ts-ignore
+    const accountName = this.$store.rootState.eosWallet.walletState.auth
+      .accountName;
+
+    const fromToken = this.tokensList![propose.fromSymbol];
+
+    const tokenContract = fromToken.id.contract;
+    const precision = fromToken.id.sym.precision();
+    const amountAsset = double_to_asset(
+      propose.fromAmount,
+      new Symbol(propose.fromSymbol, precision)
+    );
+
+    const txRes = await this.triggerTx([
+      {
+        account: tokenContract,
+        name: "transfer",
+        data: {
+          from: accountName,
+          // @ts-ignore
+          to: process.env.VUE_APP_USDSTABLE!,
+          memo: propose.toSymbol,
+          quantity: amountAsset.to_string()
+        }
+      }
+    ]);
+
+    return txRes.transaction_id;
+  }
+
+  @action async triggerTx(actions: any[]) {
+    // @ts-ignore
+    return this.$store.dispatch("eosWallet/tx", actions, { root: true });
   }
 
   @action async getReturn(propose: ProposedTransaction) {
