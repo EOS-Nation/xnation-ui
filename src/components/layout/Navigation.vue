@@ -123,7 +123,20 @@ export default class Navigation extends Vue {
     this.$router.replace(`/${newSelection}`);
   }
 
-  options = vxm.bancor.chains.map(chain => ({ text: chain.toUpperCase(), value: chain.toLowerCase() }))
+  options = [
+    {
+      text: "EOS",
+      value: "eos"
+    },
+    {
+      text: "ETH",
+      value: "eth"
+    },
+    {
+      text: "USDⓈ",
+      value: "usds"
+    }
+  ]
 
   get selectedService() {
     return services.find(service => service.namespace == this.selectedNetwork);

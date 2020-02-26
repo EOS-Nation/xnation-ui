@@ -8,7 +8,7 @@ import { store } from "../../../store";
 
 @Module({ namespacedPath: "bancor/" })
 export class BancorModule extends VuexModule {
-  chains = ["eos", "eth", "usdc"];
+  chains = ["eos", "eth", "usds"];
 
   get currentNetwork() {
     // @ts-ignore

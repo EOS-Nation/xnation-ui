@@ -204,7 +204,7 @@ export default class HeroConvert extends Vue {
   get explorerLink() {
     switch (this.currentNetwork) {
       case "eos":
-      case "usdc":
+      case "usds":
         return `https://bloks.io/transaction/${this.success}`;
       case "eth":
         return `https://etherscan.io/tx/${this.success}`;
@@ -216,7 +216,7 @@ export default class HeroConvert extends Vue {
   get explorerName() {
     switch (this.currentNetwork) {
       case "eos":
-      case "usdc":
+      case "usds":
         return `Bloks.io`;
       case "eth":
         return `Etherscan`;

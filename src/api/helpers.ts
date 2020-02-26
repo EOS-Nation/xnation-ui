@@ -3523,7 +3523,7 @@ export interface Service {
 export const services: Service[] = [
   { namespace: "eos", features: [Feature.Trade, Feature.Wallet] },
   { namespace: "eth", features: [Feature.Trade, Feature.Liquidity] },
-  { namespace: "usdc", features: [Feature.Trade] }
+  { namespace: "usds", features: [Feature.Trade] }
 ];
 
 // export const fetchRelays = async (): Promise<nRelay[]> => {

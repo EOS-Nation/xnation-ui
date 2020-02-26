@@ -11,7 +11,7 @@ import {
 } from "@/types/bancor";
 import { vxm } from "@/store";
 
-@Module({ namespacedPath: "usdcBancor/" })
+@Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
   tokensList: ModulePools = {
     depth: {},
@@ -101,4 +101,4 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   }
 }
 
-export const usdcBancor = UsdBancorModule.ExtractVuexModule(UsdBancorModule);
+export const usdsBancor = UsdBancorModule.ExtractVuexModule(UsdBancorModule);
