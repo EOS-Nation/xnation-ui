@@ -135,14 +135,21 @@ export interface TokenPriceExtended extends TokenPrice {
 
 export interface TradingModule {
   init: () => Promise<void>;
-  readonly tokens: ViewToken[];
   readonly token: (arg0: string) => ViewToken;
+  readonly tokens: ViewToken[];
   refreshBalances: (symbols?: string[]) => Promise<void>;
   convert: (propose: ProposedConvertTransaction) => Promise<string>;
   focusSymbol: (symbolName: string) => Promise<void>;
   getReturn: (propose: ProposedTransaction) => Promise<ConvertReturn>;
   getCost: (propose: ProposedTransaction) => Promise<ConvertReturn>;
 }
+
+export interface LiquidityModule {
+  init: () => Promise<void>;
+  readonly relay: (arg0: string) => any;
+  readonly relays: () => any;
+}
+
 
 // Amount in an asset without reference to it's actual precision
 // E.g. "10000" will be 1.0000 EOS
@@ -247,3 +254,5 @@ export interface ModulePool extends Pool {
 export interface ModulePools {
   [symcode: string]: ModulePool;
 }
+
+

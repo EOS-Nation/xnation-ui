@@ -262,7 +262,6 @@ export class EthBancorModule extends VuexModule {
     ];
     if (!isAuthenticated) return;
     const token = this.token(symbolName);
-    console.log(token, "was the token for focus symbol");
     if (!token.balance) {
       const balance = await vxm.ethWallet.getBalance({
         accountHolder: isAuthenticated,
