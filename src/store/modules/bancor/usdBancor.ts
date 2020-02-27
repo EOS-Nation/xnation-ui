@@ -5,7 +5,6 @@ import {
   ProposedConvertTransaction,
   TradingModule,
   ViewToken,
-  ModulePool,
   ModulePools
 } from "@/types/bancor";
 import { vxm } from "@/store";

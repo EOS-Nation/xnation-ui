@@ -61,11 +61,11 @@ export class EosBancorModule extends VuexModule implements TradingModule {
   @action async init() {
     const [usdValueOfEth, tokens] = await Promise.all([
       bancorApi.getTokenTicker("ETH"),
-      bancorApi.getTokens(),
-      this.refreshBalances()
+      bancorApi.getTokens()
     ]);
     this.setUsdPrice(Number(usdValueOfEth.price));
     this.setTokens(tokens);
+    this.refreshBalances();
   }
 
   @action async refreshBalances(symbols: string[] = []) {

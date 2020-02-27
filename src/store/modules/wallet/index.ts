@@ -1,4 +1,4 @@
-import { VuexModule, mutation, action, Module } from "vuex-class-component";
+import { VuexModule, action, Module } from "vuex-class-component";
 import { vxm } from "@/store/index";
 import { store } from "../../../store";
 
