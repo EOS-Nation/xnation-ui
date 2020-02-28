@@ -28,12 +28,12 @@
   <div v-else>
     <div>
       <img
-        @click="pressed"
+        @click="click"
         class="img-avatar img-avatar-thumb cursor border-colouring"
         :src="img"
         alt="Token Logo"
       />
-      <div @click="pressed" class="font-size-lg text-white mt-3 mb-3 cursor">
+      <div @click="click" class="font-size-lg text-white mt-3 mb-3 cursor">
         {{ symbol }}
       </div>
       <b-input-group class="mt-1">
@@ -73,7 +73,7 @@
 </template>
 
 <script lang="ts">
-import { Prop, Watch, Component, Vue, PropSync } from "vue-property-decorator";
+import { Prop, Watch, Component, Vue, PropSync, Emit } from "vue-property-decorator";
 import { vxm } from "@/store";
 import debounce from "lodash.debounce";
 import Percentages from "./Percentages.vue";
@@ -105,17 +105,14 @@ export default class TokenAmountInput extends Vue {
     this.tokenAmount = String(newAmount);
   }
 
-  toggleStatus() {
-    this.$emit("toggle");
-  }
+  @Emit("toggle")
+  toggleStatus() {}
 
-  pressed() {
-    this.$emit("click");
-  }
+  @Emit()
+  click() {}
 
-  dropdownEvent() {
-    this.$emit("dropdown");
-  }
+  @Emit("dropdown")
+  dropdownEvent() {}
 }
 </script>
 

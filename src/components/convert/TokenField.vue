@@ -32,6 +32,7 @@ import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 })
 export default class TokenField extends Vue {
   @PropSync("amount", { type: String }) tokenAmount!: string;
+  @PropSync("symbol", { type: String }) currentSymbol!: string;
   @Prop(String) balance!: string;
   @Prop(Boolean) loading?: boolean;
   @Prop({ default: "Available:" }) readonly label!: string;
@@ -44,7 +45,7 @@ export default class TokenField extends Vue {
 
   selectToken(symbolName: string) {
     this.modal = false;
-    this.$emit("update:symbol", symbolName);
+    this.currentSymbol = symbolName;
   }
 
   promptModal() {

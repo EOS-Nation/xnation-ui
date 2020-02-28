@@ -53,7 +53,7 @@
 </template>
 
 <script lang="ts">
-import { Watch, Component, Prop, Vue } from "vue-property-decorator";
+import { Watch, Component, Prop, Vue, Emit } from "vue-property-decorator";
 import { vxm } from "@/store/";
 import { TokenPrice } from "@/types/bancor";
 import TokenBalanceBlock from "@/components/common/TokenBalanceBlock.vue";
@@ -95,8 +95,9 @@ export default class ModalSelect extends Vue {
       : this.tokens;
   }
 
+  @Emit("onSelect")
   setToken(symbol: string) {
-    this.$emit("onSelect", symbol);
+    return symbol;
   }
 
   searchTokens() {
