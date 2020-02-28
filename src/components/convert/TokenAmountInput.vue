@@ -39,8 +39,7 @@
       <b-input-group class="mt-1">
         <b-form-input
           type="number"
-          :value="amount"
-          @update="onTextUpdate"
+          v-model="tokenAmount"
           class="form-control-alt"
           placeholder="Enter Amount"
         ></b-form-input>
@@ -74,18 +73,20 @@
 </template>
 
 <script lang="ts">
-import { Prop, Watch, Component, Vue } from "vue-property-decorator";
+import { Prop, Watch, Component, Vue, PropSync } from "vue-property-decorator";
 import { vxm } from "@/store";
 import debounce from "lodash.debounce";
 import Percentages from "./Percentages.vue";
+import BalanceLabel from "./BalanceLabel.vue";
 
 @Component({
   components: {
-    Percentages
+    Percentages,
+    BalanceLabel
   }
 })
 export default class TokenAmountInput extends Vue {
-  @Prop(String) amount!: string;
+  @PropSync("amount", { type: String }) tokenAmount!: string;
   @Prop(String) balance!: string;
   @Prop(String) img!: string;
   @Prop(String) readonly symbol!: string;
@@ -96,23 +97,12 @@ export default class TokenAmountInput extends Vue {
   @Prop(Boolean) small?: boolean;
   @Prop(String) label?: string;
 
-  @Watch("amount")
-  listen() {
-    this.$emit("update:amount", this.amount);
-  }
-
   updatePercent(percentage: string) {
     const newAmount =
       percentage == "100"
         ? this.balance
         : (Number(this.balance.split(" ")[0]) * Number(percentage)) / 100;
-    this.$emit("update:amount", String(newAmount));
-    this.$emit("onUpdate");
-  }
-
-  onTextUpdate(input: string) {
-    this.$emit("update:amount", input);
-    this.$emit("onUpdate");
+    this.tokenAmount = String(newAmount);
   }
 
   toggleStatus() {

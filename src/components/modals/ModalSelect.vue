@@ -1,11 +1,5 @@
 <template>
-  <b-modal
-    :visible="modalShow"
-    size="lg"
-    @change="onChange"
-    centered
-    hide-footer
-  >
+  <b-modal :visible="value" size="lg" @change="onChange" centered hide-footer>
     <template slot="modal-title">
       Select Token
     </template>
@@ -69,13 +63,12 @@ const debounce = require("lodash.debounce");
   components: { TokenBalanceBlock }
 })
 export default class ModalSelect extends Vue {
-  @Prop(Boolean) modalShow!: boolean;
+  @Prop(Boolean) value!: boolean;
   @Prop(Array) tokens!: any[];
   @Prop(Boolean) filterable!: boolean;
-  visible = false;
 
   onChange(value: boolean) {
-    this.$emit("update:modalShow", value);
+    this.$emit("input", value);
   }
 
   private tokenSearch: String = "";

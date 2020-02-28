@@ -140,7 +140,7 @@ export const router = new Router({
 router.beforeEach((to, from, next) => {
   if (to.meta && to.meta.feature) {
     const service = services.find(
-      service => service.namespace == to.fullPath.split("/")[1]
+      service => service.namespace == to.params.service
     )!;
     if (!service) next("/404");
     switch (to.meta.feature) {

@@ -1,13 +1,6 @@
 <template>
   <div>
     <span class="text-white font-size-sm" style="min-height: 50px">
-      <div>
-        {{ label || "Available:" }}
-        <span v-if="loading">
-          <font-awesome-icon icon="circle-notch" class="text-white" spin />
-        </span>
-        <span v-else>{{ formattedBalance }}</span>
-      </div>
       <div
         v-if="Number(balance.split(' ')[0]) > 0"
         class="text-white-50 cursor"
@@ -30,20 +23,15 @@ import { vxm } from "@/store";
 import debounce from "lodash.debounce";
 import numeral from "numeral";
 
-@Component({
-  components: {}
-})
+@Component
 export default class TokenAmountInput extends Vue {
-  // props
   @Prop(String) balance!: string;
   @Prop(Boolean) loading?: boolean;
   @Prop(String) amount!: number;
-  @Prop(String) label?: string;
+  @Prop({ default: "Available:" }) readonly label!: string;
 
-  // data
   numeral = numeral;
 
-  // computed
   get formattedBalance() {
     return numeral(this.balance).format(
       Number(this.balance.split(" ")[0]) > 0.0001
@@ -52,7 +40,6 @@ export default class TokenAmountInput extends Vue {
     );
   }
 
-  // method
   setPercentage(percentage: number) {
     this.$emit("percentUpdate", String(percentage));
   }

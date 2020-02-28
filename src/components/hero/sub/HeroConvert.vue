@@ -1,21 +1,15 @@
 <template>
   <hero-wrapper>
-    <div v-if="token1Symbol">
+    <div>
       <b-row :class="flipped && 'd-flex flex-row-reverse'">
         <b-col md="4">
-          <transition name="slide-fade-down" mode="out-in">
-            <token-amount-input
-              :key="token1Key"
-              :amount.sync="token1Amount"
-              :balance="token1Balance"
-              :img="token(token1Symbol).logo"
-              :symbol="token1Symbol"
-              dropdown
-              @dropdown="promptModal(1)"
-              @click="promptModal(1)"
-              @onUpdate="tokenAmountChange(1)"
-            />
-          </transition>
+          <token-field
+            :symbol.sync="fromTokenSymbol"
+            :amount.sync="fromTokenAmount"
+            :balance="fromTokenBalance"
+            :tokens="tokens"
+            :img="token(this.fromTokenSymbol).logo"
+          />
         </b-col>
         <b-col
           md="4"
@@ -67,38 +61,19 @@
                 <span class="font-w700">CONVERT</span>
               </b-btn>
             </div>
-            <!-- <span
-              @click="navTransfer"
-              class="cursor font-size-sm text-white-50"
-            >
-              <font-awesome-icon
-                icon="long-arrow-alt-right"
-                fixed-width
-              />TRANSFER
-            </span> -->
           </div>
         </b-col>
         <b-col md="4">
-          <transition name="slide-fade-up" mode="out-in">
-            <token-amount-input
-              :key="token2Key"
-              :amount.sync="token2Amount"
-              :balance="token2Balance"
-              :img="token(token2Symbol).logo"
-              :symbol="token2Symbol"
-              dropdown
-              @dropdown="promptModal(2)"
-              @click="promptModal(2)"
-              @onUpdate="tokenAmountChange(2)"
-            />
-          </transition>
+          <token-field
+            :symbol.sync="toTokenSymbol"
+            :amount.sync="toTokenAmount"
+            :balance="toTokenBalance"
+            :tokens="tokens"
+            :img="token(this.toTokenSymbol).logo"
+            invertAnimation
+          />
         </b-col>
       </b-row>
-      <modal-select
-        :modalShow.sync="modal"
-        :tokens="tokens"
-        @onSelect="selectedToken"
-      />
       <modal-tx title="Convert" v-model="txModal" :busy="txBusy">
         <token-swap
           :error="error"
@@ -148,6 +123,7 @@ import ModalTx from "@/components/modals/ModalTx.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
+import TokenField from "@/components/convert/TokenField.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { parseTokens, fetchTokenMeta } from "@/api/helpers";
 import wait from "waait";
@@ -155,8 +131,8 @@ import wait from "waait";
 import { split, Asset, Symbol, symbol_code } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
-import { get_price, get_pools,  } from 'sx'
-import { rpc } from '../../../api/rpc';
+import { get_price, get_pools } from "sx";
+import { rpc } from "../../../api/rpc";
 
 @Component({
   beforeRouteEnter: async (to, from, next) => {
@@ -170,6 +146,7 @@ import { rpc } from '../../../api/rpc';
     ModalSelect,
     HeroWrapper,
     ModalTx,
+    TokenField,
     TokenSwap
   }
 })
@@ -185,23 +162,16 @@ export default class HeroConvert extends Vue {
   error = "";
   success = "";
 
-  promptedTokenNumber = 0;
-  token1Amount = "";
-  token1Symbol = "";
-  token1Key = "token1K";
-
-  token2Amount = "";
-  token2Symbol = "";
-  token2Key = "token2K";
+  fromTokenAmount = "";
+  toTokenAmount = "";
 
   token1SimpleReward = "";
   token2SimpleReward = "";
 
   loadingConversion = false;
-  triggerUpdate = false;
 
   get currentNetwork() {
-    return this.parseNetwork(this.$route.fullPath);
+    return this.$route.params.service;
   }
 
   get explorerLink() {
@@ -229,15 +199,11 @@ export default class HeroConvert extends Vue {
   }
 
   get fromToken() {
-    return this.flipped
-      ? this.token(this.token2Symbol)
-      : this.token(this.token1Symbol);
+    return this.token(this.fromTokenSymbol);
   }
 
   get toToken() {
-    return this.flipped
-      ? this.token(this.token1Symbol)
-      : this.token(this.token2Symbol);
+    return this.token(this.toTokenSymbol);
   }
 
   get isAuthenticated() {
@@ -251,116 +217,64 @@ export default class HeroConvert extends Vue {
   }
 
   get tokens() {
+    console.log("getter returning", vxm.bancor.tokens);
     return vxm.bancor.tokens;
   }
 
-  get selectedSymbolOrDefaultTo() {
-    return this.$route.params.symbolName || this.defaultToSymbolName;
-  }
-
-  get defaultToSymbolName() {
-    const nonBnt = vxm.bancor.tokens.find(
-      (token: any) => token.symbol !== "BNT"
-    );
-    if (nonBnt) return nonBnt.symbol;
-    else return vxm.bancor.tokens[0].symbol;
-  }
-
-  get defaultFromSymbolName() {
-    return vxm.bancor.tokens.find(
-      (token: any) => token.symbol !== this.selectedSymbolOrDefaultTo
-    ).symbol;
-  }
-
   get fromTokenSymbol() {
-    return this.flipped ? this.token2Symbol : this.token1Symbol;
+    console.log("fromTokenSymbol is", this.$route.query.base);
+    return this.$route.query.base as string;
+  }
+
+  set fromTokenSymbol(symbol: string) {
+    this.$router.push({
+      name: "Tokens",
+      query: {
+        base: symbol,
+        quote: this.toTokenSymbol
+      }
+    });
+  }
+
+  set toTokenSymbol(symbol: string) {
+    this.$router.push({
+      name: "Tokens",
+      query: {
+        base: this.fromTokenSymbol,
+        quote: symbol
+      }
+    });
   }
 
   get toTokenSymbol() {
-    return this.flipped ? this.token1Symbol : this.token2Symbol;
+    return this.$route.query.quote as string;
   }
 
-  get fromTokenAmount() {
-    return this.flipped ? this.token2Amount : this.token1Amount;
+  get fromTokenBalance() {
+    return this.token(this.fromTokenSymbol).balance;
   }
 
-  get toTokenAmount() {
-    return this.flipped ? this.token1Amount : this.token2Amount;
-  }
-
-  get token1Balance() {
-    return this.token(this.token1Symbol).balance;
-  }
-
-  get token2Balance() {
-    return this.token(this.token2Symbol).balance;
+  get toTokenBalance() {
+    return this.token(this.toTokenSymbol).balance;
   }
 
   get disableConvert() {
     return (
       !this.isAuthenticated ||
       this.loadingConversion ||
-      this.token1Amount == "" ||
-      this.token2Amount == ""
+      this.fromTokenAmount == "" ||
+      this.toTokenAmount == ""
     );
   }
 
-  set fromTokenSymbol(symbol: string) {
-    this[this.flipped ? "token2Symbol" : "token1Symbol"] = symbol;
-  }
-
-  set toTokenSymbol(symbol: string) {
-    this[this.flipped ? "token1Symbol" : "token2Symbol"] = symbol;
-  }
-
-  set toTokenAmount(amount: string) {
-    this[this.flipped ? "token1Amount" : "token2Amount"] = amount;
-  }
-
-  set fromTokenAmount(amount: string) {
-    this[this.flipped ? "token2Amount" : "token1Amount"] = amount;
-  }
-
-  promptModal(tokenNumber: number) {
-    this.promptedTokenNumber = tokenNumber;
-    this.modal = true;
-  }
-
-  animateChangedToken() {
-    if (this.flipped && this.promptedTokenNumber == 1) {
-      this.token1Key = this.reverseString(this.token1Key);
-    } else if (!this.flipped && this.promptedTokenNumber == 1) {
-      this.token1Key = this.reverseString(this.token1Key);
-    } else if (!this.flipped && this.promptedTokenNumber == 2) {
-      this.token2Key = this.reverseString(this.token2Key);
-    } else if (this.flipped && this.promptedTokenNumber == 2) {
-      this.token2Key = this.reverseString(this.token2Key);
-    }
-  }
-
-  selectedToken(selectedSymbol: string) {
-    this.modal = false;
-    const fromTokenChanged = this.isFromToken(this.promptedTokenNumber);
-    if (fromTokenChanged) {
-      this.fromTokenSymbol = selectedSymbol;
-    } else {
-      this.toTokenSymbol = selectedSymbol;
-    }
-    this.animateChangedToken();
-    this.updatePriceReturn();
-  }
-
-  reverseString(message: string) {
-    return message
-      .split("")
-      .reverse()
-      .join("");
-  }
-
   swapTokens() {
-    this.flipped = !this.flipped;
-    this.token1Key = this.reverseString(this.token1Key);
-    this.token2Key = this.reverseString(this.token2Key);
+    this.$router.push({
+      name: "Tokens",
+      query: {
+        base: this.toTokenSymbol,
+        quote: this.fromTokenSymbol
+      }
+    });
   }
 
   async initConvert() {
@@ -392,22 +306,22 @@ export default class HeroConvert extends Vue {
   }
 
   networkChange() {
-    const fromSymbol = this.fromTokenSymbol || this.defaultFromSymbolName;
-    const toSymbol = this.toTokenSymbol || this.selectedSymbolOrDefaultTo;
-    try {
-      const fromToken = vxm.bancor.token(fromSymbol);
-    } catch (e) {
-      this.fromTokenSymbol = this.defaultFromSymbolName;
-    }
-    try {
-      const toToken = vxm.bancor.token(toSymbol);
-    } catch (e) {
-      this.toTokenSymbol = this.selectedSymbolOrDefaultTo;
-    }
-    this.token2Key = this.reverseString(this.token2Key);
-    this.token1Key = this.reverseString(this.token1Key);
-    this.updatePriceReturn();
-    this.loadSimpleRewards();
+    // const fromSymbol = this.fromTokenSymbol;
+    // const toSymbol = this.toTokenSymbol;
+    // try {
+    //   const fromToken = vxm.bancor.token(fromSymbol);
+    // } catch (e) {
+    //   this.fromTokenSymbol = this.defaultFromSymbolName;
+    // }
+    // try {
+    //   const toToken = vxm.bancor.token(toSymbol);
+    // } catch (e) {
+    //   this.toTokenSymbol = this.selectedSymbolOrDefaultTo;
+    // }
+    // this.token2Key = this.reverseString(this.token2Key);
+    // this.token1Key = this.reverseString(this.token1Key);
+    // this.updatePriceReturn();
+    // this.loadSimpleRewards();
   }
 
   parseNetwork(fullPath: string) {
@@ -424,19 +338,19 @@ export default class HeroConvert extends Vue {
   listen(to: any, from: any) {
     console.log(to, from);
     if (this.networkChanged(to, from)) {
-      console.log('network changed')
+      console.log("network changed");
       this.networkChange();
     } else {
-      console.log('No network change')
-      this.toTokenSymbol = this.selectedSymbolOrDefaultTo;
+      console.log("No network change");
+      // this.toTokenSymbol = this.selectedSymbolOrDefaultTo;
       this.updatePriceReturn();
       this.loadSimpleRewards();
     }
   }
 
   cleanUpAfterTx() {
-    this.token1Amount = "";
-    this.token2Amount = "";
+    this.fromTokenAmount = "";
+    this.toTokenAmount = "";
     this.success = "";
     this.error = "";
   }
@@ -449,23 +363,16 @@ export default class HeroConvert extends Vue {
   }
 
   navTransfer() {
-    this.$router.push({
-      name: "Transfer",
-      params: {
-        symbolName: this.selectedSymbolOrDefaultTo
-      }
-    });
-  }
-
-  isFromToken(numberSelection: number): boolean {
-    return (
-      (!this.flipped && numberSelection == 1) ||
-      (this.flipped && numberSelection == 2)
-    );
+    // this.$router.push({
+    //   name: "Transfer",
+    //   params: {
+    //     symbolName: this.selectedSymbolOrDefaultTo
+    //   }
+    // });
   }
 
   async updatePriceReturn() {
-    if (!Number(this.token1Amount) && !Number(this.token2Amount)) return;
+    if (!Number(this.fromTokenAmount) && !Number(this.toTokenAmount)) return;
     this.loadingConversion = true;
     const amount = Number(this.fromTokenAmount);
     const reward = await vxm.bancor.getReturn({
@@ -490,21 +397,12 @@ export default class HeroConvert extends Vue {
     this.loading = false;
   }
 
-  async tokenAmountChange(numberSelection: number) {
-    const fromTokenChanged = this.isFromToken(numberSelection);
-    if (fromTokenChanged) {
-      this.updatePriceReturn();
-    } else {
-      this.updatePriceCost();
-    }
-  }
-
-  @Watch("token1Symbol")
-  @Watch("token2Symbol")
+  @Watch("fromTokenSymbol")
+  @Watch("toTokenSymbol")
   tokenChange(symbol: string) {
     this.loadSimpleRewards();
-    vxm.bancor.focusSymbol(this.token1Symbol);
-    vxm.bancor.focusSymbol(this.token2Symbol);
+    vxm.bancor.focusSymbol(this.fromTokenSymbol);
+    vxm.bancor.focusSymbol(this.toTokenSymbol);
   }
 
   @Watch("isAuthenticated")
@@ -514,7 +412,10 @@ export default class HeroConvert extends Vue {
 
   async fetchUserTokenBalances() {
     if (!this.isAuthenticated) return;
-    await vxm.bancor.refreshBalances([this.token1Symbol, this.token2Symbol]);
+    await vxm.bancor.refreshBalances([
+      this.fromTokenSymbol,
+      this.toTokenSymbol
+    ]);
   }
 
   async loadSimpleRewards() {
@@ -522,26 +423,25 @@ export default class HeroConvert extends Vue {
 
     const [fromToken1, fromToken2] = await Promise.all([
       vxm.bancor.getReturn({
-        fromSymbol: this.token1Symbol,
+        fromSymbol: this.fromTokenSymbol,
         amount: 1,
-        toSymbol: this.token2Symbol
+        toSymbol: this.toTokenSymbol
       }),
       vxm.bancor.getReturn({
-        fromSymbol: this.token2Symbol,
+        fromSymbol: this.toTokenSymbol,
         amount: 1,
-        toSymbol: this.token1Symbol
+        toSymbol: this.fromTokenSymbol
       })
     ]);
-    this.token1SimpleReward = `1 ${this.token1Symbol} = ${fromToken1.amount} ${this.token2Symbol}`;
-    this.token2SimpleReward = `1 ${this.token2Symbol} = ${fromToken2.amount} ${this.token1Symbol}`;
+    this.token1SimpleReward = `1 ${this.fromTokenSymbol} = ${fromToken1.amount} ${this.toTokenSymbol}`;
+    this.token2SimpleReward = `1 ${this.toTokenSymbol} = ${fromToken2.amount} ${this.fromTokenSymbol}`;
 
     this.loading = false;
   }
 
   async created() {
-    this.token1Symbol = this.defaultFromSymbolName;
-    this.token2Symbol = this.defaultToSymbolName;
-    this.networkChange();
+    console.log(this.$route.query, "was router");
+    // this.networkChange();
   }
 }
 </script>
