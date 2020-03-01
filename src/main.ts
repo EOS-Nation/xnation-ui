@@ -20,7 +20,7 @@ import Ripple from "vue-ripple-directive";
 // @ts-ignore
 import VueFuse from "vue-fuse";
 import ImageFallback from "vue-image-fallback";
-import { sync } from "vuex-router-sync"
+import { sync } from "vuex-router-sync";
 
 Vue.use(VueFuse);
 Vue.use(VueAnalytics, {
@@ -46,7 +46,7 @@ Vue.component("font-awesome-layers-text", FontAwesomeLayersText);
 
 Vue.config.productionTip = false;
 
-sync(store, router, { moduleName: 'routeModule' })
+sync(store, router, { moduleName: "routeModule" });
 
 new Vue({
   router,

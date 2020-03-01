@@ -114,7 +114,6 @@
     </div>
   </hero-wrapper>
 </template>
-
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
@@ -127,7 +126,6 @@ import TokenField from "@/components/convert/TokenField.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { parseTokens, fetchTokenMeta } from "@/api/helpers";
 import wait from "waait";
-// @ts-ignore
 import { split, Asset, Symbol, symbol_code } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
@@ -217,12 +215,10 @@ export default class HeroConvert extends Vue {
   }
 
   get tokens() {
-    console.log("getter returning", vxm.bancor.tokens);
     return vxm.bancor.tokens;
   }
 
   get fromTokenSymbol() {
-    console.log("fromTokenSymbol is", this.$route.query.base);
     return this.$route.query.base as string;
   }
 
