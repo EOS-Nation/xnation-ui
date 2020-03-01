@@ -39,6 +39,7 @@
       <b-input-group class="mt-1">
         <b-form-input
           type="number"
+          debounce="500"
           v-model="tokenAmount"
           class="form-control-alt"
           placeholder="Enter Amount"
@@ -73,7 +74,14 @@
 </template>
 
 <script lang="ts">
-import { Prop, Watch, Component, Vue, PropSync, Emit } from "vue-property-decorator";
+import {
+  Prop,
+  Watch,
+  Component,
+  Vue,
+  PropSync,
+  Emit
+} from "vue-property-decorator";
 import { vxm } from "@/store";
 import debounce from "lodash.debounce";
 import Percentages from "./Percentages.vue";

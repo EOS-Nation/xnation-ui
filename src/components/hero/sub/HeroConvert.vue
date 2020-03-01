@@ -6,6 +6,7 @@
           <token-field
             :symbol.sync="fromTokenSymbol"
             :amount.sync="fromTokenAmount"
+            @update:amount="updatePriceReturn"
             :balance="fromTokenBalance"
             :tokens="tokens"
             :img="token(this.fromTokenSymbol).logo"
@@ -67,6 +68,7 @@
           <token-field
             :symbol.sync="toTokenSymbol"
             :amount.sync="toTokenAmount"
+            @update:amount="updatePriceCost"
             :balance="toTokenBalance"
             :tokens="tokens"
             :img="token(this.toTokenSymbol).logo"
@@ -397,15 +399,15 @@ export default class HeroConvert extends Vue {
     // });
   }
 
-  @Watch("fromTokenAmount")
-  fromTokenAmountChange() {
-    this.updatePriceReturn();
-  }
+  // @Watch("fromTokenAmount")
+  // fromTokenAmountChange() {
+  //   this.updatePriceReturn();
+  // }
 
-  @Watch("toTokenAmount")
-  toTokenAmountChange() {
-    this.updatePriceCost();
-  }
+  // @Watch("toTokenAmount")
+  // toTokenAmountChange() {
+  //   this.updatePriceCost();
+  // }
 
   async updatePriceReturn() {
     if (!Number(this.fromTokenAmount) && !Number(this.toTokenAmount)) return;

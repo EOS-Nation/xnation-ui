@@ -19,7 +19,7 @@
   </span>
 </template>
 <script lang="ts">
-import { Prop, Component, Vue, PropSync } from "vue-property-decorator";
+import { Prop, Component, Vue, PropSync, Watch } from "vue-property-decorator";
 import { vxm } from "@/store";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
@@ -42,6 +42,13 @@ export default class TokenField extends Vue {
   @Prop(Boolean) invertAnimation?: boolean;
 
   modal = false;
+
+
+  @Watch("amount")
+  x(x: string) {
+    console.log(x)
+    console.count('Amount')
+  }
 
   selectToken(symbolName: string) {
     this.modal = false;
