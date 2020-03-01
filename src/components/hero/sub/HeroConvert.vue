@@ -131,13 +131,45 @@ import { multiContract } from "@/api/multiContractTx";
 import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 import { get_price, get_pools } from "sx";
 import { rpc } from "../../../api/rpc";
+import { Route } from "vue-router";
+
+const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
+  return {
+    ...route,
+    query: { base, quote }
+  };
+};
+
+const addDefaultQueryParams = (to: Route): Route => {
+  switch (to.params.service) {
+    case "eos":
+      return appendBaseQuoteQuery("BNT", "EOS", to);
+    case "eth":
+      return appendBaseQuoteQuery("BNT", "ETH", to);
+    case "usds":
+      return appendBaseQuoteQuery("USDT", "EOSDT", to);
+    default:
+      throw new Error("Unrecognised service!");
+  }
+};
+
+const queryParamsCheck = (to: Route, next: any) => {
+  if ((!to.query.base || !to.query.quote) && to.params.service) {
+    next(addDefaultQueryParams(to));
+  } else {
+    next();
+  }
+};
 
 @Component({
+  beforeRouteUpdate: (to, from, next) => {
+    queryParamsCheck(to, next);
+  },
   beforeRouteEnter: async (to, from, next) => {
     if (vxm.bancor.tokens.length == 0) {
       await vxm.bancor.init();
     }
-    next();
+    queryParamsCheck(to, next);
   },
   components: {
     TokenAmountInput,
@@ -320,14 +352,12 @@ export default class HeroConvert extends Vue {
     // this.loadSimpleRewards();
   }
 
-  parseNetwork(fullPath: string) {
-    return fullPath.split("/")[1];
+  parseNetwork(route: Route) {
+    return route.params.service;
   }
 
-  networkChanged(to: any, from: any): boolean {
-    const toNetwork = this.parseNetwork(to.fullPath);
-    const fromNetwork = this.parseNetwork(from.fullPath);
-    return toNetwork !== fromNetwork;
+  networkChanged(to: Route, from: Route): boolean {
+    return this.parseNetwork(to) !== this.parseNetwork(from);
   }
 
   @Watch("$route")
@@ -365,6 +395,16 @@ export default class HeroConvert extends Vue {
     //     symbolName: this.selectedSymbolOrDefaultTo
     //   }
     // });
+  }
+
+  @Watch("fromTokenAmount")
+  fromTokenAmountChange() {
+    this.updatePriceReturn();
+  }
+
+  @Watch("toTokenAmount")
+  toTokenAmountChange() {
+    this.updatePriceCost();
   }
 
   async updatePriceReturn() {
