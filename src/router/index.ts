@@ -101,19 +101,6 @@ export const router = new Router({
       }
     },
     {
-      path: "/:service/:symbolName",
-      name: "Token",
-      components: {
-        Nav: Navigation,
-        default: Tokens,
-        Hero: HeroConvert
-      },
-      props: true,
-      meta: {
-        feature: "Trade"
-      }
-    },
-    {
       path: "/:service",
       name: "Tokens",
       components: {

@@ -32,7 +32,7 @@ export default class Token extends Vue {
   }
 
   get network() {
-    return this.$route.fullPath.split("/")[1];
+    return this.$route.params.service;
   }
 
   get name() {
@@ -40,9 +40,13 @@ export default class Token extends Vue {
   }
 
   onConvert(symbolName: string) {
+    const { query, params } = this.$route;
     this.$router.push({
-      name: "Token",
-      params: { symbolName }
+      name: "Tokens",
+      query: {
+        ...query,
+        quote: symbolName
+      }
     });
   }
 

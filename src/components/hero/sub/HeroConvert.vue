@@ -137,12 +137,13 @@ import { Route } from "vue-router";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
   return {
-    ...route,
+    name: route.name,
+    params: route.params,
     query: { base, quote }
   };
 };
 
-const addDefaultQueryParams = (to: Route): Route => {
+const addDefaultQueryParams = (to: Route): any => {
   switch (to.params.service) {
     case "eos":
       return appendBaseQuoteQuery("BNT", "EOS", to);
@@ -156,21 +157,26 @@ const addDefaultQueryParams = (to: Route): Route => {
 };
 
 const queryParamsCheck = (to: Route, next: any) => {
-  if ((!to.query.base || !to.query.quote) && to.params.service) {
+  if (!to.query.base || !to.query.quote) {
+    console.log('if')
     next(addDefaultQueryParams(to));
   } else {
+    console.log('else', to)
+    const params = to.fullPath.slice(1, 200);
     next();
   }
 };
 
 @Component({
   beforeRouteUpdate: (to, from, next) => {
+    console.log({ to, from }, "politisied!");
     queryParamsCheck(to, next);
   },
   beforeRouteEnter: async (to, from, next) => {
     if (vxm.bancor.tokens.length == 0) {
       await vxm.bancor.init();
     }
+    console.log({ to, from }, "politisied");
     queryParamsCheck(to, next);
   },
   components: {
