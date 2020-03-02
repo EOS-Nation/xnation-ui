@@ -1,7 +1,7 @@
 <template>
   <hero-wrapper>
     <div>
-      <b-row :class="flipped && 'd-flex flex-row-reverse'">
+      <b-row>
         <b-col md="4">
           <token-field
             :symbol.sync="fromTokenSymbol"
@@ -22,7 +22,7 @@
               <font-awesome-icon
                 icon="exchange-alt"
                 class="fa-2x text-white cursor"
-                :key="flipped ? 'exchange' : 'exchange-'"
+                :pulse="flipping"
                 @click="swapTokens"
               />
             </transition>
@@ -35,7 +35,7 @@
                 />
               </span>
               <span v-else class="text-white font-size-sm">
-                {{ flipped ? token2SimpleReward : token1SimpleReward }}
+                {{ oneUnitReward }}
               </span>
               <div class="text-white font-size-sm">
                 {{
@@ -158,25 +158,20 @@ const addDefaultQueryParams = (to: Route): any => {
 
 const queryParamsCheck = (to: Route, next: any) => {
   if (!to.query.base || !to.query.quote) {
-    console.log('if')
     next(addDefaultQueryParams(to));
   } else {
-    console.log('else', to)
-    const params = to.fullPath.slice(1, 200);
     next();
   }
 };
 
 @Component({
   beforeRouteUpdate: (to, from, next) => {
-    console.log({ to, from }, "politisied!");
     queryParamsCheck(to, next);
   },
   beforeRouteEnter: async (to, from, next) => {
     if (vxm.bancor.tokens.length == 0) {
       await vxm.bancor.init();
     }
-    console.log({ to, from }, "politisied");
     queryParamsCheck(to, next);
   },
   components: {
@@ -193,7 +188,7 @@ export default class HeroConvert extends Vue {
   numeral = numeral;
   modal = false;
   txModal = false;
-  flipped = false;
+  flipping = false;
 
   txBusy = false;
 
@@ -203,8 +198,7 @@ export default class HeroConvert extends Vue {
   fromTokenAmount = "";
   toTokenAmount = "";
 
-  token1SimpleReward = "";
-  token2SimpleReward = "";
+  oneUnitReward = "";
 
   loadingConversion = false;
 
@@ -304,6 +298,7 @@ export default class HeroConvert extends Vue {
   }
 
   swapTokens() {
+    this.flipping = true;
     this.$router.push({
       name: "Tokens",
       query: {
@@ -311,6 +306,7 @@ export default class HeroConvert extends Vue {
         quote: this.fromTokenSymbol
       }
     });
+    setTimeout(() => (this.flipping = false), 500);
   }
 
   async initConvert() {
@@ -341,47 +337,6 @@ export default class HeroConvert extends Vue {
     this.fetchUserTokenBalances();
   }
 
-  networkChange() {
-    // const fromSymbol = this.fromTokenSymbol;
-    // const toSymbol = this.toTokenSymbol;
-    // try {
-    //   const fromToken = vxm.bancor.token(fromSymbol);
-    // } catch (e) {
-    //   this.fromTokenSymbol = this.defaultFromSymbolName;
-    // }
-    // try {
-    //   const toToken = vxm.bancor.token(toSymbol);
-    // } catch (e) {
-    //   this.toTokenSymbol = this.selectedSymbolOrDefaultTo;
-    // }
-    // this.token2Key = this.reverseString(this.token2Key);
-    // this.token1Key = this.reverseString(this.token1Key);
-    // this.updatePriceReturn();
-    // this.loadSimpleRewards();
-  }
-
-  parseNetwork(route: Route) {
-    return route.params.service;
-  }
-
-  networkChanged(to: Route, from: Route): boolean {
-    return this.parseNetwork(to) !== this.parseNetwork(from);
-  }
-
-  @Watch("$route")
-  listen(to: any, from: any) {
-    console.log(to, from);
-    if (this.networkChanged(to, from)) {
-      console.log("network changed");
-      this.networkChange();
-    } else {
-      console.log("No network change");
-      // this.toTokenSymbol = this.selectedSymbolOrDefaultTo;
-      this.updatePriceReturn();
-      this.loadSimpleRewards();
-    }
-  }
-
   cleanUpAfterTx() {
     this.fromTokenAmount = "";
     this.toTokenAmount = "";
@@ -404,16 +359,6 @@ export default class HeroConvert extends Vue {
     //   }
     // });
   }
-
-  // @Watch("fromTokenAmount")
-  // fromTokenAmountChange() {
-  //   this.updatePriceReturn();
-  // }
-
-  // @Watch("toTokenAmount")
-  // toTokenAmountChange() {
-  //   this.updatePriceCost();
-  // }
 
   async updatePriceReturn() {
     if (!Number(this.fromTokenAmount) && !Number(this.toTokenAmount)) return;
@@ -444,7 +389,8 @@ export default class HeroConvert extends Vue {
   @Watch("fromTokenSymbol")
   @Watch("toTokenSymbol")
   tokenChange(symbol: string) {
-    this.loadSimpleRewards();
+    this.loadSimpleReward();
+    this.updatePriceReturn();
     vxm.bancor.focusSymbol(this.fromTokenSymbol);
     vxm.bancor.focusSymbol(this.toTokenSymbol);
   }
@@ -462,30 +408,20 @@ export default class HeroConvert extends Vue {
     ]);
   }
 
-  async loadSimpleRewards() {
+  async loadSimpleReward() {
     this.loading = true;
-
-    const [fromToken1, fromToken2] = await Promise.all([
-      vxm.bancor.getReturn({
-        fromSymbol: this.fromTokenSymbol,
-        amount: 1,
-        toSymbol: this.toTokenSymbol
-      }),
-      vxm.bancor.getReturn({
-        fromSymbol: this.toTokenSymbol,
-        amount: 1,
-        toSymbol: this.fromTokenSymbol
-      })
-    ]);
-    this.token1SimpleReward = `1 ${this.fromTokenSymbol} = ${fromToken1.amount} ${this.toTokenSymbol}`;
-    this.token2SimpleReward = `1 ${this.toTokenSymbol} = ${fromToken2.amount} ${this.fromTokenSymbol}`;
+    const reward = await vxm.bancor.getReturn({
+      fromSymbol: this.fromTokenSymbol,
+      amount: 1,
+      toSymbol: this.toTokenSymbol
+    });
+    this.oneUnitReward = `1 ${this.fromTokenSymbol} = ${reward.amount} ${this.toTokenSymbol}`;
 
     this.loading = false;
   }
 
-  async created() {
-    console.log(this.$route.query, "was router");
-    // this.networkChange();
+  created() {
+    this.loadSimpleReward();
   }
 }
 </script>
