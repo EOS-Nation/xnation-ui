@@ -149,9 +149,6 @@ const queryParamsCheck = (to: Route, next: any) => {
     queryParamsCheck(to, next);
   },
   beforeRouteEnter: async (to, from, next) => {
-    if (vxm.bancor.tokens.length == 0) {
-      await vxm.bancor.init();
-    }
     queryParamsCheck(to, next);
   },
   components: {

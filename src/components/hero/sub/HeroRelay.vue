@@ -1,98 +1,67 @@
 <template>
   <hero-wrapper>
-    <div>
-      <b-row>
-        <b-col md="4">
-          <transition name="slide-fade-down" mode="out-in">
-            <token-amount-input
-              :key="token1Symbol"
-              @onUpdate="onTokenAmountChange(1)"
-              :amount.sync="token1Amount"
-              :symbol="token1Symbol"
-              :balance="displayedToken1Balance"
-              :label="buttonFlipped ? 'Staked Balance:' : 'Wallet Balance:'"
-              :img="token1Img"
-              dropdown
-              @dropdown="modal = true"
-              @click="modal = true"
-            />
-          </transition>
-        </b-col>
-        <b-col
-          md="4"
-          class="d-flex justify-content-center align-items-end"
-          style="min-height: 230px"
-        >
-          <div>
-            <transition name="fade" mode="out-in">
-              <font-awesome-icon
-                :icon="buttonFlipped ? 'minus' : 'plus'"
-                class="fa-2x text-white cursor"
-                :spin="spinning"
-              />
-            </transition>
-            <div class="mb-3 mt-3">
-              <div class="text-white font-size-sm">
-                {{
-                  smartUserBalance &&
-                    `Your balance: ${smartUserBalance} ${focusedSymbol}`
-                }}
-                <span v-if="rateLoading">
-                  <font-awesome-icon icon="circle-notch" spin />
-                </span>
-                <!-- {{ simpleReward }} -->
-              </div>
-              <!-- <div class="text-white font-size-sm">Fee: {{ fee }} %</div> -->
-            </div>
-            <div class="d-flex justify-content-center">
-              <b-dropdown
-                button
-                :disabled="!isAuthenticated"
-                @click="toggleMain"
-                variant="success"
-                split
-                class="m-2"
-                size="lg"
-              >
-                <template v-slot:button-content>
-                  <font-awesome-icon
-                    :icon="buttonFlipped ? 'arrow-down' : 'arrow-up'"
-                    :spin="loadingTokens"
-                    fixed-width
-                    class="mr-2"
-                  />
-                  <span class="font-w700">
-                    {{ buttonFlipped ? "Remove Liquidity" : "Add Liquidity" }}
-                  </span>
-                </template>
-                <b-dropdown-item-button @click="buttonFlipped = !buttonFlipped">
-                  {{ buttonFlipped ? "Add Liquidity" : "Remove Liquidity" }}
-                </b-dropdown-item-button>
-              </b-dropdown>
-            </div>
+    <two-token-hero
+      :tokenOneSymbol="token1Symbol"
+      :tokenOneAmount.sync="token1Amount"
+      @update:tokenOneAmount="mutateOppositeTokenAmount(true)"
+      @update:tokenTwoAmount="mutateOppositeTokenAmount(false)"
+      :tokenOneBalance="displayedToken1Balance"
+      :tokenOneImg="token1Img"
+      :tokenTwoSymbol="token1Symbol"
+      :tokenTwoAmount.sync="token2Amount"
+      :tokenTwoBalance="displayedToken2Balance"
+      :tokenTwoImg="token2Img"
+      :label="buttonFlipped ? 'Pool Balance:' : 'Wallet Balance:'"
+    >
+      <div>
+        <transition name="fade" mode="out-in">
+          <font-awesome-icon
+            :icon="buttonFlipped ? 'minus' : 'plus'"
+            class="fa-2x text-white cursor"
+            :spin="spinning"
+          />
+        </transition>
+        <div class="mb-3 mt-3">
+          <div class="text-white font-size-sm">
+            {{
+              smartUserBalance &&
+                `Your balance: ${smartUserBalance} ${focusedSymbol}`
+            }}
+            <span v-if="rateLoading">
+              <font-awesome-icon icon="circle-notch" spin />
+            </span>
+            <!-- {{ simpleReward }} -->
           </div>
-        </b-col>
-        <b-col md="4">
-          <transition name="slide-fade-up" mode="out-in">
-            <token-amount-input
-              @onUpdate="onTokenAmountChange(2)"
-              :key="token2Symbol"
-              :amount.sync="token2Amount"
-              :symbol="token2Symbol"
-              :balance="displayedToken2Balance"
-              :img="token2Img"
-              :label="buttonFlipped ? 'Pool Balance:' : 'Wallet Balance:'"
-            />
-          </transition>
-        </b-col>
-      </b-row>
-      <modal-select
-        :modalShow.sync="modal"
-        :tokens="relayTokens"
-        @onSelect="selectedToken"
-        :filterable="false"
-      />
-    </div>
+          <!-- <div class="text-white font-size-sm">Fee: {{ fee }} %</div> -->
+        </div>
+        <div class="d-flex justify-content-center">
+          <b-dropdown
+            button
+            :disabled="!isAuthenticated"
+            @click="toggleMain"
+            variant="success"
+            split
+            class="m-2"
+            size="lg"
+          >
+            <template v-slot:button-content>
+              <font-awesome-icon
+                :icon="buttonFlipped ? 'arrow-down' : 'arrow-up'"
+                :spin="loadingTokens"
+                fixed-width
+                class="mr-2"
+              />
+              <span class="font-w700">
+                {{ buttonFlipped ? "Remove Liquidity" : "Add Liquidity" }}
+              </span>
+            </template>
+            <b-dropdown-item-button @click="buttonFlipped = !buttonFlipped">
+              {{ buttonFlipped ? "Add Liquidity" : "Remove Liquidity" }}
+            </b-dropdown-item-button>
+          </b-dropdown>
+        </div>
+      </div>
+    </two-token-hero>
   </hero-wrapper>
 </template>
 
@@ -119,20 +88,15 @@ import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 import { toWei, toHex, fromWei } from "web3-utils";
 import { Ether } from "@/api/helpers";
 import Decimal from "decimal.js";
-import debounce from "lodash.debounce";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
+import TwoTokenHero from "./TwoTokenHero.vue";
 
 @Component({
-  beforeRouteEnter: async (to, from, next) => {
-    if (vxm.bancor.tokens.length == 0) {
-      await vxm.bancor.init();
-    }
-    next();
-  },
   components: {
     TokenAmountInput,
     ModalSelect,
-    HeroWrapper
+    HeroWrapper,
+    TwoTokenHero
   }
 })
 export default class HeroConvert extends Vue {
@@ -145,8 +109,6 @@ export default class HeroConvert extends Vue {
   token2Amount = "";
   token1Balance = "";
   token2Balance = "";
-  token1Contract = "";
-  token2Contract = "";
   token1UserBalance = "";
   token2UserBalance = "";
   smartUserBalance = "";
@@ -168,18 +130,11 @@ export default class HeroConvert extends Vue {
     });
   }
 
-  isFromToken(numberSelection: number): boolean {
-    return (
-      (!this.flipped && numberSelection == 1) ||
-      (this.flipped && numberSelection == 2)
-    );
-  }
-
-  get relayTokens() {
+  get choices() {
     return vxm.ethBancor.relays.map((relay: any) => ({
-      logo: relay.reserves[0].logo,
+      img: relay.reserves[0].logo,
       symbol: relay.smartTokenSymbol,
-      userBalance: 0
+      balance: 0
     }));
   }
 
@@ -204,8 +159,10 @@ export default class HeroConvert extends Vue {
   }
 
   get token1() {
-    const x = vxm.bancor.token(this.relay!.reserves[this.flipped ? 1 : 0].symbol)!;
-    console.log('got', x)
+    const x = vxm.bancor.token(
+      this.relay!.reserves[this.flipped ? 1 : 0].symbol
+    )!;
+    console.log("got", x);
     return x;
   }
 
@@ -249,8 +206,8 @@ export default class HeroConvert extends Vue {
     const oneAmount = Math.pow(10, token1.symbol.precision);
     // @ts-ignore
     const reward = calculateReturn(
-// @ts-ignore
-token1,
+      // @ts-ignore
+      token1,
       token2,
       new Asset(oneAmount, token1.symbol)
     );
@@ -356,8 +313,7 @@ token1,
     return new Decimal(smallAmount).div(bigAmount).toNumber();
   }
 
-  async mutateOppositeTokenAmount(isToken1: any) {
-    console.log("mutate got called");
+  async mutateOppositeTokenAmount(isToken1: boolean) {
     this.rateLoading = true;
     const {
       tokenReserveBalance,
@@ -466,16 +422,6 @@ token1,
     this.rateLoading = false;
   }
 
-  mutateDebouncer = debounce(
-    isToken1 => this.mutateOppositeTokenAmount(isToken1),
-    500
-  );
-
-  async onTokenAmountChange(selectedToken: number) {
-    const isToken1 = selectedToken == 1;
-    this.mutateDebouncer(isToken1);
-  }
-
   calculateOppositeFundRequirement(
     deposit: string,
     depositsSupply: string,
@@ -551,16 +497,6 @@ token1,
 
   async addLiquidity() {
     const { converterAddress, smartTokenAddress, tokenAddress } = this.relay!;
-
-    console.table(
-      {
-        converterAddress,
-        smartTokenAddress,
-        tokenAddress,
-        mySingle: "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315"
-      },
-      "were things"
-    );
 
     const maxGasPrice = await getBancorGasPriceLimit();
 

@@ -11,6 +11,7 @@
         :img="img"
         :symbol="symbol"
         :dropdown="clickable"
+        :label="label"
         @dropdown="clicked"
         @click="clicked"
       />

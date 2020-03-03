@@ -10,6 +10,7 @@
           :balance="tokenOneBalance"
           :img="tokenOneImg"
           :choices="choices"
+          :label="label"
         />
       </b-col>
       <b-col
@@ -28,6 +29,7 @@
           :balance="tokenTwoBalance"
           :img="tokenTwoImg"
           :choices="choices"
+          :label="label"
         />
       </b-col>
     </b-row>
@@ -59,6 +61,7 @@ export default class HeroConvert extends Vue {
   @PropSync("tokenTwoAmount", { type: String }) amountTwo!: string;
   @Prop(String) tokenTwoBalance!: string;
   @Prop(String) tokenTwoImg!: string;
+  @Prop(String) label?: string;
 
   @Prop(Array) choices?: any[];
   modal = false;
