@@ -113,7 +113,7 @@ class MultiContractTx {
       name: "transfer",
       data: {
         from: this.getAuth()[0].actor,
-        to: "thisisbancor",
+        to: process.env.VUE_APP_NETWORKCONTRACT,
         quantity: amount.toString(),
         memo
       }
