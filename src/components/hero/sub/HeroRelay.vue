@@ -100,7 +100,6 @@ import TwoTokenHero from "./TwoTokenHero.vue";
   }
 })
 export default class HeroConvert extends Vue {
-  rate = "";
   rateLoading = false;
   numeral = numeral;
   spinning = false;
@@ -212,29 +211,6 @@ export default class HeroConvert extends Vue {
       new Asset(oneAmount, token1.symbol)
     );
     return `${reward.toNumber().toFixed(4)} ${reward.symbol.code()}`;
-  }
-
-  async toggleRelay() {}
-
-  async getReserveCount(
-    converterContract: any,
-    versionNumber: number | string
-  ): Promise<number> {
-    try {
-      if (Number(versionNumber) >= 17) {
-        const tokenCount = await converterContract.methods
-          .reserveTokenCount()
-          .call();
-        return Number(tokenCount);
-      } else {
-        const connectorCount = await converterContract.methods
-          .connectorTokenCount()
-          .call();
-        return Number(connectorCount);
-      }
-    } catch (e) {
-      throw new Error("Failed getting reserve count" + e);
-    }
   }
 
   async fetchRelayBalances() {
