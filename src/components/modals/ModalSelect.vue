@@ -43,8 +43,8 @@
         >
           <token-balance-block
             :symbol="token.symbol"
-            :balance="token.userBalance"
-            :img="token.logo"
+            :balance="token.balance"
+            :img="token.img"
           />
         </b-col>
       </b-row>

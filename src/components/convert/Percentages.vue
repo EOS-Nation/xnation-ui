@@ -2,7 +2,7 @@
   <div>
     <span class="text-white font-size-sm" style="min-height: 50px">
       <div
-        v-if="Number(balance.split(' ')[0]) > 0"
+        v-if="Number(balance) > 0"
         class="text-white-50 cursor"
       >
         <span @click="setPercentage(10)">10%</span>
@@ -34,7 +34,7 @@ export default class TokenAmountInput extends Vue {
 
   get formattedBalance() {
     return numeral(this.balance).format(
-      Number(this.balance.split(" ")[0]) > 0.0001
+      Number(this.balance) > 0.0001
         ? "0,0[.][0000]"
         : "0,0[.][000000000]"
     );

@@ -10,16 +10,28 @@
         :balance="balance"
         :img="img"
         :symbol="symbol"
-        dropdown
-        @dropdown="promptModal"
-        @click="promptModal"
+        :dropdown="clickable"
+        @dropdown="clicked"
+        @click="clicked"
       />
     </transition>
-    <modal-select v-model="modal" :tokens="tokens" @onSelect="selectToken" />
+    <modal-select
+      v-if="choices && choices.length > 0"
+      v-model="modal"
+      :tokens="choices"
+      @onSelect="selectChoice"
+    />
   </span>
 </template>
 <script lang="ts">
-import { Prop, Component, Vue, PropSync, Watch } from "vue-property-decorator";
+import {
+  Prop,
+  Component,
+  Vue,
+  PropSync,
+  Watch,
+  Emit
+} from "vue-property-decorator";
 import { vxm } from "@/store";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
@@ -36,27 +48,22 @@ export default class TokenField extends Vue {
   @Prop(String) balance!: string;
   @Prop(Boolean) loading?: boolean;
   @Prop({ default: "Available:" }) readonly label!: string;
-  @Prop(Array) tokens?: any[];
   @Prop(String) img!: string;
   @Prop(String) symbol!: string;
   @Prop(Boolean) invertAnimation?: boolean;
+  @Prop({ default: false }) readonly clickable?: boolean;
+  @Prop(Array) readonly choices?: any[];
 
   modal = false;
 
-
-  @Watch("amount")
-  x(x: string) {
-    console.log(x)
-    console.count('Amount')
+  @Emit()
+  clicked() {
+    this.modal = true;
   }
 
-  selectToken(symbolName: string) {
+  selectChoice(symbolName: string) {
     this.modal = false;
     this.currentSymbol = symbolName;
-  }
-
-  promptModal() {
-    this.modal = true;
   }
 }
 </script>

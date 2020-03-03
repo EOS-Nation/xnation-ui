@@ -61,6 +61,7 @@
           </b-button>
         </b-input-group-append>
       </b-input-group>
+      <balance-label :balance="formattedBalance" />
       <percentages
         :v-if="balance"
         @percentUpdate="updatePercent"
@@ -111,6 +112,10 @@ export default class TokenAmountInput extends Vue {
         ? this.balance
         : (Number(this.balance.split(" ")[0]) * Number(percentage)) / 100;
     this.tokenAmount = String(newAmount);
+  }
+
+  get formattedBalance() {
+    return `${this.balance} ${this.symbol}`;
   }
 
   @Emit("toggle")

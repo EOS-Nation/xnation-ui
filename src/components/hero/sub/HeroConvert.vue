@@ -1,119 +1,98 @@
 <template>
   <hero-wrapper>
-    <div>
-      <b-row>
-        <b-col md="4">
-          <token-field
-            :symbol.sync="fromTokenSymbol"
-            :amount.sync="fromTokenAmount"
-            @update:amount="updatePriceReturn"
-            :balance="fromTokenBalance"
-            :tokens="tokens"
-            :img="token(this.fromTokenSymbol).logo"
+    <two-token-hero
+      :tokenOneSymbol.sync="fromTokenSymbol"
+      :tokenOneAmount.sync="fromTokenAmount"
+      @update:tokenOneAmount="fromTokenChanged"
+      @update:tokenTwoAmount="toTokenChanged"
+      :tokenOneBalance="fromToken.balance"
+      :tokenOneImg="fromToken.logo"
+      :tokenTwoSymbol.sync="toTokenSymbol"
+      :tokenTwoAmount.sync="toTokenAmount"
+      :tokenTwoBalance="toToken.balance"
+      :tokenTwoImg="toToken.logo"
+      :choices="choices"
+    >
+      <div>
+        <transition name="fade" mode="out-in">
+          <font-awesome-icon
+            icon="exchange-alt"
+            class="fa-2x text-white cursor"
+            :pulse="flipping"
+            @click="swapTokens"
           />
-        </b-col>
-        <b-col
-          md="4"
-          class="d-flex justify-content-center align-items-end"
-          style="min-height: 230px"
-        >
-          <div>
-            <transition name="fade" mode="out-in">
-              <font-awesome-icon
-                icon="exchange-alt"
-                class="fa-2x text-white cursor"
-                :pulse="flipping"
-                @click="swapTokens"
-              />
-            </transition>
-            <div class="mb-3 mt-3">
-              <span v-if="loading">
-                <font-awesome-icon
-                  icon="circle-notch"
-                  class="text-white"
-                  spin
-                />
-              </span>
-              <span v-else class="text-white font-size-sm">
-                {{ oneUnitReward }}
-              </span>
-              <div class="text-white font-size-sm">
-                {{
-                  `1 ${fromTokenSymbol} = $${token(
-                    fromTokenSymbol
-                  ).price.toFixed(2)} USD`
-                }}
-              </div>
-            </div>
-            <div class="d-flex justify-content-center">
-              <b-btn
-                @click="initConvert"
-                variant="success"
-                v-ripple
-                class="px-4 py-2 d-block"
-                :disabled="disableConvert"
-              >
-                <font-awesome-icon
-                  :icon="loadingConversion ? 'circle-notch' : 'sync-alt'"
-                  :spin="loadingConversion"
-                  fixed-width
-                  class="mr-2"
-                />
-                <span class="font-w700">CONVERT</span>
-              </b-btn>
-            </div>
+        </transition>
+        <div class="mb-3 mt-3">
+          <span v-if="loading">
+            <font-awesome-icon icon="circle-notch" class="text-white" spin />
+          </span>
+          <span v-else class="text-white font-size-sm">
+            {{ oneUnitReward }}
+          </span>
+          <div class="text-white font-size-sm">
+            {{
+              `1 ${fromTokenSymbol} = $${token(fromTokenSymbol).price.toFixed(
+                2
+              )} USD`
+            }}
           </div>
-        </b-col>
-        <b-col md="4">
-          <token-field
-            :symbol.sync="toTokenSymbol"
-            :amount.sync="toTokenAmount"
-            @update:amount="updatePriceCost"
-            :balance="toTokenBalance"
-            :tokens="tokens"
-            :img="token(this.toTokenSymbol).logo"
-            invertAnimation
-          />
-        </b-col>
-      </b-row>
-      <modal-tx title="Convert" v-model="txModal" :busy="txBusy">
-        <token-swap
-          :error="error"
-          :success="success"
-          :leftImg="fromToken.logo"
-          :leftTitle="`${fromTokenAmount} ${fromTokenSymbol}`"
-          :leftSubtitle="
-            `${fromToken.name} ($${(
-              token(fromTokenSymbol).price * Number(fromTokenAmount)
-            ).toFixed(2)} USD)`
-          "
-          :rightImg="toToken.logo"
-          :rightTitle="`${toTokenAmount} ${toTokenSymbol}`"
-          :rightSubtitle="toToken.name"
-        >
-          <template v-slot:footer>
-            <b-col cols="12" class="text-center">
-              <h6 v-if="!success && !error">
-                Please proceed with your wallet to confirm this Transaction.
-              </h6>
-              <h6 v-else-if="error && !success" class="text-danger">
-                Error: {{ error }}
-                <!-- <span class="cursor text-muted"> - Try again</span> -->
-              </h6>
-              <h6 v-else-if="!error && success">
-                <a :href="explorerLink" target="_blank" class="text-success">
-                  SUCCESS: View {{ success.substring(0, 6) }} TX on
-                  {{ explorerName }}
-                </a>
-                <span @click="txModal = false" class="cursor text-muted"
-                  >- Close</span
-                >
-              </h6>
-            </b-col>
-          </template>
-        </token-swap>
-      </modal-tx>
-    </div>
+        </div>
+        <div class="d-flex justify-content-center">
+          <b-btn
+            @click="initConvert"
+            variant="success"
+            v-ripple
+            class="px-4 py-2 d-block"
+            :disabled="disableConvert"
+          >
+            <font-awesome-icon
+              :icon="loadingConversion ? 'circle-notch' : 'sync-alt'"
+              :spin="loadingConversion"
+              fixed-width
+              class="mr-2"
+            />
+            <span class="font-w700">CONVERT</span>
+          </b-btn>
+        </div>
+      </div>
+    </two-token-hero>
+    <modal-tx title="Convert" v-model="txModal" :busy="txBusy">
+      <token-swap
+        :error="error"
+        :success="success"
+        :leftImg="fromToken.logo"
+        :leftTitle="`${fromTokenAmount} ${fromTokenSymbol}`"
+        :leftSubtitle="
+          `${fromToken.name} ($${(
+            token(fromTokenSymbol).price * Number(fromTokenAmount)
+          ).toFixed(2)} USD)`
+        "
+        :rightImg="toToken.logo"
+        :rightTitle="`${toTokenAmount} ${toTokenSymbol}`"
+        :rightSubtitle="toToken.name"
+      >
+        <template v-slot:footer>
+          <b-col cols="12" class="text-center">
+            <h6 v-if="!success && !error">
+              Please proceed with your wallet to confirm this Transaction.
+            </h6>
+            <h6 v-else-if="error && !success" class="text-danger">
+              Error: {{ error }}
+              <!-- <span class="cursor text-muted"> - Try again</span> -->
+            </h6>
+            <h6 v-else-if="!error && success">
+              <a :href="explorerLink" target="_blank" class="text-success">
+                SUCCESS: View {{ success.substring(0, 6) }} TX on
+                {{ explorerName }}
+              </a>
+              <span @click="txModal = false" class="cursor text-muted"
+                >- Close</span
+              >
+            </h6>
+          </b-col>
+        </template>
+      </token-swap>
+    </modal-tx>
   </hero-wrapper>
 </template>
 <script lang="ts">
@@ -134,6 +113,7 @@ import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 import { get_price, get_pools } from "sx";
 import { rpc } from "../../../api/rpc";
 import { Route } from "vue-router";
+import TwoTokenHero from "./TwoTokenHero.vue";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
   return {
@@ -180,7 +160,8 @@ const queryParamsCheck = (to: Route, next: any) => {
     HeroWrapper,
     ModalTx,
     TokenField,
-    TokenSwap
+    TokenSwap,
+    TwoTokenHero
   }
 })
 export default class HeroConvert extends Vue {
@@ -252,6 +233,14 @@ export default class HeroConvert extends Vue {
     return vxm.bancor.tokens;
   }
 
+  get choices() {
+    return vxm.bancor.tokens.map((token: any) => ({
+      symbol: token.symbol,
+      balance: token.balance,
+      img: token.logo
+    }));
+  }
+
   get fromTokenSymbol() {
     return this.$route.query.base as string;
   }
@@ -295,6 +284,14 @@ export default class HeroConvert extends Vue {
       this.fromTokenAmount == "" ||
       this.toTokenAmount == ""
     );
+  }
+
+  fromTokenChanged(amount: string) {
+    this.updatePriceReturn()
+  }
+
+  toTokenChanged(amount: string) {
+    this.updatePriceCost();
   }
 
   swapTokens() {

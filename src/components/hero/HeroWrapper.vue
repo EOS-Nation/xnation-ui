@@ -9,9 +9,7 @@
   >
     <div class="bg-primary-dark-op">
       <div class="content content-boxed text-center p-5 main">
-        <transition name="slide-fade-down" mode="out-in">
-          <slot></slot>
-        </transition>
+        <slot></slot>
       </div>
     </div>
   </div>
