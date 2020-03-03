@@ -481,7 +481,6 @@ export default class HeroConvert extends Vue {
       to: converterAddress,
       value: "0x0",
       data: liquidateData,
-      gasPrice: toHex(maxGasPrice),
       gas: toHex(950000)
     };
 
