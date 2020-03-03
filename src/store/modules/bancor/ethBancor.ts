@@ -1,7 +1,10 @@
 import { VuexModule, mutation, action, Module } from "vuex-class-component";
 import {
   ProposedTransaction,
-  ProposedConvertTransaction
+  ProposedConvertTransaction,
+  LiquidityParams,
+  OpposingLiquidParams,
+  OpposingLiquid
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancor";
 import {
@@ -11,7 +14,9 @@ import {
   Token,
   fetchReserveBalance
 } from "@/api/helpers";
-import { ABIConverter } from "@/api/ethConfig";
+import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
+import { toWei, toHex, fromWei } from "web3-utils";
+import Decimal from "decimal.js";
 
 import { vxm } from "@/store";
 
@@ -25,6 +30,63 @@ const getPoolReserveToken = (
     ) || relay.reserves[0]
   );
 };
+
+const percentageOfReserve = (
+  percent: number,
+  existingSupply: string
+): string => {
+  return new Decimal(percent).times(existingSupply).toFixed(0);
+};
+
+const percentageIncrease = (
+  deposit: string,
+  existingSupply: string
+): number => {
+  return new Decimal(deposit).div(existingSupply).toNumber();
+};
+
+const calculateOppositeFundRequirement = (
+  deposit: string,
+  depositsSupply: string,
+  oppositesSupply: string
+): string => {
+  const increase = percentageIncrease(deposit, depositsSupply);
+  return percentageOfReserve(increase, oppositesSupply);
+};
+
+const calculateOppositeLiquidateRequirement = (
+  reserveAmount: string,
+  reserveBalance: string,
+  oppositeReserveBalance: string
+) => {
+  const increase = percentageIncrease(reserveAmount, reserveBalance);
+  return percentageOfReserve(increase, oppositeReserveBalance);
+};
+
+const calculateFundReward = (
+  reserveAmount: string,
+  reserveSupply: string,
+  smartSupply: string
+) => {
+  Decimal.set({ rounding: 0 });
+  return new Decimal(reserveAmount)
+    .div(reserveSupply)
+    .times(smartSupply)
+    .times(0.99)
+    .toFixed(0);
+};
+
+const calculateLiquidateCost = (
+  reserveAmount: string,
+  reserveBalance: string,
+  smartSupply: string
+) => {
+  const percent = percentageIncrease(reserveAmount, reserveBalance);
+  return percentageOfReserve(percent, smartSupply);
+};
+
+const percentDifference = (smallAmount: string, bigAmount: string) =>
+  new Decimal(smallAmount).div(bigAmount).toNumber();
 
 @Module({ namespacedPath: "ethBancor/" })
 export class EthBancorModule extends VuexModule {
@@ -134,10 +196,6 @@ export class EthBancorModule extends VuexModule {
           array.indexOf(smartTokenSymbol) !== index
       );
 
-    console.log(
-      relays.every(relay => relay.reserves.every(reserve => reserve.symbol))
-    );
-
     return relays.filter(relay =>
       duplicated.every(dup => dup !== relay.smartTokenSymbol)
     );
@@ -154,6 +212,304 @@ export class EthBancorModule extends VuexModule {
   @action async triggerTx(actions: any[]) {
     // @ts-ignore
     return this.$store.dispatch("ethWallet/tx", actions, { root: true });
+  }
+
+  @action async fetchRelayBalances(smartTokenSymbol: string) {
+    const {
+      converterAddress,
+      tokenAddress,
+      smartTokenAddress,
+      version
+    } = this.relay(smartTokenSymbol)!;
+
+    const converterContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverter,
+      converterAddress
+    );
+
+    const smartTokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      smartTokenAddress
+    );
+
+    const [
+      tokenReserveBalance,
+      bntReserveBalance,
+      totalSupply
+    ] = await Promise.all([
+      fetchReserveBalance(converterContract, tokenAddress, version),
+      fetchReserveBalance(converterContract, BntTokenContract, version),
+      smartTokenContract.methods.totalSupply().call()
+    ]);
+    return { tokenReserveBalance, bntReserveBalance, totalSupply };
+  }
+
+  @action async calculateOpposingDeposit(
+    opposingDeposit: OpposingLiquidParams
+  ): Promise<OpposingLiquid> {
+    console.log("calculateOpposingDeposit called", opposingDeposit);
+    const { smartTokenSymbol, tokenAmount, tokenSymbol } = opposingDeposit;
+    const {
+      tokenReserveBalance,
+      bntReserveBalance,
+      totalSupply
+    } = await this.fetchRelayBalances(smartTokenSymbol);
+    console.log("getting token id");
+    const tokenId = this.tokensList.find(token => token.code == tokenSymbol).id
+    console.log("tokeIdgot", tokenId);
+    const decimals = await this.getDecimals(tokenId);
+    console.log("decimals called", tokenId);
+    const tokenAmountWei = String(Number(tokenAmount) * Math.pow(10, decimals));
+    const opposingAmount = calculateOppositeFundRequirement(
+      tokenAmountWei,
+      tokenReserveBalance,
+      bntReserveBalance
+    );
+    const fundReward = calculateFundReward(
+      tokenAmountWei,
+      tokenReserveBalance,
+      totalSupply
+    );
+
+    console.log("returning..", {
+      opposingAmount: fromWei(opposingAmount),
+      smartTokenAmount: fundReward
+    });
+    return {
+      opposingAmount: fromWei(opposingAmount),
+      smartTokenAmount: fundReward
+    };
+  }
+
+  @action async calculateOpposingWithdraw(
+    opposingWithdraw: OpposingLiquidParams
+  ): Promise<OpposingLiquid> {
+    const { smartTokenSymbol, tokenAmount, tokenSymbol } = opposingWithdraw;
+    const {
+      tokenReserveBalance,
+      bntReserveBalance,
+      totalSupply
+    } = await this.fetchRelayBalances(smartTokenSymbol);
+    const tokenId = this.tokensList.find(token => token.code == tokenSymbol).id;
+    const decimals = await this.getDecimals(tokenId);
+
+    const token1Wei = String(Number(tokenAmount) * Math.pow(10, decimals));
+    const token2Value = calculateOppositeLiquidateRequirement(
+      token1Wei,
+      tokenReserveBalance,
+      bntReserveBalance
+    );
+    const liquidateCost = calculateLiquidateCost(
+      token1Wei,
+      tokenReserveBalance,
+      totalSupply
+    );
+
+    const { smartTokenAddress } = this.relay(smartTokenSymbol)!;
+
+    const smartUserBalance = await vxm.ethWallet.getBalance({
+      accountHolder: vxm.wallet.isAuthenticated,
+      tokenContractAddress: smartTokenAddress
+    });
+
+    const percentDifferenceBetweenSmartBalance = percentDifference(
+      liquidateCost,
+      String(Number(smartUserBalance) * Math.pow(10, 18))
+    );
+    let smartTokenAmount;
+    if (percentDifferenceBetweenSmartBalance > 0.99) {
+      const userSmartTokenBalance = toWei(smartUserBalance);
+      smartTokenAmount = userSmartTokenBalance;
+    } else {
+      smartTokenAmount = liquidateCost;
+    }
+    return {
+      opposingAmount: fromWei(token2Value),
+      smartTokenAmount
+    };
+  }
+
+  @action async removeLiquidity({
+    fundAmount,
+    smartTokenSymbol
+  }: LiquidityParams) {
+    const { converterAddress } = this.relay(smartTokenSymbol)!;
+
+    const converterContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverter,
+      converterAddress
+    );
+
+    const batch = new web3.BatchRequest();
+
+    const liquidateData = converterContract.methods
+      .liquidate(fundAmount)
+      .encodeABI({ from: vxm.wallet.isAuthenticated });
+
+    const liquidate = {
+      from: vxm.wallet.isAuthenticated,
+      to: converterAddress,
+      value: "0x0",
+      data: liquidateData,
+      gas: toHex(950000)
+    };
+
+    batch.add(
+      // @ts-ignore
+      web3.eth.sendTransaction.request(liquidate, () => console.log("Pool"))
+    );
+    console.log(batch, "is batch");
+    await batch.execute();
+  }
+
+  @action async addLiquidity({
+    fundAmount,
+    smartTokenSymbol,
+    token1Amount,
+    token1Symbol,
+    token2Amount,
+    token2Symbol
+  }: LiquidityParams) {
+    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay(
+      smartTokenSymbol
+    )!;
+
+    // const maxGasPrice = await getBancorGasPriceLimit();
+    const converterContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverter,
+      converterAddress
+    );
+    const smartTokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      smartTokenAddress
+    );
+
+    const tokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      tokenAddress
+    );
+
+    const bancorTokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      BntTokenContract
+    );
+
+    const bancorApproved = await bancorTokenContract.methods
+      .allowance(vxm.wallet.isAuthenticated, converterAddress)
+      .call();
+
+    const tokenApproved = await tokenContract.methods
+      .allowance(vxm.wallet.isAuthenticated, converterAddress)
+      .call();
+
+    let transactions: any = [
+      {
+        to: converterAddress,
+        data: converterContract.methods.fund(fundAmount),
+        gas: toHex(950000)
+      }
+    ];
+
+    if (Number(fromWei(bancorApproved)) < Number(token2Amount)) {
+      console.log(`changing ${fromWei(bancorApproved)} to ${token2Amount}`);
+      console.log(
+        fromWei(bancorApproved) !== "0"
+          ? "bancorApproved is not zero"
+          : "bancorApproved is zero"
+      );
+      transactions = [
+        fromWei(bancorApproved) !== "0" && {
+          to: BntTokenContract,
+          data: bancorTokenContract.methods.approve(
+            converterAddress,
+            toWei("0")
+          ),
+          gas: toHex(84999)
+        },
+        {
+          to: BntTokenContract,
+          data: bancorTokenContract.methods.approve(
+            converterAddress,
+            toWei(token2Amount!)
+          ),
+          gas: toHex(85000)
+        },
+        ...transactions
+      ];
+      console.log({ transactions });
+    }
+
+    if (Number(fromWei(tokenApproved)) < Number(token1Amount!)) {
+      console.log(`changing ${fromWei(tokenApproved)} to ${token1Amount!}`);
+      console.log(
+        fromWei(tokenApproved) !== "0"
+          ? "tokenApproved is not zero"
+          : "tokenapproved is zero"
+      );
+      transactions = [
+        fromWei(tokenApproved) !== "0" && {
+          to: tokenAddress,
+          data: tokenContract.methods.approve(converterAddress, toWei("0")),
+          gas: toHex(84999)
+        },
+        {
+          to: tokenAddress,
+          data: tokenContract.methods.approve(
+            converterAddress,
+            toWei(token1Amount!)
+          ),
+          gas: toHex(85000)
+        },
+        ...transactions
+      ];
+      console.log({ transactions });
+    }
+
+    if (tokenAddress == "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315") {
+      transactions = [
+        {
+          to: "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315",
+          value: web3.utils.toHex(toWei(token1Amount!))
+        },
+        ...transactions
+      ];
+    }
+
+    const fillOuter = (outer: any) => ({
+      from: outer.from || vxm.wallet.isAuthenticated,
+      to: outer.to,
+      value: outer.value || "0x0",
+      ...(outer.data && { data: outer.data }),
+      ...(outer.gas && { gas: outer.gas }),
+      ...(outer.gasPrice && { gasPrice: outer.gasPrice })
+    });
+
+    const batch = new web3.BatchRequest();
+
+    transactions
+      .filter(Boolean)
+      .map((tx: any) => ({
+        ...tx,
+        ...(tx.data && {
+          data: tx.data.encodeABI({ from: vxm.wallet.isAuthenticated })
+        })
+      }))
+      .forEach((transaction: any, index: number) => {
+        batch.add(
+          // @ts-ignore
+          web3.eth.sendTransaction.request(fillOuter(transaction))
+        );
+      });
+
+    console.log(batch, "is batch");
+    await batch.execute();
   }
 
   @action async init() {

@@ -42,6 +42,26 @@ export interface ProposedTransaction {
   amount: FloatAmount;
 }
 
+export interface LiquidityParams {
+  smartTokenSymbol: string;
+  fundAmount: string;
+  token1Amount?: string;
+  token1Symbol?: string;
+  token2Symbol?: string;
+  token2Amount?: string;
+}
+
+export interface OpposingLiquidParams {
+  smartTokenSymbol: string;
+  tokenSymbol: string;
+  tokenAmount: string;
+}
+
+export interface OpposingLiquid {
+  opposingAmount: string;
+  smartTokenAmount: string;
+}
+
 export interface ProposedConvertTransaction {
   fromSymbol: string;
   toSymbol: string;

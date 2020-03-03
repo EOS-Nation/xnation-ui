@@ -1,7 +1,9 @@
 import { VuexModule, action, Module } from "vuex-class-component";
 import {
   ProposedTransaction,
-  ProposedConvertTransaction
+  ProposedConvertTransaction,
+  LiquidityParams,
+  OpposingLiquidParams
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -37,6 +39,16 @@ export class BancorModule extends VuexModule {
     return vxm[`${this.currentNetwork}Bancor`]["token"];
   }
 
+  get relays() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["relays"];
+  }
+
+  get relay() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["relay"];
+  }
+
   get wallet() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["wallet"];
@@ -60,6 +72,26 @@ export class BancorModule extends VuexModule {
 
   @action async getReturn(proposedTransaction: ProposedTransaction) {
     return this.dispatcher(["getReturn", proposedTransaction]);
+  }
+
+  @action async addLiquidity(addLiquidityParams: LiquidityParams) {
+    return this.dispatcher(["addLiquidity", addLiquidityParams]);
+  }
+
+  @action async removeLiquidity(removeLiquidityParams: LiquidityParams) {
+    return this.dispatcher(["removeLiquidity", removeLiquidityParams]);
+  }
+
+  @action async calculateOpposingDeposit(
+    opposingDeposit: OpposingLiquidParams
+  ) {
+    return this.dispatcher(["calculateOpposingDeposit", opposingDeposit]);
+  }
+
+  @action async calculateOpposingWithdraw(
+    opposingWithdraw: OpposingLiquidParams
+  ) {
+    return this.dispatcher(["calculateOpposingWithdraw", opposingWithdraw]);
   }
 
   @action async focusSymbol(symbolName: string) {

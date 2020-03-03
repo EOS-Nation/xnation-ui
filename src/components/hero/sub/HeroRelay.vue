@@ -3,20 +3,20 @@
     <two-token-hero
       :tokenOneSymbol="token1Symbol"
       :tokenOneAmount.sync="token1Amount"
-      @update:tokenOneAmount="mutateOppositeTokenAmount(true)"
-      @update:tokenTwoAmount="mutateOppositeTokenAmount(false)"
+      @update:tokenOneAmount="tokenOneChanged"
+      @update:tokenTwoAmount="tokenTwoChanged"
       :tokenOneBalance="displayedToken1Balance"
       :tokenOneImg="token1Img"
-      :tokenTwoSymbol="token1Symbol"
+      :tokenTwoSymbol="token2Symbol"
       :tokenTwoAmount.sync="token2Amount"
       :tokenTwoBalance="displayedToken2Balance"
       :tokenTwoImg="token2Img"
-      :label="buttonFlipped ? 'Pool Balance:' : 'Wallet Balance:'"
+      :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
     >
       <div>
         <transition name="fade" mode="out-in">
           <font-awesome-icon
-            :icon="buttonFlipped ? 'minus' : 'plus'"
+            :icon="withdrawLiquidity ? 'minus' : 'plus'"
             class="fa-2x text-white cursor"
             :spin="spinning"
           />
@@ -30,7 +30,6 @@
             <span v-if="rateLoading">
               <font-awesome-icon icon="circle-notch" spin />
             </span>
-            <!-- {{ simpleReward }} -->
           </div>
           <!-- <div class="text-white font-size-sm">Fee: {{ fee }} %</div> -->
         </div>
@@ -46,17 +45,19 @@
           >
             <template v-slot:button-content>
               <font-awesome-icon
-                :icon="buttonFlipped ? 'arrow-down' : 'arrow-up'"
+                :icon="withdrawLiquidity ? 'arrow-down' : 'arrow-up'"
                 :spin="loadingTokens"
                 fixed-width
                 class="mr-2"
               />
               <span class="font-w700">
-                {{ buttonFlipped ? "Remove Liquidity" : "Add Liquidity" }}
+                {{ withdrawLiquidity ? "Remove Liquidity" : "Add Liquidity" }}
               </span>
             </template>
-            <b-dropdown-item-button @click="buttonFlipped = !buttonFlipped">
-              {{ buttonFlipped ? "Add Liquidity" : "Remove Liquidity" }}
+            <b-dropdown-item-button
+              @click="withdrawLiquidity = !withdrawLiquidity"
+            >
+              {{ withdrawLiquidity ? "Add Liquidity" : "Remove Liquidity" }}
             </b-dropdown-item-button>
           </b-dropdown>
         </div>
@@ -76,20 +77,11 @@ import { split, Asset, Symbol } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
-import { tableApi } from "@/api/TableWrapper";
-import {
-  getBalance,
-  getBankBalance,
-  web3,
-  getBancorGasPriceLimit,
-  fetchReserveBalance
-} from "@/api/helpers";
-import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
-import { toWei, toHex, fromWei } from "web3-utils";
-import { Ether } from "@/api/helpers";
-import Decimal from "decimal.js";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TwoTokenHero from "./TwoTokenHero.vue";
+import { toWei, toHex, fromWei } from "web3-utils";
+import { OpposingLiquid } from "../../../types/bancor";
+import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 
 @Component({
   components: {
@@ -111,23 +103,12 @@ export default class HeroConvert extends Vue {
   token1UserBalance = "";
   token2UserBalance = "";
   smartUserBalance = "";
-  smartSupply = "";
-  buttonFlipped = false;
-  flipped = false;
+  withdrawLiquidity = false;
   fundReward = "";
   liquidateCost = "";
   token1SmartBalance = "";
   token2SmartBalance = "";
-  gasPriceLimit = "";
   modal = false;
-
-  selectedToken(account: string) {
-    this.modal = false;
-    this.$router.push({
-      name: "Relay",
-      params: { account }
-    });
-  }
 
   get choices() {
     return vxm.ethBancor.relays.map((relay: any) => ({
@@ -158,19 +139,15 @@ export default class HeroConvert extends Vue {
   }
 
   get token1() {
-    const x = vxm.bancor.token(
-      this.relay!.reserves[this.flipped ? 1 : 0].symbol
-    )!;
-    console.log("got", x);
-    return x;
+    return vxm.bancor.token(this.relay!.reserves[0].symbol)!;
   }
 
   get token2() {
-    return vxm.bancor.token(this.relay!.reserves[this.flipped ? 0 : 1].symbol)!;
+    return vxm.bancor.token(this.relay!.reserves[1].symbol)!;
   }
 
   get relay() {
-    return vxm.ethBancor.relay(this.focusedSymbol);
+    return vxm.bancor.relay(this.focusedSymbol);
   }
 
   get fee() {
@@ -178,13 +155,13 @@ export default class HeroConvert extends Vue {
   }
 
   get displayedToken1Balance() {
-    return this.buttonFlipped
+    return this.withdrawLiquidity
       ? this.token1SmartBalance
       : this.token1UserBalance;
   }
 
   get displayedToken2Balance() {
-    return this.buttonFlipped
+    return this.withdrawLiquidity
       ? this.token2SmartBalance
       : this.token2UserBalance;
   }
@@ -197,227 +174,53 @@ export default class HeroConvert extends Vue {
     return this.owner == this.isAuthenticated;
   }
 
-  get simpleReward() {
-    if (!this.token1Balance && !this.token2Balance) return "";
-    const token1 = split(this.token1Balance);
-    const token2 = split(this.token2Balance);
-    // @ts-ignore
-    const oneAmount = Math.pow(10, token1.symbol.precision);
-    // @ts-ignore
-    const reward = calculateReturn(
-      // @ts-ignore
-      token1,
-      token2,
-      new Asset(oneAmount, token1.symbol)
-    );
-    return `${reward.toNumber().toFixed(4)} ${reward.symbol.code()}`;
+  selectedToken(account: string) {
+    this.modal = false;
+    this.$router.push({
+      name: "Relay",
+      params: { account }
+    });
   }
 
-  async fetchRelayBalances() {
-    const {
-      converterAddress,
-      tokenAddress,
-      smartTokenAddress,
-      version
-    } = this.relay!;
-
-    const converterContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABIConverter,
-      converterAddress
-    );
-
-    const smartTokenContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABISmartToken,
-      smartTokenAddress
-    );
-
-    try {
-      const [
-        tokenReserveBalance,
-        bntReserveBalance,
-        totalSupply
-      ] = await Promise.all([
-        fetchReserveBalance(converterContract, tokenAddress, version),
-        fetchReserveBalance(converterContract, BntTokenContract, version),
-        smartTokenContract.methods.totalSupply().call()
-      ]);
-      return { tokenReserveBalance, bntReserveBalance, totalSupply };
-    } catch (e) {
-      console.log("failed to TJ hooker", e);
-      throw new Error("What" + e);
-    }
-  }
-
-  percentageIncrease(deposit: string, existingSupply: string): number {
-    return new Decimal(deposit).div(existingSupply).toNumber();
-  }
-
-  percentageOfReserve(percent: number, existingSupply: string): string {
-    return new Decimal(percent).times(existingSupply).toFixed(0);
-  }
-
-  async getDecimalsOfToken(symbolName: string): Promise<number> {
-    return vxm.ethBancor.getDecimals(symbolName);
-  }
-
-  calculateFundReward(
-    reserveAmount: string,
-    reserveSupply: string,
-    smartSupply: string
-  ) {
-    Decimal.set({ rounding: 0 });
-    return new Decimal(reserveAmount)
-      .div(reserveSupply)
-      .times(smartSupply)
-      .times(0.99)
-      .toFixed(0);
-  }
-
-  calculateLiquidateCost(
-    reserveAmount: string,
-    reserveBalance: string,
-    smartSupply: string
-  ) {
-    const percent = this.percentageIncrease(reserveAmount, reserveBalance);
-    return this.percentageOfReserve(percent, smartSupply);
-  }
-
-  percentDifference(smallAmount: string, bigAmount: string) {
-    console.log({ smallAmount, bigAmount });
-    return new Decimal(smallAmount).div(bigAmount).toNumber();
-  }
-
-  async mutateOppositeTokenAmount(isToken1: boolean) {
+  async tokenOneChanged() {
     this.rateLoading = true;
-    const {
-      tokenReserveBalance,
-      bntReserveBalance,
-      totalSupply
-    } = await this.fetchRelayBalances();
-
-    if (this.buttonFlipped) {
-      // Liquidating
-      if (isToken1) {
-        // token 1 was changed
-        const decimals = await this.getDecimalsOfToken(this.token1.symbol);
-        const token1Wei = String(
-          Number(this.token1Amount) * Math.pow(10, decimals)
-        );
-        const token2Value = this.calculateOppositeLiquidateRequirement(
-          token1Wei,
-          tokenReserveBalance,
-          bntReserveBalance
-        );
-        this.token2Amount = fromWei(token2Value);
-        const liquidateCost = this.calculateLiquidateCost(
-          token1Wei,
-          tokenReserveBalance,
-          totalSupply
-        );
-        const percentDifferenceBetweenSmartBalance = this.percentDifference(
-          liquidateCost,
-          String(Number(this.smartUserBalance) * Math.pow(10, 18))
-        );
-        if (percentDifferenceBetweenSmartBalance > 0.99) {
-          console.log("should just use the whole balance");
-          const userSmartTokenBalance = toWei(this.smartUserBalance);
-          console.log({ userSmartTokenBalance });
-          this.liquidateCost = userSmartTokenBalance;
-        } else {
-          console.log("not using whole balance");
-          this.liquidateCost = liquidateCost;
-        }
-      } else {
-        // token2 was changed
-        const decimals = await this.getDecimalsOfToken(this.token2.symbol);
-        const token2Wei = String(
-          Number(this.token2Amount) * Math.pow(10, decimals)
-        );
-        console.log({
-          token2Wei,
-          tokenReserveBalance,
-          bntReserveBalance,
-          totalSupply
-        });
-        const token1Value = this.calculateOppositeLiquidateRequirement(
-          token2Wei,
-          tokenReserveBalance,
-          bntReserveBalance
-        );
-        this.token1Amount = fromWei(token1Value);
-        const liquidateCost = this.calculateLiquidateCost(
-          token2Wei,
-          tokenReserveBalance,
-          totalSupply
-        );
-        console.log(fromWei(liquidateCost), "is the liquidate cost");
-        this.liquidateCost = liquidateCost;
-      }
-    } else {
-      // Funding
-      if (isToken1) {
-        const decimals = await this.getDecimalsOfToken(this.token1.symbol);
-        const token1Wei = String(
-          Number(this.token1Amount) * Math.pow(10, decimals)
-        );
-        const token2Value = this.calculateOppositeFundRequirement(
-          token1Wei,
-          tokenReserveBalance,
-          bntReserveBalance
-        );
-        this.token2Amount = fromWei(token2Value);
-        const fundReward = this.calculateFundReward(
-          token1Wei,
-          tokenReserveBalance,
-          totalSupply
-        );
-        this.fundReward = fundReward;
-      } else {
-        const decimals = await this.getDecimalsOfToken(this.token2.symbol);
-        const token2Wei = String(
-          Number(this.token2Amount) * Math.pow(10, decimals)
-        );
-        const token1Value = this.calculateOppositeFundRequirement(
-          token2Wei,
-          bntReserveBalance,
-          tokenReserveBalance
-        );
-        this.token1Amount = fromWei(token1Value);
-        const fundReward = this.calculateFundReward(
-          token2Wei,
-          bntReserveBalance,
-          totalSupply
-        );
-        console.log("fund reward being set to", fundReward);
-        this.fundReward = fundReward;
-      }
-    }
-
+    const { opposingAmount, smartTokenAmount } = await vxm.bancor[
+      this.withdrawLiquidity
+        ? "calculateOpposingWithdraw"
+        : "calculateOpposingDeposit"
+    ]({
+      smartTokenSymbol: this.focusedSymbol,
+      tokenAmount: this.token1Amount,
+      tokenSymbol: this.token1Symbol
+    });
+    this.token2Amount = opposingAmount;
+    this[
+      this.withdrawLiquidity ? "liquidateCost" : "fundReward"
+    ] = smartTokenAmount;
     this.rateLoading = false;
   }
 
-  calculateOppositeFundRequirement(
-    deposit: string,
-    depositsSupply: string,
-    oppositesSupply: string
-  ): string {
-    const increase = this.percentageIncrease(deposit, depositsSupply);
-    return this.percentageOfReserve(increase, oppositesSupply);
-  }
-
-  calculateOppositeLiquidateRequirement(
-    reserveAmount: string,
-    reserveBalance: string,
-    oppositeReserveBalance: string
-  ) {
-    const increase = this.percentageIncrease(reserveAmount, reserveBalance);
-    return this.percentageOfReserve(increase, oppositeReserveBalance);
+  async tokenTwoChanged() {
+    this.rateLoading = true;
+    // @ts-ignore
+    const { opposingAmount, smartTokenAmount } = await vxm.bancor[
+      this.withdrawLiquidity
+        ? "calculateOpposingWithdraw"
+        : "calculateOpposingDeposit"
+    ]({
+      smartTokenSymbol: this.focusedSymbol,
+      tokenAmount: this.token2Amount,
+      tokenSymbol: this.token2Symbol
+    });
+    this.token1Amount = opposingAmount;
+    this[
+      this.withdrawLiquidity ? "liquidateCost" : "fundReward"
+    ] = smartTokenAmount;
+    this.rateLoading = false;
   }
 
   async toggleMain() {
-    if (this.buttonFlipped) {
+    if (this.withdrawLiquidity) {
       this.removeLiquidity();
     } else {
       this.addLiquidity();
@@ -425,190 +228,27 @@ export default class HeroConvert extends Vue {
   }
 
   async removeLiquidity() {
-    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay!;
-
-    const maxGasPrice = await getBancorGasPriceLimit();
-
-    const converterContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABIConverter,
-      converterAddress
-    );
-    const smartTokenContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABISmartToken,
-      smartTokenAddress
-    );
-
-    const bancorTokenContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABISmartToken,
-      BntTokenContract
-    );
-
-    const batch = new web3.BatchRequest();
-
-    const liquidateData = converterContract.methods
-      .liquidate(this.liquidateCost)
-      .encodeABI({ from: this.isAuthenticated });
-
-    const liquidate = {
-      from: this.isAuthenticated,
-      to: converterAddress,
-      value: "0x0",
-      data: liquidateData,
-      gas: toHex(950000)
-    };
-
-    batch.add(
-      // @ts-ignore
-      web3.eth.sendTransaction.request(liquidate, () => console.log("Pool"))
-    );
-    console.log(batch, "is batch");
-    await batch.execute();
+    const txResult = await vxm.bancor.removeLiquidity({
+      smartTokenSymbol: this.focusedSymbol,
+      fundAmount: this.fundReward,
+      token1Amount: this.token1Amount,
+      token1Symbol: this.token1Symbol,
+      token2Amount: this.token2Amount,
+      token2Symbol: this.token2Symbol
+    });
     this.fetchUserTokenBalances();
     this.setMaxWithdrawals();
   }
 
   async addLiquidity() {
-    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay!;
-
-    const maxGasPrice = await getBancorGasPriceLimit();
-
-    const converterContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABIConverter,
-      converterAddress
-    );
-    const smartTokenContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABISmartToken,
-      smartTokenAddress
-    );
-
-    const tokenContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABISmartToken,
-      tokenAddress
-    );
-
-    const bancorTokenContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABISmartToken,
-      BntTokenContract
-    );
-
-    const bancorApproved = await bancorTokenContract.methods
-      .allowance(this.isAuthenticated, converterAddress)
-      .call();
-
-    const tokenApproved = await tokenContract.methods
-      .allowance(this.isAuthenticated, converterAddress)
-      .call();
-
-    const batch = new web3.BatchRequest();
-
-    let transactions: any = [
-      {
-        to: converterAddress,
-        data: converterContract.methods.fund(this.fundReward),
-        gas: toHex(950000)
-      }
-    ];
-
-    if (Number(fromWei(bancorApproved)) < Number(this.token2Amount)) {
-      console.log(
-        `changing ${fromWei(bancorApproved)} to ${this.token2Amount}`
-      );
-      console.log(
-        fromWei(bancorApproved) !== "0"
-          ? "bancorApproved is not zero"
-          : "bancorApproved is zero"
-      );
-      transactions = [
-        fromWei(bancorApproved) !== "0" && {
-          to: BntTokenContract,
-          data: bancorTokenContract.methods.approve(
-            converterAddress,
-            toWei("0")
-          ),
-          gas: toHex(84999)
-        },
-        {
-          to: BntTokenContract,
-          data: bancorTokenContract.methods.approve(
-            converterAddress,
-            toWei(this.token2Amount)
-          ),
-          gas: toHex(85000)
-        },
-        ...transactions
-      ];
-      console.log({ transactions });
-    }
-
-    if (Number(fromWei(tokenApproved)) < Number(this.token1Amount)) {
-      console.log(`changing ${fromWei(tokenApproved)} to ${this.token1Amount}`);
-      console.log(
-        fromWei(tokenApproved) !== "0"
-          ? "tokenApproved is not zero"
-          : "tokenapproved is zero"
-      );
-      transactions = [
-        fromWei(tokenApproved) !== "0" && {
-          to: tokenAddress,
-          data: tokenContract.methods.approve(converterAddress, toWei("0")),
-          gas: toHex(84999)
-        },
-        {
-          to: tokenAddress,
-          data: tokenContract.methods.approve(
-            converterAddress,
-            toWei(this.token1Amount)
-          ),
-          gas: toHex(85000)
-        },
-        ...transactions
-      ];
-      console.log({ transactions });
-    }
-
-    if (tokenAddress == "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315") {
-      transactions = [
-        {
-          to: "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315",
-          value: web3.utils.toHex(toWei(this.token1Amount))
-        },
-        ...transactions
-      ];
-    }
-
-    const fillOuter = (outer: any) => ({
-      from: outer.from || this.isAuthenticated,
-      to: outer.to,
-      value: outer.value || "0x0",
-      ...(outer.data && { data: outer.data }),
-      ...(outer.gas && { gas: outer.gas }),
-      ...(outer.gasPrice && { gasPrice: outer.gasPrice })
+    const txResult = await vxm.bancor.addLiquidity({
+      smartTokenSymbol: this.focusedSymbol,
+      fundAmount: this.fundReward,
+      token1Amount: this.token1Amount,
+      token1Symbol: this.token1Symbol,
+      token2Amount: this.token2Amount,
+      token2Symbol: this.token2Symbol
     });
-
-    transactions
-      .filter((x: any) => x)
-      .map((tx: any) => ({
-        ...tx,
-        ...(tx.data && {
-          data: tx.data.encodeABI({ from: this.isAuthenticated })
-        })
-      }))
-      .forEach((transaction: any, index: number) => {
-        batch.add(
-          // @ts-ignore
-          web3.eth.sendTransaction.request(fillOuter(transaction))
-        );
-      });
-
-    console.log(batch, "is batch");
-    await batch.execute();
     this.fetchUserTokenBalances();
     this.setMaxWithdrawals();
   }
@@ -650,7 +290,7 @@ export default class HeroConvert extends Vue {
     }
   }
 
-  @Watch("buttonFlipped")
+  @Watch("withdrawLiquidity")
   buttonFlip() {
     this.token1Amount = "";
     this.token2Amount = "";
@@ -660,49 +300,37 @@ export default class HeroConvert extends Vue {
   listen(to: any) {
     this.fetchUserTokenBalances();
     this.setMaxWithdrawals();
-    this.buttonFlipped = to.params.mode == "liquidate";
-  }
-
-  async fetchSmartSupply() {
-    const { totalSupply } = await this.fetchRelayBalances();
-    this.smartSupply = totalSupply;
+    this.withdrawLiquidity = to.params.mode == "liquidate";
   }
 
   async setMaxWithdrawals() {
-    const userSmartTokenBalance = await this.fetchUserTokenBalances();
-    if (!userSmartTokenBalance) return;
-    const {
-      totalSupply,
-      bntReserveBalance,
-      tokenReserveBalance
-    } = await this.fetchRelayBalances();
-    try {
-      const percent = new Decimal(userSmartTokenBalance).div(
-        fromWei(totalSupply)
-      );
-      const token2SmartBalance = percent.times(bntReserveBalance);
-      const token1SmartBalance = percent.times(tokenReserveBalance);
-
-      const token2SmartInt = token2SmartBalance.toFixed(0);
-      const token1SmartInt = token1SmartBalance.toFixed(0);
-      console.log({
-        percent: percent.toNumber(),
-        token2x: token2SmartInt,
-        userSmartTokenBalance,
-        totalSupply
-      });
-
-      this.token2SmartBalance = fromWei(token2SmartInt);
-      this.token1SmartBalance = fromWei(token1SmartInt);
-    } catch (e) {
-      console.log("Something went wrong in setMaxWithdrawals" + e);
-    }
+    // const userSmartTokenBalance = await this.fetchUserTokenBalances();
+    // if (!userSmartTokenBalance) return;
+    // const {
+    //   totalSupply,
+    //   bntReserveBalance,
+    //   tokenReserveBalance
+    // } = await this.fetchRelayBalances();
+    // const percent = new Decimal(userSmartTokenBalance).div(
+    //   fromWei(totalSupply)
+    // );
+    // const token2SmartBalance = percent.times(bntReserveBalance);
+    // const token1SmartBalance = percent.times(tokenReserveBalance);
+    // const token2SmartInt = token2SmartBalance.toFixed(0);
+    // const token1SmartInt = token1SmartBalance.toFixed(0);
+    // console.log({
+    //   percent: percent.toNumber(),
+    //   token2x: token2SmartInt,
+    //   userSmartTokenBalance,
+    //   totalSupply
+    // });
+    // this.token2SmartBalance = fromWei(token2SmartInt);
+    // this.token1SmartBalance = fromWei(token1SmartInt);
   }
 
   async created() {
     this.fetchUserTokenBalances();
     this.setMaxWithdrawals();
-    this.gasPriceLimit = await getBancorGasPriceLimit();
   }
 }
 </script>
