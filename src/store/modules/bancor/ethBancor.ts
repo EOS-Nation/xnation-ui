@@ -256,11 +256,8 @@ export class EthBancorModule extends VuexModule {
       bntReserveBalance,
       totalSupply
     } = await this.fetchRelayBalances(smartTokenSymbol);
-    console.log("getting token id");
-    const tokenId = this.tokensList.find(token => token.code == tokenSymbol).id
-    console.log("tokeIdgot", tokenId);
+    const tokenId = this.tokensList.find(token => token.code == tokenSymbol).id;
     const decimals = await this.getDecimals(tokenId);
-    console.log("decimals called", tokenId);
     const tokenAmountWei = String(Number(tokenAmount) * Math.pow(10, decimals));
     const opposingAmount = calculateOppositeFundRequirement(
       tokenAmountWei,
@@ -273,13 +270,52 @@ export class EthBancorModule extends VuexModule {
       totalSupply
     );
 
-    console.log("returning..", {
-      opposingAmount: fromWei(opposingAmount),
-      smartTokenAmount: fundReward
-    });
     return {
       opposingAmount: fromWei(opposingAmount),
       smartTokenAmount: fundReward
+    };
+  }
+
+  @action async getUserBalance(tokenContractAddress: string) {
+    return vxm.ethWallet.getBalance({
+      accountHolder: vxm.wallet.isAuthenticated,
+      tokenContractAddress
+    });
+  }
+
+  @action async getUserBalances(symbolName: string) {
+    if (!vxm.wallet.isAuthenticated) throw new Error("Cannot find users .isAuthenticated")
+    const { smartTokenAddress, tokenAddress } = this.relay(symbolName)!;
+
+    const [
+      bntUserBalance,
+      tokenUserBalance,
+      smartTokenUserBalance,
+    ] = await Promise.all([
+      this.getUserBalance(BntTokenContract),
+      this.getUserBalance(tokenAddress),
+      this.getUserBalance(smartTokenAddress)
+    ]);
+
+    const {
+      totalSupply,
+      bntReserveBalance,
+      tokenReserveBalance
+    } = await this.fetchRelayBalances(symbolName);
+
+    const percent = new Decimal(smartTokenUserBalance).div(
+      fromWei(totalSupply)
+    );
+    const token1SmartBalance = percent.times(tokenReserveBalance);
+    const token2SmartBalance = percent.times(bntReserveBalance);
+    const token1SmartInt = token1SmartBalance.toFixed(0);
+    const token2SmartInt = token2SmartBalance.toFixed(0);
+    return {
+      token1MaxWithdraw: fromWei(token1SmartInt),
+      token2MaxWithdraw: fromWei(token2SmartInt),
+      token1Balance: tokenUserBalance,
+      token2Balance: bntUserBalance,
+      smartTokenBalance: smartTokenUserBalance
     };
   }
 

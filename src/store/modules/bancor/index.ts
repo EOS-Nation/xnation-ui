@@ -66,6 +66,10 @@ export class BancorModule extends VuexModule {
     return this.dispatcher(["convert", tx]);
   }
 
+  @action async getUserBalances(symbolName: string) {
+    return this.dispatcher(["getUserBalances", symbolName]);
+  }
+
   @action async getCost(proposedTransaction: ProposedTransaction) {
     return this.dispatcher(["getCost", proposedTransaction]);
   }
@@ -98,7 +102,7 @@ export class BancorModule extends VuexModule {
     return this.dispatcher(["focusSymbol", symbolName]);
   }
 
-  @action async dispatcher([methodName, params]: [string, any]) {
+  @action async dispatcher([methodName, params]: [string, any?]) {
     return this.$store.dispatch(
       `${this.currentNetwork}Bancor/${methodName}`,
       params,

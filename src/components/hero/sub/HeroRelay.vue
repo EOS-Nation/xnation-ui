@@ -70,18 +70,10 @@
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
-import { fetchTokenMeta, fetchTokenStats, Wei } from "@/api/helpers";
-import numeral from "numeral";
-import { calculateReturn, calculateFundReturn, liquidate } from "bancorx";
-import { split, Asset, Symbol } from "eos-common";
-import { multiContract } from "@/api/multiContractTx";
-import wait from "waait";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TwoTokenHero from "./TwoTokenHero.vue";
-import { toWei, toHex, fromWei } from "web3-utils";
 import { OpposingLiquid } from "../../../types/bancor";
-import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 
 @Component({
   components: {
@@ -93,30 +85,19 @@ import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 })
 export default class HeroConvert extends Vue {
   rateLoading = false;
-  numeral = numeral;
   spinning = false;
   loadingTokens = false;
   token1Amount = "";
   token2Amount = "";
-  token1Balance = "";
-  token2Balance = "";
   token1UserBalance = "";
   token2UserBalance = "";
   smartUserBalance = "";
   withdrawLiquidity = false;
   fundReward = "";
   liquidateCost = "";
-  token1SmartBalance = "";
-  token2SmartBalance = "";
+  token1MaxWithdraw = "";
+  token2MaxWithdraw = "";
   modal = false;
-
-  get choices() {
-    return vxm.ethBancor.relays.map((relay: any) => ({
-      img: relay.reserves[0].logo,
-      symbol: relay.smartTokenSymbol,
-      balance: 0
-    }));
-  }
 
   get owner() {
     return this.relay!.owner;
@@ -156,13 +137,13 @@ export default class HeroConvert extends Vue {
 
   get displayedToken1Balance() {
     return this.withdrawLiquidity
-      ? this.token1SmartBalance
+      ? this.token1MaxWithdraw
       : this.token1UserBalance;
   }
 
   get displayedToken2Balance() {
     return this.withdrawLiquidity
-      ? this.token2SmartBalance
+      ? this.token2MaxWithdraw
       : this.token2UserBalance;
   }
 
@@ -202,7 +183,6 @@ export default class HeroConvert extends Vue {
 
   async tokenTwoChanged() {
     this.rateLoading = true;
-    // @ts-ignore
     const { opposingAmount, smartTokenAmount } = await vxm.bancor[
       this.withdrawLiquidity
         ? "calculateOpposingWithdraw"
@@ -236,8 +216,7 @@ export default class HeroConvert extends Vue {
       token2Amount: this.token2Amount,
       token2Symbol: this.token2Symbol
     });
-    this.fetchUserTokenBalances();
-    this.setMaxWithdrawals();
+    this.fetchBalances();
   }
 
   async addLiquidity() {
@@ -249,44 +228,21 @@ export default class HeroConvert extends Vue {
       token2Amount: this.token2Amount,
       token2Symbol: this.token2Symbol
     });
-    this.fetchUserTokenBalances();
-    this.setMaxWithdrawals();
+    this.fetchBalances();
   }
 
   get defaultFocusedSymbol() {
-    return vxm.ethBancor.relays[0]!.smartTokenSymbol;
+    return vxm.bancor.relays[0]!.smartTokenSymbol;
   }
 
   get focusedSymbol() {
     return this.$route.params.account || this.defaultFocusedSymbol;
   }
 
-  async fetchUserTokenBalances() {
-    if (!this.isAuthenticated) return;
-    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay!;
-
-    const getBalance = async (contractAddress: string) =>
-      vxm.ethWallet.getBalance({
-        accountHolder: this.isAuthenticated,
-        tokenContractAddress: contractAddress
-      });
-
-    const [bntBalance, tokenBalance, smartTokenBalance] = await Promise.all([
-      getBalance(BntTokenContract),
-      getBalance(tokenAddress),
-      getBalance(smartTokenAddress)
-    ]);
-
-    this.token1UserBalance = tokenBalance;
-    this.token2UserBalance = bntBalance;
-    this.smartUserBalance = smartTokenBalance;
-    return smartTokenBalance;
-  }
-
   @Watch("isAuthenticated")
   onAuthChange(val: any) {
     if (val) {
-      this.fetchUserTokenBalances();
+      this.fetchBalances();
     }
   }
 
@@ -298,39 +254,29 @@ export default class HeroConvert extends Vue {
 
   @Watch("$route")
   listen(to: any) {
-    this.fetchUserTokenBalances();
-    this.setMaxWithdrawals();
+    this.fetchBalances();
     this.withdrawLiquidity = to.params.mode == "liquidate";
   }
 
-  async setMaxWithdrawals() {
-    // const userSmartTokenBalance = await this.fetchUserTokenBalances();
-    // if (!userSmartTokenBalance) return;
-    // const {
-    //   totalSupply,
-    //   bntReserveBalance,
-    //   tokenReserveBalance
-    // } = await this.fetchRelayBalances();
-    // const percent = new Decimal(userSmartTokenBalance).div(
-    //   fromWei(totalSupply)
-    // );
-    // const token2SmartBalance = percent.times(bntReserveBalance);
-    // const token1SmartBalance = percent.times(tokenReserveBalance);
-    // const token2SmartInt = token2SmartBalance.toFixed(0);
-    // const token1SmartInt = token1SmartBalance.toFixed(0);
-    // console.log({
-    //   percent: percent.toNumber(),
-    //   token2x: token2SmartInt,
-    //   userSmartTokenBalance,
-    //   totalSupply
-    // });
-    // this.token2SmartBalance = fromWei(token2SmartInt);
-    // this.token1SmartBalance = fromWei(token1SmartInt);
+  async fetchBalances() {
+    if (!this.isAuthenticated) return;
+    const {
+      token1MaxWithdraw,
+      token2MaxWithdraw,
+      token1Balance,
+      token2Balance,
+      smartTokenBalance
+    } = await vxm.bancor.getUserBalances(this.focusedSymbol);
+
+    this.token1MaxWithdraw = token1MaxWithdraw;
+    this.token2MaxWithdraw = token2MaxWithdraw;
+    this.token1UserBalance = token1Balance;
+    this.token2UserBalance = token2Balance;
+    this.smartUserBalance = smartTokenBalance;
   }
 
   async created() {
-    this.fetchUserTokenBalances();
-    this.setMaxWithdrawals();
+    this.fetchBalances();
   }
 }
 </script>
