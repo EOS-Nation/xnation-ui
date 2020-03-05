@@ -14,7 +14,6 @@ import {
   FontAwesomeLayers,
   FontAwesomeLayersText
 } from "@fortawesome/vue-fontawesome";
-import VueAnalytics from "vue-analytics";
 // @ts-ignore
 import Ripple from "vue-ripple-directive";
 // @ts-ignore
@@ -23,13 +22,7 @@ import ImageFallback from "vue-image-fallback";
 import { sync } from "vuex-router-sync";
 
 Vue.use(VueFuse);
-Vue.use(VueAnalytics, {
-  id: "UA-138549575-2",
-  router,
-  debug: {
-    sendHitTask: process.env.NODE_ENV === "production"
-  }
-});
+
 
 Ripple.color = "rgba(255, 255, 255, 0.35)";
 Ripple.zIndex = 1055;
