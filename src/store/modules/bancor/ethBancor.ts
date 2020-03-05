@@ -4,7 +4,9 @@ import {
   ProposedConvertTransaction,
   LiquidityParams,
   OpposingLiquidParams,
-  OpposingLiquid
+  OpposingLiquid,
+  TradingModule,
+  LiquidityModule
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancor";
 import {
@@ -88,8 +90,9 @@ const calculateLiquidateCost = (
 const percentDifference = (smallAmount: string, bigAmount: string) =>
   new Decimal(smallAmount).div(bigAmount).toNumber();
 
+
 @Module({ namespacedPath: "ethBancor/" })
-export class EthBancorModule extends VuexModule {
+export class EthBancorModule extends VuexModule implements TradingModule, LiquidityModule {
   tokensList: any[] = [];
   usdPrice: number = 0;
   relaysList: Relay[] = [];
@@ -155,6 +158,7 @@ export class EthBancorModule extends VuexModule {
     return (symbolName: string) =>
       this.relays.find((relay: any) => relay.smartTokenSymbol == symbolName);
   }
+
 
   get relays() {
     const relays = this.relaysList.map(relay => {
@@ -454,12 +458,6 @@ export class EthBancorModule extends VuexModule {
     ];
 
     if (Number(fromWei(bancorApproved)) < Number(token2Amount)) {
-      console.log(`changing ${fromWei(bancorApproved)} to ${token2Amount}`);
-      console.log(
-        fromWei(bancorApproved) !== "0"
-          ? "bancorApproved is not zero"
-          : "bancorApproved is zero"
-      );
       transactions = [
         fromWei(bancorApproved) !== "0" && {
           to: BntTokenContract,
@@ -479,16 +477,9 @@ export class EthBancorModule extends VuexModule {
         },
         ...transactions
       ];
-      console.log({ transactions });
     }
 
     if (Number(fromWei(tokenApproved)) < Number(token1Amount!)) {
-      console.log(`changing ${fromWei(tokenApproved)} to ${token1Amount!}`);
-      console.log(
-        fromWei(tokenApproved) !== "0"
-          ? "tokenApproved is not zero"
-          : "tokenapproved is zero"
-      );
       transactions = [
         fromWei(tokenApproved) !== "0" && {
           to: tokenAddress,
@@ -505,7 +496,6 @@ export class EthBancorModule extends VuexModule {
         },
         ...transactions
       ];
-      console.log({ transactions });
     }
 
     if (tokenAddress == "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315") {
@@ -681,7 +671,7 @@ export class EthBancorModule extends VuexModule {
     }));
   }
 
-  @action async refreshBalances(symbols: string[]) {
+  @action async refreshBalances(symbols?: string[]) {
     this.resetBalances();
     if (symbols) {
       symbols.forEach(symbol => this.focusSymbol(symbol));
