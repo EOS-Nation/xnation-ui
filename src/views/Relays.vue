@@ -4,7 +4,7 @@
       <div class="block" style="min-height: 1000px;">
         <div class="block-header">
           <h3 class="block-title">
-            ETH
+            {{ $route.params.service.toUpperCase() }}
             <small>Pools</small>
           </h3>
           <div class="block-options">
@@ -179,7 +179,7 @@ export default class Relays extends Vue {
   }
 
   get tokens() {
-    return vxm.ethBancor.relays;
+    return vxm.bancor.relays;
   }
 
   goToRelay(symbolCode: string, mode = "addLiquidity") {
@@ -188,7 +188,6 @@ export default class Relays extends Vue {
       left: 0,
       behavior: "smooth"
     });
-
     this.$router.push({
       name: "Relay",
       params: {

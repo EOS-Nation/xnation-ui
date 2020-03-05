@@ -149,6 +149,18 @@ export interface ViewToken {
   balance?: string;
 }
 
+interface TokenWithLogo extends AgnosticToken {
+  logo: string[]
+}
+
+export interface ViewRelay {
+  symbol: string;
+  smartTokenSymbol: string;
+  liqDepth: number;
+  reserves: TokenWithLogo[];
+  fee: number;
+}
+
 export interface TokenPriceExtended extends TokenPrice {
   balance: number;
 }
@@ -164,10 +176,26 @@ export interface TradingModule {
   getCost: (propose: ProposedTransaction) => Promise<ConvertReturn>;
 }
 
+export interface AgnosticToken {
+  contract: string;
+  precision: number;
+  symbol: string;
+  network: string;
+}
+
+export interface EosMultiRelay {
+  reserves: AgnosticToken[];
+  contract: string;
+  owner: string;
+  isMultiContract: boolean;
+  smartToken: AgnosticToken;
+  fee: number;
+}
+
 export interface LiquidityModule {
   init: () => Promise<void>;
-  readonly relay: (arg0: string) => any;
-  readonly relays: any[];
+  readonly relay: (arg0: string) => ViewRelay;
+  readonly relays: ViewRelay[];
   calculateOpposingDeposit: (
     opposingDeposit: OpposingLiquidParams
   ) => Promise<OpposingLiquid>;

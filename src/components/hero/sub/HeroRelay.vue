@@ -163,7 +163,7 @@ export default class HeroConvert extends Vue {
     });
   }
 
-  async tokenOneChanged() {
+  async tokenOneChanged(tokenAmount: string) {
     this.rateLoading = true;
     const { opposingAmount, smartTokenAmount } = await vxm.bancor[
       this.withdrawLiquidity
@@ -171,7 +171,7 @@ export default class HeroConvert extends Vue {
         : "calculateOpposingDeposit"
     ]({
       smartTokenSymbol: this.focusedSymbol,
-      tokenAmount: this.token1Amount,
+      tokenAmount,
       tokenSymbol: this.token1Symbol
     });
     this.token2Amount = opposingAmount;
@@ -181,7 +181,7 @@ export default class HeroConvert extends Vue {
     this.rateLoading = false;
   }
 
-  async tokenTwoChanged() {
+  async tokenTwoChanged(tokenAmount: string) {
     this.rateLoading = true;
     const { opposingAmount, smartTokenAmount } = await vxm.bancor[
       this.withdrawLiquidity
@@ -189,7 +189,7 @@ export default class HeroConvert extends Vue {
         : "calculateOpposingDeposit"
     ]({
       smartTokenSymbol: this.focusedSymbol,
-      tokenAmount: this.token2Amount,
+      tokenAmount,
       tokenSymbol: this.token2Symbol
     });
     this.token1Amount = opposingAmount;

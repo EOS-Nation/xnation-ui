@@ -90,9 +90,9 @@ const calculateLiquidateCost = (
 const percentDifference = (smallAmount: string, bigAmount: string) =>
   new Decimal(smallAmount).div(bigAmount).toNumber();
 
-
 @Module({ namespacedPath: "ethBancor/" })
-export class EthBancorModule extends VuexModule implements TradingModule, LiquidityModule {
+export class EthBancorModule extends VuexModule
+  implements TradingModule, LiquidityModule {
   tokensList: any[] = [];
   usdPrice: number = 0;
   relaysList: Relay[] = [];
@@ -154,12 +154,18 @@ export class EthBancorModule extends VuexModule implements TradingModule, Liquid
     };
   }
 
+  // @ts-ignore
   get relay() {
-    return (symbolName: string) =>
-      this.relays.find((relay: any) => relay.smartTokenSymbol == symbolName);
+    return (symbolName: string) => {
+      const relay = this.relays.find(
+        (relay: any) => relay.smartTokenSymbol == symbolName
+      );
+      if (!relay) throw new Error(`Failed to find relay ${symbolName}`);
+      return relay;
+    };
   }
 
-
+  // @ts-ignore
   get relays() {
     const relays = this.relaysList.map(relay => {
       const reserveToken = getPoolReserveToken(relay);
@@ -288,13 +294,14 @@ export class EthBancorModule extends VuexModule implements TradingModule, Liquid
   }
 
   @action async getUserBalances(symbolName: string) {
-    if (!vxm.wallet.isAuthenticated) throw new Error("Cannot find users .isAuthenticated")
+    if (!vxm.wallet.isAuthenticated)
+      throw new Error("Cannot find users .isAuthenticated");
     const { smartTokenAddress, tokenAddress } = this.relay(symbolName)!;
 
     const [
       bntUserBalance,
       tokenUserBalance,
-      smartTokenUserBalance,
+      smartTokenUserBalance
     ] = await Promise.all([
       this.getUserBalance(BntTokenContract),
       this.getUserBalance(tokenAddress),

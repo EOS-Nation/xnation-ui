@@ -46,7 +46,7 @@ export class TableWrapper {
         };
       })
       .sort((a: any) => {
-        return a.contract == "bntbntbntbnt" ? 1 : -1;
+        return a.contract == "bntbntbntbnt" ? -1 : 1;
       });
   }
 

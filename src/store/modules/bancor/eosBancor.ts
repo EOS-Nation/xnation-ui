@@ -8,13 +8,32 @@ import {
   TokenPriceExtended,
   ViewToken,
   ConvertReturn,
+  LiquidityParams,
+  OpposingLiquidParams,
+  OpposingLiquid,
+  EosMultiRelay,
+  AgnosticToken
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
-import { getTokenBalances } from "@/api/helpers";
+import {
+  getTokenBalances,
+  fetchRelays,
+  getBalance,
+  fetchTokenStats,
+  fetchTokenMeta
+} from "@/api/helpers";
+import { Symbol, split, double_to_asset } from "eos-common";
+import { tableApi } from "@/api/TableWrapper";
+import { multiContract } from "@/api/multiContractTx";
+import { multiContractAction } from "@/contracts/multi";
+import { vxm } from "@/store";
+
 
 @Module({ namespacedPath: "eosBancor/" })
-export class EosBancorModule extends VuexModule implements TradingModule, LiquidityModule {
+export class EosBancorModule extends VuexModule
+  implements TradingModule, LiquidityModule {
   tokensList: TokenPrice[] | TokenPriceExtended[] = [];
+  relaysList: EosMultiRelay[] = [];
   usdPrice = 0;
 
   get wallet() {
@@ -38,10 +57,15 @@ export class EosBancorModule extends VuexModule implements TradingModule, Liquid
     }));
   }
 
+  // @ts-ignore
   get token(): (arg0: string) => ViewToken {
+    // @ts-ignore
     return (symbolName: string) => {
       const token = this.tokens.find(token => token.symbol == symbolName);
-      if (!token) throw new Error("Failed to find token.");
+      if (!token) {
+        console.warn("Failed finding token", symbolName)
+        return { symbol: symbolName, logo: 'https://via.placeholder.com/50'}
+      }
       return token;
     };
   }
@@ -55,18 +79,48 @@ export class EosBancorModule extends VuexModule implements TradingModule, Liquid
     };
   }
 
+  get relay() {
+    return (symbolName: string) => {
+      const relay = this.relays.find(
+        (relay: any) => relay.smartTokenSymbol == symbolName
+      );
+      if (!relay)
+        throw new Error(`Failed to find relay with ID of ${symbolName}`);
+      return relay;
+    };
+  }
+
+  get relays() {
+    return this.relaysList.map(relay => ({
+      ...relay,
+      symbol: relay.reserves.find(reserve => reserve.symbol !== "BNT")!.symbol,
+      smartTokenSymbol: relay.smartToken.symbol,
+      liqDepth: 4,
+      reserves: relay.reserves.map((reserve: AgnosticToken) => ({
+        ...reserve,
+        logo: [this.token(reserve.symbol).logo]
+      }))
+    }));
+  }
+
   @action async fetchUsdPrice() {
     this.setUsdPrice(Number(await bancorApi.getRate("BNT", "USD")));
   }
 
   @action async init() {
-    const [usdValueOfEth, tokens] = await Promise.all([
+    const [usdValueOfEth, tokens, relays]: [
+      any,
+      any,
+      EosMultiRelay[]
+    ] = await Promise.all([
       bancorApi.getTokenTicker("ETH"),
-      bancorApi.getTokens()
+      bancorApi.getTokens(),
+      fetchRelays(),
     ]);
     this.setUsdPrice(Number(usdValueOfEth.price));
     this.setTokens(tokens);
     this.refreshBalances();
+    this.setRelays(relays);
   }
 
   @action async refreshBalances(symbols: string[] = []) {
@@ -90,6 +144,161 @@ export class EosBancorModule extends VuexModule implements TradingModule, Liquid
         };
       })
     );
+  }
+
+  @action async addLiquidity({
+    fundAmount,
+    smartTokenSymbol,
+    token1Amount,
+    token1Symbol,
+    token2Amount,
+    token2Symbol
+  }: LiquidityParams) {
+    const relay = this.relay(smartTokenSymbol);
+    const deposits = [
+      { symbol: token1Symbol, amount: token1Amount },
+      { symbol: token2Symbol, amount: token2Amount }
+    ];
+    const tokenAmounts = deposits.map(deposit => {
+      const { precision, contract, symbol } = relay.reserves.find(
+        reserve => reserve.symbol == deposit.symbol
+      )!;
+      return {
+        contract,
+        amount: double_to_asset(
+          Number(deposit.amount),
+          new Symbol(symbol, precision)
+        )
+      };
+    });
+
+    const addLiquidityActions = multiContract.addLiquidityActions(
+      smartTokenSymbol,
+      // @ts-ignore
+      tokenAmounts
+    );
+    const fundAction = multiContractAction.fund(
+      vxm.wallet.isAuthenticated,
+      double_to_asset(
+        Number(fundAmount),
+        new Symbol(smartTokenSymbol, 4)
+      ).to_string()
+    );
+
+    const actions = [...addLiquidityActions, fundAction]
+    return this.triggerTx(actions);
+  }
+
+  @action async removeLiquidity({
+    fundAmount,
+    smartTokenSymbol
+  }: LiquidityParams) {}
+
+  @action async getUserBalances(symbolName: string) {
+    const relay = this.relay(symbolName);
+    const [
+      token1Balance,
+      token2Balance,
+      smartTokenBalance,
+      [token1, token2],
+      supply
+    ] = await Promise.all([
+      getBalance(relay.reserves[0].contract, relay.reserves[0].symbol),
+      getBalance(relay.reserves[1].contract, relay.reserves[1].symbol),
+      getBalance(relay.smartToken.contract, relay.smartToken.symbol),
+      tableApi.getReservesMulti(symbolName),
+      fetchTokenStats(relay.smartToken.contract, symbolName)
+    ]);
+
+    const smartSupply = supply.supply.to_double();
+    const token1ReserveBalance = token1.balance.to_double();
+    const token2ReserveBalance = token2.balance.to_double();
+    console.log({ smartTokenBalance, symbolName, relay })
+    const percent = split(smartTokenBalance).to_double() / smartSupply;
+    const token1MaxWithdraw = percent * token1ReserveBalance;
+    const token2MaxWithdraw = percent * token2ReserveBalance;
+
+    return {
+      token1MaxWithdraw: `${token1MaxWithdraw}`,
+      token2MaxWithdraw: `${token2MaxWithdraw}`,
+      token1Balance: token1Balance.split(" ")[0],
+      token2Balance: token2Balance.split(" ")[0],
+      smartTokenBalance
+    };
+  }
+
+  @action async calculateOpposingDeposit(
+    suggestedDeposit: OpposingLiquidParams
+  ): Promise<OpposingLiquid> {
+    const relay = this.relay(suggestedDeposit.smartTokenSymbol);
+    const [tokenReserves, supply] = await Promise.all([
+      tableApi.getReservesMulti(suggestedDeposit.smartTokenSymbol),
+      fetchTokenStats(
+        relay.smartToken.contract,
+        suggestedDeposit.smartTokenSymbol
+      )
+    ]);
+
+    const smartSupply = supply.supply.to_double();
+
+    const sameReserve = tokenReserves.find(
+      reserve =>
+        reserve.balance.symbol.code().to_string() ==
+        suggestedDeposit.tokenSymbol
+    )!;
+    const opposingReserve = tokenReserves.find(
+      reserve =>
+        reserve.balance.symbol.code().to_string() !==
+        suggestedDeposit.tokenSymbol
+    )!;
+
+    const reserveBalance = sameReserve.balance.to_double();
+    const percent = Number(suggestedDeposit.tokenAmount) / reserveBalance;
+
+    return {
+      opposingAmount: String(percent * opposingReserve.balance.to_double()),
+      smartTokenAmount: String(percent * smartSupply)
+    };
+  }
+
+  @action async calculateOpposingWithdraw(
+    suggestWithdraw: OpposingLiquidParams
+  ): Promise<OpposingLiquid> {
+    const relay = this.relay(suggestWithdraw.smartTokenSymbol);
+    const [tokenReserves, supply, smartUserBalanceString] = await Promise.all([
+      tableApi.getReservesMulti(suggestWithdraw.smartTokenSymbol),
+      fetchTokenStats(
+        relay.smartToken.contract,
+        suggestWithdraw.smartTokenSymbol
+      ),
+      getBalance(relay.smartToken.contract, relay.smartToken.symbol) as Promise<
+        string
+      >
+    ]);
+    const smartUserBalance = split(smartUserBalanceString);
+    const smartSupply = supply.supply.to_double();
+    const sameReserve = tokenReserves.find(
+      reserve =>
+        reserve.balance.symbol.code().to_string() == suggestWithdraw.tokenSymbol
+    )!;
+    const opposingReserve = tokenReserves.find(
+      reserve =>
+        reserve.balance.symbol.code().to_string() !==
+        suggestWithdraw.tokenSymbol
+    )!;
+
+    const reserveBalance = sameReserve.balance.to_double();
+    const percent = Number(suggestWithdraw.tokenAmount) / reserveBalance;
+
+    const smartTokenAmount = percent * smartSupply;
+
+    return {
+      opposingAmount: String(percent * opposingReserve.balance.to_double()),
+      smartTokenAmount:
+        smartTokenAmount / smartUserBalance.to_double() > 0.99
+          ? String(smartUserBalance.to_double())
+          : String(smartTokenAmount)
+    };
   }
 
   // Focus Symbol is called when the UI focuses on a Symbol
@@ -190,14 +399,18 @@ export class EosBancorModule extends VuexModule implements TradingModule, Liquid
     return this.$store.dispatch("eosWallet/tx", actions, { root: true });
   }
 
-  @mutation setTokens(tokens: any) {
+  @mutation setRelays(relays: EosMultiRelay[]) {
+    this.relaysList = relays;
+  }
+
+  @mutation setTokens(tokens: any[]) {
     this.tokensList = tokens.map((token: any) => {
       if (token.code == "BNT") {
         return { ...token, decimals: 10 };
       } else {
         return token;
       }
-    });
+    })
   }
 
   @mutation setUsdPrice(price: number) {

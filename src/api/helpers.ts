@@ -3,10 +3,10 @@ import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
 import { Asset, split, Symbol } from "eos-common";
 // @ts-ignore
-import { EosAccount, nRelay, TokenSymbol } from "bancorx/build/interfaces";
+import { EosAccount, nRelay } from "bancorx/build/interfaces";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
-import { TokenBalances, CoTrade, EthplorerBalance } from "@/types/bancor";
+import { TokenBalances, EthplorerBalance, EosMultiRelay } from "@/types/bancor";
 import Web3 from "web3";
 import { ABIBancorGasPriceLimit, BancorGasLimit } from "./ethConfig";
 
@@ -3521,69 +3521,75 @@ export interface Service {
 }
 
 export const services: Service[] = [
-  { namespace: "eos", features: [Feature.Trade, Feature.Wallet] },
+  {
+    namespace: "eos",
+    features: [Feature.Trade, Feature.Liquidity, Feature.Wallet]
+  },
   { namespace: "eth", features: [Feature.Trade, Feature.Liquidity] },
   { namespace: "usds", features: [Feature.Trade] }
 ];
 
-// export const fetchRelays = async (): Promise<nRelay[]> => {
-//   console.log(`fetchRelays was called`)
-//   const contractName = process.env.VUE_APP_MULTICONTRACT!;
-//   const { scopes } = await client.stateTableScopes(
-//     contractName,
-//     "converters"
-//   );
-//   const rawConverters = await client.stateTablesForScopes(
-//     contractName,
-//     scopes,
-//     "converters"
-//   );
-//   const polishedConverters = rawConverters.tables;
-//   const rawReserves = await client.stateTablesForScopes(
-//     contractName,
-//     scopes,
-//     "reserves"
-//   );
-//   const polishedReserves = rawReserves.tables;
 
-//   const flatRelays = polishedReserves
-//     .filter((reserveTable: any) => reserveTable.rows.length == 2)
-//     .map((reserveTable: any) => {
-//       // @ts-ignore
-//       const { json, key } = polishedConverters.find(
-//         (converter: any) => converter.scope == reserveTable.scope
-//       )!.rows[0];
-//       return {
-//         key,
-//         settings: json,
-//         reserves: reserveTable.rows.map((reserve: any) => reserve.json)
-//       };
-//     });
 
-//   const relays: nRelay[] = flatRelays.map((flatRelay: any) => {
-//     const [precision, symbolName] = flatRelay.settings.currency.split(',')
-//     return {
-//       reserves: flatRelay.reserves.map(({ contract, balance }: any) => ({
-//         contract,
-//         symbol: new Symbol(balance.split(' ')[1] , Number(balance.split(' ')[0].split('.')[1].length))
-//       })),
-//       contract: contractName,
-//       isMultiContract: true,
-//       smartToken: {
-//         contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
-//         symbol: new Symbol(symbolName, Number(precision))
-//       },
-//       fee: flatRelay.settings.fee / 100000000
-//     }
-//   })
+export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
+  const contractName = process.env.VUE_APP_MULTICONTRACT!;
+  const { scopes } = await client.stateTableScopes(contractName, "converters");
+  const rawConverters = await client.stateTablesForScopes(
+    contractName,
+    scopes,
+    "converters"
+  );
+  const polishedConverters = rawConverters.tables;
+  const rawReserves = await client.stateTablesForScopes(
+    contractName,
+    scopes,
+    "reserves"
+  );
+  const polishedReserves = rawReserves.tables;
 
-//   return relays;
-// };
+  const flatRelays = polishedReserves
+    .filter((reserveTable: any) => reserveTable.rows.length == 2)
+    .map((reserveTable: any) => {
+      // @ts-ignore
+      const { json, key } = polishedConverters.find(
+        (converter: any) => converter.scope == reserveTable.scope
+      )!.rows[0];
+      return {
+        key,
+        settings: json,
+        reserves: reserveTable.rows.map((reserve: any) => reserve.json)
+      };
+    });
+
+  const relays: EosMultiRelay[] = flatRelays.map((flatRelay: any) => {
+    const [precision, symbolName] = flatRelay.settings.currency.split(",");
+    return {
+      reserves: flatRelay.reserves.map(({ contract, balance }: any) => ({
+        contract,
+        precision: Number(balance.split(" ")[0].split(".")[1].length),
+        symbol: balance.split(" ")[1],
+        network: 'eos'
+      })),
+      contract: contractName,
+      owner: flatRelay.settings.owner,
+      isMultiContract: true,
+      smartToken: {
+        contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
+        symbol: symbolName,
+        precision,
+        network: 'eos'
+      },
+      fee: flatRelay.settings.fee / 100000000
+    };
+  });
+
+  return relays;
+};
 
 const getOppositeSymbol = (symbol: Symbol) => {
   return function(relay: nRelay) {
     // @ts-ignore
-    return relay.reserves.find(reserve => !reserve.symbol.isEqual(symbol))
+    return relay.reserves.find(reserve => !reserve.symbol.isEqual(symbol));
   };
 };
 

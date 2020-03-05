@@ -295,7 +295,8 @@ class MultiContractTx {
       data: {
         from: this.getAuth()[0].actor,
         to: this.contractName,
-        quantity: token.amount.toString(),
+        // @ts-ignore
+        quantity: token.amount.to_string(),
         memo: `fund;${symbolCode}`
       }
     }));
