@@ -168,8 +168,24 @@ export interface LiquidityModule {
   init: () => Promise<void>;
   readonly relay: (arg0: string) => any;
   readonly relays: any[];
+  calculateOpposingDeposit: (
+    opposingDeposit: OpposingLiquidParams
+  ) => Promise<OpposingLiquid>;
+  calculateOpposingWithdraw: (
+    opposingWithdraw: OpposingLiquidParams
+  ) => Promise<OpposingLiquid>;
+  getUserBalances: (
+    symbolName: string
+  ) => Promise<{
+    token1MaxWithdraw: string;
+    token2MaxWithdraw: string;
+    token1Balance: string;
+    token2Balance: string;
+    smartTokenBalance: string;
+  }>;
+  removeLiquidity: (params: LiquidityParams) => Promise<void>;
+  addLiquidity: (params: LiquidityParams) => Promise<void>;
 }
-
 
 // Amount in an asset without reference to it's actual precision
 // E.g. "10000" will be 1.0000 EOS
@@ -194,7 +210,6 @@ export interface SimpleTokenWithMarketData extends SimpleToken {
   price: string;
   liqDepth: number;
 }
-
 
 export interface Price {
   rate: number;
@@ -266,7 +281,6 @@ export interface Service {
   features: Feature[];
 }
 
-
 export interface ModulePool extends Pool {
   volume24h: number;
 }
@@ -274,5 +288,3 @@ export interface ModulePool extends Pool {
 export interface ModulePools {
   [symcode: string]: ModulePool;
 }
-
-
