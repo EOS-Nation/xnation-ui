@@ -167,7 +167,7 @@ export interface TradingModule {
 export interface LiquidityModule {
   init: () => Promise<void>;
   readonly relay: (arg0: string) => any;
-  readonly relays: () => any;
+  readonly relays: any[];
 }
 
 
