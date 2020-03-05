@@ -12,9 +12,8 @@ import {
 import { bancorApi } from "@/api/bancor";
 import { getTokenBalances } from "@/api/helpers";
 
-
 @Module({ namespacedPath: "eosBancor/" })
-export class EosBancorModule extends VuexModule implements TradingModule {
+export class EosBancorModule extends VuexModule implements TradingModule, LiquidityModule {
   tokensList: TokenPrice[] | TokenPriceExtended[] = [];
   usdPrice = 0;
 
