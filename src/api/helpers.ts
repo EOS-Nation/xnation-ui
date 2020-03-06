@@ -3529,8 +3529,6 @@ export const services: Service[] = [
   { namespace: "usds", features: [Feature.Trade] }
 ];
 
-
-
 export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
   const { scopes } = await client.stateTableScopes(contractName, "converters");
@@ -3568,7 +3566,8 @@ export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
         contract,
         precision: Number(balance.split(" ")[0].split(".")[1].length),
         symbol: balance.split(" ")[1],
-        network: 'eos'
+        network: "eos",
+        amount: Number(balance.split(" ")[0])
       })),
       contract: contractName,
       owner: flatRelay.settings.owner,
@@ -3577,7 +3576,8 @@ export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
         contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
         symbol: symbolName,
         precision,
-        network: 'eos'
+        amount: 0,
+        network: "eos"
       },
       fee: flatRelay.settings.fee / 100000000
     };

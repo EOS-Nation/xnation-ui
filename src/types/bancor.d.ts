@@ -150,7 +150,7 @@ export interface ViewToken {
 }
 
 interface TokenWithLogo extends AgnosticToken {
-  logo: string[]
+  logo: string[];
 }
 
 export interface ViewRelay {
@@ -181,6 +181,7 @@ export interface AgnosticToken {
   precision: number;
   symbol: string;
   network: string;
+  amount: number;
 }
 
 export interface EosMultiRelay {
@@ -218,6 +219,25 @@ export interface LiquidityModule {
 // Amount in an asset without reference to it's actual precision
 // E.g. "10000" will be 1.0000 EOS
 export type IntegerAmount = string;
+
+export interface BancorAPIResponseToken {
+  id: string;
+  code: string;
+  name: string;
+  primaryCommunityImageName: string;
+  liquidityDepth: number;
+  decimals: number;
+  price: number;
+  change24h: number;
+  volume24h: Volume24H;
+  priceHistory: Array<number[]>;
+}
+
+export interface Volume24H {
+  ETH: number;
+  USD: number;
+  EUR: number;
+}
 
 export interface ReserveInstance {
   balance: string;

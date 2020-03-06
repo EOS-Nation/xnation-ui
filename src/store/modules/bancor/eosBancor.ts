@@ -19,15 +19,30 @@ import {
   getTokenBalances,
   fetchRelays,
   getBalance,
-  fetchTokenStats,
-  fetchTokenMeta
+  fetchTokenStats
 } from "@/api/helpers";
 import { Symbol, split, double_to_asset } from "eos-common";
 import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
 import { multiContractAction } from "@/contracts/multi";
 import { vxm } from "@/store";
+import axios from "axios";
 
+const tokenMetaDataEndpoint =
+  "https://raw.githubusercontent.com/eoscafe/eos-airdrops/master/tokens.json";
+
+interface TokenMeta {
+  name: string;
+  logo: string;
+  logo_lg: string;
+  symbol: string;
+  chain: string;
+}
+
+const getTokenMeta = async (): Promise<TokenMeta[]> => {
+  const res = await axios.get(tokenMetaDataEndpoint);
+  return res.data;
+};
 
 @Module({ namespacedPath: "eosBancor/" })
 export class EosBancorModule extends VuexModule
@@ -35,12 +50,14 @@ export class EosBancorModule extends VuexModule
   tokensList: TokenPrice[] | TokenPriceExtended[] = [];
   relaysList: EosMultiRelay[] = [];
   usdPrice = 0;
+  usdPriceOfBnt = 0;
+  tokenMeta: TokenMeta[] = [];
 
   get wallet() {
     return "eos";
   }
 
-  get tokens(): ViewToken[] {
+  get bancorApiTokens(): ViewToken[] {
     // @ts-ignore
     return this.tokensList.map((token: TokenPrice | TokenPriceExtended) => ({
       symbol: token.code,
@@ -52,9 +69,47 @@ export class EosBancorModule extends VuexModule
       volume24h: token.volume24h.USD,
       // @ts-ignore
       balance: token.balance || "0",
-      // @ts-ignore
-      ...(token.contract && { contract: token.contract })
+      source: "api"
     }));
+  }
+
+  get relayTokens(): ViewToken[] {
+    return this.relaysList
+      .filter(relay =>
+        relay.reserves.some(
+          reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
+        )
+      )
+      .map(relay => {
+        const networkTokenIndex = relay.reserves.findIndex(
+          reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
+        )!;
+        const tokenIndex = networkTokenIndex == 0 ? 1 : 0;
+        const networkTokenIsBnt =
+          relay.reserves[networkTokenIndex].symbol == "BNT";
+        const symbol = relay.reserves[tokenIndex].symbol;
+        const tokenMeta = this.tokenMeta.find(token => token.symbol == symbol);
+
+        const liqDepth =
+          relay.reserves[networkTokenIndex].amount *
+          (networkTokenIsBnt ? this.usdPriceOfBnt : 1);
+
+        return {
+          symbol,
+          name: symbol,
+          price: 0,
+          liqDepth,
+          logo: (tokenMeta && tokenMeta.logo) || "",
+          change24h: 0,
+          volume24h: 0,
+          balance: "0",
+          source: "multi"
+        };
+      });
+  }
+
+  get tokens(): ViewToken[] {
+    return this.bancorApiTokens.concat(this.relayTokens);
   }
 
   // @ts-ignore
@@ -63,8 +118,8 @@ export class EosBancorModule extends VuexModule
     return (symbolName: string) => {
       const token = this.tokens.find(token => token.symbol == symbolName);
       if (!token) {
-        console.warn("Failed finding token", symbolName)
-        return { symbol: symbolName, logo: 'https://via.placeholder.com/50'}
+        console.warn("Failed finding token", symbolName);
+        return { symbol: symbolName, logo: "https://via.placeholder.com/50" };
       }
       return token;
     };
@@ -108,19 +163,25 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async init() {
-    const [usdValueOfEth, tokens, relays]: [
-      any,
-      any,
-      EosMultiRelay[]
+    const [
+      usdValueOfEth,
+      tokens,
+      relays,
+      usdPriceOfBnt,
+      tokenMeta
     ] = await Promise.all([
       bancorApi.getTokenTicker("ETH"),
       bancorApi.getTokens(),
       fetchRelays(),
+      bancorApi.getRate("BNT", "USD"),
+      getTokenMeta()
     ]);
     this.setUsdPrice(Number(usdValueOfEth.price));
-    this.setTokens(tokens);
+    this.setBntPrice(Number(usdPriceOfBnt));
     this.refreshBalances();
     this.setRelays(relays);
+    this.setTokens(tokens);
+    this.setTokenMeta(tokenMeta);
   }
 
   @action async refreshBalances(symbols: string[] = []) {
@@ -185,7 +246,7 @@ export class EosBancorModule extends VuexModule
       ).to_string()
     );
 
-    const actions = [...addLiquidityActions, fundAction]
+    const actions = [...addLiquidityActions, fundAction];
     return this.triggerTx(actions);
   }
 
@@ -213,7 +274,7 @@ export class EosBancorModule extends VuexModule
     const smartSupply = supply.supply.to_double();
     const token1ReserveBalance = token1.balance.to_double();
     const token2ReserveBalance = token2.balance.to_double();
-    console.log({ smartTokenBalance, symbolName, relay })
+
     const percent = split(smartTokenBalance).to_double() / smartSupply;
     const token1MaxWithdraw = percent * token1ReserveBalance;
     const token2MaxWithdraw = percent * token2ReserveBalance;
@@ -410,7 +471,15 @@ export class EosBancorModule extends VuexModule
       } else {
         return token;
       }
-    })
+    });
+  }
+
+  @mutation setBntPrice(price: number) {
+    this.usdPriceOfBnt = price;
+  }
+
+  @mutation setTokenMeta(tokens: TokenMeta[]) {
+    this.tokenMeta = tokens;
   }
 
   @mutation setUsdPrice(price: number) {

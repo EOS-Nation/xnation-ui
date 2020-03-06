@@ -1,5 +1,10 @@
 import axios, { AxiosInstance } from "axios";
-import { TokenPrice, IntegerAmount, TokenDetail } from "@/types/bancor";
+import {
+  TokenPrice,
+  IntegerAmount,
+  TokenDetail,
+  BancorAPIResponseToken
+} from "@/types/bancor";
 
 export interface BancorWrapper {
   getTokens(): Promise<TokenPrice[]>;
@@ -98,7 +103,7 @@ export class BancorApi implements BancorWrapper {
     }));
   }
 
-  public async getTokenTicker(symbol: string) {
+  public async getTokenTicker(symbol: string): Promise<BancorAPIResponseToken> {
     const endpoint = "currencies/" + symbol + "/ticker";
     const params = {
       displayCurrencyCode: "USD"
@@ -140,7 +145,10 @@ export class BancorApi implements BancorWrapper {
     });
   }
 
-  public async getRate(toCurrency: string, fromCurrency: string) {
+  public async getRate(
+    toCurrency: string,
+    fromCurrency: string
+  ): Promise<string> {
     const res = await this.request(`currencies/rate`, {
       toCurrencyCode: toCurrency,
       fromCurrencyCode: fromCurrency
