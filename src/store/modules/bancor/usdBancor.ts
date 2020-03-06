@@ -14,11 +14,11 @@ import {
   get_settings,
   Pools,
   get_fee,
-  get_weekly_volume,
+  get_volume,
   Pool
-} from "sx";
+} from "sxjs";
 import { rpc } from "@/api/rpc";
-import { split, Asset, Symbol, double_to_asset } from "eos-common";
+import { asset_to_number, Asset, Symbol, number_to_asset, asset } from "eos-common";
 
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
@@ -51,10 +51,10 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       return {
         symbol: token,
         name,
-        price: this.tokensList![token].pegged.to_double(),
+        price: asset_to_number(this.tokensList![token].pegged),
         liqDepth:
-          this.tokensList![token].depth.to_double() *
-          this.tokensList![token].pegged.to_double(),
+          asset_to_number(this.tokensList![token].depth) *
+          asset_to_number(this.tokensList![token].pegged),
         logo,
         change24h: 0,
         volume24h: this.tokensList![token].volume24h,
@@ -84,14 +84,16 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       // @ts-ignore
       get_pools(rpc),
       // @ts-ignore
-      get_weekly_volume(rpc, 1)
+      get_volume(rpc, 1)
     ]);
     for (const pool in pools) {
       pools[pool] = {
         ...pools[pool],
-        volume24h: pools[pool].pegged.to_double() * volume[0]["volume"][pool]
+        // @ts-ignore
+        volume24h: asset_to_number(pools[pool].pegged) * Number(volume[0]["volume"][pool])
       };
     }
+    // @ts-ignore
     this.setTokensList(pools);
     this.moduleInitiated();
   }
@@ -111,7 +113,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
     const tokenContract = fromToken.id.contract;
     const precision = fromToken.id.sym.precision();
-    const amountAsset = double_to_asset(
+    const amountAsset = number_to_asset(
       propose.fromAmount,
       new Symbol(propose.fromSymbol, precision)
     );
@@ -151,7 +153,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     // @ts-ignore
     const result = get_price(
       // @ts-ignore
-      double_to_asset(amount, new Symbol(fromSymbol, fromPrecision)),
+      number_to_asset(amount, new Symbol(fromSymbol, fromPrecision)),
       new Symbol(toSymbol, toPrecision).code(),
       pools
     );
@@ -159,7 +161,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const fee = get_fee(result, settings);
 
     return {
-      amount: String(result.to_double() - fee.to_double())
+      amount: String(asset_to_number(result) - asset_to_number(fee))
     };
   }
 

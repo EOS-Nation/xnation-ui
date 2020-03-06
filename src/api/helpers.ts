@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
-import { Asset, split, Symbol } from "eos-common";
+import { Asset, Symbol } from "eos-common";
 // @ts-ignore
 import { EosAccount, nRelay } from "bancorx/build/interfaces";
 import { rpc } from "./rpc";
@@ -98,8 +98,8 @@ export const fetchTokenStats = async (
   if (!tokenExists) throw new Error("Token does not exist");
   const { supply, max_supply } = tableResult.rows[0];
   return {
-    supply: split(supply),
-    max_supply: split(max_supply)
+    supply: new Asset(supply),
+    max_supply: new Asset(max_supply)
   };
 };
 

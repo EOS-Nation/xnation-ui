@@ -87,12 +87,9 @@ import { TokenPrice } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
 import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import { tableApi } from "../api/TableWrapper";
-import { split } from "eos-common";
-import Fuse from "fuse.js";
 import Velocity from "velocity-animate";
 
 const numeral = require("numeral");
-const debounce = require("lodash.debounce");
 
 @Component({
   components: {

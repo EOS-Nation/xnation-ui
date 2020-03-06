@@ -21,7 +21,12 @@ import {
   getBalance,
   fetchTokenStats
 } from "@/api/helpers";
-import { Symbol, split, double_to_asset } from "eos-common";
+import {
+  Symbol,
+  Asset,
+  asset_to_number,
+  number_to_asset
+} from "eos-common";
 import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
 import { multiContractAction } from "@/contracts/multi";
@@ -226,7 +231,7 @@ export class EosBancorModule extends VuexModule
       )!;
       return {
         contract,
-        amount: double_to_asset(
+        amount: number_to_asset(
           Number(deposit.amount),
           new Symbol(symbol, precision)
         )
@@ -240,7 +245,7 @@ export class EosBancorModule extends VuexModule
     );
     const fundAction = multiContractAction.fund(
       vxm.wallet.isAuthenticated,
-      double_to_asset(
+      number_to_asset(
         Number(fundAmount),
         new Symbol(smartTokenSymbol, 4)
       ).to_string()
@@ -271,11 +276,11 @@ export class EosBancorModule extends VuexModule
       fetchTokenStats(relay.smartToken.contract, symbolName)
     ]);
 
-    const smartSupply = supply.supply.to_double();
-    const token1ReserveBalance = token1.balance.to_double();
-    const token2ReserveBalance = token2.balance.to_double();
+    const smartSupply = asset_to_number(supply.supply);
+    const token1ReserveBalance = asset_to_number(token1.balance);
+    const token2ReserveBalance = asset_to_number(token2.balance);
 
-    const percent = split(smartTokenBalance).to_double() / smartSupply;
+    const percent = asset_to_number(new Asset(smartTokenBalance)) / smartSupply;
     const token1MaxWithdraw = percent * token1ReserveBalance;
     const token2MaxWithdraw = percent * token2ReserveBalance;
 
@@ -300,7 +305,7 @@ export class EosBancorModule extends VuexModule
       )
     ]);
 
-    const smartSupply = supply.supply.to_double();
+    const smartSupply = asset_to_number(supply.supply);
 
     const sameReserve = tokenReserves.find(
       reserve =>
@@ -313,11 +318,13 @@ export class EosBancorModule extends VuexModule
         suggestedDeposit.tokenSymbol
     )!;
 
-    const reserveBalance = sameReserve.balance.to_double();
+    const reserveBalance = asset_to_number(sameReserve.balance);
     const percent = Number(suggestedDeposit.tokenAmount) / reserveBalance;
 
     return {
-      opposingAmount: String(percent * opposingReserve.balance.to_double()),
+      opposingAmount: String(
+        percent * asset_to_number(opposingReserve.balance)
+      ),
       smartTokenAmount: String(percent * smartSupply)
     };
   }
@@ -336,8 +343,8 @@ export class EosBancorModule extends VuexModule
         string
       >
     ]);
-    const smartUserBalance = split(smartUserBalanceString);
-    const smartSupply = supply.supply.to_double();
+    const smartUserBalance = new Asset(smartUserBalanceString);
+    const smartSupply = asset_to_number(supply.supply);
     const sameReserve = tokenReserves.find(
       reserve =>
         reserve.balance.symbol.code().to_string() == suggestWithdraw.tokenSymbol
@@ -348,16 +355,18 @@ export class EosBancorModule extends VuexModule
         suggestWithdraw.tokenSymbol
     )!;
 
-    const reserveBalance = sameReserve.balance.to_double();
+    const reserveBalance = asset_to_number(sameReserve.balance);
     const percent = Number(suggestWithdraw.tokenAmount) / reserveBalance;
 
     const smartTokenAmount = percent * smartSupply;
 
     return {
-      opposingAmount: String(percent * opposingReserve.balance.to_double()),
+      opposingAmount: String(
+        percent * asset_to_number(opposingReserve.balance)
+      ),
       smartTokenAmount:
-        smartTokenAmount / smartUserBalance.to_double() > 0.99
-          ? String(smartUserBalance.to_double())
+        smartTokenAmount / asset_to_number(smartUserBalance) > 0.99
+          ? String(asset_to_number(smartUserBalance))
           : String(smartTokenAmount)
     };
   }

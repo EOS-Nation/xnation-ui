@@ -1,5 +1,5 @@
 import { vxm } from "@/store";
-import { Symbol, Asset, split } from "eos-common";
+import { Symbol, Asset } from "eos-common";
 import { rpc } from "./rpc";
 import { JsonRpc } from "eosjs";
 
@@ -42,7 +42,7 @@ export class TableWrapper {
           contract: row.contract,
           ratio: row.ratio,
           sale_enabled: Boolean(row.sale_enabled),
-          balance: split(row.balance)
+          balance: new Asset(row.balance)
         };
       })
       .sort((a: any) => {

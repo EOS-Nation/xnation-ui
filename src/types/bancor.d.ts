@@ -1,4 +1,4 @@
-import { Pools, Pool } from "sx";
+import { Pools, Pool } from "sxjs";
 
 export interface TokenPrice {
   id: string;
