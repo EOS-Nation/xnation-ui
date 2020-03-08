@@ -8,6 +8,7 @@ import PageNotFound from "@/views/PageNotFound.vue";
 import HeroConvert from "@/components/hero/sub/HeroConvert.vue";
 import HeroTransfer from "@/components/hero/sub/HeroTransfer.vue";
 import HeroRelay from "@/components/hero/sub/HeroRelay.vue";
+import HeroCreate from "@/components/hero/sub/HeroCreate.vue";
 import Navigation from "@/components/layout/Navigation.vue";
 import Privacy from "@/components/common/Privacy.vue";
 import { services } from "@/api/helpers";
@@ -44,6 +45,14 @@ export const router = new Router({
       components: {
         Nav: Navigation,
         default: PageNotFound
+      }
+    },
+    {
+      path: "/:service/create",
+      name: "Create",
+      components: {
+        Nav: Navigation,
+        Hero: HeroCreate
       }
     },
     {

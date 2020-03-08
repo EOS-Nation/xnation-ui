@@ -12,7 +12,9 @@ import {
   OpposingLiquidParams,
   OpposingLiquid,
   EosMultiRelay,
-  AgnosticToken
+  AgnosticToken,
+  CreatePoolModule,
+  ModalChoice
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import {
@@ -21,12 +23,7 @@ import {
   getBalance,
   fetchTokenStats
 } from "@/api/helpers";
-import {
-  Symbol,
-  Asset,
-  asset_to_number,
-  number_to_asset
-} from "eos-common";
+import { Symbol, Asset, asset_to_number, number_to_asset } from "eos-common";
 import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
 import { multiContractAction } from "@/contracts/multi";
@@ -51,15 +48,43 @@ const getTokenMeta = async (): Promise<TokenMeta[]> => {
 
 @Module({ namespacedPath: "eosBancor/" })
 export class EosBancorModule extends VuexModule
-  implements TradingModule, LiquidityModule {
+  implements TradingModule, LiquidityModule, CreatePoolModule {
   tokensList: TokenPrice[] | TokenPriceExtended[] = [];
   relaysList: EosMultiRelay[] = [];
   usdPrice = 0;
   usdPriceOfBnt = 0;
   tokenMeta: TokenMeta[] = [];
+  poolChoices: any[] = []
 
   get wallet() {
     return "eos";
+  }
+
+  get newPoolTokenChoices(): ModalChoice[] {
+    return this.tokenMeta.map(tokenMeta => ({
+      symbol: tokenMeta.symbol,
+      balance: "0",
+      img: tokenMeta.logo
+    }));
+  }
+
+  get newNetworkTokenChoices(): ModalChoice[] {
+    return [
+      {
+        symbol: "BNT",
+        balance: "0",
+        img: this.tokenMetaObj('BNT').logo
+      },
+      {
+        symbol: "USDB",
+        balance: "0",
+        img: this.tokenMetaObj('USDB').logo
+      }
+    ]
+  }
+
+  @action async createPool() {
+    return;
   }
 
   get bancorApiTokens(): ViewToken[] {
@@ -76,6 +101,14 @@ export class EosBancorModule extends VuexModule
       balance: token.balance || "0",
       source: "api"
     }));
+  }
+
+  get tokenMetaObj() {
+    return (symbolName: string) => {
+      const tokenMetaObj = this.tokenMeta.find(token => token.symbol == symbolName);
+      if (!tokenMetaObj) throw new Error(`Failed to find token meta for ${symbolName}`);
+      return tokenMetaObj;
+    }
   }
 
   get relayTokens(): ViewToken[] {
@@ -114,7 +147,13 @@ export class EosBancorModule extends VuexModule
   }
 
   get tokens(): ViewToken[] {
-    return this.bancorApiTokens.concat(this.relayTokens);
+    return this.bancorApiTokens
+      .concat(this.relayTokens)
+      .sort((a, b) => b.liqDepth - a.liqDepth)
+      .filter(
+        (token, index, array) =>
+          array.findIndex(tokenX => tokenX.symbol == token.symbol) == index
+      );
   }
 
   // @ts-ignore

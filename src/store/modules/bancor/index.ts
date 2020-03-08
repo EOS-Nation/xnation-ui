@@ -3,7 +3,8 @@ import {
   ProposedTransaction,
   ProposedConvertTransaction,
   LiquidityParams,
-  OpposingLiquidParams
+  OpposingLiquidParams,
+  ModalChoice
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -44,6 +45,16 @@ export class BancorModule extends VuexModule {
     return vxm[`${this.currentNetwork}Bancor`]["relays"];
   }
 
+  get newPoolTokenChoices(): ModalChoice[] {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["newPoolTokenChoices"];
+  }
+
+  get newNetworkTokenChoices(): ModalChoice[] {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["newNetworkTokenChoices"];
+  }
+
   get relay() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["relay"];
@@ -68,6 +79,10 @@ export class BancorModule extends VuexModule {
 
   @action async getUserBalances(symbolName: string) {
     return this.dispatcher(["getUserBalances", symbolName]);
+  }
+
+  @action async createPool(symbolName: string) {
+    return this.dispatcher(["createPool", symbolName]);
   }
 
   @action async getCost(proposedTransaction: ProposedTransaction) {

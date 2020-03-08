@@ -3523,7 +3523,12 @@ export interface Service {
 export const services: Service[] = [
   {
     namespace: "eos",
-    features: [Feature.Trade, Feature.Liquidity, Feature.Wallet]
+    features: [
+      Feature.Trade,
+      Feature.Liquidity,
+      Feature.Wallet,
+      Feature.CreatePool
+    ]
   },
   { namespace: "eth", features: [Feature.Trade, Feature.Liquidity] },
   { namespace: "usds", features: [Feature.Trade] }

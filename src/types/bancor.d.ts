@@ -193,6 +193,19 @@ export interface EosMultiRelay {
   fee: number;
 }
 
+export interface ModalChoice {
+  symbol: string;
+  balance: string;
+  img: string;
+}
+
+export interface CreatePoolModule {
+  init: () => Promise<void>;
+  readonly newPoolTokenChoices: ModalChoice[];
+  readonly newNetworkTokenChoices: ModalChoice[];
+  createPool: () => Promise<void>;
+}
+
 export interface LiquidityModule {
   init: () => Promise<void>;
   readonly relay: (arg0: string) => ViewRelay;
