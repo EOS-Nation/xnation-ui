@@ -4,7 +4,8 @@ import {
   ProposedConvertTransaction,
   LiquidityParams,
   OpposingLiquidParams,
-  ModalChoice
+  ModalChoice,
+  NetworkChoice
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -50,7 +51,7 @@ export class BancorModule extends VuexModule {
     return vxm[`${this.currentNetwork}Bancor`]["newPoolTokenChoices"];
   }
 
-  get newNetworkTokenChoices(): ModalChoice[] {
+  get newNetworkTokenChoices(): NetworkChoice[] {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["newNetworkTokenChoices"];
   }

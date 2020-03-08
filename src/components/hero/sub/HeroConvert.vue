@@ -98,7 +98,6 @@
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
-import numeral from "numeral";
 import ModalTx from "@/components/modals/ModalTx.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
@@ -163,7 +162,6 @@ const queryParamsCheck = (to: Route, next: any) => {
 })
 export default class HeroConvert extends Vue {
   loading = true;
-  numeral = numeral;
   modal = false;
   txModal = false;
   flipping = false;

@@ -14,7 +14,8 @@ import {
   EosMultiRelay,
   AgnosticToken,
   CreatePoolModule,
-  ModalChoice
+  ModalChoice,
+  NetworkChoice
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import {
@@ -28,7 +29,7 @@ import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
 import { multiContractAction } from "@/contracts/multi";
 import { vxm } from "@/store";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 
 const tokenMetaDataEndpoint =
   "https://raw.githubusercontent.com/eoscafe/eos-airdrops/master/tokens.json";
@@ -42,8 +43,17 @@ interface TokenMeta {
 }
 
 const getTokenMeta = async (): Promise<TokenMeta[]> => {
-  const res = await axios.get(tokenMetaDataEndpoint);
-  return res.data;
+  const res: AxiosResponse<{
+    name: string;
+    logo: string;
+    logo_lg: string;
+    symbol: string;
+    account: string;
+    chain: string;
+  }[]> = await axios.get(tokenMetaDataEndpoint);
+  return res.data.filter(
+    token => token.chain.toLowerCase() == "eos" && token.symbol !== "KARMA"
+  );
 };
 
 @Module({ namespacedPath: "eosBancor/" })
@@ -54,7 +64,6 @@ export class EosBancorModule extends VuexModule
   usdPrice = 0;
   usdPriceOfBnt = 0;
   tokenMeta: TokenMeta[] = [];
-  poolChoices: any[] = []
 
   get wallet() {
     return "eos";
@@ -68,23 +77,30 @@ export class EosBancorModule extends VuexModule
     }));
   }
 
-  get newNetworkTokenChoices(): ModalChoice[] {
+  get newNetworkTokenChoices(): NetworkChoice[] {
     return [
       {
         symbol: "BNT",
         balance: "0",
-        img: this.tokenMetaObj('BNT').logo
+        img: this.tokenMetaObj("BNT").logo,
+        usdValue: this.usdPriceOfBnt
       },
       {
         symbol: "USDB",
         balance: "0",
-        img: this.tokenMetaObj('USDB').logo
+        img: this.tokenMetaObj("USDB").logo,
+        usdValue: 1
       }
-    ]
+    ];
   }
 
   @action async createPool() {
     return;
+  }
+
+  get networkTokenUsdValue() {
+    return (symbolName: string) =>
+      symbolName == "BNT" ? this.usdPriceOfBnt : 1;
   }
 
   get bancorApiTokens(): ViewToken[] {
@@ -105,10 +121,13 @@ export class EosBancorModule extends VuexModule
 
   get tokenMetaObj() {
     return (symbolName: string) => {
-      const tokenMetaObj = this.tokenMeta.find(token => token.symbol == symbolName);
-      if (!tokenMetaObj) throw new Error(`Failed to find token meta for ${symbolName}`);
+      const tokenMetaObj = this.tokenMeta.find(
+        token => token.symbol == symbolName
+      );
+      if (!tokenMetaObj)
+        throw new Error(`Failed to find token meta for ${symbolName}`);
       return tokenMetaObj;
-    }
+    };
   }
 
   get relayTokens(): ViewToken[] {

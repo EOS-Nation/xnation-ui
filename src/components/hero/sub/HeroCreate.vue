@@ -2,32 +2,49 @@
   <hero-wrapper>
     <two-token-hero
       v-if="loaded"
-      :tokenOneSymbol="token1Symbol"
+      :tokenOneSymbol.sync="token1Symbol"
       :tokenOneAmount.sync="token1Amount"
       @update:tokenOneAmount="tokenOneChanged"
       @update:tokenTwoAmount="tokenTwoChanged"
       :tokenOneBalance="displayedToken1Balance"
       :tokenOneImg="token1Img"
-      :tokenTwoSymbol="token2Symbol"
+      :tokenTwoSymbol.sync="token2Symbol"
       :tokenTwoAmount.sync="token2Amount"
       :tokenTwoBalance="displayedToken2Balance"
       :tokenTwoImg="token2Img"
+      :tokenOneChoices="networkChoices"
+      :tokenTwoChoices="tokenChoices"
     >
-      <b-btn
-        @click="createRelay"
-        variant="success"
-        v-ripple
-        class="px-4 py-2 d-block"
-        :disabled="!isAuthenticated"
-      >
-        <font-awesome-icon
-          icon="plus"
-          :spin="loadingConversion"
-          fixed-width
-          class="mr-2"
-        />
-        <span class="font-w700">Create Pool</span>
-      </b-btn>
+      <div>
+        <div v-if="calculationsAvailable" class="mb-3 mt-3">
+          <span class="text-white font-size-sm">
+            {{ networkTokenReward }}
+          </span>
+          <div class="text-white font-size-sm">
+            {{ tokenReward }}
+          </div>
+          <div class="text-white font-size-sm">
+            {{ networkTokenUsdReward }}
+          </div>
+        </div>
+        <div v-else class="mb-3 mt-3">
+          <span class="text-white font-size-sm">
+              Enter initial liquidity...
+          </span>
+        </div>
+    <!-- <b-form-spinbutton id="sb-inline" v-model="value" inline></b-form-spinbutton> -->
+
+        <b-btn
+          @click="createRelay"
+          variant="success"
+          v-ripple
+          class="px-4 py-2 d-block"
+          :disabled="!isAuthenticated"
+        >
+          <font-awesome-icon icon="plus" fixed-width class="mr-2" />
+          <span class="font-w700">Create Pool</span>
+        </b-btn>
+      </div>
     </two-token-hero>
   </hero-wrapper>
 </template>
@@ -62,10 +79,37 @@ export default class HeroConvert extends Vue {
     )!.img;
   }
 
+  get networkTokenReward() {
+    return `1 ${this.token1Symbol} = ${Number(this.token2Amount) /
+      Number(this.token1Amount)} ${this.token2Symbol}`;
+  }
+
+  get tokenReward() {
+    return `1 ${this.token2Symbol} = ${Number(this.token1Amount) /
+      Number(this.token2Amount)} ${this.token1Symbol}`;
+  }
+
+  get calculationsAvailable() {
+    return Number(this.token1Amount) && Number(this.token2Amount);
+  }
+
+  get networkTokenUsdReward() {
+    return `1 ${this.token2Symbol} = ${(
+      (Number(this.token1Amount) / Number(this.token2Amount)) *
+      this.selectedNetworkToken.usdValue
+    ).toFixed(4)} USD`;
+  }
+
   get token2Img() {
     return vxm.bancor.newPoolTokenChoices.find(
       token => token.symbol == this.token2Symbol
     )!.img;
+  }
+
+  get selectedNetworkToken() {
+    return vxm.bancor.newNetworkTokenChoices.find(
+      x => x.symbol == this.token1Symbol
+    )!;
   }
 
   get networkChoices() {

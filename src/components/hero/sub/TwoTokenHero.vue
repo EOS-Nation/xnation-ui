@@ -9,7 +9,7 @@
           @clicked="tokenOneClicked"
           :balance="tokenOneBalance"
           :img="tokenOneImg"
-          :choices="choices"
+          :choices="tokenOneChoices || choices"
           :label="label"
         />
       </b-col>
@@ -28,7 +28,7 @@
           @clicked="tokenTwoClicked"
           :balance="tokenTwoBalance"
           :img="tokenTwoImg"
-          :choices="choices"
+          :choices="tokenTwoChoices || choices"
           :label="label"
         />
       </b-col>
@@ -49,7 +49,7 @@ import TokenField from "@/components/convert/TokenField.vue";
 
 @Component({
   components: {
-    TokenField,
+    TokenField
   }
 })
 export default class HeroConvert extends Vue {
@@ -64,6 +64,8 @@ export default class HeroConvert extends Vue {
   @Prop(String) label?: string;
 
   @Prop(Array) choices?: any[];
+  @Prop(Array) tokenOneChoices?: any[];
+  @Prop(Array) tokenTwoChoices?: any[];
   modal = false;
 
   @Emit()

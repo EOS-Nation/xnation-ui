@@ -199,6 +199,10 @@ export interface ModalChoice {
   img: string;
 }
 
+export interface NetworkChoice extends ModalChoice {
+  usdValue: number;
+}
+
 export interface CreatePoolModule {
   init: () => Promise<void>;
   readonly newPoolTokenChoices: ModalChoice[];
