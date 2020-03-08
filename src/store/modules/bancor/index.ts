@@ -46,7 +46,7 @@ export class BancorModule extends VuexModule {
     return vxm[`${this.currentNetwork}Bancor`]["relays"];
   }
 
-  get newPoolTokenChoices(): ModalChoice[] {
+  get newPoolTokenChoices(): (networkTokenSymbol: string) => ModalChoice[] {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["newPoolTokenChoices"];
   }
@@ -82,8 +82,8 @@ export class BancorModule extends VuexModule {
     return this.dispatcher(["getUserBalances", symbolName]);
   }
 
-  @action async createPool(symbolName: string) {
-    return this.dispatcher(["createPool", symbolName]);
+  @action async createPool(newPoolParams: any) {
+    return this.dispatcher(["createPool", newPoolParams]);
   }
 
   @action async getCost(proposedTransaction: ProposedTransaction) {

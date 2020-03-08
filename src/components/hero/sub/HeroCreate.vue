@@ -4,14 +4,12 @@
       v-if="loaded"
       :tokenOneSymbol.sync="token1Symbol"
       :tokenOneAmount.sync="token1Amount"
-      @update:tokenOneAmount="tokenOneChanged"
-      @update:tokenTwoAmount="tokenTwoChanged"
       :tokenOneBalance="displayedToken1Balance"
-      :tokenOneImg="token1Img"
+      :tokenOneImg="selectedNetworkToken.img"
       :tokenTwoSymbol.sync="token2Symbol"
       :tokenTwoAmount.sync="token2Amount"
       :tokenTwoBalance="displayedToken2Balance"
-      :tokenTwoImg="token2Img"
+      :tokenTwoImg="selectedToken.img"
       :tokenOneChoices="networkChoices"
       :tokenTwoChoices="tokenChoices"
     >
@@ -29,21 +27,31 @@
         </div>
         <div v-else class="mb-3 mt-3">
           <span class="text-white font-size-sm">
-              Enter initial liquidity...
+            Enter initial liquidity...
           </span>
         </div>
-    <!-- <b-form-spinbutton id="sb-inline" v-model="value" inline></b-form-spinbutton> -->
-
-        <b-btn
-          @click="createRelay"
-          variant="success"
-          v-ripple
-          class="px-4 py-2 d-block"
-          :disabled="!isAuthenticated"
-        >
-          <font-awesome-icon icon="plus" fixed-width class="mr-2" />
-          <span class="font-w700">Create Pool</span>
-        </b-btn>
+        <b-form-spinbutton
+          :formatter-fn="feeFormatter"
+          min="0"
+          max="3"
+          step="0.2"
+          id="sb-inline"
+          size="sm"
+          v-model="fee"
+          placeholder="Fee"
+        ></b-form-spinbutton>
+        <div class="create">
+          <b-btn
+            @click="createRelay"
+            variant="success"
+            v-ripple
+            class="px-4 py-2 d-block create"
+            :disabled="!createPoolReady"
+          >
+            <font-awesome-icon icon="plus" fixed-width class="mr-2" />
+            <span class="font-w700">Create Pool</span>
+          </b-btn>
+        </div>
       </div>
     </two-token-hero>
   </hero-wrapper>
@@ -62,21 +70,19 @@ import TwoTokenHero from "./TwoTokenHero.vue";
   }
 })
 export default class HeroConvert extends Vue {
-  spinning = false;
   token1Symbol = "";
   token2Symbol = "";
   token1Amount = "";
   token2Amount = "";
-  token1UserBalance = "";
-  token2UserBalance = "";
-  smartUserBalance = "";
-  modal = false;
   loaded = false;
+  fee = null;
 
-  get token1Img() {
-    return vxm.bancor.newNetworkTokenChoices.find(
-      token => token.symbol == this.token1Symbol
-    )!.img;
+  feeFormatter(fee: number) {
+    return `${fee} %`;
+  }
+
+  get createPoolReady() {
+    return this.isAuthenticated && this.calculationsAvailable;
   }
 
   get networkTokenReward() {
@@ -100,16 +106,14 @@ export default class HeroConvert extends Vue {
     ).toFixed(4)} USD`;
   }
 
-  get token2Img() {
-    return vxm.bancor.newPoolTokenChoices.find(
-      token => token.symbol == this.token2Symbol
-    )!.img;
-  }
-
   get selectedNetworkToken() {
     return vxm.bancor.newNetworkTokenChoices.find(
       x => x.symbol == this.token1Symbol
     )!;
+  }
+
+  get selectedToken() {
+    return this.tokenChoices.find(x => x.symbol == this.token2Symbol)!;
   }
 
   get networkChoices() {
@@ -117,15 +121,16 @@ export default class HeroConvert extends Vue {
   }
 
   get tokenChoices() {
-    return vxm.bancor.newPoolTokenChoices;
+    console.log('I received', vxm.bancor.newPoolTokenChoices(this.token1Symbol).map(x => x.symbol))
+    return vxm.bancor.newPoolTokenChoices(this.token1Symbol);
   }
 
   get displayedToken1Balance() {
-    return "";
+    return this.selectedNetworkToken.balance;
   }
 
   get displayedToken2Balance() {
-    return "";
+    return this.selectedToken.balance;
   }
 
   get isAuthenticated() {
@@ -133,26 +138,32 @@ export default class HeroConvert extends Vue {
   }
 
   async createRelay() {
-    console.log("create relay pressed");
-  }
-
-  tokenOneChanged() {
-    console.log("token1 changed");
-  }
-
-  tokenTwoChanged() {
-    console.log("token2 Changed");
+    const fee = this.fee || 0;
+    vxm.bancor.createPool({
+      reserves: [
+        [this.token1Symbol, this.token1Amount],
+        [this.token2Symbol, this.token2Amount]
+      ],
+      fee: fee / 100
+    });
   }
 
   created() {
-    this.token1Symbol = vxm.bancor.newNetworkTokenChoices[0].symbol;
-    this.token2Symbol = vxm.bancor.newPoolTokenChoices[0].symbol;
+    const networkTokenSymbol = vxm.bancor.newNetworkTokenChoices[0].symbol;
+    this.token1Symbol = networkTokenSymbol;
+    this.token2Symbol = vxm.bancor.newPoolTokenChoices(
+      networkTokenSymbol
+    )[0].symbol;
     this.loaded = true;
   }
 }
 </script>
 
 <style scoped lang="scss">
+.create {
+  margin-top: 15px;
+}
+
 .slide-fade-up-enter-active {
   transition: all 0.3s ease;
 }

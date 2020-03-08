@@ -51,32 +51,10 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
-  async toggleReserve(
-    symbolCode: string,
-    reserveSymbol: Symbol
-  ): Promise<TxResponse> {
-    const reserves = await this.table.getReservesMulti(symbolCode);
-    const singleReserve = reserves.find((reserve: ReserveTable) =>
-      reserve.balance.symbol.isEqual(reserveSymbol)
-    );
-    if (!singleReserve) throw new Error("Failed to find reserve");
-    const action = multiContractAction.setreserve(
-      symbolCode,
-      `${
-        singleReserve.balance.symbol.precision
-      },${singleReserve.balance.symbol.code()}`,
-      singleReserve.contract,
-      !singleReserve.sale_enabled,
-      singleReserve.ratio
-    ) as SemiAction;
-    return this.tx([action]);
-  }
-
   setReserveAction(
     symbolCode: string,
     symbol: string,
     tokenContract: string,
-    saleEnabled: boolean,
     ratio: number
   ): SemiAction {
     const adjustedRatio = ratio * 10000;
@@ -84,7 +62,6 @@ class MultiContractTx {
       symbolCode,
       symbol,
       tokenContract,
-      saleEnabled,
       adjustedRatio
     ) as SemiAction;
     return action;
@@ -101,7 +78,6 @@ class MultiContractTx {
       symbolCode,
       symbol,
       tokenContract,
-      saleEnabled,
       ratio
     ) as SemiAction;
     return this.tx([action]);
@@ -121,12 +97,11 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
-  updateFee(symbolCode: string, percent: number): Promise<TxResponse> {
-    const action = multiContractAction.updatefee(
+  updateFeeAction(symbolCode: string, decimalPercent: number): Promise<any> {
+    return multiContractAction.updatefee(
       symbolCode,
-      percent * 1000000
-    ) as SemiAction;
-    return this.tx([action]);
+      decimalPercent * 1000000
+    )
   }
 
   updateOwner(symbolCode: string, owner: string): Promise<TxResponse> {
@@ -161,20 +136,13 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
-  createRelay(
-    symbol: string,
-    precision: number,
-    initialSupply: number,
-    maxSupply: number
-  ): Promise<TxResponse> {
+  createRelay(symbol: string, initialSupply: string): Promise<TxResponse> {
     const owner = this.getAuth()[0].actor;
-
     const action = multiContractAction.create(
       owner,
-      `${initialSupply.toFixed(precision)} ${symbol}`,
-      `${maxSupply.toFixed(precision)} ${symbol}`
+      symbol,
+      initialSupply
     ) as SemiAction;
-
     return this.tx([action]);
   }
 
@@ -204,45 +172,40 @@ class MultiContractTx {
   kickStartRelay(
     symbolCode: string,
     reserves: TokenAmount[],
-    active: boolean = true,
-    initialSupply: number = 1000,
-    maxSupply: number = 10000000000,
-    precision: number = 4
+    initialSupply: number,
+    fee: number
   ) {
+    if (reserves.length !== 2)
+      throw new Error("Reserves of two is only supported with this method");
+    if (fee < 0) throw new Error("Fee cannot be less than zero");
     const createRelayAction = multiContractAction.create(
       this.getAuth()[0].actor,
-      `${initialSupply.toFixed(precision)} ${symbolCode}`,
-      `${maxSupply.toFixed(precision)} ${symbolCode}`
+      symbolCode,
+      initialSupply
     ) as SemiAction;
 
     const setReserveActions = reserves.map((reserve: TokenAmount) =>
       this.setReserveAction(
         symbolCode,
-        `${reserve.amount.symbol.precision},${reserve.amount.symbol.code()}`,
+        `${reserve.amount.symbol.precision()},${reserve.amount.symbol.code().to_string()}`,
         reserve.contract,
-        true,
         50
       )
     );
-    const addLiquidityActions = this.addLiquidityActions(
-      symbolCode,
-      reserves,
-      false
-    );
-    const enableRelayAction = this.enableConversionAction(symbolCode, true);
+    const addLiquidityActions = this.addLiquidityActions(symbolCode, reserves);
 
     const actions: any[] = [
       createRelayAction,
       ...setReserveActions,
-      ...addLiquidityActions,
-      enableRelayAction
+      ...addLiquidityActions
     ];
-    if (!active) {
-      actions.push(this.enableConversionAction(symbolCode, false));
+
+    if (fee > 0) {
+      actions.push(this.updateFeeAction(symbolCode, fee));
     }
 
     console.log(actions, "were actions");
-    return this.tx(actions);
+    return this.tx(actions)
   }
 
   withdrawAction(symbolCode: string, amount: Asset) {
@@ -261,12 +224,8 @@ class MultiContractTx {
     return this.tx([this.withdrawAction(symbolCode, amount)]);
   }
 
-  addLiquidity(
-    symbolCode: string,
-    tokens: TokenAmount[],
-    launched: boolean = true
-  ) {
-    return this.tx(this.addLiquidityActions(symbolCode, tokens, launched));
+  addLiquidity(symbolCode: string, tokens: TokenAmount[]) {
+    return this.tx(this.addLiquidityActions(symbolCode, tokens));
   }
 
   removeLiquidity(quantity: Asset, tokenContract: string) {
@@ -284,11 +243,7 @@ class MultiContractTx {
     ]);
   }
 
-  addLiquidityActions(
-    symbolCode: string,
-    tokens: TokenAmount[],
-    launched: boolean = true
-  ) {
+  addLiquidityActions(symbolCode: string, tokens: TokenAmount[]) {
     return tokens.map((token: TokenAmount) => ({
       account: token.contract,
       name: `transfer`,

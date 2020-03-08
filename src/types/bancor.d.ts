@@ -205,9 +205,9 @@ export interface NetworkChoice extends ModalChoice {
 
 export interface CreatePoolModule {
   init: () => Promise<void>;
-  readonly newPoolTokenChoices: ModalChoice[];
+  readonly newPoolTokenChoices: (networkToken: string) => ModalChoice[];
   readonly newNetworkTokenChoices: ModalChoice[];
-  createPool: () => Promise<void>;
+  createPool: (param: any) => Promise<void>;
 }
 
 export interface LiquidityModule {

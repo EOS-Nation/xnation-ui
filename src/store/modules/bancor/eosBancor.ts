@@ -30,6 +30,55 @@ import { multiContract } from "@/api/multiContractTx";
 import { multiContractAction } from "@/contracts/multi";
 import { vxm } from "@/store";
 import axios, { AxiosResponse } from "axios";
+import { rpc } from "@/api/rpc";
+
+const getEosioTokenPrecision = async (
+  symbol: string,
+  contract: string
+): Promise<number> => {
+  const res = await rpc.get_table_rows({
+    code: contract,
+    table: "stat",
+    scope: symbol
+  });
+  if (res.rows.length == 0) throw new Error("Failed to find token");
+  return res.rows[0].supply.split(" ")[0].split(".")[1].length;
+};
+
+const chopSecondSymbol = (one: string, two: string, maxLength = 8) => {
+  return one + two.slice(0, maxLength - one.length);
+};
+
+const chopSecondLastChar = (text: string, backUp: number) => {
+  const secondLastIndex = text.length - backUp - 1;
+  return text
+    .split("")
+    .filter((value, index) => index !== secondLastIndex)
+    .join("");
+};
+
+const tokenStrategies: Array<(one: string, two: string) => string> = [
+  chopSecondSymbol,
+  (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 1)),
+  (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 2)),
+  (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 3))
+];
+
+const generateSmartTokenSymbol = async (
+  symbolOne: string,
+  symbolTwo: string,
+  multiTokenContract: string
+) => {
+  for (const strat in tokenStrategies) {
+    let draftedToken = tokenStrategies[strat](symbolOne, symbolTwo);
+    try {
+      await getEosioTokenPrecision(draftedToken, multiTokenContract);
+    } catch (e) {
+      return draftedToken;
+    }
+  }
+  throw new Error("Failed to find a new SmartTokenSymbol!");
+};
 
 const tokenMetaDataEndpoint =
   "https://raw.githubusercontent.com/eoscafe/eos-airdrops/master/tokens.json";
@@ -39,6 +88,7 @@ interface TokenMeta {
   logo: string;
   logo_lg: string;
   symbol: string;
+  account: string;
   chain: string;
 }
 
@@ -69,12 +119,28 @@ export class EosBancorModule extends VuexModule
     return "eos";
   }
 
-  get newPoolTokenChoices(): ModalChoice[] {
-    return this.tokenMeta.map(tokenMeta => ({
-      symbol: tokenMeta.symbol,
-      balance: "0",
-      img: tokenMeta.logo
-    }));
+  get newPoolTokenChoices() {
+    return (networkToken: string): ModalChoice[] => {
+      return this.tokenMeta
+        .map(tokenMeta => ({
+          symbol: tokenMeta.symbol,
+          balance: "0",
+          img: tokenMeta.logo
+        }))
+        .filter(
+          (value, index, array) =>
+            array.findIndex(token => value.symbol == token.symbol) == index
+        )
+        .filter(tokenMeta =>
+          !this.relaysList.find(relay =>
+            relay.reserves.every(
+              reserve =>
+                reserve.symbol == tokenMeta.symbol ||
+                reserve.symbol == networkToken
+            )
+          )
+        );
+    };
   }
 
   get newNetworkTokenChoices(): NetworkChoice[] {
@@ -94,8 +160,61 @@ export class EosBancorModule extends VuexModule
     ];
   }
 
-  @action async createPool() {
-    return;
+  @action async createPool(poolParams: any): Promise<void> {
+    console.log({ poolParams });
+    const [
+      [token1Symbol, token1Amount],
+      [token2Symbol, token2Amount]
+    ] = poolParams.reserves;
+    const smartTokenSymbol = await generateSmartTokenSymbol(
+      token1Symbol,
+      token2Symbol,
+      process.env.VUE_APP_SMARTTOKENCONTRACT!
+    );
+    console.log(smartTokenSymbol, "was smart token symbol");
+
+    const token1Data = this.tokenMetaObj(token1Symbol);
+    const token2Data = this.tokenMetaObj(token2Symbol);
+
+    const token1Asset = number_to_asset(
+      Number(token1Amount),
+      new Symbol(
+        token1Data.symbol,
+        await getEosioTokenPrecision(token1Data.symbol, token1Data.account)
+      )
+    );
+    const token2Asset = number_to_asset(
+      Number(token2Amount),
+      new Symbol(
+        token2Data.symbol,
+        await getEosioTokenPrecision(token2Data.symbol, token2Data.account)
+      )
+    );
+
+    console.log("hitting kickStartRelay");
+    const kickStartRelayActions = await multiContract.kickStartRelay(
+      smartTokenSymbol,
+      [
+        {
+          contract: token1Data.account,
+          amount: token1Asset
+        },
+        {
+          contract: token2Data.account,
+          amount: token2Asset
+        }
+      ],
+      100000000,
+      poolParams.fee
+    );
+    console.log(kickStartRelayActions, "was TX actions!");
+
+    // for (const action in kickStartRelayActions) {
+    //   await this.triggerTx([kickStartRelayActions[action]])
+    //   console.log("Success!")
+    // }
+    // kickStartRelayActions.forEach(action => this.triggerTx([action]))
+    this.triggerTx(kickStartRelayActions);
   }
 
   get networkTokenUsdValue() {
@@ -175,7 +294,6 @@ export class EosBancorModule extends VuexModule
       );
   }
 
-  // @ts-ignore
   get token(): (arg0: string) => ViewToken {
     // @ts-ignore
     return (symbolName: string) => {

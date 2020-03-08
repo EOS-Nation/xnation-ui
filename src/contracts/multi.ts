@@ -37,7 +37,6 @@ class MultiContractAction {
     converter_currency_code: string,
     currency: string,
     contract: string,
-    sale_enabled: boolean,
     ratio: number
   ): BareAction | SemiAction {
     return this.addAccountProperty({
@@ -46,7 +45,6 @@ class MultiContractAction {
         converter_currency_code,
         currency,
         contract,
-        sale_enabled,
         ratio
       }
     });
@@ -105,15 +103,15 @@ class MultiContractAction {
 
   create(
     owner: string,
-    initial_supply: string,
-    maximum_supply: string
+    token_code: string,
+    initial_supply: number
   ): BareAction | SemiAction {
     return this.addAccountProperty({
       name: "create",
       data: {
         owner,
-        initial_supply,
-        maximum_supply
+        token_code,
+        initial_supply: String(initial_supply)
       }
     });
   }
