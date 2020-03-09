@@ -131,14 +131,15 @@ export class EosBancorModule extends VuexModule
           (value, index, array) =>
             array.findIndex(token => value.symbol == token.symbol) == index
         )
-        .filter(tokenMeta =>
-          !this.relaysList.find(relay =>
-            relay.reserves.every(
-              reserve =>
-                reserve.symbol == tokenMeta.symbol ||
-                reserve.symbol == networkToken
+        .filter(
+          tokenMeta =>
+            !this.relaysList.find(relay =>
+              relay.reserves.every(
+                reserve =>
+                  reserve.symbol == tokenMeta.symbol ||
+                  reserve.symbol == networkToken
+              )
             )
-          )
         );
     };
   }
@@ -298,9 +299,9 @@ export class EosBancorModule extends VuexModule
     // @ts-ignore
     return (symbolName: string) => {
       const token = this.tokens.find(token => token.symbol == symbolName);
-      if (!token) {
-        console.warn("Failed finding token", symbolName);
-        return { symbol: symbolName, logo: "https://via.placeholder.com/50" };
+      if (!token) throw new Error("Failed to find token");
+      if (token && !token.logo) {
+        token["logo"] = "https://via.placeholder.com/50";
       }
       return token;
     };
@@ -327,16 +328,27 @@ export class EosBancorModule extends VuexModule
   }
 
   get relays() {
-    return this.relaysList.map(relay => ({
-      ...relay,
-      symbol: relay.reserves.find(reserve => reserve.symbol !== "BNT")!.symbol,
-      smartTokenSymbol: relay.smartToken.symbol,
-      liqDepth: 4,
-      reserves: relay.reserves.map((reserve: AgnosticToken) => ({
-        ...reserve,
-        logo: [this.token(reserve.symbol).logo]
+    return this.relaysList
+      .map(relay => ({
+        ...relay,
+        symbol: relay.reserves.find(reserve => reserve.symbol !== "BNT")!
+          .symbol,
+        smartTokenSymbol: relay.smartToken.symbol,
+        liqDepth: relay.reserves.find(reserve => reserve.symbol == "BNT")
+          ? relay.reserves.find(reserve => reserve.symbol == "BNT")!.amount *
+            this.usdPriceOfBnt
+          : relay.reserves.find(reserve => reserve.symbol == "USDB")
+          ? relay.reserves.find(reserve => reserve.symbol == "USDB")!.amount
+          : 0,
+        reserves: relay.reserves
+          .map((reserve: AgnosticToken) => ({
+            ...reserve,
+            logo: [this.token(reserve.symbol).logo]
+          }))
+          .sort(reserve => (reserve.symbol == "USDB" ? -1 : 1))
+          .sort(reserve => (reserve.symbol == "BNT" ? -1 : 1))
       }))
-    }));
+      .sort((a, b) => b.liqDepth - a.liqDepth);
   }
 
   @action async fetchUsdPrice() {
@@ -360,6 +372,7 @@ export class EosBancorModule extends VuexModule
     this.setUsdPrice(Number(usdValueOfEth.price));
     this.setBntPrice(Number(usdPriceOfBnt));
     this.refreshBalances();
+    console.log(relays, "are relays");
     this.setRelays(relays);
     this.setTokens(tokens);
     this.setTokenMeta(tokenMeta);

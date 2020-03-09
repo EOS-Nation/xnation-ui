@@ -3584,7 +3584,7 @@ export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
         amount: 0,
         network: "eos"
       },
-      fee: flatRelay.settings.fee / 100000000
+      fee: flatRelay.settings.fee / 1000000
     };
   });
 
