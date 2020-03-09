@@ -31,6 +31,7 @@ import { multiContractAction } from "@/contracts/multi";
 import { vxm } from "@/store";
 import axios, { AxiosResponse } from "axios";
 import { rpc } from "@/api/rpc";
+import { client } from '@/api/dFuse';
 
 const getEosioTokenPrecision = async (
   symbol: string,
@@ -225,18 +226,20 @@ export class EosBancorModule extends VuexModule
 
   get bancorApiTokens(): ViewToken[] {
     // @ts-ignore
-    return this.tokensList.map((token: TokenPrice | TokenPriceExtended) => ({
-      symbol: token.code,
-      name: token.name,
-      price: token.price,
-      liqDepth: token.liquidityDepth * this.usdPrice,
-      logo: token.primaryCommunityImageName,
-      change24h: token.change24h,
-      volume24h: token.volume24h.USD,
-      // @ts-ignore
-      balance: token.balance || "0",
-      source: "api"
-    }));
+    return this.tokensList
+      .map((token: TokenPrice | TokenPriceExtended) => ({
+        symbol: token.code,
+        name: token.name,
+        price: token.price,
+        liqDepth: token.liquidityDepth * this.usdPrice,
+        logo: token.primaryCommunityImageName,
+        change24h: token.change24h,
+        volume24h: token.volume24h.USD,
+        // @ts-ignore
+        balance: token.balance || "0",
+        source: "api"
+      }))
+      .filter(x => x.symbol !== "EMT");
   }
 
   get tokenMetaObj() {
@@ -356,6 +359,9 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async init() {
+
+    client.stateTablesForAccounts([''])
+
     const [
       usdValueOfEth,
       tokens,

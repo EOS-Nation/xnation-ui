@@ -669,10 +669,10 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
-"@dfuse/client@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@dfuse/client/-/client-0.3.0.tgz#36ce0ddceb8a14c2560c31a3ecfc708fbc443995"
-  integrity sha512-jE59uHDBMQkQcA3Jm3mGa2A6wp8irQ5ZbQeLV1aYk9pZHfcpE844TQTMcLR2IV4sFj2TipYbQczjLELXeNEgEg==
+"@dfuse/client@^0.3.8":
+  version "0.3.8"
+  resolved "https://registry.yarnpkg.com/@dfuse/client/-/client-0.3.8.tgz#eb164c4a952302207b091a7f1cd74bbc54456212"
+  integrity sha512-yky4dLFnsJ0NrOXOQ5yvtJ9PBppHdDkfBagrTTesZIGlVFPHUVobyqXRY9+x6WJ1152ONYRh7AQf9fDZf4Jtqg==
   dependencies:
     "@types/debug" "^0.0.31"
     debug "^4.1.0"
