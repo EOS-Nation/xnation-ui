@@ -84,6 +84,12 @@ export class BancorApi implements BancorWrapper {
     const endpoint = `transactions/conversionPath?fromCurrencyId=${fromId}&toCurrencyId=${toId}`;
     const res = await this.request(endpoint);
     return res;
+   }
+
+  public async getPathBySymbol(fromSymbol: string, toSymbol: string) {
+    return this.request(
+      `transactions/conversionPath?fromCurrencyCode=${fromSymbol}&toCurrencyCode=${toSymbol}`
+    );
   }
 
   public async getTokens(): Promise<TokenPrice[]> {

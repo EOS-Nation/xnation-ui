@@ -24,14 +24,20 @@ import {
   getBalance,
   fetchTokenStats
 } from "@/api/helpers";
-import { Symbol, Asset, asset_to_number, number_to_asset } from "eos-common";
+import {
+  Symbol,
+  Asset,
+  asset_to_number,
+  number_to_asset,
+  asset
+} from "eos-common";
 import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
 import { multiContractAction } from "@/contracts/multi";
 import { vxm } from "@/store";
 import axios, { AxiosResponse } from "axios";
 import { rpc } from "@/api/rpc";
-import { client } from '@/api/dFuse';
+import { client } from "@/api/dFuse";
 
 const getEosioTokenPrecision = async (
   symbol: string,
@@ -106,6 +112,34 @@ const getTokenMeta = async (): Promise<TokenMeta[]> => {
     token => token.chain.toLowerCase() == "eos" && token.symbol !== "KARMA"
   );
 };
+
+// export function calculateReturn(
+//   balanceFrom: Asset,
+//   balanceTo: Asset,
+//   amount: Asset
+// ) {
+//   if (!balanceFrom.symbol.isEqual(amount.symbol))
+//     throw new Error("From symbol does not match amount symbol");
+//   if (amount.amount >= balanceFrom.amount)
+//     throw new Error("Impossible to buy the entire reserve or more");
+
+//   Decimal.set({ precision: 15, rounding: Decimal.ROUND_DOWN });
+//   const balanceFromNumber = balanceFrom
+//   const balanceToNumber = balanceTo
+//   const amountNumber = amount
+
+//   const reward = amountNumber
+//     .div(balanceFromNumber.plus(amountNumber))
+//     .times(balanceToNumber);
+
+//   return new Asset(
+//     reward
+//       .times(Math.pow(10, balanceTo.symbol.precision()))
+//       .toDecimalPlaces(0, Decimal.ROUND_DOWN)
+//       .toNumber(),
+//     balanceTo.symbol
+//   );
+// }
 
 @Module({ namespacedPath: "eosBancor/" })
 export class EosBancorModule extends VuexModule
@@ -359,9 +393,6 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async init() {
-
-    client.stateTablesForAccounts([''])
-
     const [
       usdValueOfEth,
       tokens,
@@ -622,7 +653,7 @@ export class EosBancorModule extends VuexModule
     }
   }
 
-  @action async getReturn({
+  @action async getReturnBancorApi({
     fromSymbol,
     toSymbol,
     amount
@@ -638,6 +669,60 @@ export class EosBancorModule extends VuexModule
       String(amount * Math.pow(10, fromToken.decimals))
     );
     return { amount: String(Number(reward) / Math.pow(10, toToken.decimals)) };
+  }
+
+  @action async getReturnMulti({
+    fromSymbol,
+    toSymbol,
+    amount
+  }: ProposedTransaction): Promise<ConvertReturn> {
+    // do stuff
+    const reward = calculateReturn(
+      asset("1.0000 RED"),
+      asset("2.0000 BLUE"),
+      asset("0.2500 RED")
+    );
+    console.log(reward.to_string)
+    return { amount: String(asset_to_number(reward))}
+  }
+
+  @action async getReturn({
+    fromSymbol,
+    toSymbol,
+    amount
+  }: ProposedTransaction): Promise<ConvertReturn> {
+    const fromToken = this.token(fromSymbol);
+    const toToken = this.token(toSymbol);
+    // @ts-ignore
+    const sources = [fromToken.source, toToken.source];
+    if (sources.every(source => source == "api")) {
+      return this.getReturnBancorApi({ fromSymbol, toSymbol, amount });
+    } else if (sources.every(source => source == "multi")) {
+      return this.getReturnMulti({ fromSymbol, toSymbol, amount });
+    } else if (sources[0] == "api") {
+      const bancorApi = await this.getReturnBancorApi({
+        fromSymbol,
+        toSymbol: "BNT",
+        amount
+      });
+      return this.getReturnMulti({
+        fromSymbol: "BNT",
+        toSymbol,
+        amount: Number(bancorApi.amount)
+      });
+    } else {
+      // source start with multi
+      const multi = await this.getReturnMulti({
+        fromSymbol,
+        toSymbol: "BNT",
+        amount
+      });
+      return this.getReturnBancorApi({
+        fromSymbol: "BNT",
+        toSymbol,
+        amount: Number(multi.amount)
+      });
+    }
   }
 
   @action async getCost({
