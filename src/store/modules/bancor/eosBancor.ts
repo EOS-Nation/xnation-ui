@@ -25,11 +25,12 @@ import {
   fetchTokenStats
 } from "@/api/helpers";
 import {
-  Symbol,
+  Sym as Symbol,
   Asset,
   asset_to_number,
   number_to_asset,
-  asset
+  asset,
+  Sym
 } from "eos-common";
 import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
@@ -38,6 +39,34 @@ import { vxm } from "@/store";
 import axios, { AxiosResponse } from "axios";
 import { rpc } from "@/api/rpc";
 import { client } from "@/api/dFuse";
+import { calculateReturn } from "@/api/bancorCalc";
+import {
+  createPath,
+  DryRelay,
+  HydratedRelay,
+  findReturn
+} from "@/api/bancorCalc";
+import { Decimal } from "decimal.js";
+import { TokenAmount } from "bancorx/build/interfaces";
+
+enum ConvertType {
+  API,
+  Multi,
+  APItoMulti,
+  MultiToApi
+}
+
+const determineConvertType = (sources: string[]): ConvertType => {
+  if (sources.every(source => source == "api")) {
+    return ConvertType.API;
+  } else if (sources.every(source => source == "multi")) {
+    return ConvertType.Multi;
+  } else if (sources[0] == "api") {
+    return ConvertType.APItoMulti;
+  } else {
+    return ConvertType.MultiToApi;
+  }
+};
 
 const getEosioTokenPrecision = async (
   symbol: string,
@@ -113,33 +142,47 @@ const getTokenMeta = async (): Promise<TokenMeta[]> => {
   );
 };
 
-// export function calculateReturn(
-//   balanceFrom: Asset,
-//   balanceTo: Asset,
-//   amount: Asset
-// ) {
-//   if (!balanceFrom.symbol.isEqual(amount.symbol))
-//     throw new Error("From symbol does not match amount symbol");
-//   if (amount.amount >= balanceFrom.amount)
-//     throw new Error("Impossible to buy the entire reserve or more");
+const parseDfuseTable = (
+  data: any
+): {
+  smartToken: string;
+  reserves: { balance: string; ratio: number; contract: string }[];
+}[] => {
+  return data.tables.map((table: any) => ({
+    smartToken: table.scope,
+    reserves: table.rows.map((row: any) => row.json)
+  }));
+};
 
-//   Decimal.set({ precision: 15, rounding: Decimal.ROUND_DOWN });
-//   const balanceFromNumber = balanceFrom
-//   const balanceToNumber = balanceTo
-//   const amountNumber = amount
+const parseDfuseSettingTable = (
+  data: any
+): {
+  smartToken: string;
+  fee: number;
+  stake_enabled: boolean;
+  owner: string;
+  currency: string;
+}[] => {
+  return data.tables.map((table: any) => ({
+    smartToken: table.scope,
+    ...table.rows[0].json
+  }));
+};
 
-//   const reward = amountNumber
-//     .div(balanceFromNumber.plus(amountNumber))
-//     .times(balanceToNumber);
-
-//   return new Asset(
-//     reward
-//       .times(Math.pow(10, balanceTo.symbol.precision()))
-//       .toDecimalPlaces(0, Decimal.ROUND_DOWN)
-//       .toNumber(),
-//     balanceTo.symbol
-//   );
-// }
+const eosMultiToDryRelays = (relays: EosMultiRelay[]): DryRelay[] => {
+  return relays.map(relay => ({
+    reserves: relay.reserves.map(reserve => ({
+      contract: reserve.contract,
+      symbol: new Symbol(reserve.symbol, reserve.precision)
+    })),
+    contract: relay.contract,
+    smartToken: {
+      symbol: new Symbol(relay.smartToken.symbol, relay.smartToken.precision),
+      contract: relay.smartToken.contract
+    },
+    isMultiContract: true
+  }));
+};
 
 @Module({ namespacedPath: "eosBancor/" })
 export class EosBancorModule extends VuexModule
@@ -301,7 +344,7 @@ export class EosBancorModule extends VuexModule
         const tokenIndex = networkTokenIndex == 0 ? 1 : 0;
         const networkTokenIsBnt =
           relay.reserves[networkTokenIndex].symbol == "BNT";
-        const symbol = relay.reserves[tokenIndex].symbol;
+        const { symbol, precision } = relay.reserves[tokenIndex];
         const tokenMeta = this.tokenMeta.find(token => token.symbol == symbol);
 
         const liqDepth =
@@ -317,7 +360,8 @@ export class EosBancorModule extends VuexModule
           change24h: 0,
           volume24h: 0,
           balance: "0",
-          source: "multi"
+          source: "multi",
+          precision
         };
       });
   }
@@ -602,7 +646,7 @@ export class EosBancorModule extends VuexModule
   // Could be an oppurtunity to get precision
   @action async focusSymbol(symbolName: string) {}
 
-  @action async convert({
+  @action async convertApi({
     fromAmount,
     fromSymbol,
     toAmount,
@@ -629,6 +673,41 @@ export class EosBancorModule extends VuexModule
     const { actions } = res.data[0];
     const txRes = await this.triggerTx(actions);
     return txRes.transaction_id;
+  }
+
+  @action async convertMulti(proposal: ProposedConvertTransaction) {
+    const { fromSymbol, fromAmount, toAmount, toSymbol } = proposal;
+
+    const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
+    const toToken = this.relayTokens.find(x => x.symbol == toSymbol)!;
+
+    // @ts-ignore
+    const fromSymbolInit = new Symbol(fromToken.symbol, fromToken.precision);
+    // @ts-ignore
+    const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
+    const assetAmount = number_to_asset(Number(fromAmount), fromSymbolInit);
+
+    const allRelays = eosMultiToDryRelays(this.relaysList);
+    const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
+    
+  }
+
+  @action async convert(proposal: ProposedConvertTransaction) {
+    const { fromSymbol, toSymbol } = proposal;
+    const fromToken = this.token(fromSymbol);
+    const toToken = this.token(toSymbol);
+    // @ts-ignore
+    const sources = [fromToken.source, toToken.source];
+    const convertType = determineConvertType(sources);
+
+    switch (convertType) {
+      case ConvertType.API: {
+        return this.convertApi(proposal);
+      }
+      case ConvertType.Multi: {
+        return this.convertMulti(proposal);
+      }
+    }
   }
 
   @action async getEosTokenWithDecimals(symbolName: string): Promise<any> {
@@ -671,19 +750,71 @@ export class EosBancorModule extends VuexModule
     return { amount: String(Number(reward) / Math.pow(10, toToken.decimals)) };
   }
 
+  @action async hydrateRelays(relays: DryRelay[]): Promise<HydratedRelay[]> {
+    const [reservesRes, settingsRes] = await Promise.all([
+      client.stateTablesForScopes(
+        process.env.VUE_APP_MULTICONTRACT!,
+        relays.map(relay => relay.smartToken.symbol.code().to_string()),
+        "reserves"
+      ),
+      client.stateTablesForScopes(
+        process.env.VUE_APP_MULTICONTRACT!,
+        relays.map(relay => relay.smartToken.symbol.code().to_string()),
+        "converters"
+      )
+    ]);
+
+    const simpleSettings = parseDfuseSettingTable(settingsRes);
+    const simpleReserves = parseDfuseTable(reservesRes);
+
+    const joined = simpleReserves.map(relayWithReserves => ({
+      ...relayWithReserves,
+      ...simpleSettings.find(
+        setting => setting.smartToken == relayWithReserves.smartToken
+      )!
+    }));
+
+    return relays.map(relay => {
+      const textRelay = joined.find(
+        text => text.smartToken == relay.smartToken.symbol.code().to_string()
+      )!;
+      return {
+        ...relay,
+        reserves: relay.reserves.map(reserve => ({
+          contract: reserve.contract,
+          amount: new Asset(
+            textRelay.reserves.find(
+              textReserve =>
+                textReserve.balance.split(" ")[1] ==
+                reserve.symbol.code().to_string()
+            )!.balance
+          )
+        })),
+        fee: textRelay.fee / 1000000
+      };
+    });
+  }
+
   @action async getReturnMulti({
     fromSymbol,
     toSymbol,
     amount
   }: ProposedTransaction): Promise<ConvertReturn> {
-    // do stuff
-    const reward = calculateReturn(
-      asset("1.0000 RED"),
-      asset("2.0000 BLUE"),
-      asset("0.2500 RED")
-    );
-    console.log(reward.to_string)
-    return { amount: String(asset_to_number(reward))}
+    const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
+    const toToken = this.relayTokens.find(x => x.symbol == toSymbol)!;
+
+    // @ts-ignore
+    const fromSymbolInit = new Symbol(fromToken.symbol, fromToken.precision);
+    // @ts-ignore
+    const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
+    const assetAmount = number_to_asset(Number(amount), fromSymbolInit);
+
+    const allRelays = eosMultiToDryRelays(this.relaysList);
+    const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
+    const hydratedRelays = await this.hydrateRelays(path);
+    const returnAmount = findReturn(assetAmount, hydratedRelays);
+
+    return { amount: returnAmount.to_string().split(" ")[0] };
   }
 
   @action async getReturn({
@@ -695,33 +826,37 @@ export class EosBancorModule extends VuexModule
     const toToken = this.token(toSymbol);
     // @ts-ignore
     const sources = [fromToken.source, toToken.source];
-    if (sources.every(source => source == "api")) {
-      return this.getReturnBancorApi({ fromSymbol, toSymbol, amount });
-    } else if (sources.every(source => source == "multi")) {
-      return this.getReturnMulti({ fromSymbol, toSymbol, amount });
-    } else if (sources[0] == "api") {
-      const bancorApi = await this.getReturnBancorApi({
-        fromSymbol,
-        toSymbol: "BNT",
-        amount
-      });
-      return this.getReturnMulti({
-        fromSymbol: "BNT",
-        toSymbol,
-        amount: Number(bancorApi.amount)
-      });
-    } else {
-      // source start with multi
-      const multi = await this.getReturnMulti({
-        fromSymbol,
-        toSymbol: "BNT",
-        amount
-      });
-      return this.getReturnBancorApi({
-        fromSymbol: "BNT",
-        toSymbol,
-        amount: Number(multi.amount)
-      });
+    const convertType = determineConvertType(sources);
+
+    switch (convertType) {
+      case ConvertType.API:
+        return this.getReturnBancorApi({ fromSymbol, toSymbol, amount });
+      case ConvertType.Multi:
+        return this.getReturnMulti({ fromSymbol, toSymbol, amount });
+      case ConvertType.APItoMulti: {
+        const bancorApi = await this.getReturnBancorApi({
+          fromSymbol,
+          toSymbol: "BNT",
+          amount
+        });
+        return this.getReturnMulti({
+          fromSymbol: "BNT",
+          toSymbol,
+          amount: Number(bancorApi.amount)
+        });
+      }
+      case ConvertType.MultiToApi: {
+        const multi = await this.getReturnMulti({
+          fromSymbol,
+          toSymbol: "BNT",
+          amount
+        });
+        return this.getReturnBancorApi({
+          fromSymbol: "BNT",
+          toSymbol,
+          amount: Number(multi.amount)
+        });
+      }
     }
   }
 
