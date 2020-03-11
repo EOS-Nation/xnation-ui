@@ -251,12 +251,13 @@ export function findPath(
   from: Symbol,
   to: Symbol,
   relays: ChoppedRelay[],
+  attemptNumber: number = 0,
   path: ChoppedRelay[] = [],
   attempt: Symbol = from
 ): ChoppedRelay[] {
   const finalRelay = relays.find(relayHasBothSymbols(to, attempt));
-
   if (finalRelay) return [...path, finalRelay];
+  if (attemptNumber > relays.length ** 2) throw new Error("Failed to find a path");
 
   const searchScope =
     path.length == 0
@@ -266,7 +267,7 @@ export function findPath(
     relay.reserves.some(token => token.symbol.isEqual(attempt))
   )!;
 
-  if (!firstRelayContainingAttempt) return findPath(from, to, searchScope, []);
+  if (!firstRelayContainingAttempt) return findPath(from, to, searchScope, attemptNumber, []);
 
   const oppositeSymbol = getOppositeSymbol(
     firstRelayContainingAttempt,
@@ -276,6 +277,7 @@ export function findPath(
     from,
     to,
     relays,
+    attemptNumber + 1,
     [...path, firstRelayContainingAttempt],
     oppositeSymbol
   );
