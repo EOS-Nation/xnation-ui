@@ -39,7 +39,7 @@ import { vxm } from "@/store";
 import axios, { AxiosResponse } from "axios";
 import { rpc } from "@/api/rpc";
 import { client } from "@/api/dFuse";
-import { calculateReturn } from "@/api/bancorCalc";
+import { calculateReturn, relaysToConvertPaths, composeMemo } from "@/api/bancorCalc";
 import {
   createPath,
   DryRelay,
@@ -344,7 +344,7 @@ export class EosBancorModule extends VuexModule
         const tokenIndex = networkTokenIndex == 0 ? 1 : 0;
         const networkTokenIsBnt =
           relay.reserves[networkTokenIndex].symbol == "BNT";
-        const { symbol, precision } = relay.reserves[tokenIndex];
+        const { symbol, precision, contract } = relay.reserves[tokenIndex];
         const tokenMeta = this.tokenMeta.find(token => token.symbol == symbol);
 
         const liqDepth =
@@ -361,7 +361,8 @@ export class EosBancorModule extends VuexModule
           volume24h: 0,
           balance: "0",
           source: "multi",
-          precision
+          precision,
+          contract
         };
       });
   }
@@ -688,13 +689,20 @@ export class EosBancorModule extends VuexModule
     const assetAmount = number_to_asset(Number(fromAmount), fromSymbolInit);
 
     const allRelays = eosMultiToDryRelays(this.relaysList);
-    const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
-    
+    const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
+    const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
+    const memo = composeMemo(convertPath, String(toAmount), 'thekellygang');
+
+    console.log(memo, 'is the memo')
+    // @ts-ignore
+    const fromTokenContract = fromToken.contract;
+    const convertActions = await multiContract.convert(fromTokenContract, assetAmount, memo);
+    return this.triggerTx(convertActions);
   }
 
   @action async convert(proposal: ProposedConvertTransaction) {
     const { fromSymbol, toSymbol } = proposal;
-    const fromToken = this.token(fromSymbol);
+    
     const toToken = this.token(toSymbol);
     // @ts-ignore
     const sources = [fromToken.source, toToken.source];
@@ -800,6 +808,8 @@ export class EosBancorModule extends VuexModule
     toSymbol,
     amount
   }: ProposedTransaction): Promise<ConvertReturn> {
+    console.log(this.relayTokens, 'are relay tokens');
+
     const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
     const toToken = this.relayTokens.find(x => x.symbol == toSymbol)!;
 

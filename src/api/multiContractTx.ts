@@ -90,10 +90,11 @@ class MultiContractTx {
       data: {
         from: this.getAuth()[0].actor,
         to: process.env.VUE_APP_NETWORKCONTRACT,
-        quantity: amount.toString(),
+        quantity: amount.to_string(),
         memo
       }
     };
+    console.log(action, 'is the action...')
     return this.tx([action]);
   }
 

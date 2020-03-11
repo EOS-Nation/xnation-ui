@@ -315,6 +315,7 @@ export default class HeroConvert extends Vue {
         fromAmount: Number(this.fromTokenAmount),
         toAmount: Number(this.toTokenAmount)
       });
+      console.log(result, 'result came through')
 
       this.success = result;
       this.error = "";
