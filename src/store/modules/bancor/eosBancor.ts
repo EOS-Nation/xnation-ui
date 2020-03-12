@@ -56,6 +56,48 @@ enum ConvertType {
   MultiToApi
 }
 
+export interface ViewTokenMinusLogo {
+  symbol: string;
+  name: string;
+  price: number;
+  liqDepth: number;
+  logo: string;
+  change24h: number;
+  volume24h: number;
+  balance?: string;
+}
+
+const relayToToken = ({ relay, tokenSymbol, bntPrice }: { relay: EosMultiRelay, tokenSymbol: string, bntPrice: number }): ViewTokenMinusLogo => {
+  const networkTokenIndex = relay.reserves.findIndex(
+    reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
+  )!;
+  const tokenIndex = relay.reserves.findIndex(reserve => reserve.symbol == tokenSymbol);
+  const networkTokenIsBnt =
+    relay.reserves[networkTokenIndex].symbol == "BNT";
+  const { symbol, precision, contract } = relay.reserves[tokenIndex];
+  const liqDepth =
+    relay.reserves[networkTokenIndex].amount *
+    (networkTokenIsBnt ? bntPrice : 1);
+  return {
+    symbol,
+    name: symbol,
+    price: 0,
+    liqDepth,
+    change24h: 0,
+    volume24h: 0,
+    balance: "0",
+    // @ts-ignore
+    source: "multi",
+    precision,
+    contract
+  };
+}
+
+
+const relayToTokens = (relay: EosMultiRelay, bntPrice: number) => {
+  return relay.reserves.map(reserve => relayToToken({ relay, tokenSymbol: reserve.symbol, bntPrice }));
+}
+
 const determineConvertType = (sources: string[]): ConvertType => {
   if (sources.every(source => source == "api")) {
     return ConvertType.API;
@@ -337,34 +379,17 @@ export class EosBancorModule extends VuexModule
           reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
         )
       )
-      .map(relay => {
-        const networkTokenIndex = relay.reserves.findIndex(
-          reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
-        )!;
-        const tokenIndex = networkTokenIndex == 0 ? 1 : 0;
-        const networkTokenIsBnt =
-          relay.reserves[networkTokenIndex].symbol == "BNT";
-        const { symbol, precision, contract } = relay.reserves[tokenIndex];
+      .reduce((prev, relay) => {
+        const tokens = relayToTokens(relay, this.usdPriceOfBnt);
+        return prev.concat(tokens)
+      }, [] as ViewToken[])
+      .sort((a, b) => b.liqDepth - a.liqDepth)
+      .filter((token, index, arr) => arr.findIndex(sToken => sToken.symbol == token.symbol) == index)
+      .map((token) => {
+        const symbol = token.symbol;
         const tokenMeta = this.tokenMeta.find(token => token.symbol == symbol);
-
-        const liqDepth =
-          relay.reserves[networkTokenIndex].amount *
-          (networkTokenIsBnt ? this.usdPriceOfBnt : 1);
-
-        return {
-          symbol,
-          name: symbol,
-          price: 0,
-          liqDepth,
-          logo: (tokenMeta && tokenMeta.logo) || "",
-          change24h: 0,
-          volume24h: 0,
-          balance: "0",
-          source: "multi",
-          precision,
-          contract
-        };
-      });
+        return { ...token, logo: (tokenMeta && tokenMeta.logo || 'https://via.placeholder.com/50')}
+      })
   }
 
   get tokens(): ViewToken[] {
@@ -418,10 +443,10 @@ export class EosBancorModule extends VuexModule
         smartTokenSymbol: relay.smartToken.symbol,
         liqDepth: relay.reserves.find(reserve => reserve.symbol == "BNT")
           ? relay.reserves.find(reserve => reserve.symbol == "BNT")!.amount *
-            this.usdPriceOfBnt
+          this.usdPriceOfBnt
           : relay.reserves.find(reserve => reserve.symbol == "USDB")
-          ? relay.reserves.find(reserve => reserve.symbol == "USDB")!.amount
-          : 0,
+            ? relay.reserves.find(reserve => reserve.symbol == "USDB")!.amount
+            : 0,
         reserves: relay.reserves
           .map((reserve: AgnosticToken) => ({
             ...reserve,
@@ -529,7 +554,7 @@ export class EosBancorModule extends VuexModule
   @action async removeLiquidity({
     fundAmount,
     smartTokenSymbol
-  }: LiquidityParams) {}
+  }: LiquidityParams) { }
 
   @action async getUserBalances(symbolName: string) {
     const relay = this.relay(symbolName);
@@ -645,7 +670,7 @@ export class EosBancorModule extends VuexModule
   // Focus Symbol is called when the UI focuses on a Symbol
   // Should have token balances
   // Could be an oppurtunity to get precision
-  @action async focusSymbol(symbolName: string) {}
+  @action async focusSymbol(symbolName: string) { }
 
   @action async convertApi({
     fromAmount,
@@ -702,7 +727,7 @@ export class EosBancorModule extends VuexModule
 
   @action async convert(proposal: ProposedConvertTransaction) {
     const { fromSymbol, toSymbol } = proposal;
-    
+
     const toToken = this.token(toSymbol);
     // @ts-ignore
     const sources = [fromToken.source, toToken.source];
@@ -820,6 +845,7 @@ export class EosBancorModule extends VuexModule
     const assetAmount = number_to_asset(Number(amount), fromSymbolInit);
 
     const allRelays = eosMultiToDryRelays(this.relaysList);
+    console.table({ relaysList: this.relaysList, dryRelays: allRelays, from: fromSymbolInit.code().to_string(), to: toSymbolInit.code().to_string() })
     const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const hydratedRelays = await this.hydrateRelays(path);
     const returnAmount = findReturn(assetAmount, hydratedRelays);
