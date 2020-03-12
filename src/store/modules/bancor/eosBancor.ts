@@ -297,7 +297,6 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async createPool(poolParams: any): Promise<void> {
-    console.log({ poolParams });
     const [
       [token1Symbol, token1Amount],
       [token2Symbol, token2Amount]
@@ -326,7 +325,6 @@ export class EosBancorModule extends VuexModule
       )
     );
 
-    console.log("hitting kickStartRelay");
     const kickStartRelayActions = await multiContract.kickStartRelay(
       smartTokenSymbol,
       [
@@ -342,7 +340,6 @@ export class EosBancorModule extends VuexModule
       100000000,
       poolParams.fee
     );
-    console.log(kickStartRelayActions, "was TX actions!");
 
     // for (const action in kickStartRelayActions) {
     //   await this.triggerTx([kickStartRelayActions[action]])
@@ -770,21 +767,16 @@ export class EosBancorModule extends VuexModule
       .map(token => token.source);
     // @ts-ignore
     const sources = [fromTokenSources, toTokenSources];
-    console.log(sources, "were the sources", "nice");
     const convertType = determineConvertType(sources);
-    console.log("CONVERT TYPE IS", convertType);
 
     switch (convertType) {
       case ConvertType.API: {
-        console.log("trying to use API");
         return this.convertApi(proposal);
       }
       case ConvertType.Multi: {
-        console.log("trying to use Multi");
         return this.convertMulti(proposal);
       }
       case ConvertType.APItoMulti: {
-        console.log("Using API TO MULTI");
         const apiReturn = await this.getReturnBancorApi({
           amount: proposal.fromAmount,
           fromSymbol,
@@ -840,7 +832,6 @@ export class EosBancorModule extends VuexModule
         return txRes.transaction_id;
       }
       case ConvertType.MultiToApi: {
-        console.log("hitting multi to api");
         const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
         const fromSymbolInit = new Symbol(
           fromToken.symbol,
@@ -871,14 +862,12 @@ export class EosBancorModule extends VuexModule
         const mergedPath = convertPath.concat(
           path.map(([account, symbol]) => ({ account, symbol }))
         );
-        console.log(mergedPath, "was merged path");
 
         const memo = composeMemo(
           mergedPath,
           String(Number(apiReturn.amount) * 0.99),
           vxm.wallet.isAuthenticated
         );
-        console.log(memo, "was memo");
 
         // @ts-ignore
         const fromTokenContract = fromToken.contract;
@@ -986,7 +975,6 @@ export class EosBancorModule extends VuexModule
     toSymbol,
     amount
   }: ProposedTransaction): Promise<ConvertReturn> {
-    console.log(this.relayTokens, "are relay tokens");
 
     const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
     const toToken = this.relayTokens.find(x => x.symbol == toSymbol)!;
@@ -999,7 +987,6 @@ export class EosBancorModule extends VuexModule
 
     const allRelays = eosMultiToDryRelays(this.relaysList);
     const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
-    console.log(path, "is the path");
     const hydratedRelays = await this.hydrateRelays(path);
     const returnAmount = findReturn(assetAmount, hydratedRelays);
 
