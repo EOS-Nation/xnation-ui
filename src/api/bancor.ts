@@ -6,6 +6,17 @@ import {
   BancorAPIResponseToken
 } from "@/types/bancor";
 
+function chunk(array: any, size: number) {
+  const chunked = [];
+  let index = 0;
+
+  while (index < array.length) {
+    chunked.push(array.slice(index, index + size));
+    index += size;
+  }
+  return chunked;
+}
+
 export interface BancorWrapper {
   getTokens(): Promise<TokenPrice[]>;
   getToken(symbol: string): Promise<TokenDetail>;
@@ -65,7 +76,7 @@ export class BancorApi implements BancorWrapper {
     const endpoint = "currencies/" + symbol;
     const res = await this.request(endpoint, {});
     return {
-      ...res.data.currency,
+      ...res.data,
       primaryCommunityImageName:
         this.photoBaseUrl + res.data.primaryCommunityImageName
     };
@@ -84,12 +95,16 @@ export class BancorApi implements BancorWrapper {
     const endpoint = `transactions/conversionPath?fromCurrencyId=${fromId}&toCurrencyId=${toId}`;
     const res = await this.request(endpoint);
     return res;
-   }
+  }
 
-  public async getPathBySymbol(fromSymbol: string, toSymbol: string) {
-    return this.request(
+  public async getPathBySymbol(
+    fromSymbol: string,
+    toSymbol: string
+  ): Promise<[string, string]> {
+    const res = await this.request(
       `transactions/conversionPath?fromCurrencyCode=${fromSymbol}&toCurrencyCode=${toSymbol}`
     );
+    return chunk(res.data, 2);
   }
 
   public async getTokens(): Promise<TokenPrice[]> {

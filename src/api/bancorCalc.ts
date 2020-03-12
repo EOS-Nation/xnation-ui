@@ -113,7 +113,7 @@ export function composeMemo(
     .map(({ account, symbol, multiContractSymbol }) => {
       return `${account}${
         multiContractSymbol ? `:${multiContractSymbol}` : ""
-        } ${symbol}`;
+      } ${symbol}`;
     })
     .join(" ");
 
@@ -133,9 +133,9 @@ export function relaysToConvertPaths(
         };
         return relay.isMultiContract
           ? {
-            ...base,
-            multiContractSymbol: relay.smartToken.symbol.code().to_string()
-          }
+              ...base,
+              multiContractSymbol: relay.smartToken.symbol.code().to_string()
+            }
           : base;
       })
     )
@@ -150,22 +150,26 @@ export function relaysToConvertPaths(
     }, []);
 }
 
-const tokenToSymbolName = (token: TokenSymbol) => token.symbol.code().to_string()
-const symbolToSymbolName = (symbol: Sym) => symbol.code().to_string()
+const tokenToSymbolName = (token: TokenSymbol) =>
+  token.symbol.code().to_string();
+const symbolToSymbolName = (symbol: Sym) => symbol.code().to_string();
 
 export function relayHasBothSymbols(
   symbol1: Symbol,
   symbol2: Symbol
 ): (choppedRelay: ChoppedRelay) => boolean {
-  return function (relay: ChoppedRelay) {
+  return function(relay: ChoppedRelay) {
     return relay.reserves.every(
-      token => tokenToSymbolName(token) == symbolToSymbolName(symbol1) || tokenToSymbolName(token) == symbolToSymbolName(symbol2)
+      token =>
+        tokenToSymbolName(token) == symbolToSymbolName(symbol1) ||
+        tokenToSymbolName(token) == symbolToSymbolName(symbol2)
     );
   };
 }
 
 const zip = (arr1: any[], arr2: any[]) => {
-  if (arr1.length !== arr2.length) throw new Error("These arrays aren't the same")
+  if (arr1.length !== arr2.length)
+    throw new Error("These arrays aren't the same");
   return arr1.map((item, index) => [item, arr2[index]]);
 };
 
@@ -217,7 +221,7 @@ export function getOppositeSymbol(relay: ChoppedRelay, symbol: Symbol): Symbol {
 }
 
 function relayOffersSymbols(symbol1: Symbol, symbol2: Symbol) {
-  return function (relay: DryRelay) {
+  return function(relay: DryRelay) {
     const inReserves = relay.reserves.every(
       token => token.symbol.isEqual(symbol1) || token.symbol.isEqual(symbol2)
     );
@@ -255,34 +259,33 @@ export function findPath(
   from: Symbol,
   to: Symbol,
   relays: ChoppedRelay[],
+  attemptNumber: number = 0,
   path: ChoppedRelay[] = [],
   attempt: Symbol = from
 ): ChoppedRelay[] {
   const finalRelay = relays.find(relayHasBothSymbols(to, attempt));
-  console.log('In my latest attempt, I tried finding a relay that does a direct match of', to.code().to_string(), 'and', attempt.code().to_string(), finalRelay ? "I found one." : "I did not find one.")
   if (finalRelay) return [...path, finalRelay];
+  if (attemptNumber >= 1000)
+    throw new Error("Unable to find path in decent time");
 
   const searchScope =
     path.length == 0
       ? relays
       : removeChoppedRelay(relays, path[path.length - 1]);
-  if (path.length !== 0) console.assert(searchScope.length == relays.length - 1, 'shit didnt get removed')
-  console.log(searchScope.length, 'is the search scope length')
-  const firstRelayContainingAttempt = searchScope.find((relay: ChoppedRelay) =>
+  const potentialHopRelay = searchScope.find((relay: ChoppedRelay) =>
     relay.reserves.some(token => token.symbol.isEqual(attempt))
   )!;
 
-  if (!firstRelayContainingAttempt) return findPath(from, to, searchScope, []);
+  if (!potentialHopRelay)
+    return findPath(from, to, searchScope, attemptNumber + 1, []);
 
-  const oppositeSymbol = getOppositeSymbol(
-    firstRelayContainingAttempt,
-    attempt
-  );
+  const oppositeSymbol = getOppositeSymbol(potentialHopRelay, attempt);
   return findPath(
     from,
     to,
-    relays,
-    [...path, firstRelayContainingAttempt],
+    searchScope,
+    attemptNumber + 1,
+    [...path, potentialHopRelay],
     oppositeSymbol
   );
 }
@@ -292,8 +295,11 @@ export function createPath(
   to: Symbol,
   relays: DryRelay[]
 ): DryRelay[] {
-  const choppedRelays = chopRelays(relays);
-  console.log("Chopped Relays", choppedRelays.map(relay => relay.reserves.map(reserve => reserve.symbol.code().to_string())))
+  const choppedRelays = chopRelays(
+    relays.sort(relay =>
+      relay.reserves.some(reserve => reserve.symbol.isEqual(to)) ? -1 : 1
+    )
+  );
   const choppedRelaysPath: ChoppedRelay[] = findPath(from, to, choppedRelays);
   const wholeRelaysPath: DryRelay[] = unChopRelays(
     choppedRelaysPath,

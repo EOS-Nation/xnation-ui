@@ -206,7 +206,7 @@ class MultiContractTx {
     }
 
     console.log(actions, "were actions");
-    return this.tx(actions)
+    return this.tx(actions);
   }
 
   withdrawAction(symbolCode: string, amount: Asset) {

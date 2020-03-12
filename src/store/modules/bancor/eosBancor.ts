@@ -39,15 +39,18 @@ import { vxm } from "@/store";
 import axios, { AxiosResponse } from "axios";
 import { rpc } from "@/api/rpc";
 import { client } from "@/api/dFuse";
-import { calculateReturn, relaysToConvertPaths, composeMemo } from "@/api/bancorCalc";
+import {
+  calculateReturn,
+  relaysToConvertPaths,
+  composeMemo,
+  ConvertPath
+} from "@/api/bancorCalc";
 import {
   createPath,
   DryRelay,
   HydratedRelay,
   findReturn
 } from "@/api/bancorCalc";
-import { Decimal } from "decimal.js";
-import { TokenAmount } from "bancorx/build/interfaces";
 
 enum ConvertType {
   API,
@@ -67,13 +70,22 @@ export interface ViewTokenMinusLogo {
   balance?: string;
 }
 
-const relayToToken = ({ relay, tokenSymbol, bntPrice }: { relay: EosMultiRelay, tokenSymbol: string, bntPrice: number }): ViewTokenMinusLogo => {
+const relayToToken = ({
+  relay,
+  tokenSymbol,
+  bntPrice
+}: {
+  relay: EosMultiRelay;
+  tokenSymbol: string;
+  bntPrice: number;
+}): ViewTokenMinusLogo => {
   const networkTokenIndex = relay.reserves.findIndex(
     reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
   )!;
-  const tokenIndex = relay.reserves.findIndex(reserve => reserve.symbol == tokenSymbol);
-  const networkTokenIsBnt =
-    relay.reserves[networkTokenIndex].symbol == "BNT";
+  const tokenIndex = relay.reserves.findIndex(
+    reserve => reserve.symbol == tokenSymbol
+  );
+  const networkTokenIsBnt = relay.reserves[networkTokenIndex].symbol == "BNT";
   const { symbol, precision, contract } = relay.reserves[tokenIndex];
   const liqDepth =
     relay.reserves[networkTokenIndex].amount *
@@ -91,23 +103,26 @@ const relayToToken = ({ relay, tokenSymbol, bntPrice }: { relay: EosMultiRelay, 
     precision,
     contract
   };
-}
-
+};
 
 const relayToTokens = (relay: EosMultiRelay, bntPrice: number) => {
-  return relay.reserves.map(reserve => relayToToken({ relay, tokenSymbol: reserve.symbol, bntPrice }));
-}
+  return relay.reserves.map(reserve =>
+    relayToToken({ relay, tokenSymbol: reserve.symbol, bntPrice })
+  );
+};
 
-const determineConvertType = (sources: string[]): ConvertType => {
-  if (sources.every(source => source == "api")) {
-    return ConvertType.API;
-  } else if (sources.every(source => source == "multi")) {
-    return ConvertType.Multi;
-  } else if (sources[0] == "api") {
+const arraysContainBoth = (searchString: string, arr: string[][]) =>
+  arr.every(array => array.includes(searchString));
+
+const determineConvertType = (sources: string[][]): ConvertType => {
+  const [token1Sources, token2Sources] = sources;
+  if (arraysContainBoth("multi", sources)) return ConvertType.Multi;
+  else if (arraysContainBoth("api", sources)) return ConvertType.API;
+  else if (token1Sources.includes("api") && token2Sources.includes("multi"))
     return ConvertType.APItoMulti;
-  } else {
+  else if (token1Sources.includes("multi") && token2Sources.includes("api"))
     return ConvertType.MultiToApi;
-  }
+  else throw new Error("Failed to determine the conversion type");
 };
 
 const getEosioTokenPrecision = async (
@@ -292,7 +307,6 @@ export class EosBancorModule extends VuexModule
       token2Symbol,
       process.env.VUE_APP_SMARTTOKENCONTRACT!
     );
-    console.log(smartTokenSymbol, "was smart token symbol");
 
     const token1Data = this.tokenMetaObj(token1Symbol);
     const token2Data = this.tokenMetaObj(token2Symbol);
@@ -381,15 +395,22 @@ export class EosBancorModule extends VuexModule
       )
       .reduce((prev, relay) => {
         const tokens = relayToTokens(relay, this.usdPriceOfBnt);
-        return prev.concat(tokens)
+        return prev.concat(tokens);
       }, [] as ViewToken[])
       .sort((a, b) => b.liqDepth - a.liqDepth)
-      .filter((token, index, arr) => arr.findIndex(sToken => sToken.symbol == token.symbol) == index)
-      .map((token) => {
+      .filter(
+        (token, index, arr) =>
+          arr.findIndex(sToken => sToken.symbol == token.symbol) == index
+      )
+      .map(token => {
         const symbol = token.symbol;
         const tokenMeta = this.tokenMeta.find(token => token.symbol == symbol);
-        return { ...token, logo: (tokenMeta && tokenMeta.logo || 'https://via.placeholder.com/50')}
-      })
+        return {
+          ...token,
+          logo:
+            (tokenMeta && tokenMeta.logo) || "https://via.placeholder.com/50"
+        };
+      });
   }
 
   get tokens(): ViewToken[] {
@@ -443,10 +464,10 @@ export class EosBancorModule extends VuexModule
         smartTokenSymbol: relay.smartToken.symbol,
         liqDepth: relay.reserves.find(reserve => reserve.symbol == "BNT")
           ? relay.reserves.find(reserve => reserve.symbol == "BNT")!.amount *
-          this.usdPriceOfBnt
+            this.usdPriceOfBnt
           : relay.reserves.find(reserve => reserve.symbol == "USDB")
-            ? relay.reserves.find(reserve => reserve.symbol == "USDB")!.amount
-            : 0,
+          ? relay.reserves.find(reserve => reserve.symbol == "USDB")!.amount
+          : 0,
         reserves: relay.reserves
           .map((reserve: AgnosticToken) => ({
             ...reserve,
@@ -554,7 +575,7 @@ export class EosBancorModule extends VuexModule
   @action async removeLiquidity({
     fundAmount,
     smartTokenSymbol
-  }: LiquidityParams) { }
+  }: LiquidityParams) {}
 
   @action async getUserBalances(symbolName: string) {
     const relay = this.relay(symbolName);
@@ -670,7 +691,7 @@ export class EosBancorModule extends VuexModule
   // Focus Symbol is called when the UI focuses on a Symbol
   // Should have token balances
   // Could be an oppurtunity to get precision
-  @action async focusSymbol(symbolName: string) { }
+  @action async focusSymbol(symbolName: string) {}
 
   @action async convertApi({
     fromAmount,
@@ -702,6 +723,7 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async convertMulti(proposal: ProposedConvertTransaction) {
+    console.log("convert multi engaged");
     const { fromSymbol, fromAmount, toAmount, toSymbol } = proposal;
 
     const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
@@ -716,30 +738,161 @@ export class EosBancorModule extends VuexModule
     const allRelays = eosMultiToDryRelays(this.relaysList);
     const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
-    const memo = composeMemo(convertPath, String(toAmount), 'thekellygang');
+    // @ts-ignore
+    const isAuthenticated = this.$store.rootGetters[
+      "eosWallet/isAuthenticated"
+    ];
+    const memo = composeMemo(convertPath, String(toAmount), isAuthenticated);
 
-    console.log(memo, 'is the memo')
+    console.log(memo, "is the memo");
     // @ts-ignore
     const fromTokenContract = fromToken.contract;
-    const convertActions = await multiContract.convert(fromTokenContract, assetAmount, memo);
-    return this.triggerTx(convertActions);
+    const convertActions = await multiContract.convert(
+      fromTokenContract,
+      assetAmount,
+      memo
+    );
+    const txRes = await this.triggerTx(convertActions);
+    return txRes.transaction_id;
   }
 
   @action async convert(proposal: ProposedConvertTransaction) {
-    const { fromSymbol, toSymbol } = proposal;
+    const { fromSymbol, toSymbol, fromAmount } = proposal;
 
-    const toToken = this.token(toSymbol);
     // @ts-ignore
-    const sources = [fromToken.source, toToken.source];
+    const fromTokenSources = this.bancorApiTokens
+      .concat(this.relayTokens)
+      .filter(token => token.symbol == fromSymbol)
+      .map(token => token.source);
+    const toTokenSources = this.bancorApiTokens
+      .concat(this.relayTokens)
+      .filter(token => token.symbol == toSymbol)
+      .map(token => token.source);
+    // @ts-ignore
+    const sources = [fromTokenSources, toTokenSources];
+    console.log(sources, "were the sources", "nice");
     const convertType = determineConvertType(sources);
+    console.log("CONVERT TYPE IS", convertType);
 
     switch (convertType) {
       case ConvertType.API: {
+        console.log("trying to use API");
         return this.convertApi(proposal);
       }
       case ConvertType.Multi: {
+        console.log("trying to use Multi");
         return this.convertMulti(proposal);
       }
+      case ConvertType.APItoMulti: {
+        console.log("Using API TO MULTI");
+        const apiReturn = await this.getReturnBancorApi({
+          amount: proposal.fromAmount,
+          fromSymbol,
+          toSymbol: "BNT"
+        });
+        const path = await bancorApi.getPathBySymbol(fromSymbol, "BNT");
+        const multiReturn = await this.getReturnMulti({
+          fromSymbol: "BNT",
+          toSymbol,
+          amount: Number(apiReturn.amount)
+        });
+        const finalReturn = String(Number(multiReturn.amount) * 0.99);
+        const fromTokenPrecision = await this.getEosTokenWithDecimals(
+          fromSymbol
+        );
+        console.log(fromTokenPrecision, "iS the from token");
+        const toToken = this.relayTokens.find(x => x.symbol == toSymbol)!;
+
+        // get convert path for multi relay
+        // merge convert paths together
+        // use original Amount for sending in asset
+        // use final return in the memo
+
+        const fromSymbolInit = new Symbol("BNT", 10);
+        // @ts-ignore
+        const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
+        // @ts-ignore
+        const assetAmount = number_to_asset(
+          Number(fromAmount),
+          new Symbol(fromSymbol, fromTokenPrecision.decimals)
+        );
+
+        const allRelays = eosMultiToDryRelays(this.relaysList);
+        const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
+        const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
+        const fromTokenRes = await bancorApi.getToken(fromSymbol);
+        const fromTokenContract = fromTokenRes.details[0].blockchainId;
+        const mergedPath: ConvertPath[] = path
+          .map(([account, symbol]) => ({ account, symbol }))
+          .concat(convertPath);
+        const memo = composeMemo(
+          mergedPath,
+          finalReturn,
+          vxm.wallet.isAuthenticated
+        );
+
+        const convertActions = await multiContract.convert(
+          fromTokenContract,
+          assetAmount,
+          memo
+        );
+        const txRes = await this.triggerTx(convertActions);
+        return txRes.transaction_id;
+      }
+      case ConvertType.MultiToApi: {
+        console.log("hitting multi to api");
+        const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
+        const fromSymbolInit = new Symbol(
+          fromToken.symbol,
+          // @ts-ignore
+          fromToken.precision
+        );
+
+        const toSymbolInit = new Symbol("BNT", 10);
+        // @ts-ignore
+        const assetAmount = number_to_asset(Number(fromAmount), fromSymbolInit);
+
+        const allRelays = eosMultiToDryRelays(this.relaysList);
+        const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
+        const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
+
+        const multiReturn = await this.getReturnMulti({
+          fromSymbol,
+          amount: Number(fromAmount),
+          toSymbol: "BNT"
+        });
+
+        const apiReturn = await this.getReturnBancorApi({
+          amount: Number(multiReturn.amount),
+          fromSymbol: "BNT",
+          toSymbol
+        });
+        const path = await bancorApi.getPathBySymbol("BNT", toSymbol);
+        const mergedPath = convertPath.concat(
+          path.map(([account, symbol]) => ({ account, symbol }))
+        );
+        console.log(mergedPath, "was merged path");
+
+        const memo = composeMemo(
+          mergedPath,
+          String(Number(apiReturn.amount) * 0.99),
+          vxm.wallet.isAuthenticated
+        );
+        console.log(memo, "was memo");
+
+        // @ts-ignore
+        const fromTokenContract = fromToken.contract;
+
+        const convertActions = await multiContract.convert(
+          fromTokenContract,
+          assetAmount,
+          memo
+        );
+        const txRes = await this.triggerTx(convertActions);
+        return txRes.transaction_id;
+      }
+      default:
+        throw new Error("Failed to decide how we're gonna convert this");
     }
   }
 
@@ -833,7 +986,7 @@ export class EosBancorModule extends VuexModule
     toSymbol,
     amount
   }: ProposedTransaction): Promise<ConvertReturn> {
-    console.log(this.relayTokens, 'are relay tokens');
+    console.log(this.relayTokens, "are relay tokens");
 
     const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
     const toToken = this.relayTokens.find(x => x.symbol == toSymbol)!;
@@ -845,8 +998,8 @@ export class EosBancorModule extends VuexModule
     const assetAmount = number_to_asset(Number(amount), fromSymbolInit);
 
     const allRelays = eosMultiToDryRelays(this.relaysList);
-    console.table({ relaysList: this.relaysList, dryRelays: allRelays, from: fromSymbolInit.code().to_string(), to: toSymbolInit.code().to_string() })
     const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
+    console.log(path, "is the path");
     const hydratedRelays = await this.hydrateRelays(path);
     const returnAmount = findReturn(assetAmount, hydratedRelays);
 
