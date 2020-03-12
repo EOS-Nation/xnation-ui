@@ -18,6 +18,7 @@ import {
   Pool
 } from "sxjs";
 import { rpc } from "@/api/rpc";
+// @ts-ignore
 import { asset_to_number, Asset, Symbol, number_to_asset, asset } from "eos-common";
 
 @Module({ namespacedPath: "usdsBancor/" })
@@ -51,9 +52,12 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       return {
         symbol: token,
         name,
+        // @ts-ignore
         price: asset_to_number(this.tokensList![token].pegged),
         liqDepth:
-          asset_to_number(this.tokensList![token].depth) *
+        // @ts-ignore
+        asset_to_number(this.tokensList![token].depth) *
+        // @ts-ignore
           asset_to_number(this.tokensList![token].pegged),
         logo,
         change24h: 0,
@@ -161,6 +165,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const fee = get_fee(result, settings);
 
     return {
+      // @ts-ignore
       amount: String(asset_to_number(result) - asset_to_number(fee))
     };
   }

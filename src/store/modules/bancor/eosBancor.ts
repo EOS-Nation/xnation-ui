@@ -330,10 +330,12 @@ export class EosBancorModule extends VuexModule
       [
         {
           contract: token1Data.account,
+          // @ts-ignore
           amount: token1Asset
         },
         {
           contract: token2Data.account,
+          // @ts-ignore
           amount: token2Asset
         }
       ],
@@ -356,20 +358,24 @@ export class EosBancorModule extends VuexModule
 
   get bancorApiTokens(): ViewToken[] {
     // @ts-ignore
-    return this.tokensList
-      .map((token: TokenPrice | TokenPriceExtended) => ({
-        symbol: token.code,
-        name: token.name,
-        price: token.price,
-        liqDepth: token.liquidityDepth * this.usdPrice,
-        logo: token.primaryCommunityImageName,
-        change24h: token.change24h,
-        volume24h: token.volume24h.USD,
+    return (
+      this.tokensList
         // @ts-ignore
-        balance: token.balance || "0",
-        source: "api"
-      }))
-      .filter(x => x.symbol !== "EMT");
+        .map((token: TokenPrice | TokenPriceExtended) => ({
+          symbol: token.code,
+          name: token.name,
+          price: token.price,
+          liqDepth: token.liquidityDepth * this.usdPrice,
+          logo: token.primaryCommunityImageName,
+          change24h: token.change24h,
+          volume24h: token.volume24h.USD,
+          // @ts-ignore
+          balance: token.balance || "0",
+          source: "api"
+        }))
+        // @ts-ignore
+        .filter(x => x.symbol !== "EMT")
+    );
   }
 
   get tokenMetaObj() {
@@ -760,12 +766,13 @@ export class EosBancorModule extends VuexModule
     const fromTokenSources = this.bancorApiTokens
       .concat(this.relayTokens)
       .filter(token => token.symbol == fromSymbol)
+      // @ts-ignore
       .map(token => token.source);
     const toTokenSources = this.bancorApiTokens
       .concat(this.relayTokens)
       .filter(token => token.symbol == toSymbol)
+      // @ts-ignore
       .map(token => token.source);
-    // @ts-ignore
     const sources = [fromTokenSources, toTokenSources];
     const convertType = determineConvertType(sources);
 
@@ -975,7 +982,6 @@ export class EosBancorModule extends VuexModule
     toSymbol,
     amount
   }: ProposedTransaction): Promise<ConvertReturn> {
-
     const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
     const toToken = this.relayTokens.find(x => x.symbol == toSymbol)!;
 

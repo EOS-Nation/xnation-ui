@@ -106,6 +106,7 @@ import TokenField from "@/components/convert/TokenField.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { parseTokens, fetchTokenMeta } from "@/api/helpers";
 import wait from "waait";
+// @ts-ignore
 import {  Asset, Symbol, symbol_code } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";

@@ -100,7 +100,7 @@ export class BancorApi implements BancorWrapper {
   public async getPathBySymbol(
     fromSymbol: string,
     toSymbol: string
-  ): Promise<[string, string]> {
+  ): Promise<any[]> {
     const res = await this.request(
       `transactions/conversionPath?fromCurrencyCode=${fromSymbol}&toCurrencyCode=${toSymbol}`
     );

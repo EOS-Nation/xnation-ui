@@ -1,6 +1,7 @@
 import { vxm } from "@/store/";
 import { multiContractAction, SemiAction } from "../contracts/multi";
 import { TokenAmount } from "bancorx/build/interfaces";
+// @ts-ignore
 import { Symbol, Asset } from "eos-common";
 import { tableApi, TableWrapper, ReserveTable } from "./TableWrapper";
 
@@ -99,6 +100,7 @@ class MultiContractTx {
   }
 
   updateFeeAction(symbolCode: string, decimalPercent: number): Promise<any> {
+    // @ts-ignore
     return multiContractAction.updatefee(
       symbolCode,
       decimalPercent * 1000000
@@ -137,7 +139,7 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
-  createRelay(symbol: string, initialSupply: string): Promise<TxResponse> {
+  createRelay(symbol: string, initialSupply: number): Promise<TxResponse> {
     const owner = this.getAuth()[0].actor;
     const action = multiContractAction.create(
       owner,
@@ -188,6 +190,7 @@ class MultiContractTx {
     const setReserveActions = reserves.map((reserve: TokenAmount) =>
       this.setReserveAction(
         symbolCode,
+         // @ts-ignore
         `${reserve.amount.symbol.precision()},${reserve.amount.symbol.code().to_string()}`,
         reserve.contract,
         50

@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
+// @ts-ignore
 import { Asset, Symbol } from "eos-common";
 // @ts-ignore
 import { EosAccount, nRelay } from "bancorx/build/interfaces";
