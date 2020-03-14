@@ -159,6 +159,7 @@ export interface ViewRelay {
   liqDepth: number;
   reserves: TokenWithLogo[];
   fee: number;
+  owner: string;
 }
 
 export interface TokenPriceExtended extends TokenPrice {

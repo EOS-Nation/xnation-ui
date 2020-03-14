@@ -18,7 +18,6 @@
           <font-awesome-icon
             :icon="withdrawLiquidity ? 'minus' : 'plus'"
             class="fa-2x text-white cursor"
-            :spin="spinning"
           />
         </transition>
         <div class="mb-3 mt-3">
@@ -46,7 +45,6 @@
             <template v-slot:button-content>
               <font-awesome-icon
                 :icon="withdrawLiquidity ? 'arrow-down' : 'arrow-up'"
-                :spin="loadingTokens"
                 fixed-width
                 class="mr-2"
               />
@@ -68,12 +66,21 @@
 
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";
-import { vxm } from "@/store";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TwoTokenHero from "./TwoTokenHero.vue";
-import { OpposingLiquid } from "../../../types/bancor";
+import {
+  OpposingLiquid,
+  ViewToken,
+  ViewRelay,
+  LiquidityModule,
+  TradingModule
+} from "../../../types/bancor";
+import { State, Getter, Action, Mutation, namespace } from "vuex-class";
+
+const bancor = namespace("bancor");
+const wallet = namespace("wallet");
 
 @Component({
   components: {
@@ -85,8 +92,6 @@ import { OpposingLiquid } from "../../../types/bancor";
 })
 export default class HeroConvert extends Vue {
   rateLoading = false;
-  spinning = false;
-  loadingTokens = false;
   token1Amount = "";
   token2Amount = "";
   token1UserBalance = "";
@@ -99,8 +104,24 @@ export default class HeroConvert extends Vue {
   token2MaxWithdraw = "";
   modal = false;
 
+  @bancor.Getter token!: TradingModule["token"];
+  @bancor.Getter relay!: LiquidityModule["relay"];
+  @bancor.Getter relays!: LiquidityModule["relays"];
+  @bancor.Action getUserBalances!: LiquidityModule["getUserBalances"];
+  @bancor.Action
+  calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
+  @bancor.Action
+  calculateOpposingWithdraw!: LiquidityModule["calculateOpposingWithdraw"];
+  @bancor.Action addLiquidity!: LiquidityModule["addLiquidity"];
+  @bancor.Action removeLiquidity!: LiquidityModule["removeLiquidity"];
+  @wallet.Getter isAuthenticated!: string | boolean;
+
+  get focusedRelay() {
+    return this.relay(this.focusedSymbol);
+  }
+
   get owner() {
-    return this.relay!.owner;
+    return this.focusedRelay.owner;
   }
 
   get token1Img() {
@@ -120,19 +141,15 @@ export default class HeroConvert extends Vue {
   }
 
   get token1() {
-    return vxm.bancor.token(this.relay!.reserves[0].symbol)!;
+    return this.token(this.focusedRelay.reserves[0].symbol)!;
   }
 
   get token2() {
-    return vxm.bancor.token(this.relay!.reserves[1].symbol)!;
-  }
-
-  get relay() {
-    return vxm.bancor.relay(this.focusedSymbol);
+    return this.token(this.focusedRelay.reserves[1].symbol)!;
   }
 
   get fee() {
-    return this.relay!.fee;
+    return this.focusedRelay.fee;
   }
 
   get displayedToken1Balance() {
@@ -145,10 +162,6 @@ export default class HeroConvert extends Vue {
     return this.withdrawLiquidity
       ? this.token2MaxWithdraw
       : this.token2UserBalance;
-  }
-
-  get isAuthenticated() {
-    return vxm.wallet.isAuthenticated;
   }
 
   get isAdmin() {
@@ -165,7 +178,7 @@ export default class HeroConvert extends Vue {
 
   async tokenOneChanged(tokenAmount: string) {
     this.rateLoading = true;
-    const { opposingAmount, smartTokenAmount } = await vxm.bancor[
+    const { opposingAmount, smartTokenAmount } = await this[
       this.withdrawLiquidity
         ? "calculateOpposingWithdraw"
         : "calculateOpposingDeposit"
@@ -183,7 +196,7 @@ export default class HeroConvert extends Vue {
 
   async tokenTwoChanged(tokenAmount: string) {
     this.rateLoading = true;
-    const { opposingAmount, smartTokenAmount } = await vxm.bancor[
+    const { opposingAmount, smartTokenAmount } = await this[
       this.withdrawLiquidity
         ? "calculateOpposingWithdraw"
         : "calculateOpposingDeposit"
@@ -200,17 +213,13 @@ export default class HeroConvert extends Vue {
   }
 
   async toggleMain() {
-    if (this.withdrawLiquidity) {
-      this.removeLiquidity();
-    } else {
-      this.addLiquidity();
-    }
+    this.withdrawLiquidity ? this.remove() : this.add();
   }
 
-  async removeLiquidity() {
-    const txResult = await vxm.bancor.removeLiquidity({
+  async remove() {
+    const txResult = await this.removeLiquidity({
       smartTokenSymbol: this.focusedSymbol,
-      fundAmount: this.fundReward,
+      fundAmount: this.liquidateCost,
       token1Amount: this.token1Amount,
       token1Symbol: this.token1Symbol,
       token2Amount: this.token2Amount,
@@ -219,8 +228,8 @@ export default class HeroConvert extends Vue {
     this.fetchBalances();
   }
 
-  async addLiquidity() {
-    const txResult = await vxm.bancor.addLiquidity({
+  async add() {
+    const txResult = await this.addLiquidity({
       smartTokenSymbol: this.focusedSymbol,
       fundAmount: this.fundReward,
       token1Amount: this.token1Amount,
@@ -232,7 +241,7 @@ export default class HeroConvert extends Vue {
   }
 
   get defaultFocusedSymbol() {
-    return vxm.bancor.relays[0]!.smartTokenSymbol;
+    return this.relays[0].smartTokenSymbol;
   }
 
   get focusedSymbol() {
@@ -240,7 +249,7 @@ export default class HeroConvert extends Vue {
   }
 
   @Watch("isAuthenticated")
-  onAuthChange(val: any) {
+  onAuthChange(val: string | boolean) {
     if (val) {
       this.fetchBalances();
     }
@@ -266,7 +275,7 @@ export default class HeroConvert extends Vue {
       token1Balance,
       token2Balance,
       smartTokenBalance
-    } = await vxm.bancor.getUserBalances(this.focusedSymbol);
+    } = await this.getUserBalances(this.focusedSymbol);
 
     this.token1MaxWithdraw = token1MaxWithdraw;
     this.token2MaxWithdraw = token2MaxWithdraw;

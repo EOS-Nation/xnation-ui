@@ -601,7 +601,9 @@ export class EosBancorModule extends VuexModule
   @action async removeLiquidity({
     fundAmount,
     smartTokenSymbol
-  }: LiquidityParams) {}
+  }: LiquidityParams) {
+    console.log({ fundAmount, smartTokenSymbol }, 'remove liquidity does nothing');
+  }
 
   @action async getUserBalances(symbolName: string) {
     const relay = this.relay(symbolName);
