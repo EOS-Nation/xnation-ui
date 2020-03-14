@@ -121,7 +121,6 @@ export default class HeroConvert extends Vue {
   }
 
   get tokenChoices() {
-    console.log('I received', vxm.bancor.newPoolTokenChoices(this.token1Symbol).map(x => x.symbol))
     return vxm.bancor.newPoolTokenChoices(this.token1Symbol);
   }
 

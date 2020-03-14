@@ -3,6 +3,7 @@
     <two-token-hero
       :tokenOneSymbol.sync="fromTokenSymbol"
       :tokenOneAmount.sync="fromTokenAmount"
+      :tokenOneError="fromTokenError"
       @update:tokenOneAmount="fromTokenChanged"
       @update:tokenTwoAmount="toTokenChanged"
       :tokenOneBalance="fromToken.balance"
@@ -11,6 +12,7 @@
       :tokenTwoAmount.sync="toTokenAmount"
       :tokenTwoBalance="toToken.balance"
       :tokenTwoImg="toToken.logo"
+      :tokenTwoError="toTokenError"
       :choices="choices"
     >
       <div>
@@ -56,7 +58,12 @@
         </div>
       </div>
     </two-token-hero>
-    <modal-tx title="Convert" v-model="txModal" :busy="txBusy" @update="cleanUpAfterTx">
+    <modal-tx
+      title="Convert"
+      v-model="txModal"
+      :busy="txBusy"
+      @update="cleanUpAfterTx"
+    >
       <token-swap
         :error="error"
         :success="success"
@@ -171,6 +178,8 @@ export default class HeroConvert extends Vue {
   toTokenAmount = "";
   oneUnitReward = "";
   loadingConversion = false;
+  fromTokenError = "";
+  toTokenError = "";
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter tokens!: TradingModule["tokens"];
@@ -340,12 +349,17 @@ export default class HeroConvert extends Vue {
     if (!Number(this.fromTokenAmount) && !Number(this.toTokenAmount)) return;
     this.loadingConversion = true;
     const amount = Number(this.fromTokenAmount);
-    const reward = await this.getReturn({
-      fromSymbol: this.fromTokenSymbol,
-      amount,
-      toSymbol: this.toTokenSymbol
-    });
-    this.toTokenAmount = reward.amount;
+    try {
+      const reward = await this.getReturn({
+        fromSymbol: this.fromTokenSymbol,
+        amount,
+        toSymbol: this.toTokenSymbol
+      });
+      this.toTokenAmount = reward.amount;
+      this.fromTokenError = "";
+    } catch (e) {
+      this.fromTokenError = e.message;
+    }
     this.loadingConversion = false;
   }
 
@@ -353,12 +367,17 @@ export default class HeroConvert extends Vue {
     this.loading = true;
 
     const amount = Number(this.toTokenAmount);
-    const reward = await this.getCost({
-      amount,
-      toSymbol: this.toTokenSymbol,
-      fromSymbol: this.fromTokenSymbol
-    });
-    this.fromTokenAmount = reward.amount;
+    try {
+      const reward = await this.getCost({
+        amount,
+        toSymbol: this.toTokenSymbol,
+        fromSymbol: this.fromTokenSymbol
+      });
+      this.fromTokenAmount = reward.amount;
+      this.toTokenError = "";
+    } catch (e) {
+      this.toTokenError = e.message;
+    }
     this.loading = false;
   }
 
