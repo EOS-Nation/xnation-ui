@@ -8,18 +8,10 @@ import {
   ModulePools
 } from "@/types/bancor";
 import { vxm } from "@/store";
-import {
-  get_pools,
-  get_price,
-  get_settings,
-  Pools,
-  get_fee,
-  get_volume,
-  Pool
-} from "sxjs";
+import { get_pools, get_price, get_settings, get_fee, get_volume } from "sxjs";
 import { rpc } from "@/api/rpc";
 // @ts-ignore
-import { asset_to_number, Asset, Symbol, number_to_asset, asset } from "eos-common";
+import { asset_to_number, number_to_asset, symbol } from "eos-common";
 
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
@@ -55,9 +47,9 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         // @ts-ignore
         price: asset_to_number(this.tokensList![token].pegged),
         liqDepth:
-        // @ts-ignore
-        asset_to_number(this.tokensList![token].depth) *
-        // @ts-ignore
+          // @ts-ignore
+          asset_to_number(this.tokensList![token].depth) *
+          // @ts-ignore
           asset_to_number(this.tokensList![token].pegged),
         logo,
         change24h: 0,
@@ -94,7 +86,9 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       pools[pool] = {
         ...pools[pool],
         // @ts-ignore
-        volume24h: asset_to_number(pools[pool].pegged) * Number(volume[0]["volume"][pool])
+        volume24h:
+          asset_to_number(pools[pool].pegged) *
+          Number(volume[0]["volume"][pool])
       };
     }
     // @ts-ignore
@@ -119,7 +113,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const precision = fromToken.id.sym.precision();
     const amountAsset = number_to_asset(
       propose.fromAmount,
-      new Symbol(propose.fromSymbol, precision)
+      symbol(propose.fromSymbol, precision)
     );
 
     const txRes = await this.triggerTx([
@@ -154,18 +148,15 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();
 
-    // @ts-ignore
     const result = get_price(
-      // @ts-ignore
-      number_to_asset(amount, new Symbol(fromSymbol, fromPrecision)),
-      new Symbol(toSymbol, toPrecision).code(),
+      number_to_asset(amount, symbol(fromSymbol, fromPrecision)),
+      symbol(toSymbol, toPrecision).code(),
       pools
     );
 
     const fee = get_fee(result, settings);
 
     return {
-      // @ts-ignore
       amount: String(asset_to_number(result) - asset_to_number(fee))
     };
   }
