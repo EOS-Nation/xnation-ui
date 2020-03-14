@@ -150,13 +150,11 @@ export default class HeroTransfer extends Vue {
     );
   }
 
-  openSelectTokenModal() {
-    this.$bvModal.show("modal-select-relay");
-  }
 
   async initTransfer() {
     const token = await vxm.eosBancor.getEosTokenWithDecimals(this.focusedToken.symbol);
     const precision = token.decimals;
+    if (!this.focusedToken.contract) throw new Error("I cannot find the contract for focused token")
     const actions = await multiContract.tokenTransfer(
       this.focusedToken.contract,
       {
