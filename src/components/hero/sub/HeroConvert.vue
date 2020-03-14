@@ -56,7 +56,7 @@
         </div>
       </div>
     </two-token-hero>
-    <modal-tx title="Convert" v-model="txModal" :busy="txBusy">
+    <modal-tx title="Convert" v-model="txModal" :busy="txBusy" @update="cleanUpAfterTx">
       <token-swap
         :error="error"
         :success="success"
@@ -299,9 +299,6 @@ export default class HeroConvert extends Vue {
       this.txModal = true;
       this.txBusy = true;
 
-      this.success = "";
-      this.error = "";
-
       const result = await this.convert({
         fromSymbol: this.fromTokenSymbol,
         toSymbol: this.toTokenSymbol,
@@ -328,13 +325,6 @@ export default class HeroConvert extends Vue {
     this.toTokenAmount = "";
     this.success = "";
     this.error = "";
-  }
-
-  @Watch("txModal")
-  modalChange(visible: boolean) {
-    if (!visible) {
-      this.cleanUpAfterTx();
-    }
   }
 
   navTransfer() {

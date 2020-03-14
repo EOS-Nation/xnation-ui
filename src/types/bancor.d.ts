@@ -230,8 +230,8 @@ export interface LiquidityModule {
     token2Balance: string;
     smartTokenBalance: string;
   }>;
-  removeLiquidity: (params: LiquidityParams) => Promise<void>;
-  addLiquidity: (params: LiquidityParams) => Promise<void>;
+  removeLiquidity: (params: LiquidityParams) => Promise<string>;
+  addLiquidity: (params: LiquidityParams) => Promise<string>;
 }
 
 // Amount in an asset without reference to it's actual precision

@@ -2,6 +2,8 @@
   <hero-wrapper>
     <two-token-hero
       :tokenOneSymbol="token1Symbol"
+      :tokenOneError="token1Error"
+      :tokenTwoError="token2Error"
       :tokenOneAmount.sync="token1Amount"
       @update:tokenOneAmount="tokenOneChanged"
       @update:tokenTwoAmount="tokenTwoChanged"
@@ -35,7 +37,7 @@
         <div class="d-flex justify-content-center">
           <b-dropdown
             button
-            :disabled="!isAuthenticated"
+            :disabled="!mainReady"
             @click="toggleMain"
             variant="success"
             split
@@ -60,6 +62,46 @@
           </b-dropdown>
         </div>
       </div>
+      <modal-tx
+        :title="`${withdrawLiquidity ? 'Remove Liquidity' : 'Add Liquidity'}`"
+        v-model="txModal"
+        @input="modalClosed"
+        :busy="txBusy"
+      >
+        <token-swap
+          :error="error"
+          :success="success"
+          leftHeader="Deposit"
+          :leftImg="token1Img"
+          :leftTitle="`${token1Symbol} ${token1Amount}`"
+          leftSubtitle=""
+          :rightImg="token2Img"
+          :rightTitle="`${token2Symbol} ${token2Amount}`"
+          rightHeader="Deposit"
+          rightSubtitle=""
+        >
+          <template v-slot:footer>
+            <b-col cols="12" class="text-center">
+              <h6 v-if="!success && !error">
+                Please proceed with your wallet to confirm this Transaction.
+              </h6>
+              <h6 v-else-if="error && !success" class="text-danger">
+                Error: {{ error }}
+                <!-- <span class="cursor text-muted"> - Try again</span> -->
+              </h6>
+              <h6 v-else-if="!error && success">
+                <a :href="explorerLink" target="_blank" class="text-success">
+                  SUCCESS: View {{ success.substring(0, 6) }} TX on
+                  {{ explorerName }}
+                </a>
+                <span @click="txModal = false" class="cursor text-muted"
+                  >- Close</span
+                >
+              </h6>
+            </b-col>
+          </template>
+        </token-swap>
+      </modal-tx>
     </two-token-hero>
   </hero-wrapper>
 </template>
@@ -78,6 +120,8 @@ import {
   TradingModule
 } from "../../../types/bancor";
 import { State, Getter, Action, namespace } from "vuex-class";
+import ModalTx from "@/components/modals/ModalTx.vue";
+import TokenSwap from "@/components/common/TokenSwap.vue";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
@@ -87,7 +131,9 @@ const wallet = namespace("wallet");
     TokenAmountInput,
     ModalSelect,
     HeroWrapper,
-    TwoTokenHero
+    TwoTokenHero,
+    ModalTx,
+    TokenSwap
   }
 })
 export default class HeroConvert extends Vue {
@@ -103,6 +149,12 @@ export default class HeroConvert extends Vue {
   token1MaxWithdraw = "";
   token2MaxWithdraw = "";
   modal = false;
+  error = "";
+  success = "";
+  txModal = false;
+  txBusy = false;
+  token1Error = "";
+  token2Error = "";
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter relay!: LiquidityModule["relay"];
@@ -115,6 +167,15 @@ export default class HeroConvert extends Vue {
   @bancor.Action addLiquidity!: LiquidityModule["addLiquidity"];
   @bancor.Action removeLiquidity!: LiquidityModule["removeLiquidity"];
   @wallet.Getter isAuthenticated!: string | boolean;
+
+  get mainReady() {
+    return (
+      this.isAuthenticated &&
+      !this.error &&
+      !this.token1Error &&
+      !this.token2Error
+    );
+  }
 
   get focusedRelay() {
     return this.relay(this.focusedSymbol);
@@ -176,39 +237,56 @@ export default class HeroConvert extends Vue {
     });
   }
 
+  modalClosed() {
+    this.error = "";
+    this.success = "";
+    this.token1Amount = "";
+    this.token2Amount = "";
+  }
+
   async tokenOneChanged(tokenAmount: string) {
     this.rateLoading = true;
-    const { opposingAmount, smartTokenAmount } = await this[
-      this.withdrawLiquidity
-        ? "calculateOpposingWithdraw"
-        : "calculateOpposingDeposit"
-    ]({
-      smartTokenSymbol: this.focusedSymbol,
-      tokenAmount,
-      tokenSymbol: this.token1Symbol
-    });
-    this.token2Amount = opposingAmount;
-    this[
-      this.withdrawLiquidity ? "liquidateCost" : "fundReward"
-    ] = smartTokenAmount;
+    try {
+      const { opposingAmount, smartTokenAmount } = await this[
+        this.withdrawLiquidity
+          ? "calculateOpposingWithdraw"
+          : "calculateOpposingDeposit"
+      ]({
+        smartTokenSymbol: this.focusedSymbol,
+        tokenAmount,
+        tokenSymbol: this.token1Symbol
+      });
+      this.token2Amount = opposingAmount;
+      this[
+        this.withdrawLiquidity ? "liquidateCost" : "fundReward"
+      ] = smartTokenAmount;
+      this.token1Error = "";
+    } catch (e) {
+      this.token1Error = e.message;
+    }
     this.rateLoading = false;
   }
 
   async tokenTwoChanged(tokenAmount: string) {
     this.rateLoading = true;
-    const { opposingAmount, smartTokenAmount } = await this[
-      this.withdrawLiquidity
-        ? "calculateOpposingWithdraw"
-        : "calculateOpposingDeposit"
-    ]({
-      smartTokenSymbol: this.focusedSymbol,
-      tokenAmount,
-      tokenSymbol: this.token2Symbol
-    });
-    this.token1Amount = opposingAmount;
-    this[
-      this.withdrawLiquidity ? "liquidateCost" : "fundReward"
-    ] = smartTokenAmount;
+    try {
+      const { opposingAmount, smartTokenAmount } = await this[
+        this.withdrawLiquidity
+          ? "calculateOpposingWithdraw"
+          : "calculateOpposingDeposit"
+      ]({
+        smartTokenSymbol: this.focusedSymbol,
+        tokenAmount,
+        tokenSymbol: this.token2Symbol
+      });
+      this.token1Amount = opposingAmount;
+      this[
+        this.withdrawLiquidity ? "liquidateCost" : "fundReward"
+      ] = smartTokenAmount;
+      this.token2Error = "";
+    } catch (e) {
+      this.token2Error = e.message;
+    }
     this.rateLoading = false;
   }
 
@@ -217,27 +295,47 @@ export default class HeroConvert extends Vue {
   }
 
   async remove() {
-    const txResult = await this.removeLiquidity({
-      smartTokenSymbol: this.focusedSymbol,
-      fundAmount: this.liquidateCost,
-      token1Amount: this.token1Amount,
-      token1Symbol: this.token1Symbol,
-      token2Amount: this.token2Amount,
-      token2Symbol: this.token2Symbol
-    });
-    this.fetchBalances();
+    this.txModal = true;
+
+    try {
+      this.txBusy = true;
+      const txResult = await this.removeLiquidity({
+        smartTokenSymbol: this.focusedSymbol,
+        fundAmount: this.liquidateCost,
+        token1Amount: this.token1Amount,
+        token1Symbol: this.token1Symbol,
+        token2Amount: this.token2Amount,
+        token2Symbol: this.token2Symbol
+      });
+      this.fetchBalances();
+      this.success = txResult;
+    } catch (e) {
+      this.error = e.message;
+    }
+    this.txBusy = false;
   }
 
   async add() {
-    const txResult = await this.addLiquidity({
-      smartTokenSymbol: this.focusedSymbol,
-      fundAmount: this.fundReward,
-      token1Amount: this.token1Amount,
-      token1Symbol: this.token1Symbol,
-      token2Amount: this.token2Amount,
-      token2Symbol: this.token2Symbol
-    });
-    this.fetchBalances();
+    this.txModal = true;
+    console.log("tx modal should be true");
+
+    try {
+      this.txBusy = true;
+      const txResult = await this.addLiquidity({
+        smartTokenSymbol: this.focusedSymbol,
+        fundAmount: this.fundReward,
+        token1Amount: this.token1Amount,
+        token1Symbol: this.token1Symbol,
+        token2Amount: this.token2Amount,
+        token2Symbol: this.token2Symbol
+      });
+      this.fetchBalances();
+      this.success = txResult;
+    } catch (e) {
+      this.error = e.message;
+      console.log("addy got thing", e);
+    }
+    this.txBusy = false;
   }
 
   get defaultFocusedSymbol() {

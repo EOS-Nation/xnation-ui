@@ -70,6 +70,9 @@
         :loading="loadingBalance"
         :label="label"
       />
+      <h4 class="error">
+          <b-badge variant="danger">{{ error }}</b-badge>
+      </h4>
     </div>
   </div>
 </template>
@@ -105,6 +108,7 @@ export default class TokenAmountInput extends Vue {
   @Prop(Boolean) dropdown?: boolean;
   @Prop(Boolean) small?: boolean;
   @Prop(String) label?: string;
+  @Prop(String) error?: string;
 
   updatePercent(percentage: string) {
     const newAmount =

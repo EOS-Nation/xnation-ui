@@ -31,7 +31,8 @@ import {
   asset_to_number,
   number_to_asset,
   asset,
-  Sym
+  Sym,
+  symbol
 } from "eos-common";
 import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
@@ -94,7 +95,7 @@ const relayToToken = ({
 
   const networkToken = relay.reserves[networkTokenIndex];
   const token = relay.reserves[tokenIndex];
-  const tokenSymbolInit = new Symbol(token.symbol, token.precision)
+  const tokenSymbolInit = new Symbol(token.symbol, token.precision);
   const oneReward = calculateReturn(
     number_to_asset(token.amount, tokenSymbolInit),
     number_to_asset(
@@ -594,14 +595,19 @@ export class EosBancorModule extends VuexModule
     );
 
     const actions = [...addLiquidityActions, fundAction];
-    return this.triggerTx(actions);
+    const txRes = await this.triggerTx(actions);
+    return txRes.transaction_id as string;
   }
 
   @action async removeLiquidity({
     fundAmount,
     smartTokenSymbol
   }: LiquidityParams) {
-    console.log({ fundAmount, smartTokenSymbol }, 'remove liquidity does nothing');
+    console.log(
+      { fundAmount, smartTokenSymbol },
+      "remove liquidity does nothing"
+    );
+    return ''
   }
 
   @action async getUserBalances(symbolName: string) {
@@ -664,12 +670,21 @@ export class EosBancorModule extends VuexModule
 
     const reserveBalance = asset_to_number(sameReserve.balance);
     const percent = Number(suggestedDeposit.tokenAmount) / reserveBalance;
+    const opposingNumberAmount =
+      percent * asset_to_number(opposingReserve.balance);
+    const smartTokenNumberAmount = percent * smartSupply;
+    const opposingAsset = number_to_asset(
+      opposingNumberAmount,
+      opposingReserve.balance.symbol
+    );
+    const smartTokenAsset = number_to_asset(
+      smartTokenNumberAmount,
+      supply.supply.symbol
+    );
 
     return {
-      opposingAmount: String(
-        percent * asset_to_number(opposingReserve.balance)
-      ),
-      smartTokenAmount: String(percent * smartSupply)
+      opposingAmount: opposingAsset.to_string().split(" ")[0],
+      smartTokenAmount: smartTokenAsset.to_string().split(" ")[0]
     };
   }
 
@@ -1109,7 +1124,7 @@ export class EosBancorModule extends VuexModule
   }
 
   @mutation setTokenMeta(tokens: TokenMeta[]) {
-    this.tokenMeta = tokens;
+    this.tokenMeta = tokens.filter(token => token.chain == "eos");
   }
 
   @mutation setUsdPrice(price: number) {

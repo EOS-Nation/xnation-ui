@@ -1,7 +1,7 @@
 <template>
   <b-row class="d-flex align-items-center justify-content-center">
     <token-block
-      title="Send"
+      :title="leftHeader"
       :img="leftImg"
       :tokenAmount="leftTitle"
       :tokenName="leftSubtitle"
@@ -20,7 +20,7 @@
       />
     </b-col>
     <token-block
-      title="Min Return"
+      :title="rightHeader"
       :img="rightImg"
       :tokenAmount="rightTitle"
       :tokenName="rightSubtitle"
@@ -47,10 +47,12 @@ export default class TokenBalanceBlock extends Vue {
   @Prop() leftImg!: string;
   @Prop() leftTitle!: string;
   @Prop() leftSubtitle!: string;
+  @Prop({ default: "Send" }) leftHeader!: string;
 
   @Prop() rightImg!: string;
   @Prop() rightTitle!: string;
   @Prop() rightSubtitle!: string;
+  @Prop({ default: "Min Return" }) rightHeader!: string;
 }
 </script>
 

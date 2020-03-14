@@ -11,6 +11,7 @@
           :img="tokenOneImg"
           :choices="tokenOneChoices || choices"
           :label="label"
+          :error="tokenOneError"
         />
       </b-col>
       <b-col
@@ -30,6 +31,7 @@
           :img="tokenTwoImg"
           :choices="tokenTwoChoices || choices"
           :label="label"
+          :error="tokenTwoError"
         />
       </b-col>
     </b-row>
@@ -57,11 +59,13 @@ export default class HeroConvert extends Vue {
   @PropSync("tokenOneAmount", { type: String }) amountOne!: string;
   @Prop(String) tokenOneBalance!: string;
   @Prop(String) tokenOneImg!: string;
+  @Prop(String) tokenOneError?: string;
   @PropSync("tokenTwoSymbol", { type: String }) symbolTwo!: string;
   @PropSync("tokenTwoAmount", { type: String }) amountTwo!: string;
   @Prop(String) tokenTwoBalance!: string;
   @Prop(String) tokenTwoImg!: string;
   @Prop(String) label?: string;
+  @Prop(String) tokenTwoError?: string;
 
   @Prop(Array) choices?: any[];
   @Prop(Array) tokenOneChoices?: any[];

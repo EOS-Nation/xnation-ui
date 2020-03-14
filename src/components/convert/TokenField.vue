@@ -14,6 +14,7 @@
         :label="label"
         @dropdown="clicked"
         @click="clicked"
+        :error="error"
       />
     </transition>
     <modal-select
@@ -54,6 +55,7 @@ export default class TokenField extends Vue {
   @Prop(Boolean) invertAnimation?: boolean;
   @Prop({ default: false }) readonly clickable?: boolean;
   @Prop(Array) readonly choices?: any[];
+  @Prop(String) error?: string;
 
   modal = false;
 
