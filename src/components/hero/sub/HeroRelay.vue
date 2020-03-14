@@ -16,52 +16,9 @@
       :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
     >
       <div>
-        <transition name="fade" mode="out-in">
-          <font-awesome-icon
-            :icon="withdrawLiquidity ? 'minus' : 'plus'"
-            class="fa-2x text-white cursor"
-          />
-        </transition>
-        <div class="mb-3 mt-3">
-          <div class="text-white font-size-sm">
-            {{
-              smartUserBalance &&
-                `Your balance: ${smartUserBalance} ${focusedSymbol}`
-            }}
-            <span v-if="rateLoading">
-              <font-awesome-icon icon="circle-notch" spin />
-            </span>
-          </div>
-          <!-- <div class="text-white font-size-sm">Fee: {{ fee }} %</div> -->
-        </div>
-        <div class="d-flex justify-content-center">
-          <b-dropdown
-            button
-            :disabled="!mainReady"
-            @click="toggleMain"
-            variant="success"
-            split
-            class="m-2"
-            size="lg"
-          >
-            <template v-slot:button-content>
-              <font-awesome-icon
-                :icon="withdrawLiquidity ? 'arrow-down' : 'arrow-up'"
-                fixed-width
-                class="mr-2"
-              />
-              <span class="font-w700">
-                {{ withdrawLiquidity ? "Remove Liquidity" : "Add Liquidity" }}
-              </span>
-            </template>
-            <b-dropdown-item-button
-              @click="withdrawLiquidity = !withdrawLiquidity"
-            >
-              {{ withdrawLiquidity ? "Add Liquidity" : "Remove Liquidity" }}
-            </b-dropdown-item-button>
-          </b-dropdown>
-        </div>
+        <dynamic-dropdown :menus="menus" />
       </div>
+
       <modal-tx
         :title="`${withdrawLiquidity ? 'Remove Liquidity' : 'Add Liquidity'}`"
         v-model="txModal"
@@ -122,6 +79,7 @@ import {
 import { State, Getter, Action, namespace } from "vuex-class";
 import ModalTx from "@/components/modals/ModalTx.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
+import DynamicDropdown from "./DynamicDropdown.vue";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
@@ -130,6 +88,7 @@ const wallet = namespace("wallet");
   components: {
     TokenAmountInput,
     ModalSelect,
+    DynamicDropdown,
     HeroWrapper,
     TwoTokenHero,
     ModalTx,
@@ -156,6 +115,9 @@ export default class HeroConvert extends Vue {
   token1Error = "";
   token2Error = "";
 
+  feeAmount = "";
+  currentTabComponent = "AddLiquidComponent";
+
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter relay!: LiquidityModule["relay"];
   @bancor.Getter relays!: LiquidityModule["relays"];
@@ -167,6 +129,14 @@ export default class HeroConvert extends Vue {
   @bancor.Action addLiquidity!: LiquidityModule["addLiquidity"];
   @bancor.Action removeLiquidity!: LiquidityModule["removeLiquidity"];
   @wallet.Getter isAuthenticated!: string | boolean;
+
+  feeFormatter(fee: number) {
+    return `${fee} %`;
+  }
+
+  get menus() {
+    return [["addLiquidity", "Add Liquidity", "arrow-up"]];
+  }
 
   get mainReady() {
     return (
