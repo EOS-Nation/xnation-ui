@@ -15,7 +15,8 @@ import {
   AgnosticToken,
   CreatePoolModule,
   ModalChoice,
-  NetworkChoice
+  NetworkChoice,
+  TokenBalances
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import {
@@ -90,10 +91,23 @@ const relayToToken = ({
   const liqDepth =
     relay.reserves[networkTokenIndex].amount *
     (networkTokenIsBnt ? bntPrice : 1);
+
+  const networkToken = relay.reserves[networkTokenIndex];
+  const token = relay.reserves[tokenIndex];
+  const tokenSymbolInit = new Symbol(token.symbol, token.precision)
+  const oneReward = calculateReturn(
+    number_to_asset(token.amount, tokenSymbolInit),
+    number_to_asset(
+      networkToken.amount,
+      new Symbol(networkToken.symbol, networkToken.precision)
+    ),
+    number_to_asset(1, tokenSymbolInit)
+  );
+
   return {
     symbol,
     name: symbol,
-    price: 0,
+    price: asset_to_number(oneReward) * (networkTokenIsBnt ? bntPrice : 1),
     liqDepth,
     change24h: 0,
     volume24h: 0,
@@ -249,6 +263,7 @@ export class EosBancorModule extends VuexModule
   usdPrice = 0;
   usdPriceOfBnt = 0;
   tokenMeta: TokenMeta[] = [];
+  tokenBalances: TokenBalances["tokens"] = [];
 
   get wallet() {
     return "eos";
@@ -408,8 +423,12 @@ export class EosBancorModule extends VuexModule
       .map(token => {
         const symbol = token.symbol;
         const tokenMeta = this.tokenMeta.find(token => token.symbol == symbol);
+        const tokenBalance = this.tokenBalances.find(
+          balance => balance.symbol == token.symbol
+        );
         return {
           ...token,
+          balance: (tokenBalance && String(tokenBalance.amount)) || "0",
           logo:
             (tokenMeta && tokenMeta.logo) || "https://via.placeholder.com/50"
         };
@@ -509,6 +528,10 @@ export class EosBancorModule extends VuexModule
     this.setTokenMeta(tokenMeta);
   }
 
+  @mutation setTokenBalances(balances: TokenBalances["tokens"]) {
+    this.tokenBalances = balances;
+  }
+
   @action async refreshBalances(symbols: string[] = []) {
     // @ts-ignore
     const isAuthenticated = this.$store.rootGetters[
@@ -516,7 +539,7 @@ export class EosBancorModule extends VuexModule
     ];
     if (!isAuthenticated) return;
     const balances = await getTokenBalances(isAuthenticated);
-
+    this.setTokenBalances(balances.tokens);
     this.setTokens(
       // @ts-ignore
       this.tokensList.map((token: any) => {
