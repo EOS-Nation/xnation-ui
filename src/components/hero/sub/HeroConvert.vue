@@ -97,7 +97,6 @@
 </template>
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";
-import { vxm } from "@/store";
 import ModalTx from "@/components/modals/ModalTx.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
@@ -106,14 +105,10 @@ import TokenField from "@/components/convert/TokenField.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import { parseTokens, fetchTokenMeta } from "@/api/helpers";
 import wait from "waait";
-// @ts-ignore
-import {  Asset, Symbol, symbol_code } from "eos-common";
-import { multiContract } from "@/api/multiContractTx";
-import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
-import { get_price, get_pools } from "sxjs";
-import { rpc } from "../../../api/rpc";
 import { Route } from "vue-router";
 import TwoTokenHero from "./TwoTokenHero.vue";
+import { State, Getter, Action, Mutation, namespace } from "vuex-class";
+import { LiquidityModule, TradingModule } from "../../../types/bancor";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
   return {
@@ -144,6 +139,9 @@ const queryParamsCheck = (to: Route, next: any) => {
   }
 };
 
+const wallet = namespace("wallet");
+const bancor = namespace("bancor");
+
 @Component({
   beforeRouteUpdate: (to, from, next) => {
     queryParamsCheck(to, next);
@@ -166,18 +164,26 @@ export default class HeroConvert extends Vue {
   modal = false;
   txModal = false;
   flipping = false;
-
   txBusy = false;
-
   error = "";
   success = "";
-
   fromTokenAmount = "";
   toTokenAmount = "";
-
   oneUnitReward = "";
-
   loadingConversion = false;
+
+  @bancor.Getter token!: TradingModule["token"];
+  @bancor.Getter tokens!: TradingModule["tokens"];
+  @bancor.Action convert!: TradingModule["convert"];
+  @bancor.Action init!: TradingModule["init"];
+  @bancor.Action focusSymbol!: TradingModule["focusSymbol"];
+  @bancor.Action refreshBalances!: TradingModule["refreshBalances"];
+  @bancor.Action getReturn!: TradingModule["getReturn"];
+  @bancor.Action getCost!: TradingModule["getCost"];
+  @bancor.Getter relay!: LiquidityModule["relay"];
+  @wallet.Getter isAuthenticated!: string | boolean;
+  @bancor.Action
+  calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
 
   get currentNetwork() {
     return this.$route.params.service;
@@ -215,22 +221,8 @@ export default class HeroConvert extends Vue {
     return this.token(this.toTokenSymbol);
   }
 
-  get isAuthenticated() {
-    return vxm.wallet.isAuthenticated;
-  }
-
-  get token() {
-    return (symbolName: string) => {
-      return vxm.bancor.tokens.find((x: any) => x.symbol == symbolName);
-    };
-  }
-
-  get tokens() {
-    return vxm.bancor.tokens;
-  }
-
   get choices() {
-    return vxm.bancor.tokens.map((token: any) => ({
+    return this.tokens.map((token: any) => ({
       symbol: token.symbol,
       balance: token.balance,
       img: token.logo
@@ -283,7 +275,7 @@ export default class HeroConvert extends Vue {
   }
 
   fromTokenChanged(amount: string) {
-    this.updatePriceReturn()
+    this.updatePriceReturn();
   }
 
   toTokenChanged(amount: string) {
@@ -310,18 +302,18 @@ export default class HeroConvert extends Vue {
       this.success = "";
       this.error = "";
 
-      const result = await vxm.bancor.convert({
+      const result = await this.convert({
         fromSymbol: this.fromTokenSymbol,
         toSymbol: this.toTokenSymbol,
         fromAmount: Number(this.fromTokenAmount),
         toAmount: Number(this.toTokenAmount)
       });
-      console.log(result, 'result came through')
+      console.log(result, "result came through");
 
       this.success = result;
       this.error = "";
 
-      vxm.bancor.init();
+      this.init();
     } catch (e) {
       this.error = e.message;
       this.success = "";
@@ -358,7 +350,7 @@ export default class HeroConvert extends Vue {
     if (!Number(this.fromTokenAmount) && !Number(this.toTokenAmount)) return;
     this.loadingConversion = true;
     const amount = Number(this.fromTokenAmount);
-    const reward = await vxm.bancor.getReturn({
+    const reward = await this.getReturn({
       fromSymbol: this.fromTokenSymbol,
       amount,
       toSymbol: this.toTokenSymbol
@@ -371,7 +363,7 @@ export default class HeroConvert extends Vue {
     this.loading = true;
 
     const amount = Number(this.toTokenAmount);
-    const reward = await vxm.bancor.getCost({
+    const reward = await this.getCost({
       amount,
       toSymbol: this.toTokenSymbol,
       fromSymbol: this.fromTokenSymbol
@@ -385,8 +377,8 @@ export default class HeroConvert extends Vue {
   tokenChange(symbol: string) {
     this.loadSimpleReward();
     this.updatePriceReturn();
-    vxm.bancor.focusSymbol(this.fromTokenSymbol);
-    vxm.bancor.focusSymbol(this.toTokenSymbol);
+    this.focusSymbol(this.fromTokenSymbol);
+    this.focusSymbol(this.toTokenSymbol);
   }
 
   @Watch("isAuthenticated")
@@ -396,15 +388,12 @@ export default class HeroConvert extends Vue {
 
   async fetchUserTokenBalances() {
     if (!this.isAuthenticated) return;
-    await vxm.bancor.refreshBalances([
-      this.fromTokenSymbol,
-      this.toTokenSymbol
-    ]);
+    await this.refreshBalances([this.fromTokenSymbol, this.toTokenSymbol]);
   }
 
   async loadSimpleReward() {
     this.loading = true;
-    const reward = await vxm.bancor.getReturn({
+    const reward = await this.getReturn({
       fromSymbol: this.fromTokenSymbol,
       amount: 1,
       toSymbol: this.toTokenSymbol

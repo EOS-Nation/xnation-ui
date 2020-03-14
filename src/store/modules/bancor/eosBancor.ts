@@ -446,7 +446,6 @@ export class EosBancorModule extends VuexModule
   }
 
   get token(): (arg0: string) => ViewToken {
-    // @ts-ignore
     return (symbolName: string) => {
       const token = this.tokens.find(token => token.symbol == symbolName);
       if (!token) throw new Error("Failed to find token");

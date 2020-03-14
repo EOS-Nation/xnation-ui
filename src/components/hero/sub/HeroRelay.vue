@@ -77,7 +77,7 @@ import {
   LiquidityModule,
   TradingModule
 } from "../../../types/bancor";
-import { State, Getter, Action, Mutation, namespace } from "vuex-class";
+import { State, Getter, Action, namespace } from "vuex-class";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
