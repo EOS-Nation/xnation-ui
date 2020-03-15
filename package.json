@@ -21,7 +21,7 @@
     "@types/numeral": "0.0.26",
     "@types/showdown": "^1.9.3",
     "axios": "^0.19.0",
-    "bancorx": "^0.2.92",
+    "bancorx": "^0.3.0",
     "bootstrap": "^4.3.1",
     "bootstrap-vue": "^2.6.1",
     "core-js": "^2.6.9",

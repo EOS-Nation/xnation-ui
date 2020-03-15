@@ -2866,15 +2866,13 @@ balanced-match@^1.0.0:
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.0.tgz#89b4d199ab2bee49de164ea02b89ce462d71b767"
   integrity sha1-ibTRmasr7kneFk6gK4nORi1xt2c=
 
-bancorx@^0.2.92:
-  version "0.2.92"
-  resolved "https://registry.yarnpkg.com/bancorx/-/bancorx-0.2.92.tgz#624b36403e999dd71f9312c799b410a918dc853b"
-  integrity sha512-NJcoCDfZ0YYEkmPL3JO+nDOF+48LqVA/o2aSJqNlMBVJoj2z1z28+QVUfCDdRi4C8ePqG5N6XHOJpr8r68pesA==
+bancorx@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/bancorx/-/bancorx-0.3.0.tgz#843b9079fab6f480c7b80a4895b1201fbdb9b34f"
+  integrity sha512-GFrf4jNIl3V9qwdWFuOAU5zNzuRLGSQP9OdA4e1N1w3PJwG9/k2WpFrZRCrB/PkaDDrFjhMmdNVfEtf2tHdtQg==
   dependencies:
-    decimal.js "^10.2.0"
-    eos-common "^0.1.36"
-    underscore "^1.9.1"
-    waait "^1.0.5"
+    decimal.js "10.x"
+    eos-common "0.x"
 
 base-x@^3.0.2:
   version "3.0.7"
@@ -4968,14 +4966,7 @@ env-paths@^1.0.0:
   resolved "https://registry.yarnpkg.com/env-paths/-/env-paths-1.0.0.tgz#4168133b42bb05c38a35b1ae4397c8298ab369e0"
   integrity sha1-QWgTO0K7BcOKNbGuQ5fIKYqzaeA=
 
-eos-common@^0.1.36:
-  version "0.1.36"
-  resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.1.36.tgz#efdd0161f7daf89e02e42603dc6cb36678e403ca"
-  integrity sha512-CKKeQcqsItzoFwl/LdncrD4x4zFO8XTridqxHLETxy7b+Q2ULah5hdT23QE+ifFOvKSN1r8bAa5Yzahu+/VzkQ==
-  dependencies:
-    decimal.js "10.x"
-
-eos-common@^0.6.0:
+eos-common@0.x, eos-common@^0.6.0:
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.6.0.tgz#da8d4096c3d34d80ad434fbe8f0d6d2dda5f1aa9"
   integrity sha512-5gPYJSGxIkl6FmEqLp+RT7Lwz0PwfxljXV1pR8O6dixUR8hfH+/VEYHu1CbbWYRS66wuj4X/ezedWm4H5b0Sww==
@@ -12131,7 +12122,7 @@ unbzip2-stream@^1.0.9:
     buffer "^5.2.1"
     through "^2.3.8"
 
-underscore@1.9.1, underscore@^1.9.1:
+underscore@1.9.1:
   version "1.9.1"
   resolved "https://registry.yarnpkg.com/underscore/-/underscore-1.9.1.tgz#06dce34a0e68a7babc29b365b8e74b8925203961"
   integrity sha512-5/4etnCkd9c8gwgowi5/om/mYO5ajCaOgdzj/oW+0eQV9WxKBDZw5+ycmKmeaTXjInS/W0BzpGLo2xR2aBwZdg==

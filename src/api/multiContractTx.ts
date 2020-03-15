@@ -1,6 +1,6 @@
 import { vxm } from "@/store/";
 import { multiContractAction, SemiAction } from "../contracts/multi";
-import { TokenAmount } from "bancorx/build/interfaces";
+import { TokenAmount } from "@/api/bancorCalc";
 // @ts-ignore
 import { Symbol, Asset } from "eos-common";
 import { tableApi, TableWrapper, ReserveTable } from "./TableWrapper";
