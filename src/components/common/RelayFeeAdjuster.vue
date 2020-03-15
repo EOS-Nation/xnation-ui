@@ -1,0 +1,27 @@
+<template>
+  <b-form-spinbutton
+    :formatter-fn="feeFormatter"
+    min="0"
+    max="3"
+    step="0.2"
+    id="sb-inline"
+    size="sm"
+    v-model="fee"
+    placeholder="Fee"
+  ></b-form-spinbutton>
+</template>
+
+<script lang="ts">
+import { Prop, Component, Vue, PropSync } from "vue-property-decorator";
+
+@Component
+export default class RelayFeeAdjuster extends Vue {
+  @PropSync("value", { type: Number }) fee!: number;
+
+  feeFormatter(fee: number) {
+    return `${fee} %`;
+  }
+}
+</script>
+
+<style lang="scss" scoped></style>

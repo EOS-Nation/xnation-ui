@@ -30,16 +30,7 @@
             Enter initial liquidity...
           </span>
         </div>
-        <b-form-spinbutton
-          :formatter-fn="feeFormatter"
-          min="0"
-          max="3"
-          step="0.2"
-          id="sb-inline"
-          size="sm"
-          v-model="fee"
-          placeholder="Fee"
-        ></b-form-spinbutton>
+        <relay-fee-adjuster v-model="fee" />
         <div class="create">
           <b-btn
             @click="createRelay"
@@ -103,13 +94,15 @@ import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import TwoTokenHero from "./TwoTokenHero.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
 import ModalTx from "@/components/modals/ModalTx.vue";
+import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
 
 @Component({
   components: {
     HeroWrapper,
     TwoTokenHero,
     TokenSwap,
-    ModalTx
+    ModalTx,
+    RelayFeeAdjuster
   }
 })
 export default class HeroConvert extends Vue {

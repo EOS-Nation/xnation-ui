@@ -39,16 +39,7 @@
           </div>
         </div>
         <div v-else-if="selectedMenu == `setFee`">
-          <b-form-spinbutton
-            :formatter-fn="feeFormatter"
-            min="0"
-            max="3"
-            step="0.2"
-            id="sb-inline"
-            size="sm"
-            v-model="feeAmount"
-            placeholder="Fee"
-          ></b-form-spinbutton>
+          <relay-fee-adjuster v-model="feeAmount" />
         </div>
         <div v-else-if="selectedMenu == `changeOwner`">
           <b-form-input
@@ -125,6 +116,7 @@ import { State, Getter, Action, namespace } from "vuex-class";
 import ModalTx from "@/components/modals/ModalTx.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
 import DynamicDropdown from "./DynamicDropdown.vue";
+import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
@@ -132,6 +124,7 @@ const wallet = namespace("wallet");
 @Component({
   components: {
     TokenAmountInput,
+    RelayFeeAdjuster,
     ModalSelect,
     DynamicDropdown,
     HeroWrapper,
