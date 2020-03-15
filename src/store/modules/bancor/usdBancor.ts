@@ -8,7 +8,15 @@ import {
   ModulePools
 } from "@/types/bancor";
 import { vxm } from "@/store";
-import { get_pools, get_price, get_settings, get_fee, get_volume } from "sxjs";
+import {
+  get_pools,
+  get_price,
+  get_settings,
+  get_fee,
+  get_volume,
+  get_rate,
+  get_inverse_rate
+} from "sxjs";
 import { rpc } from "@/api/rpc";
 // @ts-ignore
 import { asset_to_number, number_to_asset, symbol } from "eos-common";
@@ -148,22 +156,37 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();
 
-    const result = get_price(
+    const { price, fee } = get_rate(
       number_to_asset(amount, symbol(fromSymbol, fromPrecision)),
       symbol(toSymbol, toPrecision).code(),
-      pools
+      pools,
+      settings
     );
 
-    const fee = get_fee(result, settings);
-
     return {
-      amount: String(asset_to_number(result) - asset_to_number(fee))
+      amount: String(asset_to_number(price) - asset_to_number(fee))
     };
   }
 
   @action async getCost(propose: ProposedTransaction) {
+    const { fromSymbol, amount, toSymbol } = propose;
+    // @ts-ignore
+    const pools = await get_pools(rpc);
+    // @ts-ignore
+    const settings = await get_settings(rpc);
+
+    const fromPrecision = pools[fromSymbol].balance.symbol.precision();
+    const toPrecision = pools[toSymbol].balance.symbol.precision();
+
+    const { price, fee } = get_inverse_rate(
+      number_to_asset(amount, symbol(fromSymbol, fromPrecision)),
+      symbol(toSymbol, toPrecision).code(),
+      pools,
+      settings
+    );
+
     return {
-      amount: String(propose.amount * 3)
+      amount: String(asset_to_number(price) - asset_to_number(fee))
     };
   }
 }

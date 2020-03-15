@@ -4,8 +4,8 @@
       :tokenOneSymbol.sync="fromTokenSymbol"
       :tokenOneAmount.sync="fromTokenAmount"
       :tokenOneError="fromTokenError"
-      @update:tokenOneAmount="fromTokenChanged"
-      @update:tokenTwoAmount="toTokenChanged"
+      @update:tokenOneAmount="updatePriceReturn"
+      @update:tokenTwoAmount="updatePriceCost"
       :tokenOneBalance="fromToken.balance"
       :tokenOneImg="fromToken.logo"
       :tokenTwoSymbol.sync="toTokenSymbol"
@@ -283,14 +283,6 @@ export default class HeroConvert extends Vue {
     );
   }
 
-  fromTokenChanged(amount: string) {
-    this.updatePriceReturn();
-  }
-
-  toTokenChanged(amount: string) {
-    this.updatePriceCost();
-  }
-
   swapTokens() {
     this.flipping = true;
     this.$router.push({
@@ -345,10 +337,13 @@ export default class HeroConvert extends Vue {
     // });
   }
 
-  async updatePriceReturn() {
-    if (!Number(this.fromTokenAmount) && !Number(this.toTokenAmount)) return;
+  async updatePriceReturn(amountString: string) {
+    const amount = Number(amountString);
+    if (!amount) {
+      this.toTokenAmount = ''
+      return;
+    }
     this.loadingConversion = true;
-    const amount = Number(this.fromTokenAmount);
     try {
       const reward = await this.getReturn({
         fromSymbol: this.fromTokenSymbol,
@@ -363,10 +358,14 @@ export default class HeroConvert extends Vue {
     this.loadingConversion = false;
   }
 
-  async updatePriceCost() {
+  async updatePriceCost(amountString: string) {
+    const amount = Number(amountString);
+    if (!amount) {
+      this.fromTokenAmount = ''
+      return;
+    }
     this.loading = true;
 
-    const amount = Number(this.toTokenAmount);
     try {
       const reward = await this.getCost({
         amount,
@@ -385,7 +384,7 @@ export default class HeroConvert extends Vue {
   @Watch("toTokenSymbol")
   tokenChange(symbol: string) {
     this.loadSimpleReward();
-    this.updatePriceReturn();
+    this.updatePriceReturn(this.fromTokenAmount);
     this.focusSymbol(this.fromTokenSymbol);
     this.focusSymbol(this.toTokenSymbol);
   }

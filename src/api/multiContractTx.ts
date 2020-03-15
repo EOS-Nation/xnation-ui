@@ -186,7 +186,6 @@ class MultiContractTx {
     const setReserveActions = reserves.map((reserve: TokenAmount) =>
       this.setReserveAction(
         symbolCode,
-        // @ts-ignore
         `${reserve.amount.symbol.precision()},${reserve.amount.symbol
           .code()
           .to_string()}`,
