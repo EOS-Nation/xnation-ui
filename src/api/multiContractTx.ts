@@ -95,24 +95,20 @@ class MultiContractTx {
         memo
       }
     };
-    console.log(action, 'is the action...')
+    console.log(action, "is the action...");
     return this.tx([action]);
   }
 
-  updateFeeAction(symbolCode: string, decimalPercent: number): Promise<any> {
-    // @ts-ignore
-    return multiContractAction.updatefee(
-      symbolCode,
-      decimalPercent * 1000000
-    )
+  updateFeeAction(symbolCode: string, decimalPercent: number): any {
+    return multiContractAction.updatefee(symbolCode, decimalPercent * 1000000);
   }
 
-  updateOwner(symbolCode: string, owner: string): Promise<TxResponse> {
+  updateOwnerAction(symbolCode: string, owner: string): any {
     const action = multiContractAction.updateowner(
       symbolCode,
       owner
     ) as SemiAction;
-    return this.tx([action]);
+    return action;
   }
 
   fund(quantity: string) {
@@ -190,8 +186,10 @@ class MultiContractTx {
     const setReserveActions = reserves.map((reserve: TokenAmount) =>
       this.setReserveAction(
         symbolCode,
-         // @ts-ignore
-        `${reserve.amount.symbol.precision()},${reserve.amount.symbol.code().to_string()}`,
+        // @ts-ignore
+        `${reserve.amount.symbol.precision()},${reserve.amount.symbol
+          .code()
+          .to_string()}`,
         reserve.contract,
         50
       )

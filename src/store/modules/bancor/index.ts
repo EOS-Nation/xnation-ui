@@ -6,7 +6,8 @@ import {
   OpposingLiquidParams,
   ModalChoice,
   NetworkChoice,
-  FeeParams
+  FeeParams,
+  NewOwnerParams
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -86,6 +87,11 @@ export class BancorModule extends VuexModule {
 
   @action async updateFee(fee: FeeParams) {
     return this.dispatcher(["updateFee", fee]);
+  }
+
+
+  @action async updateOwner(owner: NewOwnerParams) {
+    return this.dispatcher(["updateOwner", owner]);
   }
 
   @action async getUserBalances(symbolName: string) {

@@ -17,7 +17,8 @@ import {
   ModalChoice,
   NetworkChoice,
   TokenBalances,
-  FeeParams
+  FeeParams,
+  NewOwnerParams
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import {
@@ -267,10 +268,8 @@ export class EosBancorModule extends VuexModule
   tokenMeta: TokenMeta[] = [];
   tokenBalances: TokenBalances["tokens"] = [];
 
-
-
   get supportedFeatures() {
-    return ["addLiquidity", "removeLiquidity", "setFee"];
+    return ["addLiquidity", "removeLiquidity", "setFee", "changeOwner"];
   }
 
   get wallet() {
@@ -319,9 +318,17 @@ export class EosBancorModule extends VuexModule
     ];
   }
 
-  @action async updateFee(fee: FeeParams) {
-    console.log('EOS module should now be generating a fee with dec of', fee.fee, fee.smartTokenSymbol);
-    return ''
+  @action async updateFee({ fee, smartTokenSymbol}: FeeParams) {
+    const updateFeeAction = multiContract.updateFeeAction(smartTokenSymbol, fee)
+    const txRes = await this.triggerTx([updateFeeAction]);
+    return txRes.transaction_id as string;
+  }
+
+  @action async updateOwner({ smartTokenSymbol, newOwner }: NewOwnerParams) {
+    const updateOwnerAction = multiContract.updateOwnerAction(smartTokenSymbol, newOwner)
+    const txRes = await this.triggerTx([updateOwnerAction]);
+    return txRes.transaction_id as string;
+
   }
 
   @action async createPool(poolParams: any): Promise<void> {
@@ -618,7 +625,7 @@ export class EosBancorModule extends VuexModule
       { fundAmount, smartTokenSymbol },
       "remove liquidity does nothing"
     );
-    return ''
+    return "";
   }
 
   @action async getUserBalances(symbolName: string) {

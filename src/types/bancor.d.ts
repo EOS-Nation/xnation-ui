@@ -216,6 +216,11 @@ export interface FeeParams {
   smartTokenSymbol: string;
 }
 
+export interface NewOwnerParams {
+  newOwner: string;
+  smartTokenSymbol: string;
+}
+
 export interface LiquidityModule {
   init: () => Promise<void>;
   readonly relay: (arg0: string) => ViewRelay;
@@ -225,6 +230,7 @@ export interface LiquidityModule {
     opposingDeposit: OpposingLiquidParams
   ) => Promise<OpposingLiquid>;
   updateFee?: (fee: FeeParams) => Promise<string>;
+  updateOwner?: (fee: NewOwnerParams) => Promise<string>;
   calculateOpposingWithdraw: (
     opposingWithdraw: OpposingLiquidParams
   ) => Promise<OpposingLiquid>;

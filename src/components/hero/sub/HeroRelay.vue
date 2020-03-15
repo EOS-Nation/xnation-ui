@@ -50,6 +50,13 @@
             placeholder="Fee"
           ></b-form-spinbutton>
         </div>
+        <div v-else-if="selectedMenu == `changeOwner`">
+          <b-form-input
+            v-model="newOwner"
+            class="form-control-alt"
+            placeholder="New owner account"
+          ></b-form-input>
+        </div>
         <dynamic-dropdown
           :menus="menus"
           :selectedMenu.sync="selectedMenu"
@@ -154,6 +161,7 @@ export default class HeroConvert extends Vue {
   selectedMenu = this.menus[0][0];
 
   feeAmount = 0;
+  newOwner = "";
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter relay!: LiquidityModule["relay"];
@@ -168,6 +176,7 @@ export default class HeroConvert extends Vue {
   @bancor.Action addLiquidity!: LiquidityModule["addLiquidity"];
   @bancor.Action removeLiquidity!: LiquidityModule["removeLiquidity"];
   @bancor.Action updateFee!: LiquidityModule["updateFee"];
+  @bancor.Action updateOwner!: LiquidityModule["updateOwner"];
   @wallet.Getter isAuthenticated!: string | boolean;
 
   get withdrawLiquidity() {
@@ -186,7 +195,8 @@ export default class HeroConvert extends Vue {
     const baseMenus = [
       ["addLiquidity", "Add Liquidity", "arrow-up", false],
       ["removeLiquidity", "Remove Liquidity", "arrow-down", false],
-      ["setFee", "Set Fee", "dollar-sign", true]
+      ["setFee", "Set Fee", "dollar-sign", true],
+      ["changeOwner", "Change Owner", "handshake", true]
     ];
     if (!this.supportedFeatures) return [baseMenus[0]];
     const features = this.supportedFeatures
@@ -274,6 +284,13 @@ export default class HeroConvert extends Vue {
     this.token2Amount = "";
   }
 
+  async setOwner() {
+    this.updateOwner!({
+      smartTokenSymbol: this.focusedSymbol,
+      newOwner: this.newOwner
+    });
+  }
+
   async tokenOneChanged(tokenAmount: string) {
     this.rateLoading = true;
     try {
@@ -324,15 +341,16 @@ export default class HeroConvert extends Vue {
     switch (this.selectedMenu) {
       case "setFee":
         return this.setFee();
+      case "changeOwner":
+        return this.setOwner();
       default:
         this.withdrawLiquidity ? this.remove() : this.add();
     }
   }
 
-
   async setFee() {
     const feeDec = this.feeAmount / 100;
-    this.updateFee({ fee: feeDec, smartTokenSymbol: this.focusedSymbol });
+    this.updateFee!({ fee: feeDec, smartTokenSymbol: this.focusedSymbol });
   }
 
   async remove() {
@@ -374,7 +392,6 @@ export default class HeroConvert extends Vue {
       this.success = txResult;
     } catch (e) {
       this.error = e.message;
-      console.log("addy got thing", e);
     }
     this.txBusy = false;
   }

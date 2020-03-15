@@ -66,7 +66,7 @@ class MultiContractAction {
       name: "updateowner",
       data: {
         currency,
-        owner
+        new_owner: owner
       }
     });
   }
