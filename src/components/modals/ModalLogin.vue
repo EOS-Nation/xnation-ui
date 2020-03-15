@@ -52,10 +52,9 @@ import { WalletProvider } from "eos-transit";
 
 @Component
 export default class ModalLogin extends Vue {
-  // data
   loading = false;
   error: any = false;
-  // computed
+
   get walletProviders(): WalletProvider[] {
     return vxm.eosWallet.walletProviders;
   }
@@ -68,7 +67,6 @@ export default class ModalLogin extends Vue {
     return vxm.eosWallet.loginStatus;
   }
 
-  // methods
   async initLogin(p: WalletProvider) {
     this.loading = true;
     try {

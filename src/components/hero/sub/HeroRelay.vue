@@ -115,7 +115,7 @@ import {
 import { State, Getter, Action, namespace } from "vuex-class";
 import ModalTx from "@/components/modals/ModalTx.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
-import DynamicDropdown from "./DynamicDropdown.vue";
+import DynamicDropdown from "@/components/common/DynamicDropdown.vue";
 import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
 
 const bancor = namespace("bancor");
