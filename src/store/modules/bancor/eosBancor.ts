@@ -318,17 +318,22 @@ export class EosBancorModule extends VuexModule
     ];
   }
 
-  @action async updateFee({ fee, smartTokenSymbol}: FeeParams) {
-    const updateFeeAction = multiContract.updateFeeAction(smartTokenSymbol, fee)
+  @action async updateFee({ fee, smartTokenSymbol }: FeeParams) {
+    const updateFeeAction = multiContract.updateFeeAction(
+      smartTokenSymbol,
+      fee
+    );
     const txRes = await this.triggerTx([updateFeeAction]);
     return txRes.transaction_id as string;
   }
 
   @action async updateOwner({ smartTokenSymbol, newOwner }: NewOwnerParams) {
-    const updateOwnerAction = multiContract.updateOwnerAction(smartTokenSymbol, newOwner)
+    const updateOwnerAction = multiContract.updateOwnerAction(
+      smartTokenSymbol,
+      newOwner
+    );
     const txRes = await this.triggerTx([updateOwnerAction]);
     return txRes.transaction_id as string;
-
   }
 
   @action async createPool(poolParams: any): Promise<void> {

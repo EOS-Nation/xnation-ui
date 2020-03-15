@@ -1,6 +1,4 @@
-import { vxm } from "@/store";
-// @ts-ignore
-import { Symbol, Asset } from "eos-common";
+import { Sym as Symbol, Asset } from "eos-common";
 import { rpc } from "./rpc";
 import { JsonRpc } from "eosjs";
 
