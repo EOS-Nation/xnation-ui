@@ -522,7 +522,6 @@ export class EosBancorModule extends VuexModule
     this.setUsdPrice(Number(usdValueOfEth.price));
     this.setBntPrice(Number(usdPriceOfBnt));
     this.refreshBalances();
-    console.log(relays, "are relays");
     this.setRelays(relays);
     this.setTokens(tokens);
     this.setTokenMeta(tokenMeta);

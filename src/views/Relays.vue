@@ -49,9 +49,6 @@
             <template v-slot:cell(ratio)>
               50 - 50
             </template>
-            <template v-slot:cell(fee)="data">
-              <span class="text-right font-w700">{{ data.item.fee }}%</span>
-            </template>
             <template v-slot:cell(actions)="data">
               <div>
                 <b-btn
@@ -136,7 +133,9 @@ export default class Relays extends Vue {
     },
     {
       key: "fee",
-      sortable: true
+      sortable: true,
+      class: ["text-right", "font-w700"],
+      formatter: (value: string) => numeral(value).format("0.00%")
     },
     {
       key: "actions",
