@@ -5,7 +5,8 @@ import {
   LiquidityParams,
   OpposingLiquidParams,
   ModalChoice,
-  NetworkChoice
+  NetworkChoice,
+  FeeParams
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -34,6 +35,11 @@ export class BancorModule extends VuexModule {
   get tokens() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["tokens"];
+  }
+
+  get supportedFeatures() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["supportedFeatures"];
   }
 
   get token() {
@@ -76,6 +82,10 @@ export class BancorModule extends VuexModule {
 
   @action async convert(tx: ProposedConvertTransaction) {
     return this.dispatcher(["convert", tx]);
+  }
+
+  @action async updateFee(fee: FeeParams) {
+    return this.dispatcher(["updateFee", fee]);
   }
 
   @action async getUserBalances(symbolName: string) {

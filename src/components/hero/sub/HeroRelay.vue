@@ -16,7 +16,45 @@
       :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
     >
       <div>
-        <dynamic-dropdown :menus="menus" />
+        <div
+          v-if="
+            selectedMenu == `addLiquidity` || selectedMenu == `removeLiquidity`
+          "
+        >
+          <font-awesome-icon
+            :icon="withdrawLiquidity ? 'minus' : 'plus'"
+            class="fa-2x text-white cursor"
+          />
+          <div class="mb-3 mt-3">
+            <div class="text-white font-size-sm">
+              {{
+                smartUserBalance &&
+                  `Your balance: ${smartUserBalance} ${focusedSymbol}`
+              }}
+              <span v-if="rateLoading">
+                <font-awesome-icon icon="circle-notch" spin />
+              </span>
+            </div>
+            <!-- <div class="text-white font-size-sm">Fee: {{ fee }} %</div> -->
+          </div>
+        </div>
+        <div v-else-if="selectedMenu == `setFee`">
+          <b-form-spinbutton
+            :formatter-fn="feeFormatter"
+            min="0"
+            max="3"
+            step="0.2"
+            id="sb-inline"
+            size="sm"
+            v-model="feeAmount"
+            placeholder="Fee"
+          ></b-form-spinbutton>
+        </div>
+        <dynamic-dropdown
+          :menus="menus"
+          :selectedMenu.sync="selectedMenu"
+          @clicked="toggleMain"
+        />
       </div>
 
       <modal-tx
@@ -102,7 +140,6 @@ export default class HeroConvert extends Vue {
   token1UserBalance = "";
   token2UserBalance = "";
   smartUserBalance = "";
-  withdrawLiquidity = false;
   fundReward = "";
   liquidateCost = "";
   token1MaxWithdraw = "";
@@ -114,13 +151,15 @@ export default class HeroConvert extends Vue {
   txBusy = false;
   token1Error = "";
   token2Error = "";
+  selectedMenu = this.menus[0][0];
 
-  feeAmount = "";
-  currentTabComponent = "AddLiquidComponent";
+  feeAmount = 0;
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter relay!: LiquidityModule["relay"];
   @bancor.Getter relays!: LiquidityModule["relays"];
+  @bancor.Getter currentNetwork!: string;
+  @bancor.Getter supportedFeatures!: LiquidityModule["supportedFeatures"];
   @bancor.Action getUserBalances!: LiquidityModule["getUserBalances"];
   @bancor.Action
   calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
@@ -128,14 +167,35 @@ export default class HeroConvert extends Vue {
   calculateOpposingWithdraw!: LiquidityModule["calculateOpposingWithdraw"];
   @bancor.Action addLiquidity!: LiquidityModule["addLiquidity"];
   @bancor.Action removeLiquidity!: LiquidityModule["removeLiquidity"];
+  @bancor.Action updateFee!: LiquidityModule["updateFee"];
   @wallet.Getter isAuthenticated!: string | boolean;
+
+  get withdrawLiquidity() {
+    return this.selectedMenu == "removeLiquidity";
+  }
 
   feeFormatter(fee: number) {
     return `${fee} %`;
   }
 
+  set withdrawLiquidity(withdrawIsActive: boolean) {
+    this.selectedMenu = withdrawIsActive ? "removeLiquidity" : "addLiquidity";
+  }
+
   get menus() {
-    return [["addLiquidity", "Add Liquidity", "arrow-up"]];
+    const baseMenus = [
+      ["addLiquidity", "Add Liquidity", "arrow-up", false],
+      ["removeLiquidity", "Remove Liquidity", "arrow-down", false],
+      ["setFee", "Set Fee", "dollar-sign", true]
+    ];
+    if (!this.supportedFeatures) return [baseMenus[0]];
+    const features = this.supportedFeatures
+      .map(feature => baseMenus.find(([name]) => name == feature)!)
+      .filter(
+        ([menu, label, icon, requiresAdmin]) => !requiresAdmin || this.isAdmin
+      );
+    if (!features.every(Boolean)) throw new Error("Unsupported feature found");
+    return features;
   }
 
   get mainReady() {
@@ -261,7 +321,18 @@ export default class HeroConvert extends Vue {
   }
 
   async toggleMain() {
-    this.withdrawLiquidity ? this.remove() : this.add();
+    switch (this.selectedMenu) {
+      case "setFee":
+        return this.setFee();
+      default:
+        this.withdrawLiquidity ? this.remove() : this.add();
+    }
+  }
+
+
+  async setFee() {
+    const feeDec = this.feeAmount / 100;
+    this.updateFee({ fee: feeDec, smartTokenSymbol: this.focusedSymbol });
   }
 
   async remove() {

@@ -98,6 +98,10 @@ export class EthBancorModule extends VuexModule
   relaysList: Relay[] = [];
   tokenBalances: { symbol: string; balance: string }[] = [];
 
+  get supportedFeatures() {
+    return ["addLiquidity", "removeLiquidity"]
+  }
+
   get wallet() {
     return "eth";
   }
@@ -410,6 +414,7 @@ export class EthBancorModule extends VuexModule
     );
     console.log(batch, "is batch");
     await batch.execute();
+    return 'Done'
   }
 
   @action async addLiquidity({
@@ -543,6 +548,7 @@ export class EthBancorModule extends VuexModule
 
     console.log(batch, "is batch");
     await batch.execute();
+    return 'Done'
   }
 
   @action async init() {

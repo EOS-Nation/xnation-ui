@@ -71,7 +71,7 @@
         :label="label"
       />
       <h4 class="error">
-          <b-badge variant="danger">{{ error }}</b-badge>
+        <b-badge variant="danger">{{ error }}</b-badge>
       </h4>
     </div>
   </div>

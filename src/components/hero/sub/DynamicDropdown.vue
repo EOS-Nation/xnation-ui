@@ -9,14 +9,14 @@
       size="lg"
     >
       <template v-slot:button-content>
-        <font-awesome-icon :icon="selectedMenu[2]" fixed-width class="mr-2" />
+        <font-awesome-icon :icon="focusedMenu[2]" fixed-width class="mr-2" />
         <span class="font-w700">
-          {{ selectedMenu[1] }}
+          {{ focusedMenu[1] }}
         </span>
       </template>
       <b-dropdown-item-button
-        @click="derp"
-        v-for="menu in menus"
+        @click="setMenu(menu[0])"
+        v-for="menu in sortedMenus"
         :key="menu[0]"
       >
         {{ menu[1] }}
@@ -25,27 +25,27 @@
   </div>
 </template>
 <script lang="ts">
-import { Prop, Component, Vue } from "vue-property-decorator";
+import { Prop, Component, Vue, PropSync, Emit } from "vue-property-decorator";
 
 @Component
 export default class DynamicDropdown extends Vue {
   @Prop(Array) menus!: [string, string, string][];
+  @PropSync("selectedMenu", { type: String }) menu!: string;
 
-  get selectedMenu() {
-    return this.menus.find(
-      ([name, label, icon]) => this.selectedButton == name
-    )!;
+  get sortedMenus() {
+    return this.menus.filter(([name, label, icon]) => name !== this.menu);
   }
 
-  selectedButton = this.menus[0][0];
-
-  derp(x: any) {
-    console.log(x, "was x");
+  get focusedMenu() {
+    return this.menus.find(([name, label, icon]) => this.menu == name)!;
   }
 
-  clicked() {
-    console.log("twas clicked", this.selectedButton);
+  setMenu(name: string) {
+    this.menu = name;
   }
+
+  @Emit()
+  clicked() {}
 }
 </script>
 

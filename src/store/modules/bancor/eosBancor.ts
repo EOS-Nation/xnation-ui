@@ -16,7 +16,8 @@ import {
   CreatePoolModule,
   ModalChoice,
   NetworkChoice,
-  TokenBalances
+  TokenBalances,
+  FeeParams
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import {
@@ -266,6 +267,12 @@ export class EosBancorModule extends VuexModule
   tokenMeta: TokenMeta[] = [];
   tokenBalances: TokenBalances["tokens"] = [];
 
+
+
+  get supportedFeatures() {
+    return ["addLiquidity", "removeLiquidity", "setFee"];
+  }
+
   get wallet() {
     return "eos";
   }
@@ -310,6 +317,11 @@ export class EosBancorModule extends VuexModule
         usdValue: 1
       }
     ];
+  }
+
+  @action async updateFee(fee: FeeParams) {
+    console.log('EOS module should now be generating a fee with dec of', fee.fee, fee.smartTokenSymbol);
+    return ''
   }
 
   @action async createPool(poolParams: any): Promise<void> {

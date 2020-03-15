@@ -211,13 +211,20 @@ export interface CreatePoolModule {
   createPool: (param: any) => Promise<void>;
 }
 
+export interface FeeParams {
+  fee: number;
+  smartTokenSymbol: string;
+}
+
 export interface LiquidityModule {
   init: () => Promise<void>;
   readonly relay: (arg0: string) => ViewRelay;
   readonly relays: ViewRelay[];
+  readonly supportedFeatures: string[];
   calculateOpposingDeposit: (
     opposingDeposit: OpposingLiquidParams
   ) => Promise<OpposingLiquid>;
+  updateFee?: (fee: FeeParams) => Promise<string>;
   calculateOpposingWithdraw: (
     opposingWithdraw: OpposingLiquidParams
   ) => Promise<OpposingLiquid>;
