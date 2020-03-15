@@ -18,7 +18,6 @@ import { Component, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store";
 import TokensTable from "@/components/tables/TokensTable.vue";
 import { SimpleToken } from "@/types/bancor";
-import Fuse from "fuse.js";
 
 @Component({
   components: {

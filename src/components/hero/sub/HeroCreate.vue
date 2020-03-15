@@ -52,6 +52,45 @@
             <span class="font-w700">Create Pool</span>
           </b-btn>
         </div>
+        <modal-tx
+          title="Create Pool"
+          v-model="txModal"
+          :busy="txBusy"
+          @input="cleanUpAfterTx"
+        >
+          <token-swap
+            :error="error"
+            :success="success"
+            leftHeader="Network Token"
+            :leftImg="selectedNetworkToken.img"
+            :leftTitle="token1Symbol"
+            :leftSubtitle="token1Amount"
+            rightHeader="Listing token"
+            :rightImg="selectedToken.img"
+            :rightTitle="token2Symbol"
+            :rightSubtitle="token2Amount"
+          >
+            <template v-slot:footer>
+              <b-col cols="12" class="text-center">
+                <h6 v-if="!success && !error">
+                  Please proceed with your wallet to confirm this Transaction.
+                </h6>
+                <h6 v-else-if="error && !success" class="text-danger">
+                  Error: {{ error }}
+                </h6>
+                <h6 v-else-if="!error && success">
+                  <a :href="explorerLink" target="_blank" class="text-success">
+                    SUCCESS: View {{ success.substring(0, 6) }} TX on
+                    {{ explorerName }}
+                  </a>
+                  <span @click="txModal = false" class="cursor text-muted"
+                    >- Close</span
+                  >
+                </h6>
+              </b-col>
+            </template>
+          </token-swap>
+        </modal-tx>
       </div>
     </two-token-hero>
   </hero-wrapper>
@@ -62,11 +101,15 @@ import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import TwoTokenHero from "./TwoTokenHero.vue";
+import TokenSwap from "@/components/common/TokenSwap.vue";
+import ModalTx from "@/components/modals/ModalTx.vue";
 
 @Component({
   components: {
     HeroWrapper,
-    TwoTokenHero
+    TwoTokenHero,
+    TokenSwap,
+    ModalTx
   }
 })
 export default class HeroConvert extends Vue {
@@ -77,8 +120,27 @@ export default class HeroConvert extends Vue {
   loaded = false;
   fee = null;
 
+  error = "";
+  success = "";
+  txModal = false;
+  txBusy = false;
+
   feeFormatter(fee: number) {
     return `${fee} %`;
+  }
+
+  cleanUpAfterTx() {
+    this.error = "";
+    this.success = "";
+    this.token1Amount = "";
+    this.token2Amount = "";
+
+    if (this.success) {
+      this.$router.push({ name: "Relays" });
+      this.token2Symbol = this.tokenChoices.find(
+        choice => choice.symbol !== this.token2Symbol
+      )!.symbol;
+    }
   }
 
   get createPoolReady() {
@@ -107,9 +169,10 @@ export default class HeroConvert extends Vue {
   }
 
   get selectedNetworkToken() {
-    return vxm.bancor.newNetworkTokenChoices.find(
+    const res = vxm.bancor.newNetworkTokenChoices.find(
       x => x.symbol == this.token1Symbol
     )!;
+    return res;
   }
 
   get selectedToken() {
@@ -138,21 +201,27 @@ export default class HeroConvert extends Vue {
 
   async createRelay() {
     const fee = this.fee || 0;
-    vxm.bancor.createPool({
-      reserves: [
-        [this.token1Symbol, this.token1Amount],
-        [this.token2Symbol, this.token2Amount]
-      ],
-      fee: fee / 100
-    });
+    this.txModal = true;
+    this.txBusy = true;
+    try {
+      const txId = await vxm.bancor.createPool({
+        reserves: [
+          [this.token1Symbol, this.token1Amount],
+          [this.token2Symbol, this.token2Amount]
+        ],
+        fee: fee / 100
+      });
+      this.success = txId;
+    } catch (e) {
+      this.error = e.message;
+    }
+    this.txBusy = false;
   }
 
   created() {
     const networkTokenSymbol = vxm.bancor.newNetworkTokenChoices[0].symbol;
     this.token1Symbol = networkTokenSymbol;
-    this.token2Symbol = vxm.bancor.newPoolTokenChoices(
-      networkTokenSymbol
-    )[0].symbol;
+    this.token2Symbol = this.tokenChoices[0].symbol;
     this.loaded = true;
   }
 }

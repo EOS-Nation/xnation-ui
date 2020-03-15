@@ -99,7 +99,7 @@ export class EthBancorModule extends VuexModule
   tokenBalances: { symbol: string; balance: string }[] = [];
 
   get supportedFeatures() {
-    return ["addLiquidity", "removeLiquidity"]
+    return ["addLiquidity", "removeLiquidity"];
   }
 
   get wallet() {
@@ -179,16 +179,19 @@ export class EthBancorModule extends VuexModule
           reserve.contract == "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c"
       );
       return {
-        reserves: relay.reserves.map(reserve => ({
-          symbol: reserve.symbol,
-          logo: [
-            this.token(reserve.symbol) && this.token(reserve.symbol).logo,
-            `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${reserveToken.contract}/logo.png`,
-            "https://via.placeholder.com/50"
-          ].filter(Boolean)
-        })),
+        reserves: relay.reserves
+          .map(reserve => ({
+            symbol: reserve.symbol,
+            logo: [
+              this.token(reserve.symbol) && this.token(reserve.symbol).logo,
+              `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${reserveToken.contract}/logo.png`,
+              "https://via.placeholder.com/50"
+            ].filter(Boolean)
+          }))
+          .sort(reserve => (reserve.symbol == "USDB" ? -1 : 1))
+          .sort(reserve => (reserve.symbol == "BNT" ? -1 : 1)),
         owner: relay.owner,
-        fee: relay.fee,
+        fee: relay.fee / 100,
         decimals: reserveToken.decimals,
         symbol: reserveToken.symbol,
         smartTokenSymbol: relay.smartToken.symbol,
@@ -212,7 +215,7 @@ export class EthBancorModule extends VuexModule
 
     return relays.filter(relay =>
       duplicated.every(dup => dup !== relay.smartTokenSymbol)
-    );
+    ).sort((a,b) => b.liqDepth - a.liqDepth)
   }
 
   @action async fetchUsdPrice() {
@@ -414,7 +417,7 @@ export class EthBancorModule extends VuexModule
     );
     console.log(batch, "is batch");
     await batch.execute();
-    return 'Done'
+    return "Done";
   }
 
   @action async addLiquidity({
@@ -548,7 +551,7 @@ export class EthBancorModule extends VuexModule
 
     console.log(batch, "is batch");
     await batch.execute();
-    return 'Done'
+    return "Done";
   }
 
   @action async init() {

@@ -1,4 +1,7 @@
-# Bancor by EOS Nation
+# XNation
+
+## About
+Open Source Token Swap Portal
 
 ## Project setup
 ```

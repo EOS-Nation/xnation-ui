@@ -98,19 +98,26 @@ const relayToToken = ({
   const networkToken = relay.reserves[networkTokenIndex];
   const token = relay.reserves[tokenIndex];
   const tokenSymbolInit = new Symbol(token.symbol, token.precision);
-  const oneReward = calculateReturn(
-    number_to_asset(token.amount, tokenSymbolInit),
-    number_to_asset(
-      networkToken.amount,
-      new Symbol(networkToken.symbol, networkToken.precision)
-    ),
-    number_to_asset(1, tokenSymbolInit)
-  );
+
+  let price;
+  try {
+    const oneReward = calculateReturn(
+      number_to_asset(token.amount, tokenSymbolInit),
+      number_to_asset(
+        networkToken.amount,
+        new Symbol(networkToken.symbol, networkToken.precision)
+      ),
+      number_to_asset(1, tokenSymbolInit)
+    );
+    price = asset_to_number(oneReward) * (networkTokenIsBnt ? bntPrice : 1);
+  } catch (e) {
+    price = 0;
+  }
 
   return {
     symbol,
     name: symbol,
-    price: asset_to_number(oneReward) * (networkTokenIsBnt ? bntPrice : 1),
+    price,
     liqDepth,
     change24h: 0,
     volume24h: 0,
@@ -276,14 +283,25 @@ export class EosBancorModule extends VuexModule
     return "eos";
   }
 
+  get tokenBalance() {
+    return (symbolName: string) => {
+      const tokenBalance = this.tokenBalances.find(
+        balance => balance.symbol == symbolName
+      );
+      return (tokenBalance && String(tokenBalance.amount)) || "0";
+    };
+  }
+
   get newPoolTokenChoices() {
     return (networkToken: string): ModalChoice[] => {
       return this.tokenMeta
-        .map(tokenMeta => ({
-          symbol: tokenMeta.symbol,
-          balance: "0",
-          img: tokenMeta.logo
-        }))
+        .map(tokenMeta => {
+          return {
+            symbol: tokenMeta.symbol,
+            balance: this.tokenBalance(tokenMeta.symbol),
+            img: tokenMeta.logo
+          };
+        })
         .filter(
           (value, index, array) =>
             array.findIndex(token => value.symbol == token.symbol) == index
@@ -297,7 +315,10 @@ export class EosBancorModule extends VuexModule
                   reserve.symbol == networkToken
               )
             )
-        );
+        )
+        .sort((a, b) => {
+          return Number(b.balance) - Number(a.balance);
+        });
     };
   }
 
@@ -305,13 +326,13 @@ export class EosBancorModule extends VuexModule
     return [
       {
         symbol: "BNT",
-        balance: "0",
+        balance: this.tokenBalance("BNT"),
         img: this.tokenMetaObj("BNT").logo,
         usdValue: this.usdPriceOfBnt
       },
       {
         symbol: "USDB",
-        balance: "0",
+        balance: this.tokenBalance("USDB"),
         img: this.tokenMetaObj("USDB").logo,
         usdValue: 1
       }
@@ -383,12 +404,8 @@ export class EosBancorModule extends VuexModule
       poolParams.fee
     );
 
-    // for (const action in kickStartRelayActions) {
-    //   await this.triggerTx([kickStartRelayActions[action]])
-    //   console.log("Success!")
-    // }
-    // kickStartRelayActions.forEach(action => this.triggerTx([action]))
-    this.triggerTx(kickStartRelayActions);
+    const txRes = await this.triggerTx(kickStartRelayActions);
+    return txRes.transaction_id;
   }
 
   get networkTokenUsdValue() {
