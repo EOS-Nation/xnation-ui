@@ -1,5 +1,6 @@
 import { Decimal } from "decimal.js";
-import { Asset, asset_to_number, Sym as Symbol, Sym } from "eos-common";
+import { Asset, asset_to_number, Sym as Symbol, Sym, asset } from "eos-common";
+import { relays } from "@/store/modules/bancor/staticRelays";
 
 export type EosAccount = string;
 
@@ -71,8 +72,9 @@ export function calculateReturn(
     amount: amount.to_string(),
     reward: rewardAsset.to_string()
   });
+  const slippage = asset_to_number(amount) / asset_to_number(balanceFrom);
 
-  return rewardAsset;
+  return { reward: rewardAsset, slippage };
 }
 
 export function calculateCost(
@@ -329,18 +331,39 @@ export function chargeFee(
   );
 }
 
+const findReserveWithAsset = (asset: Asset) => (reserve: TokenAmount) =>
+  reserve.amount.symbol.isEqual(asset.symbol);
+
+const findReserveByAsset = (asset: Asset, relay: HydratedRelay) =>
+  relay.reserves.find(findReserveWithAsset(asset));
+
+const findReserveByOppositeAsset = (asset: Asset, relay: HydratedRelay) =>
+  relay.reserves.find(reserve => !findReserveWithAsset(asset)(reserve))!;
+
+const sortReservesByAsset = (asset: Asset, reserves: TokenAmount[]) => {
+  if (!reserves.some(reserve => reserve.amount.symbol.isEqual(asset.symbol)))
+    throw new Error("Asset does not exist in these reserves");
+  return reserves.sort((a, b) =>
+    a.amount.symbol.isEqual(asset.symbol) ? -1 : 1
+  );
+};
+
 export const findReturn = (amount: Asset, relaysPath: HydratedRelay[]) =>
-  relaysPath.reduce((lastReward, relay) => {
-    const fromReserveBalance = relay.reserves.find(reserve =>
-      reserve.amount.symbol.isEqual(lastReward.symbol)
-    )!;
-    const toReserveBalance = relay.reserves.find(
-      reserve => !reserve.amount.symbol.isEqual(lastReward.symbol)
-    )!;
-    const result = calculateReturn(
-      fromReserveBalance.amount,
-      toReserveBalance.amount,
-      lastReward
-    );
-    return chargeFee(result, relay.fee, 2);
-  }, amount);
+  relaysPath.reduce(
+    ({ amount, highestSlippage }, relay) => {
+      const [fromReserve, toReserve] = sortReservesByAsset(
+        amount,
+        relay.reserves
+      );
+      const { reward, slippage } = calculateReturn(
+        fromReserve.amount,
+        toReserve.amount,
+        amount
+      );
+      return {
+        amount: chargeFee(reward, relay.fee, 2),
+        highestSlippage: slippage > highestSlippage ? slippage : highestSlippage
+      };
+    },
+    { amount, highestSlippage: 0 }
+  );

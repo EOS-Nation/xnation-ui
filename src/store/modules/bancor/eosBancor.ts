@@ -101,7 +101,7 @@ const relayToToken = ({
 
   let price;
   try {
-    const oneReward = calculateReturn(
+    const { reward } = calculateReturn(
       number_to_asset(token.amount, tokenSymbolInit),
       number_to_asset(
         networkToken.amount,
@@ -109,7 +109,7 @@ const relayToToken = ({
       ),
       number_to_asset(1, tokenSymbolInit)
     );
-    price = asset_to_number(oneReward) * (networkTokenIsBnt ? bntPrice : 1);
+    price = asset_to_number(reward) * (networkTokenIsBnt ? bntPrice : 1);
   } catch (e) {
     price = 0;
   }
@@ -1008,7 +1008,9 @@ export class EosBancorModule extends VuexModule
       toToken.id,
       String(amount * Math.pow(10, fromToken.decimals))
     );
-    return { amount: String(Number(reward) / Math.pow(10, toToken.decimals)) };
+    return {
+      amount: String(Number(reward) / Math.pow(10, toToken.decimals))
+    };
   }
 
   @action async hydrateRelays(relays: DryRelay[]): Promise<HydratedRelay[]> {
@@ -1073,9 +1075,12 @@ export class EosBancorModule extends VuexModule
     const allRelays = eosMultiToDryRelays(this.relaysList);
     const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const hydratedRelays = await this.hydrateRelays(path);
-    const returnAmount = findReturn(assetAmount, hydratedRelays);
+    const calculatedReturn = findReturn(assetAmount, hydratedRelays);
 
-    return { amount: returnAmount.to_string().split(" ")[0] };
+    return {
+      amount: calculatedReturn.amount.to_string().split(" ")[0],
+      slippage: calculatedReturn.highestSlippage
+    };
   }
 
   @action async getReturn({

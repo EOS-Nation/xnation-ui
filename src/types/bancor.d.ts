@@ -136,6 +136,7 @@ export interface Converter {
 
 export interface ConvertReturn {
   amount: string;
+  slippage?: number;
 }
 
 export interface ViewToken {

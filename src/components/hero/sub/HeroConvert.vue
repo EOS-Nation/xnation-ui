@@ -38,6 +38,15 @@
               )} USD`
             }}
           </div>
+          <div
+            v-if="slippage !== null"
+            :class="[
+              slippageHigh ? 'text-warning' : 'text-white',
+              `font-size-sm`
+            ]"
+          >
+            {{ displayedSlippage }}
+          </div>
         </div>
         <div class="d-flex justify-content-center">
           <b-btn
@@ -116,6 +125,7 @@ import { Route } from "vue-router";
 import TwoTokenHero from "./TwoTokenHero.vue";
 import { State, Getter, Action, Mutation, namespace } from "vuex-class";
 import { LiquidityModule, TradingModule } from "../../../types/bancor";
+import numeral from "numeral";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
   return {
@@ -180,6 +190,7 @@ export default class HeroConvert extends Vue {
   loadingConversion = false;
   fromTokenError = "";
   toTokenError = "";
+  slippage: number | null = null;
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter tokens!: TradingModule["tokens"];
@@ -262,6 +273,14 @@ export default class HeroConvert extends Vue {
     });
   }
 
+  get displayedSlippage() {
+    return `Slippage: ${numeral(this.slippage).format("0.00%")}`;
+  }
+
+  get slippageHigh() {
+    return Number(this.slippage) > 0.2;
+  }
+
   get toTokenSymbol() {
     return this.$route.query.quote as string;
   }
@@ -306,7 +325,6 @@ export default class HeroConvert extends Vue {
         fromAmount: Number(this.fromTokenAmount),
         toAmount: Number(this.toTokenAmount)
       });
-      console.log(result, "result came through");
 
       this.success = result;
       this.error = "";
@@ -339,8 +357,9 @@ export default class HeroConvert extends Vue {
 
   async updatePriceReturn(amountString: string) {
     const amount = Number(amountString);
+    this.slippage = null;
     if (!amount) {
-      this.toTokenAmount = ''
+      this.toTokenAmount = "";
       return;
     }
     this.loadingConversion = true;
@@ -350,6 +369,9 @@ export default class HeroConvert extends Vue {
         amount,
         toSymbol: this.toTokenSymbol
       });
+      if (reward.slippage) {
+        this.slippage = reward.slippage;
+      }
       this.toTokenAmount = reward.amount;
       this.fromTokenError = "";
     } catch (e) {
@@ -361,7 +383,7 @@ export default class HeroConvert extends Vue {
   async updatePriceCost(amountString: string) {
     const amount = Number(amountString);
     if (!amount) {
-      this.fromTokenAmount = ''
+      this.fromTokenAmount = "";
       return;
     }
     this.loading = true;
