@@ -71,7 +71,7 @@
       title="Convert"
       v-model="txModal"
       :busy="txBusy"
-      @input="cleanUpAfterTx"
+      @input="closeTxModal"
     >
       <token-swap
         :error="error"
@@ -89,9 +89,12 @@
       >
         <template v-slot:footer>
           <b-col cols="12" class="text-center">
-            <h6 v-if="!success && !error">
-              Please proceed with your wallet to confirm this Transaction.
-            </h6>
+            <div v-if="!success && !error">
+              <h6>
+                Please proceed with your wallet to confirm this Transaction.
+              </h6>
+              <p>BNT trades include a 1% affiliate fee.</p>
+            </div>
             <h6 v-else-if="error && !success" class="text-danger">
               Error: {{ error }}
               <!-- <span class="cursor text-muted"> - Try again</span> -->
@@ -329,7 +332,6 @@ export default class HeroConvert extends Vue {
       this.success = result;
       this.error = "";
 
-
       this.init();
     } catch (e) {
       this.error = e.message;
@@ -340,7 +342,7 @@ export default class HeroConvert extends Vue {
     this.fetchUserTokenBalances();
   }
 
-  cleanUpAfterTx() {
+  closeTxModal() {
     if (this.success) {
       this.fromTokenAmount = "";
       this.toTokenAmount = "";

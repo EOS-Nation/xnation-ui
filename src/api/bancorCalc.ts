@@ -112,7 +112,9 @@ export function composeMemo(
   converters: ConvertPath[],
   minReturn: string,
   destAccount: string,
-  version = 1
+  version = 1,
+  feeAccount?: string,
+  feePercent?: number
 ): string {
   const receiver = converters
     .map(({ account, symbol, multiContractSymbol }) => {
@@ -122,7 +124,11 @@ export function composeMemo(
     })
     .join(" ");
 
-  return `${version},${receiver},${minReturn},${destAccount}`;
+  const base = `${version},${receiver},${minReturn},${destAccount}`;
+  if (feeAccount && feePercent) {
+    return base.concat(`,${feeAccount},${feePercent}`);
+  }
+  return base;
 }
 
 export function relaysToConvertPaths(

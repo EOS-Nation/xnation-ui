@@ -823,13 +823,16 @@ export class EosBancorModule extends VuexModule
     const isAuthenticated = this.$store.rootGetters[
       "eosWallet/isAuthenticated"
     ];
+
     const memo = composeMemo(
       convertPath,
-      String(toAmount * 0.98),
-      isAuthenticated
+      String(toAmount * 0.96),
+      isAuthenticated,
+      1,
+      process.env.VUE_APP_AFFILIATE,
+      10000
     );
 
-    console.log(memo, "is the memo");
     // @ts-ignore
     const fromTokenContract = fromToken.contract;
     const convertActions = await multiContract.convert(
