@@ -6,7 +6,7 @@
     step="0.2"
     id="sb-inline"
     size="sm"
-    v-model="fee"
+    v-model="feeAmount"
     placeholder="Fee"
   ></b-form-spinbutton>
 </template>
@@ -16,7 +16,7 @@ import { Prop, Component, Vue, PropSync } from "vue-property-decorator";
 
 @Component
 export default class RelayFeeAdjuster extends Vue {
-  @PropSync("value", { type: Number }) fee!: number;
+  @PropSync("fee", { type: Number }) feeAmount!: number;
 
   feeFormatter(fee: number) {
     return `${fee} %`;

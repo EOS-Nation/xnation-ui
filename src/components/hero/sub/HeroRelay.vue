@@ -39,7 +39,7 @@
           </div>
         </div>
         <div v-else-if="selectedMenu == `setFee`">
-          <relay-fee-adjuster v-model="feeAmount" />
+          <relay-fee-adjuster :fee.sync="feeAmount" />
         </div>
         <div v-else-if="selectedMenu == `changeOwner`">
           <b-form-input
@@ -174,10 +174,6 @@ export default class HeroConvert extends Vue {
 
   get withdrawLiquidity() {
     return this.selectedMenu == "removeLiquidity";
-  }
-
-  feeFormatter(fee: number) {
-    return `${fee} %`;
   }
 
   set withdrawLiquidity(withdrawIsActive: boolean) {

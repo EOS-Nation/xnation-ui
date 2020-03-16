@@ -30,7 +30,7 @@
             Enter initial liquidity...
           </span>
         </div>
-        <relay-fee-adjuster v-model="fee" />
+        <relay-fee-adjuster :fee.sync="fee" />
         <div class="create">
           <b-btn
             @click="createRelay"
