@@ -400,7 +400,7 @@ export class EosBancorModule extends VuexModule
           amount: token2Asset
         }
       ],
-      100000000,
+      1000,
       poolParams.fee
     );
 
