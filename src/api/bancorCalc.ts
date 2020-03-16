@@ -105,7 +105,7 @@ export function calculateCost(
   );
   const slippage = asset_to_number(amountDesired) / asset_to_number(balanceTo);
 
-  return { reward: rewardAsset, slippage }
+  return { reward: rewardAsset, slippage };
 }
 
 export function composeMemo(
@@ -397,7 +397,12 @@ export const findReturn = (amount: Asset, relaysPath: HydratedRelay[]) =>
 export const findCost = (amount: Asset, relaysPath: HydratedRelay[]) =>
   relaysPath.reverse().reduce(
     ({ amount, highestSlippage }, relay) => {
-      console.log("trying to find", amount.to_string(), 'in', relay.reserves.map(reserve => reserve.amount.to_string()))
+      console.log(
+        "trying to find",
+        amount.to_string(),
+        "in",
+        relay.reserves.map(reserve => reserve.amount.to_string())
+      );
       const [toReserve, fromReserve] = sortReservesByAsset(
         amount,
         relay.reserves
@@ -410,7 +415,7 @@ export const findCost = (amount: Asset, relaysPath: HydratedRelay[]) =>
       return {
         amount: addFee(reward, relay.fee, 2),
         highestSlippage: highestNumber(highestSlippage, slippage)
-      }
+      };
     },
     { amount, highestSlippage: 0 }
   );

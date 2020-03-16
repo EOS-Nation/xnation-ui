@@ -328,8 +328,7 @@ export default class HeroConvert extends Vue {
 
       this.success = result;
       this.error = "";
-      this.fromTokenAmount = "";
-      this.toTokenAmount = "";
+
 
       this.init();
     } catch (e) {
@@ -342,6 +341,11 @@ export default class HeroConvert extends Vue {
   }
 
   cleanUpAfterTx() {
+    if (this.success) {
+      this.fromTokenAmount = "";
+      this.toTokenAmount = "";
+      this.slippage = null;
+    }
     this.success = "";
     this.error = "";
   }
