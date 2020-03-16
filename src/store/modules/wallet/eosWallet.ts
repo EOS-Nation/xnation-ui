@@ -32,9 +32,9 @@ interface EosWalletAction {
 @Module({ namespacedPath: "eosWallet/" })
 export class EosTransitModule extends VuexModule {
   @getter accessContext = initAccessContext({
-    appName: "Bancor by EOS Nation",
+    appName: "XNation",
     network: {
-      host: "eos.eosn.io",
+      host: "eos.greymass.com",
       port: 443,
       protocol: "https",
       chainId:

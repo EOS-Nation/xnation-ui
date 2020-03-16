@@ -96,13 +96,16 @@ export function calculateCost(
     .div(oneNumber.minus(amountNumber.div(balanceToNumber)))
     .minus(balanceFromNumber);
 
-  return new Asset(
+  const rewardAsset = new Asset(
     reward
       .times(Math.pow(10, balanceFrom.symbol.precision()))
       .toDecimalPlaces(0, Decimal.ROUND_FLOOR)
       .toNumber(),
     balanceFrom.symbol
   );
+  const slippage = asset_to_number(amountDesired) / asset_to_number(balanceTo);
+
+  return { reward: rewardAsset, slippage }
 }
 
 export function composeMemo(
@@ -331,6 +334,26 @@ export function chargeFee(
   );
 }
 
+export function addFee(
+  asset: Asset,
+  decimalFee: number,
+  magnitude: number = 1
+): Asset {
+  Decimal.set({ precision: 15, rounding: Decimal.ROUND_DOWN });
+  const assetAmount = new Decimal(asset_to_number(asset));
+  const one = new Decimal(1);
+  const totalFee = assetAmount.times(
+    one.minus(Decimal.pow(one.minus(decimalFee), magnitude))
+  );
+  const newAmount = assetAmount.plus(totalFee);
+  return new Asset(
+    newAmount
+      .times(Math.pow(10, asset.symbol.precision()))
+      .toDecimalPlaces(0, Decimal.ROUND_FLOOR)
+      .toNumber(),
+    asset.symbol
+  );
+}
 const findReserveWithAsset = (asset: Asset) => (reserve: TokenAmount) =>
   reserve.amount.symbol.isEqual(asset.symbol);
 
@@ -348,6 +371,9 @@ const sortReservesByAsset = (asset: Asset, reserves: TokenAmount[]) => {
   );
 };
 
+const highestNumber = (number1: number, number2: number) =>
+  number1 > number2 ? number1 : number2;
+
 export const findReturn = (amount: Asset, relaysPath: HydratedRelay[]) =>
   relaysPath.reduce(
     ({ amount, highestSlippage }, relay) => {
@@ -362,8 +388,29 @@ export const findReturn = (amount: Asset, relaysPath: HydratedRelay[]) =>
       );
       return {
         amount: chargeFee(reward, relay.fee, 2),
-        highestSlippage: slippage > highestSlippage ? slippage : highestSlippage
+        highestSlippage: highestNumber(highestSlippage, slippage)
       };
+    },
+    { amount, highestSlippage: 0 }
+  );
+
+export const findCost = (amount: Asset, relaysPath: HydratedRelay[]) =>
+  relaysPath.reverse().reduce(
+    ({ amount, highestSlippage }, relay) => {
+      console.log("trying to find", amount.to_string(), 'in', relay.reserves.map(reserve => reserve.amount.to_string()))
+      const [toReserve, fromReserve] = sortReservesByAsset(
+        amount,
+        relay.reserves
+      );
+      const { reward, slippage } = calculateCost(
+        fromReserve.amount,
+        toReserve.amount,
+        amount
+      );
+      return {
+        amount: addFee(reward, relay.fee, 2),
+        highestSlippage: highestNumber(highestSlippage, slippage)
+      }
     },
     { amount, highestSlippage: 0 }
   );

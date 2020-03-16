@@ -52,7 +52,7 @@ export default class TokenBalanceBlock extends Vue {
   @Prop() rightImg!: string;
   @Prop() rightTitle!: string;
   @Prop() rightSubtitle!: string;
-  @Prop({ default: "Min Return" }) rightHeader!: string;
+  @Prop({ default: "Receive" }) rightHeader!: string;
 }
 </script>
 

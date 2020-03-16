@@ -382,6 +382,7 @@ export default class HeroConvert extends Vue {
 
   async updatePriceCost(amountString: string) {
     const amount = Number(amountString);
+    this.slippage = null;
     if (!amount) {
       this.fromTokenAmount = "";
       return;
@@ -395,6 +396,9 @@ export default class HeroConvert extends Vue {
         fromSymbol: this.fromTokenSymbol
       });
       this.fromTokenAmount = reward.amount;
+      if (reward.slippage) {
+        this.slippage = reward.slippage;
+      }
       this.toTokenError = "";
     } catch (e) {
       this.toTokenError = e.message;

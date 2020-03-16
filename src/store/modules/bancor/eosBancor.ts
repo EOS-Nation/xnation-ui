@@ -45,11 +45,10 @@ import { rpc } from "@/api/rpc";
 import { client } from "@/api/dFuse";
 import {
   calculateReturn,
+  findCost,
   relaysToConvertPaths,
   composeMemo,
-  ConvertPath
-} from "@/api/bancorCalc";
-import {
+  ConvertPath,
   createPath,
   DryRelay,
   HydratedRelay,
@@ -824,7 +823,11 @@ export class EosBancorModule extends VuexModule
     const isAuthenticated = this.$store.rootGetters[
       "eosWallet/isAuthenticated"
     ];
-    const memo = composeMemo(convertPath, String(toAmount), isAuthenticated);
+    const memo = composeMemo(
+      convertPath,
+      String(toAmount * 0.98),
+      isAuthenticated
+    );
 
     console.log(memo, "is the memo");
     // @ts-ignore
@@ -880,11 +883,6 @@ export class EosBancorModule extends VuexModule
         );
         console.log(fromTokenPrecision, "iS the from token");
         const toToken = this.relayTokens.find(x => x.symbol == toSymbol)!;
-
-        // get convert path for multi relay
-        // merge convert paths together
-        // use original Amount for sending in asset
-        // use final return in the memo
 
         const fromSymbolInit = new Symbol("BNT", 10);
         // @ts-ignore
@@ -1126,11 +1124,11 @@ export class EosBancorModule extends VuexModule
     }
   }
 
-  @action async getCost({
+  @action async getCostBancorApi({
     fromSymbol,
     toSymbol,
     amount
-  }: ProposedTransaction): Promise<ConvertReturn> {
+  }: ProposedTransaction) {
     const [fromToken, toToken] = await Promise.all([
       this.getEosTokenWithDecimals(fromSymbol),
       this.getEosTokenWithDecimals(toSymbol)
@@ -1143,6 +1141,74 @@ export class EosBancorModule extends VuexModule
     return {
       amount: String(Number(result) / Math.pow(10, fromToken.decimals))
     };
+  }
+
+  @action async getCostMulti({
+    fromSymbol,
+    toSymbol,
+    amount
+  }: ProposedTransaction) {
+    const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
+    const toToken = this.relayTokens.find(x => x.symbol == toSymbol)!;
+
+    // @ts-ignore
+    const fromSymbolInit = new Symbol(fromToken.symbol, fromToken.precision);
+    // @ts-ignore
+    const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
+    const assetAmount = number_to_asset(Number(amount), toSymbolInit);
+
+    const allRelays = eosMultiToDryRelays(this.relaysList);
+    const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
+    const hydratedRelays = await this.hydrateRelays(path);
+    const calculatedCost = findCost(assetAmount, hydratedRelays);
+
+    return {
+      amount: calculatedCost.amount.to_string().split(" ")[0],
+      slippage: calculatedCost.highestSlippage
+    };
+  }
+
+  @action async getCost({
+    fromSymbol,
+    toSymbol,
+    amount
+  }: ProposedTransaction): Promise<ConvertReturn> {
+    const fromToken = this.token(fromSymbol);
+    const toToken = this.token(toSymbol);
+    // @ts-ignore
+    const sources = [fromToken.source, toToken.source];
+    const convertType = determineConvertType(sources);
+
+    switch (convertType) {
+      case ConvertType.API:
+        return this.getCostBancorApi({ fromSymbol, toSymbol, amount });
+      case ConvertType.Multi:
+        return this.getCostMulti({ fromSymbol, toSymbol, amount });
+      case ConvertType.APItoMulti: {
+        const bancorApi = await this.getCostBancorApi({
+          fromSymbol,
+          toSymbol: "BNT",
+          amount
+        });
+        return this.getCostMulti({
+          fromSymbol: "BNT",
+          toSymbol,
+          amount: Number(bancorApi.amount)
+        });
+      }
+      case ConvertType.MultiToApi: {
+        const multi = await this.getCostMulti({
+          fromSymbol,
+          toSymbol: "BNT",
+          amount
+        });
+        return this.getCostBancorApi({
+          fromSymbol: "BNT",
+          toSymbol,
+          amount: Number(multi.amount)
+        });
+      }
+    }
   }
 
   @action async triggerTx(actions: any[]) {
