@@ -52,7 +52,8 @@ import {
   createPath,
   DryRelay,
   HydratedRelay,
-  findReturn
+  findReturn,
+  concatAffiliate
 } from "@/api/bancorCalc";
 
 enum ConvertType {
@@ -799,6 +800,22 @@ export class EosBancorModule extends VuexModule
     });
 
     const { actions } = res.data[0];
+    console.log(actions, "came through from bancorApi ");
+    const affiliateActions = actions.map(action => {
+      if (action.name == "transfer") {
+        return {
+          ...action,
+          data: {
+            ...action.data,
+            memo: concatAffiliate(
+              action.data.memo,
+              process.env.VUE_APP_AFFILIATE!,
+              10000
+            )
+          }
+        };
+      } else return action;
+    });
     const txRes = await this.triggerTx(actions);
     return txRes.transaction_id;
   }
@@ -908,7 +925,7 @@ export class EosBancorModule extends VuexModule
           mergedPath,
           finalReturn,
           vxm.wallet.isAuthenticated
-        );
+        )
 
         const convertActions = await multiContract.convert(
           fromTokenContract,

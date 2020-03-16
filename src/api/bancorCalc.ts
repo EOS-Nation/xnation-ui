@@ -108,6 +108,10 @@ export function calculateCost(
   return { reward: rewardAsset, slippage };
 }
 
+export function concatAffiliate(memo: string, affiliateAccount: string, percentNumber: number | string) {
+  return memo.concat(`,${affiliateAccount},${percentNumber}`);
+}
+
 export function composeMemo(
   converters: ConvertPath[],
   minReturn: string,
@@ -126,7 +130,7 @@ export function composeMemo(
 
   const base = `${version},${receiver},${minReturn},${destAccount}`;
   if (feeAccount && feePercent) {
-    return base.concat(`,${feeAccount},${feePercent}`);
+    return concatAffiliate(base, feeAccount, feePercent);
   }
   return base;
 }
