@@ -328,8 +328,8 @@ export default class HeroConvert extends Vue {
 
       this.success = result;
       this.error = "";
-      this.fromTokenAmount = ''
-      this.toTokenAmount = ''
+      this.fromTokenAmount = "";
+      this.toTokenAmount = "";
 
       this.init();
     } catch (e) {
