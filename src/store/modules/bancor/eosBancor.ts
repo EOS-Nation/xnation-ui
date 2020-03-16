@@ -801,7 +801,7 @@ export class EosBancorModule extends VuexModule
 
     const { actions } = res.data[0];
     console.log(actions, "came through from bancorApi ");
-    const affiliateActions = actions.map(action => {
+    const affiliateActions = actions.map((action: any) => {
       if (action.name == "transfer") {
         return {
           ...action,
