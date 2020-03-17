@@ -64,13 +64,13 @@
         <token-swap
           :error="error"
           :success="success"
-          leftHeader="Deposit"
+          :leftHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
           :leftImg="token1Img"
           :leftTitle="`${token1Symbol} ${token1Amount}`"
           leftSubtitle=""
           :rightImg="token2Img"
           :rightTitle="`${token2Symbol} ${token2Amount}`"
-          rightHeader="Deposit"
+          :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
           rightSubtitle=""
         >
           <template v-slot:footer>
