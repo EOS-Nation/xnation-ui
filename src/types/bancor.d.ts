@@ -226,7 +226,7 @@ export interface LiquidityModule {
   init: () => Promise<void>;
   readonly relay: (arg0: string) => ViewRelay;
   readonly relays: ViewRelay[];
-  readonly supportedFeatures: string[];
+  readonly supportedFeatures: (arg0: string) => string[];
   calculateOpposingDeposit: (
     opposingDeposit: OpposingLiquidParams
   ) => Promise<OpposingLiquid>;

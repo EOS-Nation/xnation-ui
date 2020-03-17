@@ -99,7 +99,9 @@ export class EthBancorModule extends VuexModule
   tokenBalances: { symbol: string; balance: string }[] = [];
 
   get supportedFeatures() {
-    return ["addLiquidity", "removeLiquidity"];
+    return (symbolName: string) => {
+      return ["addLiquidity", "removeLiquidity"];
+    };
   }
 
   get wallet() {
@@ -213,9 +215,9 @@ export class EthBancorModule extends VuexModule
           array.indexOf(smartTokenSymbol) !== index
       );
 
-    return relays.filter(relay =>
-      duplicated.every(dup => dup !== relay.smartTokenSymbol)
-    ).sort((a,b) => b.liqDepth - a.liqDepth)
+    return relays
+      .filter(relay => duplicated.every(dup => dup !== relay.smartTokenSymbol))
+      .sort((a, b) => b.liqDepth - a.liqDepth);
   }
 
   @action async fetchUsdPrice() {

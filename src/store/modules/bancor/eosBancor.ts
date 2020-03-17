@@ -267,6 +267,9 @@ const eosMultiToDryRelays = (relays: EosMultiRelay[]): DryRelay[] => {
   }));
 };
 
+type FeatureEnabled = (relay: EosMultiRelay, loggedInUser: string) => boolean;
+type Feature = [string, FeatureEnabled];
+
 @Module({ namespacedPath: "eosBancor/" })
 export class EosBancorModule extends VuexModule
   implements TradingModule, LiquidityModule, CreatePoolModule {
@@ -278,7 +281,24 @@ export class EosBancorModule extends VuexModule
   tokenBalances: TokenBalances["tokens"] = [];
 
   get supportedFeatures() {
-    return ["addLiquidity", "removeLiquidity", "setFee", "changeOwner"];
+    return (symbolName: string) => {
+      const isAuthenticated = this.isAuthenticated;
+      const relay = this.relay(symbolName);
+      console.log({ isAuthenticated, relay });
+      const features: Feature[] = [
+        ["addLiquidity", () => true],
+        ["removeLiquidity", () => true],
+        ["setFee", () => true],
+        ["changeOwner", () => true],
+        ["deleteRelay", () => true]
+      ];
+      return features.filter(([name, test]) => test(relay, isAuthenticated)).map(([name]) => name);
+    };
+  }
+
+  get isAuthenticated() {
+    // @ts-ignore
+    return this.$store.rootGetters[`${this.wallet}Wallet/isAuthenticated`];
   }
 
   get wallet() {
@@ -645,11 +665,14 @@ export class EosBancorModule extends VuexModule
     fundAmount,
     smartTokenSymbol
   }: LiquidityParams) {
-    console.log(
-      { fundAmount, smartTokenSymbol },
-      "remove liquidity does nothing"
+    const liquidityAsset = number_to_asset(
+      Number(fundAmount),
+      new Sym(smartTokenSymbol, 4)
     );
-    return "";
+
+    const action = multiContract.removeLiquidityAction(liquidityAsset);
+    const txRes = await this.triggerTx([action]);
+    return txRes.transaction_id as string;
   }
 
   @action async getUserBalances(symbolName: string) {
@@ -681,7 +704,7 @@ export class EosBancorModule extends VuexModule
       token2MaxWithdraw: `${token2MaxWithdraw}`,
       token1Balance: token1Balance.split(" ")[0],
       token2Balance: token2Balance.split(" ")[0],
-      smartTokenBalance
+      smartTokenBalance: smartTokenBalance.split(" ")[0]
     };
   }
 
@@ -696,8 +719,6 @@ export class EosBancorModule extends VuexModule
         suggestedDeposit.smartTokenSymbol
       )
     ]);
-
-    const smartSupply = asset_to_number(supply.supply);
 
     const sameReserve = tokenReserves.find(
       reserve =>
@@ -739,7 +760,7 @@ export class EosBancorModule extends VuexModule
     const opposingReserveReturnNumber = asset_to_number(
       opposingReserveFundReturn
     );
-    
+
     const lowestNumber = Math.min(
       opposingReserveReturnNumber,
       sameReserveReturnNumber

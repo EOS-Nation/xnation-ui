@@ -133,7 +133,7 @@ const wallet = namespace("wallet");
     TokenSwap
   }
 })
-export default class HeroConvert extends Vue {
+export default class HeroRelay extends Vue {
   rateLoading = false;
   token1Amount = "";
   token2Amount = "";
@@ -182,18 +182,15 @@ export default class HeroConvert extends Vue {
 
   get menus() {
     const baseMenus = [
-      ["addLiquidity", "Add Liquidity", "arrow-up", false],
-      ["removeLiquidity", "Remove Liquidity", "arrow-down", false],
-      ["setFee", "Set Fee", "dollar-sign", true],
-      ["changeOwner", "Change Owner", "handshake", true]
+      ["addLiquidity", "Add Liquidity", "arrow-up"],
+      ["removeLiquidity", "Remove Liquidity", "arrow-down"],
+      ["setFee", "Set Fee", "dollar-sign"],
+      ["changeOwner", "Change Owner", "handshake"]
     ];
     if (!this.supportedFeatures) return [baseMenus[0]];
-    const features = this.supportedFeatures
+    const features = this.supportedFeatures(this.focusedSymbol)
       .map(feature => baseMenus.find(([name]) => name == feature)!)
-      .filter(
-        ([menu, label, icon, requiresAdmin]) => !requiresAdmin || this.isAdmin
-      );
-    if (!features.every(Boolean)) throw new Error("Unsupported feature found");
+      .filter(Boolean)
     return features;
   }
 
