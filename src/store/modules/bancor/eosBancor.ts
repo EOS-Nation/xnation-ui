@@ -382,8 +382,10 @@ export class EosBancorModule extends VuexModule
   @action async removeRelay(symbolName: string) {
     const relay = this.relay(symbolName);
     const reserves = relay.reserves.map(reserve => reserve.symbol);
-    const nukeRelayActions = multiContract.nukeRelayAction(symbolName, reserves);
-    console.log({ nukeRelayActions })
+    const nukeRelayActions = multiContract.nukeRelayAction(
+      symbolName,
+      reserves
+    );
     const txRes = await this.triggerTx(nukeRelayActions);
     return txRes.transaction_id as string;
   }
@@ -785,7 +787,7 @@ export class EosBancorModule extends VuexModule
     );
 
     return {
-      opposingAmount: opposingAsset.to_string().split(" ")[0],
+      opposingAmount: String(asset_to_number(opposingAsset)),
       smartTokenAmount: String(lowestNumber)
     };
   }
@@ -821,10 +823,15 @@ export class EosBancorModule extends VuexModule
 
     const smartTokenAmount = percent * smartSupply;
 
+    const opposingAmountNumber =
+      percent * asset_to_number(opposingReserve.balance);
+    const opposingAsset = number_to_asset(
+      opposingAmountNumber,
+      opposingReserve.balance.symbol
+    );
+
     return {
-      opposingAmount: String(
-        percent * asset_to_number(opposingReserve.balance)
-      ),
+      opposingAmount: String(asset_to_number(opposingAsset)),
       smartTokenAmount:
         smartTokenAmount / asset_to_number(smartUserBalance) > 0.99
           ? String(asset_to_number(smartUserBalance))
@@ -868,7 +875,6 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async convertMulti(proposal: ProposedConvertTransaction) {
-    console.log("convert multi engaged");
     const { fromSymbol, fromAmount, toAmount, toSymbol } = proposal;
 
     const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
