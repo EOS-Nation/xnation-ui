@@ -108,7 +108,11 @@ export function calculateCost(
   return { reward: rewardAsset, slippage };
 }
 
-export function concatAffiliate(memo: string, affiliateAccount: string, percentNumber: number | string) {
+export function concatAffiliate(
+  memo: string,
+  affiliateAccount: string,
+  percentNumber: number | string
+) {
   return memo.concat(`,${affiliateAccount},${percentNumber}`);
 }
 
@@ -429,3 +433,38 @@ export const findCost = (amount: Asset, relaysPath: HydratedRelay[]) =>
     },
     { amount, highestSlippage: 0 }
   );
+
+export function fund(
+  smartTokens: Asset,
+  reserveBalance: Asset,
+  smartSupply: Asset
+) {
+  Decimal.set({ precision: 18, rounding: Decimal.ROUND_HALF_EVEN });
+
+  const cost = new Decimal(reserveBalance.amount.toString())
+    .times(smartTokens.amount.toString())
+    .div(smartSupply.amount.toString());
+
+  const assetAmount = BigInt(cost.ceil().toString());
+  return asset(assetAmount, reserveBalance.symbol);
+}
+
+export function calculateFundReturn(
+  reserveTokens: Asset,
+  reserveBalance: Asset,
+  smartSupply: Asset
+) {
+  Decimal.set({ precision: 18, rounding: Decimal.ROUND_HALF_EVEN });
+  const one = new Decimal(1);
+
+  // y(s+1) + 1 / r
+
+  const reward = new Decimal(reserveTokens.amount.toString())
+    .times(new Decimal(smartSupply.amount.toString()).plus(one))
+    .plus(one)
+    .div(reserveBalance.amount.toString());
+
+  const rewardAmount = BigInt(reward.floor().toString());
+
+  return asset(rewardAmount, smartSupply.symbol);
+}

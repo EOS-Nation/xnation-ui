@@ -53,7 +53,9 @@ import {
   DryRelay,
   HydratedRelay,
   findReturn,
-  concatAffiliate
+  concatAffiliate,
+  fund,
+  calculateFundReturn
 } from "@/api/bancorCalc";
 
 enum ConvertType {
@@ -712,19 +714,40 @@ export class EosBancorModule extends VuexModule
     const percent = Number(suggestedDeposit.tokenAmount) / reserveBalance;
     const opposingNumberAmount =
       percent * asset_to_number(opposingReserve.balance);
-    const smartTokenNumberAmount = percent * smartSupply;
+
+    const sameAsset = number_to_asset(
+      Number(suggestedDeposit.tokenAmount),
+      sameReserve.balance.symbol
+    );
     const opposingAsset = number_to_asset(
       opposingNumberAmount,
       opposingReserve.balance.symbol
     );
-    const smartTokenAsset = number_to_asset(
-      smartTokenNumberAmount,
-      supply.supply.symbol
+
+    const sameReserveFundReturn = calculateFundReturn(
+      sameAsset,
+      sameReserve.balance,
+      supply.supply
+    );
+    const opposingReserveFundReturn = calculateFundReturn(
+      opposingAsset,
+      opposingReserve.balance,
+      supply.supply
+    );
+
+    const sameReserveReturnNumber = asset_to_number(sameReserveFundReturn);
+    const opposingReserveReturnNumber = asset_to_number(
+      opposingReserveFundReturn
+    );
+    
+    const lowestNumber = Math.min(
+      opposingReserveReturnNumber,
+      sameReserveReturnNumber
     );
 
     return {
       opposingAmount: opposingAsset.to_string().split(" ")[0],
-      smartTokenAmount: smartTokenAsset.to_string().split(" ")[0]
+      smartTokenAmount: String(lowestNumber)
     };
   }
 
@@ -907,7 +930,7 @@ export class EosBancorModule extends VuexModule
           mergedPath,
           finalReturn,
           vxm.wallet.isAuthenticated
-        )
+        );
 
         const convertActions = await multiContract.convert(
           fromTokenContract,
