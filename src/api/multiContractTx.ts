@@ -229,19 +229,17 @@ class MultiContractTx {
     return this.tx(this.addLiquidityActions(symbolCode, tokens));
   }
 
-  removeLiquidity(quantity: Asset, tokenContract: string) {
-    return this.tx([
-      {
-        account: tokenContract,
-        name: "transfer",
-        data: {
-          from: this.getAuth()[0].actor,
-          to: this.contractName,
-          quantity: quantity.toString(),
-          memo: "liquidate;"
-        }
+  removeLiquidityAction(quantity: Asset) {
+    return {
+      account: process.env.VUE_APP_SMARTTOKENCONTRACT!,
+      name: "transfer",
+      data: {
+        from: this.getAuth()[0].actor,
+        to: this.contractName,
+        quantity: quantity.to_string(),
+        memo: "liquidate;"
       }
-    ]);
+    };
   }
 
   addLiquidityActions(symbolCode: string, tokens: TokenAmount[]) {
