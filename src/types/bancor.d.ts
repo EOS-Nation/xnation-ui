@@ -246,6 +246,7 @@ export interface LiquidityModule {
   }>;
   removeLiquidity: (params: LiquidityParams) => Promise<string>;
   addLiquidity: (params: LiquidityParams) => Promise<string>;
+  removeRelay?: (symbolName: string) => Promise<string>;
 }
 
 // Amount in an asset without reference to it's actual precision

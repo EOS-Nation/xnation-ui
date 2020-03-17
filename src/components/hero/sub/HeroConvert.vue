@@ -93,7 +93,7 @@
               <h6>
                 Please proceed with your wallet to confirm this Transaction.
               </h6>
-              <p>BNT trades include a 1% affiliate fee.</p>
+              <!-- <p>BNT trades include a 1% affiliate fee.</p> -->
             </div>
             <h6 v-else-if="error && !success" class="text-danger">
               Error: {{ error }}

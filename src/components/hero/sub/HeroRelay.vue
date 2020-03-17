@@ -170,6 +170,7 @@ export default class HeroRelay extends Vue {
   @bancor.Action removeLiquidity!: LiquidityModule["removeLiquidity"];
   @bancor.Action updateFee!: LiquidityModule["updateFee"];
   @bancor.Action updateOwner!: LiquidityModule["updateOwner"];
+  @bancor.Action removeRelay!: LiquidityModule["removeRelay"];
   @wallet.Getter isAuthenticated!: string | boolean;
 
   get withdrawLiquidity() {
@@ -185,12 +186,13 @@ export default class HeroRelay extends Vue {
       ["addLiquidity", "Add Liquidity", "arrow-up"],
       ["removeLiquidity", "Remove Liquidity", "arrow-down"],
       ["setFee", "Set Fee", "dollar-sign"],
-      ["changeOwner", "Change Owner", "handshake"]
+      ["changeOwner", "Change Owner", "handshake"],
+      ["deleteRelay", "Delete Relay", "trash-alt"]
     ];
     if (!this.supportedFeatures) return [baseMenus[0]];
     const features = this.supportedFeatures(this.focusedSymbol)
       .map(feature => baseMenus.find(([name]) => name == feature)!)
-      .filter(Boolean)
+      .filter(Boolean);
     return features;
   }
 
@@ -353,9 +355,15 @@ export default class HeroRelay extends Vue {
         return this.setFee();
       case "changeOwner":
         return this.setOwner();
+      case "deleteRelay":
+        return this.deleteRelay();
       default:
         this.withdrawLiquidity ? this.remove() : this.add();
     }
+  }
+
+  async deleteRelay() {
+    this.removeRelay!(this.focusedSymbol);
   }
 
   async setFee() {

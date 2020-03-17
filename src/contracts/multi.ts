@@ -23,12 +23,12 @@ class MultiContractAction {
       : action;
   }
 
-  delreserve(converter: string, currency: string): BareAction | SemiAction {
+  delreserve(converter: string, reserve: string): BareAction | SemiAction {
     return this.addAccountProperty({
       name: "delreserve",
       data: {
         converter,
-        currency
+        reserve
       }
     });
   }
@@ -69,6 +69,13 @@ class MultiContractAction {
         new_owner: owner
       }
     });
+  }
+
+  delconverter(converter_currency_code: string) {
+    return this.addAccountProperty({
+      name: "delconverter",
+      data: { converter_currency_code }
+    })
   }
 
   fund(sender: string, quantity: string): BareAction | SemiAction {

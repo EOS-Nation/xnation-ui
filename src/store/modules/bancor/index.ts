@@ -89,6 +89,9 @@ export class BancorModule extends VuexModule {
     return this.dispatcher(["updateFee", fee]);
   }
 
+  @action async removeRelay(symbolName: string) {
+    return this.dispatcher(["removeRelay", symbolName]);
+  }
 
   @action async updateOwner(owner: NewOwnerParams) {
     return this.dispatcher(["updateOwner", owner]);

@@ -270,6 +270,8 @@ const eosMultiToDryRelays = (relays: EosMultiRelay[]): DryRelay[] => {
 type FeatureEnabled = (relay: EosMultiRelay, loggedInUser: string) => boolean;
 type Feature = [string, FeatureEnabled];
 
+const isOwner: FeatureEnabled = (relay, account) => relay.owner == account;
+
 @Module({ namespacedPath: "eosBancor/" })
 export class EosBancorModule extends VuexModule
   implements TradingModule, LiquidityModule, CreatePoolModule {
@@ -284,15 +286,22 @@ export class EosBancorModule extends VuexModule
     return (symbolName: string) => {
       const isAuthenticated = this.isAuthenticated;
       const relay = this.relay(symbolName);
-      console.log({ isAuthenticated, relay });
       const features: Feature[] = [
         ["addLiquidity", () => true],
-        ["removeLiquidity", () => true],
-        ["setFee", () => true],
-        ["changeOwner", () => true],
-        ["deleteRelay", () => true]
+        [
+          "removeLiquidity",
+          relay => relay.reserves.some(reserve => reserve.amount > 0)
+        ],
+        ["setFee", isOwner],
+        ["changeOwner", isOwner],
+        [
+          "deleteRelay",
+          relay => relay.reserves.every(reserve => reserve.amount == 0)
+        ]
       ];
-      return features.filter(([name, test]) => test(relay, isAuthenticated)).map(([name]) => name);
+      return features
+        .filter(([name, test]) => test(relay, isAuthenticated))
+        .map(([name]) => name);
     };
   }
 
@@ -367,6 +376,15 @@ export class EosBancorModule extends VuexModule
       fee
     );
     const txRes = await this.triggerTx([updateFeeAction]);
+    return txRes.transaction_id as string;
+  }
+
+  @action async removeRelay(symbolName: string) {
+    const relay = this.relay(symbolName);
+    const reserves = relay.reserves.map(reserve => reserve.symbol);
+    const nukeRelayActions = multiContract.nukeRelayAction(symbolName, reserves);
+    console.log({ nukeRelayActions })
+    const txRes = await this.triggerTx(nukeRelayActions);
     return txRes.transaction_id as string;
   }
 

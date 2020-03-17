@@ -99,6 +99,14 @@ class MultiContractTx {
     return this.tx([action]);
   }
 
+  nukeRelayAction(symbolName: string, reserves: string[]) {
+    const deleteReserveActions = reserves.map(reserveSymbolCode =>
+      multiContractAction.delreserve(symbolName, reserveSymbolCode)
+    ) as SemiAction[];
+    const deleteRelayAction = multiContractAction.delconverter(symbolName);
+    return [...deleteReserveActions, deleteRelayAction];
+  }
+
   updateFeeAction(symbolCode: string, decimalPercent: number): any {
     return multiContractAction.updatefee(symbolCode, decimalPercent * 1000000);
   }
