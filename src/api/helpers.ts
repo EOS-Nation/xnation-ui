@@ -73,7 +73,7 @@ export const getBancorGasPriceLimit = async (): Promise<string> => {
 export const getBalance = async (
   contract: string,
   symbolName: string
-): Promise<any> => {
+): Promise<string> => {
   // @ts-ignore
   const account = vxm.eosWallet.wallet.auth.accountName;
   const tableResult = await eosRpc.get_currency_balance(
