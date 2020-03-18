@@ -408,8 +408,12 @@ export default class HeroRelay extends Vue {
       });
       this.fetchBalances();
       this.success = txResult;
+      // @ts-ignore
+      this.$analytics.logEvent("Fund", { txId: txResult });
     } catch (e) {
       this.error = e.message;
+      // @ts-ignore
+      this.$analytics.logEvent("exception", { description: `${this.isAuthenticated} recieved error ${e.message} while attempting a fund action, expecting to receive ${this.fundReward} for ${this.token1Amount} ${this.token1Symbol} + ${this.token2Amount} ${this.token2Symbol}` });
     }
     this.txBusy = false;
   }
