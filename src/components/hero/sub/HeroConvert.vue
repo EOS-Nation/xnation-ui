@@ -330,11 +330,16 @@ export default class HeroConvert extends Vue {
       });
 
       this.success = result;
+      // @ts-ignore
+      this.$analytics.logEvent("Conversion", { txId: result });
+
       this.error = "";
 
       this.init();
     } catch (e) {
       this.error = e.message;
+      // @ts-ignore
+      this.$analytics.logEvent("exception", { description: `${this.isAuthenticated} receievd error ${e.message}` });
       this.success = "";
     }
     this.txBusy = false;
@@ -445,6 +450,8 @@ export default class HeroConvert extends Vue {
 
   created() {
     this.loadSimpleReward();
+    // @ts-ignore
+    this.$analytics.logEvent("hero_component_created");
   }
 }
 </script>

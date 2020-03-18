@@ -21,6 +21,25 @@ import VueFuse from "vue-fuse";
 import ImageFallback from "vue-image-fallback";
 import { sync } from "vuex-router-sync";
 
+import * as firebase from "firebase/app";
+import "firebase/analytics";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA4wJnD2aEvo_m3G7ELk-u1P2XmaxziGU8",
+  authDomain: "xnation.firebaseapp.com",
+  databaseURL: "https://xnation.firebaseio.com",
+  projectId: "xnation",
+  storageBucket: "xnation.appspot.com",
+  messagingSenderId: "1048762453805",
+  appId: "1:1048762453805:web:c4ef8341987208fac64da4",
+  measurementId: "G-DJCHSS27CX"
+};
+
+firebase.initializeApp(firebaseConfig);
+firebase.analytics();
+
+Vue.prototype.$analytics = firebase.analytics();
+
 Vue.use(VueFuse);
 
 
