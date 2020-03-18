@@ -187,7 +187,7 @@ export default class HeroRelay extends Vue {
       ["removeLiquidity", "Remove Liquidity", "arrow-down"],
       ["setFee", "Set Fee", "dollar-sign"],
       ["changeOwner", "Change Owner", "handshake"],
-      ["deleteRelay", "Delete Relay", "trash-alt"]
+      ["deleteRelay", "Delete Pool", "trash-alt"]
     ];
     if (!this.supportedFeatures) return [baseMenus[0]];
     const features = this.supportedFeatures(this.focusedSymbol)
