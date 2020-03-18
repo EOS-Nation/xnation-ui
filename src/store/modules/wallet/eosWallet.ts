@@ -18,6 +18,8 @@ import tp from "eos-transit-tokenpocket-provider";
 import meetone from "eos-transit-meetone-provider";
 import whalevault from "eos-transit-whalevault-provider";
 import keycat from "eos-transit-keycat-provider";
+import LogRocket from 'logrocket'
+
 
 interface EosWalletAction {
   name: string;
@@ -96,18 +98,26 @@ export class EosTransitModule extends VuexModule {
             }
           ]
         }));
-
-    // @ts-ignore
-    return this.wallet.eosApi.transact(
-      {
-        actions: builtActions
-      },
-      {
-        broadcast: true,
-        blocksBehind: 3,
-        expireSeconds: 60
-      }
-    );
+        console.log('tx ran', LogRocket, 'should have been logrocket')
+        try {
+          // @ts-ignore
+          return await this.wallet.eosApi.transact(
+            {
+              actions: builtActions
+            },
+            {
+              broadcast: true,
+              blocksBehind: 3,
+              expireSeconds: 60
+            }
+          );
+        } catch(e) {
+          console.log('log rocket should be taking care of this...', LogRocket)
+          LogRocket.captureException(e);
+          // @ts-ignore
+          LogRocket.captureMessage("FailedTx", { extra: { account: this.wallet.auth.accountName }})
+          throw new Error(e.message)
+        }
   }
 
   @action async initLogin(provider: WalletProvider) {

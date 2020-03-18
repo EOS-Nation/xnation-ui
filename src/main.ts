@@ -23,6 +23,7 @@ import { sync } from "vuex-router-sync";
 
 import * as firebase from "firebase/app";
 import "firebase/analytics";
+import LogRocket from 'logrocket';
 
 const firebaseConfig = {
   apiKey: "AIzaSyA4wJnD2aEvo_m3G7ELk-u1P2XmaxziGU8",
@@ -40,6 +41,9 @@ firebase.analytics();
 
 Vue.prototype.$analytics = firebase.analytics();
 
+LogRocket.init('n9wwc1/xnation');
+
+Vue.prototype.$log = LogRocket;
 Vue.use(VueFuse);
 
 
