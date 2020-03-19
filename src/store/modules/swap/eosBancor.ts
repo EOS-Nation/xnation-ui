@@ -166,7 +166,7 @@ const getEosioTokenPrecision = async (
   return res.rows[0].supply.split(" ")[0].split(".")[1].length;
 };
 
-const chopSecondSymbol = (one: string, two: string, maxLength = 8) => {
+const chopSecondSymbol = (one: string, two: string, maxLength = 7) => {
   return one + two.slice(0, maxLength - one.length);
 };
 
