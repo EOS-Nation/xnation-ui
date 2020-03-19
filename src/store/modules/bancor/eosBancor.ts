@@ -164,9 +164,8 @@ const getEosioTokenPrecision = async (
   return res.rows[0].supply.split(" ")[0].split(".")[1].length;
 };
 
-const chopSecondSymbol = (one: string, two: string, maxLength = 8) => {
-  return one + two.slice(0, maxLength - one.length);
-};
+const chopSecondSymbol = (one: string, two: string, maxLength = 7) =>
+  two.slice(0, maxLength - one.length) + one;
 
 const chopSecondLastChar = (text: string, backUp: number) => {
   const secondLastIndex = text.length - backUp - 1;
@@ -189,6 +188,7 @@ const generateSmartTokenSymbol = async (
   multiTokenContract: string
 ) => {
   for (const strat in tokenStrategies) {
+    console.log({ symbolOne, symbolTwo });
     let draftedToken = tokenStrategies[strat](symbolOne, symbolTwo);
     try {
       await getEosioTokenPrecision(draftedToken, multiTokenContract);
