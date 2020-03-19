@@ -1,6 +1,5 @@
 import { Decimal } from "decimal.js";
 import { Asset, asset_to_number, Sym as Symbol, Sym, asset } from "eos-common";
-import { relays } from "@/store/modules/bancor/staticRelays";
 
 export type EosAccount = string;
 

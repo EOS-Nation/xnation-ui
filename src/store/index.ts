@@ -4,10 +4,10 @@ import Vuex from "vuex";
 import { general, GeneralModule } from "./modules/general";
 import { eosWallet, EosTransitModule } from "./modules/wallet/eosWallet";
 import { ethWallet, EthereumModule } from "./modules/wallet/ethWallet";
-import { eosBancor, EosBancorModule } from "./modules/bancor/eosBancor";
-import { ethBancor, EthBancorModule } from "./modules/bancor/ethBancor";
-import { usdsBancor, UsdBancorModule } from "./modules/bancor/usdBancor";
-import { bancor, BancorModule } from "./modules/bancor/index";
+import { eosBancor, EosBancorModule } from "./modules/swap/eosBancor";
+import { ethBancor, EthBancorModule } from "./modules/swap/ethBancor";
+import { usdsBancor, UsdBancorModule } from "./modules/swap/usdBancor";
+import { bancor, BancorModule } from "./modules/swap/index";
 import { wallet, WalletModule } from "./modules/wallet/index";
 
 Vue.use(Vuex);
