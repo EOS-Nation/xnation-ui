@@ -125,8 +125,6 @@ export default class HeroConvert extends Vue {
   cleanUpAfterTx() {
     this.error = "";
     this.success = "";
-    this.token1Amount = "";
-    this.token2Amount = "";
 
     if (this.success) {
       this.$router.push({ name: "Relays" });
@@ -152,6 +150,34 @@ export default class HeroConvert extends Vue {
 
   get calculationsAvailable() {
     return Number(this.token1Amount) && Number(this.token2Amount);
+  }
+
+  get currentNetwork() {
+    return this.$route.params.service;
+  }
+
+  get explorerLink() {
+    switch (this.currentNetwork) {
+      case "eos":
+      case "usds":
+        return `https://bloks.io/transaction/${this.success}`;
+      case "eth":
+        return `https://etherscan.io/tx/${this.success}`;
+      default:
+        return `https://bloks.io/transaction/${this.success}`;
+    }
+  }
+
+  get explorerName() {
+    switch (this.currentNetwork) {
+      case "eos":
+      case "usds":
+        return `Bloks.io`;
+      case "eth":
+        return `Etherscan`;
+      default:
+        return `Bloks.io`;
+    }
   }
 
   get networkTokenUsdReward() {
@@ -205,6 +231,8 @@ export default class HeroConvert extends Vue {
         fee: fee / 100
       });
       this.success = txId;
+      this.token1Amount = "";
+      this.token2Amount = "";
     } catch (e) {
       this.error = e.message;
     }
