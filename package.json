@@ -41,6 +41,7 @@
     "eosjs": "^20.0.0",
     "firebase": "^7.11.0",
     "fuse.js": "^3.4.6",
+    "lodash": "^4.17.15",
     "lodash.debounce": "^4.0.8",
     "logrocket": "^1.0.6",
     "numeral": "^2.0.6",

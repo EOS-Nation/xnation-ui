@@ -106,7 +106,6 @@ import { store } from "../../store";
 
 @Component
 export default class Navigation extends Vue {
-
   get selectedNetwork() {
     return vxm.bancor.currentNetwork;
   }
@@ -136,7 +135,7 @@ export default class Navigation extends Vue {
       text: "USDⓈ",
       value: "usds"
     }
-  ]
+  ];
 
   get selectedService() {
     return services.find(service => service.namespace == this.selectedNetwork);

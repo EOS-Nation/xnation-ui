@@ -9,6 +9,8 @@ import { ethBancor, EthBancorModule } from "./modules/swap/ethBancor";
 import { usdsBancor, UsdBancorModule } from "./modules/swap/usdSx";
 import { bancor, BancorModule } from "./modules/swap/index";
 import { wallet, WalletModule } from "./modules/wallet/index";
+import { network, NetworkModule } from './modules/network/index';
+import { eosNetwork, EosNetworkModule } from "./modules/network/eosNetwork";
 
 Vue.use(Vuex);
 
@@ -21,7 +23,9 @@ export const store = new Vuex.Store({
     eosBancor,
     ethBancor,
     usdsBancor,
-    bancor
+    network,
+    bancor,
+    eosNetwork
   },
   strict: process.env.NODE_ENV !== "production"
 });
@@ -49,5 +53,10 @@ export const vxm = {
     store,
     UsdBancorModule
   ) as UsdBancorModule,
-  bancor: BancorModule.CreateProxy(store, BancorModule) as BancorModule
+  bancor: BancorModule.CreateProxy(store, BancorModule) as BancorModule,
+  eosNetwork: EosNetworkModule.CreateProxy(
+    store,
+    EosNetworkModule
+  ) as EosNetworkModule,
+  network: NetworkModule.CreateProxy(store, NetworkModule) as NetworkModule
 };

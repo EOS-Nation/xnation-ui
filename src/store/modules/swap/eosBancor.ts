@@ -57,6 +57,7 @@ import {
   fund,
   calculateFundReturn
 } from "@/api/bancorCalc";
+import { hardCodedTokens } from "./tokenDic";
 
 enum ConvertType {
   API,
@@ -70,9 +71,11 @@ export interface ViewTokenMinusLogo {
   name: string;
   price: number;
   liqDepth: number;
-  logo: string;
   change24h: number;
   volume24h: number;
+  source: string;
+  precision: number;
+  contract: string;
   balance?: string;
 }
 
@@ -124,7 +127,6 @@ const relayToToken = ({
     change24h: 0,
     volume24h: 0,
     balance: "0",
-    // @ts-ignore
     source: "multi",
     precision,
     contract
@@ -314,12 +316,10 @@ export class EosBancorModule extends VuexModule
     return "eos";
   }
 
-  get tokenBalance() {
-    return (symbolName: string) => {
-      const tokenBalance = this.tokenBalances.find(
-        balance => balance.symbol == symbolName
-      );
-      return (tokenBalance && String(tokenBalance.amount)) || "0";
+  get balance() {
+    return (token: { contract: string; symbol: string }) => {
+      // @ts-ignore
+      return this.$store.rootGetters[`${this.wallet}Network/balance`](token);
     };
   }
 
@@ -329,7 +329,13 @@ export class EosBancorModule extends VuexModule
         .map(tokenMeta => {
           return {
             symbol: tokenMeta.symbol,
-            balance: this.tokenBalance(tokenMeta.symbol),
+            balance:
+              String(
+                this.balance({
+                  contract: tokenMeta.account,
+                  symbol: tokenMeta.symbol
+                }).amount
+              ) || "0",
             img: tokenMeta.logo
           };
         })
@@ -357,13 +363,13 @@ export class EosBancorModule extends VuexModule
     return [
       {
         symbol: "BNT",
-        balance: this.tokenBalance("BNT"),
+        balance: this.balance({ symbol: "BNT", contract: "bntbntbntbnt" }),
         img: this.tokenMetaObj("BNT").logo,
         usdValue: this.usdPriceOfBnt
       },
       {
         symbol: "USDB",
-        balance: this.tokenBalance("USDB"),
+        balance: this.balance({ symbol: "USDB", contract: "usdbusdbusdb" }),
         img: this.tokenMetaObj("USDB").logo,
         usdValue: 1
       }
@@ -498,7 +504,7 @@ export class EosBancorModule extends VuexModule
       .reduce((prev, relay) => {
         const tokens = relayToTokens(relay, this.usdPriceOfBnt);
         return prev.concat(tokens);
-      }, [] as ViewToken[])
+      }, [] as ViewTokenMinusLogo[])
       .sort((a, b) => b.liqDepth - a.liqDepth)
       .filter(
         (token, index, arr) =>
@@ -620,21 +626,36 @@ export class EosBancorModule extends VuexModule
       "eosWallet/isAuthenticated"
     ];
     if (!isAuthenticated) return;
-    const balances = await getTokenBalances(isAuthenticated);
-    this.setTokenBalances(balances.tokens);
-    this.setTokens(
-      // @ts-ignore
-      this.tokensList.map((token: any) => {
-        const existingToken = balances.tokens.find(
-          balanceObj => balanceObj.symbol == token.code
-        );
-        return {
-          ...token,
-          balance: (existingToken && String(existingToken.amount)) || "0",
-          ...(existingToken && { contract: existingToken.contract })
-        };
-      })
-    );
+
+    const relayTokens = this.relaysList
+      .filter(relay =>
+        relay.reserves.some(
+          reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
+        )
+      )
+      .reduce((prev, relay) => {
+        const tokens = relayToTokens(relay, this.usdPriceOfBnt);
+        return prev.concat(tokens);
+      }, [] as ViewTokenMinusLogo[])
+      .map(token => ({
+        contract: token.contract,
+        symbol: token.symbol,
+        precision: token.precision
+      }));
+
+    const bancorTokenSymbols = this.bancorApiTokens.map(x => x.symbol);
+    const bancorTokens = bancorTokenSymbols
+      .map(
+        symbol => hardCodedTokens.find(([symbolName]) => symbolName == symbol)!
+      )
+      .map(([symbol, contract, precision]) => ({
+        contract,
+        symbol,
+        precision
+      }));
+
+    const allTokens = [...relayTokens, ...bancorTokens];
+    await vxm.eosNetwork.getBalances({ tokens: allTokens });
   }
 
   @action async addLiquidity({
@@ -698,15 +719,26 @@ export class EosBancorModule extends VuexModule
   @action async getUserBalances(symbolName: string) {
     const relay = this.relay(symbolName);
     const [
-      token1Balance,
-      token2Balance,
-      smartTokenBalance,
+      [token1Balance, token2Balance, smartTokenBalance],
       [token1, token2],
       supply
     ] = await Promise.all([
-      getBalance(relay.reserves[0].contract, relay.reserves[0].symbol),
-      getBalance(relay.reserves[1].contract, relay.reserves[1].symbol),
-      getBalance(relay.smartToken.contract, relay.smartToken.symbol),
+      vxm.network.getBalances({
+        tokens: [
+          {
+            contract: relay.reserves[0].contract,
+            symbol: relay.reserves[0].symbol
+          },
+          {
+            contract: relay.reserves[1].contract,
+            symbol: relay.reserves[1].symbol
+          },
+          {
+            contract: relay.smartToken.contract,
+            symbol: relay.smartToken.symbol
+          }
+        ]
+      }),
       tableApi.getReservesMulti(symbolName),
       fetchTokenStats(relay.smartToken.contract, symbolName)
     ]);
@@ -715,16 +747,16 @@ export class EosBancorModule extends VuexModule
     const token1ReserveBalance = asset_to_number(token1.balance);
     const token2ReserveBalance = asset_to_number(token2.balance);
 
-    const percent = asset_to_number(new Asset(smartTokenBalance)) / smartSupply;
+    const percent = smartTokenBalance.balance / smartSupply;
     const token1MaxWithdraw = percent * token1ReserveBalance;
     const token2MaxWithdraw = percent * token2ReserveBalance;
 
     return {
-      token1MaxWithdraw: `${token1MaxWithdraw}`,
-      token2MaxWithdraw: `${token2MaxWithdraw}`,
-      token1Balance: token1Balance.split(" ")[0],
-      token2Balance: token2Balance.split(" ")[0],
-      smartTokenBalance: smartTokenBalance.split(" ")[0]
+      token1MaxWithdraw: String(token1MaxWithdraw),
+      token2MaxWithdraw: String(token2MaxWithdraw),
+      token1Balance: String(token1Balance.balance),
+      token2Balance: String(token2Balance.balance),
+      smartTokenBalance: String(smartTokenBalance.balance)
     };
   }
 

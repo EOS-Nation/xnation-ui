@@ -129,6 +129,7 @@ import TwoTokenHero from "./TwoTokenHero.vue";
 import { State, Getter, Action, Mutation, namespace } from "vuex-class";
 import { LiquidityModule, TradingModule } from "../../../types/bancor";
 import numeral from "numeral";
+import { vxm } from "@/store";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
   return {
@@ -339,7 +340,9 @@ export default class HeroConvert extends Vue {
     } catch (e) {
       this.error = e.message;
       // @ts-ignore
-      this.$analytics.logEvent("exception", { description: `${this.isAuthenticated} receievd error ${e.message}` });
+      this.$analytics.logEvent("exception", {
+        description: `${this.isAuthenticated} receievd error ${e.message}`
+      });
       this.success = "";
     }
     this.txBusy = false;
@@ -448,7 +451,7 @@ export default class HeroConvert extends Vue {
     this.loading = false;
   }
 
-  created() {
+  async created() {
     this.loadSimpleReward();
     // @ts-ignore
     this.$analytics.logEvent("hero_component_created");

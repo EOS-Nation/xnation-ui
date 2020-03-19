@@ -76,6 +76,7 @@ export const getBalance = async (
 ): Promise<string> => {
   // @ts-ignore
   const account = vxm.eosWallet.wallet.auth.accountName;
+  if (!account) throw new Error("Failed to get account name");
   const tableResult = await eosRpc.get_currency_balance(
     contract,
     account,

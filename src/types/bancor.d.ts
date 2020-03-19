@@ -249,6 +249,26 @@ export interface LiquidityModule {
   removeRelay?: (symbolName: string) => Promise<string>;
 }
 
+interface GetBalanceParam {
+  tokens: TokenBalanceParam[];
+  cachedOk?: boolean;
+}
+
+interface TokenBalanceParam {
+  contract: string;
+  symbol: string;
+  precision?: number;
+}
+
+interface TokenBalanceReturn extends TokenBalanceParam {
+  balance: number;
+}
+
+export interface NetworkModule {
+  readonly networkId: string;
+  getBalances: (tokens?: GetBalanceParam) => Promise<TokenBalanceReturn[]>;
+}
+
 // Amount in an asset without reference to it's actual precision
 // E.g. "10000" will be 1.0000 EOS
 export type IntegerAmount = string;
