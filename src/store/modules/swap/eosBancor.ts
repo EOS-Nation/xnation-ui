@@ -66,6 +66,40 @@ enum ConvertType {
   MultiToApi
 }
 
+const mandatoryNetworkTokens: BaseToken[] = [
+  { contract: "bntbntbntbnt", symbol: "BNT" },
+  { contract: "usdbusdbusdb", symbol: "USDB" }
+];
+
+interface BaseToken {
+  contract: string;
+  symbol: string;
+}
+
+const relayIncludesBothTokens = (
+  firstPriority: BaseToken[],
+  secondPriority: BaseToken[]
+) => {
+  const filteredSecondPriority = _.differenceWith(
+    secondPriority,
+    firstPriority,
+    _.isEqual
+  );
+  return (relay: EosMultiRelay) =>
+    relay.reserves.some(reserve =>
+      firstPriority.some(
+        token =>
+          token.symbol == reserve.symbol && token.contract == reserve.contract
+      )
+    ) &&
+    relay.reserves.some(reserve =>
+      filteredSecondPriority.some(
+        token =>
+          token.symbol == reserve.symbol && token.contract == reserve.contract
+      )
+    );
+};
+
 export interface ViewTokenMinusLogo {
   symbol: string;
   name: string;
@@ -496,9 +530,13 @@ export class EosBancorModule extends VuexModule
 
   get relayTokens(): ViewToken[] {
     return this.relaysList
-      .filter(relay =>
-        relay.reserves.some(
-          reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
+      .filter(
+        relayIncludesBothTokens(
+          mandatoryNetworkTokens,
+          this.tokenMeta.map(token => ({
+            contract: token.account,
+            symbol: token.symbol
+          }))
         )
       )
       .reduce((prev, relay) => {
@@ -568,6 +606,15 @@ export class EosBancorModule extends VuexModule
 
   get relays() {
     return this.relaysList
+      .filter(
+        relayIncludesBothTokens(
+          mandatoryNetworkTokens,
+          this.tokenMeta.map(token => ({
+            contract: token.account,
+            symbol: token.symbol
+          }))
+        )
+      )
       .map(relay => ({
         ...relay,
         symbol: relay.reserves.find(reserve => reserve.symbol !== "BNT")!
