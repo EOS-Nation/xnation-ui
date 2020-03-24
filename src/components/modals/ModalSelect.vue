@@ -1,7 +1,8 @@
 <template>
   <b-modal :visible="value" size="lg" @change="onChange" centered hide-footer>
     <template slot="modal-title">
-      Select Token
+      <span id="select-token">Select Token</span>
+      <b-btn size="sm" href="https://github.com/eoscafe/eos-airdrops" target="_blank">Add Token</b-btn>
     </template>
     <div class="modal-content">
       <b-row class="mx-0 mb-4">
@@ -135,6 +136,10 @@ export default class ModalSelect extends Vue {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="scss">
+#select-token {
+  margin-right: 12px;
+}
+
 .modal-content {
   min-height: 49vh;
   height: 50vh;
