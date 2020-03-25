@@ -1,19 +1,26 @@
 <template>
   <b-modal :visible="value" size="lg" @change="onChange" centered hide-footer>
-    <template slot="modal-title">
-      <span id="select-token">Select Token</span>
-      <b-btn size="sm" href="https://github.com/eoscafe/eos-airdrops" target="_blank">Add Token</b-btn>
+    <template slot="modal-header" header-class="xxx">
+      <div class="left">
+        <h5 id="select-token">Select Token</h5>
+        <b-btn
+          size="sm"
+          href="https://github.com/eoscafe/eos-airdrops"
+          target="_blank"
+          >Add Token</b-btn
+        >
+      </div>
+      <div>
+        <b-input-group>
+          <b-form-input
+            v-model="tokenSearch"
+            placeholder="Search Token"
+          ></b-form-input>
+        </b-input-group>
+      </div>
     </template>
     <div class="modal-content">
       <b-row class="mx-0 mb-4">
-        <b-col md="6" lg="4" class="d-flex align-items-center py-2">
-          <b-input-group>
-            <b-form-input
-              v-model="tokenSearch"
-              placeholder="Search Token"
-            ></b-form-input>
-          </b-input-group>
-        </b-col>
         <b-col
           md="6"
           v-if="filterable"
@@ -135,7 +142,7 @@ export default class ModalSelect extends Vue {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped lang="scss">
+<style lang="scss">
 #select-token {
   margin-right: 12px;
 }
@@ -156,6 +163,11 @@ export default class ModalSelect extends Vue {
     /* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateX(10px);
   opacity: 0;
+}
+
+.left {
+  display: flex;
+  align-items: baseline
 }
 
 @keyframes fa-blink {
