@@ -58,6 +58,7 @@ import {
   calculateFundReturn
 } from "@/api/bancorCalc";
 import { hardCodedTokens } from "./tokenDic";
+import _ from 'lodash'
 
 enum ConvertType {
   API,
