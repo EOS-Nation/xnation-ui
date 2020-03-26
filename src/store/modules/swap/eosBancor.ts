@@ -58,7 +58,7 @@ import {
   calculateFundReturn
 } from "@/api/bancorCalc";
 import { hardCodedTokens } from "./tokenDic";
-import _ from 'lodash'
+import _ from "lodash";
 
 enum ConvertType {
   API,
@@ -362,15 +362,14 @@ export class EosBancorModule extends VuexModule
     return (networkToken: string): ModalChoice[] => {
       return this.tokenMeta
         .map(tokenMeta => {
+          const balance = this.balance({
+            contract: tokenMeta.account,
+            symbol: tokenMeta.symbol
+          })
           return {
             symbol: tokenMeta.symbol,
-            balance:
-              String(
-                this.balance({
-                  contract: tokenMeta.account,
-                  symbol: tokenMeta.symbol
-                }).amount
-              ) || "0",
+            contract: tokenMeta.account,
+            balance: balance && balance.amount,
             img: tokenMeta.logo
           };
         })
@@ -395,18 +394,22 @@ export class EosBancorModule extends VuexModule
   }
 
   get newNetworkTokenChoices(): NetworkChoice[] {
+    const bntBalance = this.balance({ symbol: "BNT", contract: "bntbntbntbnt" });
+    const usdBalance = 
     return [
       {
         symbol: "BNT",
         balance: this.balance({ symbol: "BNT", contract: "bntbntbntbnt" }),
         img: this.tokenMetaObj("BNT").logo,
-        usdValue: this.usdPriceOfBnt
+        usdValue: this.usdPriceOfBnt,
+        contract: "bntbntbntbnt"
       },
       {
         symbol: "USDB",
         balance: this.balance({ symbol: "USDB", contract: "usdbusdbusdb" }),
         img: this.tokenMetaObj("USDB").logo,
-        usdValue: 1
+        usdValue: 1,
+        contract: "usdbusdbusdb"
       }
     ];
   }
@@ -656,9 +659,9 @@ export class EosBancorModule extends VuexModule
       bancorApi.getRate("BNT", "USD"),
       getTokenMeta()
     ]);
+    await this.refreshBalances();
     this.setUsdPrice(Number(usdValueOfEth.price));
     this.setBntPrice(Number(usdPriceOfBnt));
-    this.refreshBalances();
     this.setRelays(relays);
     this.setTokens(tokens);
     this.setTokenMeta(tokenMeta);

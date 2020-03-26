@@ -211,7 +211,7 @@ export default class HeroConvert extends Vue {
   }
 
   get displayedToken2Balance() {
-    return this.selectedToken.balance;
+    return this.selectedToken.symbol;
   }
 
   get isAuthenticated() {
