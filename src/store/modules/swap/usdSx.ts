@@ -89,17 +89,25 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const tokens = Object.keys(this.tokensList!);
     return tokens.map(token => {
       let name, logo, balance;
+      console.log("handling", this.tokensList![token]);
+      let {
+        id: { sym, contract }
+      } = this.tokensList![token];
+
+      const tokenBalance = vxm.eosNetwork.balance({
+        contract,
+        symbol: sym.code().to_string()
+      })
+      balance = tokenBalance && String(tokenBalance.balance) || "0"
 
       try {
         const eosModuleBorrowed = vxm.eosBancor.token(token);
         name = eosModuleBorrowed.name;
         logo = eosModuleBorrowed.logo;
-        balance = eosModuleBorrowed.balance || "0";
       } catch (e) {
         name = token;
         logo =
           "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f39c32b0-cfae-11e9-9f7d-af4705d95e66.jpeg";
-        balance = "0";
       }
       return {
         symbol: token,

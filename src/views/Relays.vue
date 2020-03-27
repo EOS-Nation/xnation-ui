@@ -34,13 +34,30 @@
             </template>
             <template v-slot:cell(symbol)="data">
               <img
-                v-for="(reserve, index) in data.item.reserves"
-                :key="index"
+                :id="
+                  `tooltip-target-${data.item.smartTokenSymbol +
+                    reserve.symbol}`
+                "
+                v-for="reserve in data.item.reserves"
+                :key="data.item.swap + data.item.smartTokenSymbol + reserve.symbol"
                 class="img-avatar img-avatar-thumb img-avatar32 mr-3"
                 :src="reserve.logo[0]"
                 v-fallback="reserve.logo.slice(1)"
                 :alt="`${reserve.symbol} Token Logo`"
               />
+              <b-popover
+                v-for="reserve in data.item.reserves"
+                :key="`${data.item.swap}${data.item.smartTokenSymbol}${reserve.symbol}-tooltip`"
+                :target="
+                  `tooltip-target-${data.item.smartTokenSymbol +
+                    reserve.symbol}`
+                "
+                triggers="hover"
+              >
+                <p>Contract: {{ reserve.contract }}</p> 
+                <p>Symbol: {{ reserve.symbol }}</p>
+                <p>{{ reserve.balance && `Balance: ${reserve.balance}`}}</p>
+              </b-popover>
               {{ data.item.symbol }}
             </template>
             <template v-slot:cell(index)="data">

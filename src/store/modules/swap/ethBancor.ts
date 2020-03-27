@@ -184,6 +184,7 @@ export class EthBancorModule extends VuexModule
         reserves: relay.reserves
           .map(reserve => ({
             symbol: reserve.symbol,
+            contract: reserve.contract,
             logo: [
               this.token(reserve.symbol) && this.token(reserve.symbol).logo,
               `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${reserveToken.contract}/logo.png`,
@@ -193,6 +194,7 @@ export class EthBancorModule extends VuexModule
           .sort(reserve => (reserve.symbol == "USDB" ? -1 : 1))
           .sort(reserve => (reserve.symbol == "BNT" ? -1 : 1)),
         owner: relay.owner,
+        swap: 'eth',
         fee: relay.fee / 100,
         decimals: reserveToken.decimals,
         symbol: reserveToken.symbol,

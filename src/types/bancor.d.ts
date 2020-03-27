@@ -161,6 +161,7 @@ export interface ViewRelay {
   reserves: TokenWithLogo[];
   fee: number;
   owner: string;
+  swap: string;
 }
 
 export interface TokenPriceExtended extends TokenPrice {
