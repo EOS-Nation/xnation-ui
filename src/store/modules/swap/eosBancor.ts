@@ -16,13 +16,11 @@ import {
   CreatePoolModule,
   ModalChoice,
   NetworkChoice,
-  TokenBalances,
   FeeParams,
   NewOwnerParams
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import {
-  getTokenBalances,
   fetchRelays,
   getBalance,
   fetchTokenStats
@@ -317,7 +315,6 @@ export class EosBancorModule extends VuexModule
   usdPrice = 0;
   usdPriceOfBnt = 0;
   tokenMeta: TokenMeta[] = [];
-  tokenBalances: TokenBalances["tokens"] = [];
 
   get supportedFeatures() {
     return (symbolName: string) => {
@@ -365,7 +362,7 @@ export class EosBancorModule extends VuexModule
           const balance = this.balance({
             contract: tokenMeta.account,
             symbol: tokenMeta.symbol
-          })
+          });
           return {
             symbol: tokenMeta.symbol,
             contract: tokenMeta.account,
@@ -394,19 +391,25 @@ export class EosBancorModule extends VuexModule
   }
 
   get newNetworkTokenChoices(): NetworkChoice[] {
-    const bntBalance = this.balance({ symbol: "BNT", contract: "bntbntbntbnt" });
-    const usdBalance = 
+    const bntBalance = this.balance({
+      symbol: "BNT",
+      contract: "bntbntbntbnt"
+    });
+    const usdBalance = this.balance({
+      symbol: "USDB",
+      contract: "usdbusdbusdb"
+    });
     return [
       {
         symbol: "BNT",
-        balance: this.balance({ symbol: "BNT", contract: "bntbntbntbnt" }),
+        balance: bntBalance && bntBalance.amount,
         img: this.tokenMetaObj("BNT").logo,
         usdValue: this.usdPriceOfBnt,
         contract: "bntbntbntbnt"
       },
       {
         symbol: "USDB",
-        balance: this.balance({ symbol: "USDB", contract: "usdbusdbusdb" }),
+        balance: usdBalance && usdBalance.amount,
         img: this.tokenMetaObj("USDB").logo,
         usdValue: 1,
         contract: "usdbusdbusdb"
@@ -504,18 +507,26 @@ export class EosBancorModule extends VuexModule
     return (
       this.tokensList
         // @ts-ignore
-        .map((token: TokenPrice | TokenPriceExtended) => ({
-          symbol: token.code,
-          name: token.name,
-          price: token.price,
-          liqDepth: token.liquidityDepth * this.usdPrice,
-          logo: token.primaryCommunityImageName,
-          change24h: token.change24h,
-          volume24h: token.volume24h.USD,
-          // @ts-ignore
-          balance: token.balance || "0",
-          source: "api"
-        }))
+        .map((token: TokenPrice | TokenPriceExtended) => {
+          const symbol = token.code;
+          const contract = hardCodedTokens.find(
+            ([symbolName]) => symbolName == symbol
+          )![1];
+          const tokenBalance = vxm.eosNetwork.balance({ symbol, contract });
+
+          return {
+            symbol,
+            name: token.name,
+            price: token.price,
+            liqDepth: token.liquidityDepth * this.usdPrice,
+            logo: token.primaryCommunityImageName,
+            change24h: token.change24h,
+            volume24h: token.volume24h.USD,
+            // @ts-ignore
+            balance: tokenBalance && String(tokenBalance.balance),
+            source: "api"
+          };
+        })
         // @ts-ignore
         .filter(x => x.symbol !== "EMT")
     );
@@ -553,14 +564,17 @@ export class EosBancorModule extends VuexModule
           arr.findIndex(sToken => sToken.symbol == token.symbol) == index
       )
       .map(token => {
-        const symbol = token.symbol;
-        const tokenMeta = this.tokenMeta.find(token => token.symbol == symbol);
-        const tokenBalance = this.tokenBalances.find(
-          balance => balance.symbol == token.symbol
+        const { symbol, contract } = token;
+        const tokenMeta = this.tokenMeta.find(
+          token => token.symbol == symbol && token.account == contract
         );
+        const tokenBalance = vxm.eosNetwork.balance({
+          symbol,
+          contract
+        });
         return {
           ...token,
-          balance: (tokenBalance && String(tokenBalance.amount)) || "0",
+          balance: tokenBalance && String(tokenBalance.balance),
           logo:
             (tokenMeta && tokenMeta.logo) || "https://via.placeholder.com/50"
         };
@@ -665,10 +679,6 @@ export class EosBancorModule extends VuexModule
     this.setRelays(relays);
     this.setTokens(tokens);
     this.setTokenMeta(tokenMeta);
-  }
-
-  @mutation setTokenBalances(balances: TokenBalances["tokens"]) {
-    this.tokenBalances = balances;
   }
 
   @action async refreshBalances(symbols: string[] = []) {
