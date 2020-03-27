@@ -20,19 +20,13 @@ import {
   NewOwnerParams
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
-import {
-  fetchRelays,
-  getBalance,
-  fetchTokenStats
-} from "@/api/helpers";
+import { fetchRelays, getBalance, fetchTokenStats } from "@/api/helpers";
 import {
   Sym as Symbol,
   Asset,
   asset_to_number,
   number_to_asset,
-  asset,
-  Sym,
-  symbol
+  Sym
 } from "eos-common";
 import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
@@ -51,8 +45,6 @@ import {
   DryRelay,
   HydratedRelay,
   findReturn,
-  concatAffiliate,
-  fund,
   calculateFundReturn
 } from "@/api/bancorCalc";
 import { hardCodedTokens } from "./tokenDic";
