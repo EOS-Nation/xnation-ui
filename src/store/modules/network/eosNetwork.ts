@@ -31,11 +31,9 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
 
   get balance() {
     return ({ contract, symbol }: { contract: string; symbol: string }) => {
-      const balance = this.balances.find(
+      return this.balances.find(
         x => x.symbol == symbol && x.contract == contract
       )!;
-      if (!balance) throw new Error("Failed to find balance");
-      return balance;
     };
   }
 
@@ -64,7 +62,7 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
     return balances;
   }
 
-  @action async getBalances(params?: GetBalanceParam) {
+  @action public async getBalances(params?: GetBalanceParam) {
     if (!params) {
       const tokenBalances = await getTokenBalances(this.isAuthenticated);
       const equalisedBalances: TokenBalanceReturn[] = tokenBalances.tokens.map(
@@ -109,9 +107,12 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
   }
 
   @mutation setTokenBalances(tokens: TokenBalanceReturn[]) {
-    this.tokenBalances = this.tokenBalances.map(
-      balance => tokens.find(token => tokenIsEqual(balance, token)) || balance
+    const balancesNotBeingUpdated = _.differenceWith(
+      this.tokenBalances,
+      tokens,
+      (a, b) => a.symbol == b.symbol && a.contract == b.contract
     );
+    this.tokenBalances = [...balancesNotBeingUpdated, ...tokens];
   }
 }
 

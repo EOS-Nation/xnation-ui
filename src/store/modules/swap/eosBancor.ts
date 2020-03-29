@@ -16,25 +16,17 @@ import {
   CreatePoolModule,
   ModalChoice,
   NetworkChoice,
-  TokenBalances,
   FeeParams,
   NewOwnerParams
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
-import {
-  getTokenBalances,
-  fetchRelays,
-  getBalance,
-  fetchTokenStats
-} from "@/api/helpers";
+import { fetchRelays, getBalance, fetchTokenStats } from "@/api/helpers";
 import {
   Sym as Symbol,
   Asset,
   asset_to_number,
   number_to_asset,
-  asset,
-  Sym,
-  symbol
+  Sym
 } from "eos-common";
 import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
@@ -53,11 +45,10 @@ import {
   DryRelay,
   HydratedRelay,
   findReturn,
-  concatAffiliate,
-  fund,
   calculateFundReturn
 } from "@/api/bancorCalc";
 import { hardCodedTokens } from "./tokenDic";
+import _ from "lodash";
 
 enum ConvertType {
   API,
@@ -65,6 +56,47 @@ enum ConvertType {
   APItoMulti,
   MultiToApi
 }
+
+const mandatoryNetworkTokens: BaseToken[] = [
+  { contract: "bntbntbntbnt", symbol: "BNT" },
+  { contract: "usdbusdbusdb", symbol: "USDB" }
+];
+
+interface BaseToken {
+  contract: string;
+  symbol: string;
+}
+
+const isBaseToken = (token: BaseToken) => (comparasion: BaseToken): boolean =>
+  token.symbol == comparasion.symbol && token.contract == comparasion.contract;
+
+const relayIncludesBothTokens = (
+  networkTokens: BaseToken[],
+  tradingTokens: BaseToken[]
+) => {
+  const networkTokensExcluded = _.differenceWith(
+    tradingTokens,
+    networkTokens,
+    _.isEqual
+  );
+
+  return (relay: EosMultiRelay) => {
+    const includesNetworkToken = relay.reserves.some(reserve =>
+      networkTokens.some(isBaseToken(reserve))
+    );
+    const includesTradingToken = relay.reserves.some(reserve =>
+      networkTokensExcluded.some(
+        isBaseToken(reserve)
+      )
+    );
+    const includesNetworkTokens = relay.reserves.every(reserve =>
+      networkTokens.some(isBaseToken(reserve))
+    );
+    return (
+      (includesNetworkToken && includesTradingToken) || includesNetworkTokens
+    );
+  };
+};
 
 export interface ViewTokenMinusLogo {
   symbol: string;
@@ -166,9 +198,8 @@ const getEosioTokenPrecision = async (
   return res.rows[0].supply.split(" ")[0].split(".")[1].length;
 };
 
-const chopSecondSymbol = (one: string, two: string, maxLength = 7) => {
-  return one + two.slice(0, maxLength - one.length);
-};
+const chopSecondSymbol = (one: string, two: string, maxLength = 7) =>
+  two.slice(0, maxLength - one.length) + one;
 
 const chopSecondLastChar = (text: string, backUp: number) => {
   const secondLastIndex = text.length - backUp - 1;
@@ -191,6 +222,7 @@ const generateSmartTokenSymbol = async (
   multiTokenContract: string
 ) => {
   for (const strat in tokenStrategies) {
+    console.log({ symbolOne, symbolTwo });
     let draftedToken = tokenStrategies[strat](symbolOne, symbolTwo);
     try {
       await getEosioTokenPrecision(draftedToken, multiTokenContract);
@@ -282,7 +314,6 @@ export class EosBancorModule extends VuexModule
   usdPrice = 0;
   usdPriceOfBnt = 0;
   tokenMeta: TokenMeta[] = [];
-  tokenBalances: TokenBalances["tokens"] = [];
 
   get supportedFeatures() {
     return (symbolName: string) => {
@@ -327,15 +358,14 @@ export class EosBancorModule extends VuexModule
     return (networkToken: string): ModalChoice[] => {
       return this.tokenMeta
         .map(tokenMeta => {
+          const balance = this.balance({
+            contract: tokenMeta.account,
+            symbol: tokenMeta.symbol
+          });
           return {
             symbol: tokenMeta.symbol,
-            balance:
-              String(
-                this.balance({
-                  contract: tokenMeta.account,
-                  symbol: tokenMeta.symbol
-                }).amount
-              ) || "0",
+            contract: tokenMeta.account,
+            balance: balance && balance.amount,
             img: tokenMeta.logo
           };
         })
@@ -353,25 +383,38 @@ export class EosBancorModule extends VuexModule
               )
             )
         )
+        .filter(token => !mandatoryNetworkTokens.some(networkToken => token.symbol == networkToken.symbol))
         .sort((a, b) => {
-          return Number(b.balance) - Number(a.balance);
+          const second = isNaN(b.balance) ? 0 : Number(b.balance)
+          const first = isNaN(a.balance) ? 0 : Number(a.balance)
+          return second - first;
         });
     };
   }
 
   get newNetworkTokenChoices(): NetworkChoice[] {
+    const bntBalance = this.balance({
+      symbol: "BNT",
+      contract: "bntbntbntbnt"
+    });
+    const usdBalance = this.balance({
+      symbol: "USDB",
+      contract: "usdbusdbusdb"
+    });
     return [
       {
         symbol: "BNT",
-        balance: this.balance({ symbol: "BNT", contract: "bntbntbntbnt" }),
+        balance: bntBalance && bntBalance.amount,
         img: this.tokenMetaObj("BNT").logo,
-        usdValue: this.usdPriceOfBnt
+        usdValue: this.usdPriceOfBnt,
+        contract: "bntbntbntbnt"
       },
       {
         symbol: "USDB",
-        balance: this.balance({ symbol: "USDB", contract: "usdbusdbusdb" }),
+        balance: usdBalance && usdBalance.amount,
         img: this.tokenMetaObj("USDB").logo,
-        usdValue: 1
+        usdValue: 1,
+        contract: "usdbusdbusdb"
       }
     ];
   }
@@ -466,18 +509,26 @@ export class EosBancorModule extends VuexModule
     return (
       this.tokensList
         // @ts-ignore
-        .map((token: TokenPrice | TokenPriceExtended) => ({
-          symbol: token.code,
-          name: token.name,
-          price: token.price,
-          liqDepth: token.liquidityDepth * this.usdPrice,
-          logo: token.primaryCommunityImageName,
-          change24h: token.change24h,
-          volume24h: token.volume24h.USD,
-          // @ts-ignore
-          balance: token.balance || "0",
-          source: "api"
-        }))
+        .map((token: TokenPrice | TokenPriceExtended) => {
+          const symbol = token.code;
+          const contract = hardCodedTokens.find(
+            ([symbolName]) => symbolName == symbol
+          )![1];
+          const tokenBalance = vxm.eosNetwork.balance({ symbol, contract });
+
+          return {
+            symbol,
+            name: token.name,
+            price: token.price,
+            liqDepth: token.liquidityDepth * this.usdPrice,
+            logo: token.primaryCommunityImageName,
+            change24h: token.change24h,
+            volume24h: token.volume24h.USD,
+            // @ts-ignore
+            balance: tokenBalance && String(tokenBalance.balance),
+            source: "api"
+          };
+        })
         // @ts-ignore
         .filter(x => x.symbol !== "EMT")
     );
@@ -496,9 +547,13 @@ export class EosBancorModule extends VuexModule
 
   get relayTokens(): ViewToken[] {
     return this.relaysList
-      .filter(relay =>
-        relay.reserves.some(
-          reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
+      .filter(
+        relayIncludesBothTokens(
+          mandatoryNetworkTokens,
+          this.tokenMeta.map(token => ({
+            contract: token.account,
+            symbol: token.symbol
+          }))
         )
       )
       .reduce((prev, relay) => {
@@ -511,14 +566,17 @@ export class EosBancorModule extends VuexModule
           arr.findIndex(sToken => sToken.symbol == token.symbol) == index
       )
       .map(token => {
-        const symbol = token.symbol;
-        const tokenMeta = this.tokenMeta.find(token => token.symbol == symbol);
-        const tokenBalance = this.tokenBalances.find(
-          balance => balance.symbol == token.symbol
+        const { symbol, contract } = token;
+        const tokenMeta = this.tokenMeta.find(
+          token => token.symbol == symbol && token.account == contract
         );
+        const tokenBalance = vxm.eosNetwork.balance({
+          symbol,
+          contract
+        });
         return {
           ...token,
-          balance: (tokenBalance && String(tokenBalance.amount)) || "0",
+          balance: tokenBalance && String(tokenBalance.balance),
           logo:
             (tokenMeta && tokenMeta.logo) || "https://via.placeholder.com/50"
         };
@@ -568,8 +626,18 @@ export class EosBancorModule extends VuexModule
 
   get relays() {
     return this.relaysList
+      .filter(
+        relayIncludesBothTokens(
+          mandatoryNetworkTokens,
+          this.tokenMeta.map(token => ({
+            contract: token.account,
+            symbol: token.symbol
+          }))
+        )
+      )
       .map(relay => ({
         ...relay,
+        swap: "eos",
         symbol: relay.reserves.find(reserve => reserve.symbol !== "BNT")!
           .symbol,
         smartTokenSymbol: relay.smartToken.symbol,
@@ -582,7 +650,8 @@ export class EosBancorModule extends VuexModule
         reserves: relay.reserves
           .map((reserve: AgnosticToken) => ({
             ...reserve,
-            logo: [this.token(reserve.symbol).logo]
+            logo: [this.token(reserve.symbol).logo],
+            ...(reserve.amount && { balance: reserve.amount })
           }))
           .sort(reserve => (reserve.symbol == "USDB" ? -1 : 1))
           .sort(reserve => (reserve.symbol == "BNT" ? -1 : 1))
@@ -608,16 +677,12 @@ export class EosBancorModule extends VuexModule
       bancorApi.getRate("BNT", "USD"),
       getTokenMeta()
     ]);
+    await this.refreshBalances();
     this.setUsdPrice(Number(usdValueOfEth.price));
     this.setBntPrice(Number(usdPriceOfBnt));
-    this.refreshBalances();
     this.setRelays(relays);
     this.setTokens(tokens);
     this.setTokenMeta(tokenMeta);
-  }
-
-  @mutation setTokenBalances(balances: TokenBalances["tokens"]) {
-    this.tokenBalances = balances;
   }
 
   @action async refreshBalances(symbols: string[] = []) {

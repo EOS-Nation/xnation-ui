@@ -25,7 +25,7 @@
           v-if="selectedService.features.includes(0)"
           variant="primary"
           size="sm"
-          exact
+          :active="$route.name == 'Tokens'"
           class="mr-2"
         >
           <font-awesome-icon icon="exchange-alt" fixed-width class="mr-1" />
@@ -36,7 +36,7 @@
           v-if="selectedService.features.includes(2)"
           variant="primary"
           size="sm"
-          exact
+          :active="$route.name == 'Relay' || $router.name == 'Relays'"
           class="mr-2"
         >
           <font-awesome-icon icon="swimming-pool" fixed-width class="mr-1" />

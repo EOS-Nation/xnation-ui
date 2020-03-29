@@ -161,6 +161,7 @@ export interface ViewRelay {
   reserves: TokenWithLogo[];
   fee: number;
   owner: string;
+  swap: string;
 }
 
 export interface TokenPriceExtended extends TokenPrice {
@@ -197,6 +198,7 @@ export interface EosMultiRelay {
 
 export interface ModalChoice {
   symbol: string;
+  contract: string;
   balance: string;
   img: string;
 }
