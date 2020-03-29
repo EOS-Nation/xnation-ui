@@ -67,28 +67,35 @@ interface BaseToken {
   symbol: string;
 }
 
+const isBaseToken = (token: BaseToken) => (comparasion: BaseToken): boolean =>
+  token.symbol == comparasion.symbol && token.contract == comparasion.contract;
+
 const relayIncludesBothTokens = (
-  firstPriority: BaseToken[],
-  secondPriority: BaseToken[]
+  networkTokens: BaseToken[],
+  tradingTokens: BaseToken[]
 ) => {
-  const filteredSecondPriority = _.differenceWith(
-    secondPriority,
-    firstPriority,
+  const networkTokensExcluded = _.differenceWith(
+    tradingTokens,
+    networkTokens,
     _.isEqual
   );
-  return (relay: EosMultiRelay) =>
-    relay.reserves.some(reserve =>
-      firstPriority.some(
-        token =>
-          token.symbol == reserve.symbol && token.contract == reserve.contract
-      )
-    ) &&
-    relay.reserves.some(reserve =>
-      filteredSecondPriority.some(
-        token =>
-          token.symbol == reserve.symbol && token.contract == reserve.contract
+
+  return (relay: EosMultiRelay) => {
+    const includesNetworkToken = relay.reserves.some(reserve =>
+      networkTokens.some(isBaseToken(reserve))
+    );
+    const includesTradingToken = relay.reserves.some(reserve =>
+      networkTokensExcluded.some(
+        isBaseToken(reserve)
       )
     );
+    const includesNetworkTokens = relay.reserves.every(reserve =>
+      networkTokens.some(isBaseToken(reserve))
+    );
+    return (
+      (includesNetworkToken && includesTradingToken) || includesNetworkTokens
+    );
+  };
 };
 
 export interface ViewTokenMinusLogo {
@@ -376,8 +383,11 @@ export class EosBancorModule extends VuexModule
               )
             )
         )
+        .filter(token => !mandatoryNetworkTokens.some(networkToken => token.symbol == networkToken.symbol))
         .sort((a, b) => {
-          return Number(b.balance) - Number(a.balance);
+          const second = isNaN(b.balance) ? 0 : Number(b.balance)
+          const first = isNaN(a.balance) ? 0 : Number(a.balance)
+          return second - first;
         });
     };
   }
@@ -627,7 +637,7 @@ export class EosBancorModule extends VuexModule
       )
       .map(relay => ({
         ...relay,
-        swap: 'eos',
+        swap: "eos",
         symbol: relay.reserves.find(reserve => reserve.symbol !== "BNT")!
           .symbol,
         smartTokenSymbol: relay.smartToken.symbol,
