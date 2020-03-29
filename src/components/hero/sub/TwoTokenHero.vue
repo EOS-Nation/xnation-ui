@@ -5,7 +5,7 @@
         <token-field
           :symbol.sync="symbolOne"
           :amount.sync="amountOne"
-          clickable
+          :clickable="tokenOneClickable"
           @clicked="tokenOneClicked"
           :balance="tokenOneBalance"
           :img="tokenOneImg"
@@ -25,7 +25,7 @@
         <token-field
           :symbol.sync="symbolTwo"
           :amount.sync="amountTwo"
-          clickable
+          :clickable="tokenTwoClickable"
           @clicked="tokenTwoClicked"
           :balance="tokenTwoBalance"
           :img="tokenTwoImg"
@@ -77,6 +77,14 @@ export default class HeroConvert extends Vue {
 
   @Emit()
   tokenTwoClicked() {}
+
+  get tokenOneClickable() {
+    return this.tokenOneChoices && this.tokenOneChoices.length || this.choices && this.choices.length
+  }
+
+  get tokenTwoClickable() {
+    return this.tokenTwoChoices && this.tokenTwoChoices.length || this.choices && this.choices.length
+  }
 }
 </script>
 
