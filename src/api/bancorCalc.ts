@@ -444,7 +444,7 @@ export function fund(
     .times(smartTokens.amount.toString())
     .div(smartSupply.amount.toString());
 
-  const assetAmount = BigInt(cost.ceil().toString());
+  const assetAmount = cost.ceil().toNumber();
   return asset(assetAmount, reserveBalance.symbol);
 }
 
@@ -463,7 +463,7 @@ export function calculateFundReturn(
     .plus(one)
     .div(reserveBalance.amount.toString());
 
-  const rewardAmount = BigInt(reward.floor().toString());
+  const rewardAmount = reward.floor().toNumber();
 
   return asset(rewardAmount, smartSupply.symbol);
 }
