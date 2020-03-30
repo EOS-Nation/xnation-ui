@@ -48,7 +48,7 @@
     "opencollective": "^1.0.3",
     "qrcode.vue": "^1.7.0",
     "showdown": "^1.9.0",
-    "sxjs": "^0.5.0",
+    "sxjs": "^0.5.1",
     "velocity-animate": "^1.5.2",
     "vue": "^2.6.6",
     "vue-analytics": "^5.17.2",

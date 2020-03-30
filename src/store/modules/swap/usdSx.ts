@@ -190,7 +190,6 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         name: "transfer",
         data: {
           from: accountName,
-          // @ts-ignore
           to: process.env.VUE_APP_USDSTABLE!,
           memo: propose.toSymbol,
           quantity: amountAsset.to_string()
@@ -244,9 +243,8 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
   @action async getCost(propose: ProposedTransaction) {
     const { fromSymbol, amount, toSymbol } = propose;
-    // @ts-ignore
+
     const pools = await get_pools(rpc);
-    // @ts-ignore
     const settings = await get_settings(rpc);
 
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
