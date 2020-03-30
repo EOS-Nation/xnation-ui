@@ -18,7 +18,8 @@ import {
   NetworkChoice,
   FeeParams,
   NewOwnerParams,
-  BaseToken
+  BaseToken,
+  CreatePoolParams
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import { fetchRelays, getBalance, fetchTokenStats } from "@/api/helpers";
@@ -450,7 +451,7 @@ export class EosBancorModule extends VuexModule
     return txRes.transaction_id as string;
   }
 
-  @action async createPool(poolParams: any): Promise<void> {
+  @action async createPool(poolParams: CreatePoolParams): Promise<string> {
     const [
       [token1Symbol, token1Amount],
       [token2Symbol, token2Amount]

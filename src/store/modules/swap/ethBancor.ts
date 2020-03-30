@@ -7,7 +7,9 @@ import {
   OpposingLiquid,
   TradingModule,
   LiquidityModule,
-  BaseToken
+  BaseToken,
+  CreatePoolModule,
+  CreatePoolParams
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancor";
 import {
@@ -20,6 +22,7 @@ import {
 import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
 import { toWei, toHex, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
+import axios, { AxiosResponse } from 'axios';
 
 import { vxm } from "@/store";
 
@@ -91,13 +94,44 @@ const calculateLiquidateCost = (
 const percentDifference = (smallAmount: string, bigAmount: string) =>
   new Decimal(smallAmount).div(bigAmount).toNumber();
 
+
+const tokenMetaDataEndpoint =
+  "https://raw.githubusercontent.com/Velua/eth-tokens-registry/master/tokens.json";
+
+interface TokenMeta {
+  image: string;
+  contract: string;
+  symbol: string;
+  name: string;
+}
+
+const getTokenMeta = async() => {
+  const res: AxiosResponse<TokenMeta[]> = await axios.get(tokenMetaDataEndpoint);
+  return res.data
+}
+
 @Module({ namespacedPath: "ethBancor/" })
 export class EthBancorModule extends VuexModule
-  implements TradingModule, LiquidityModule {
+  implements TradingModule, LiquidityModule, CreatePoolModule {
   tokensList: any[] = [];
   usdPrice: number = 0;
   relaysList: Relay[] = [];
   tokenBalances: { symbol: string; balance: string }[] = [];
+  tokenMeta: TokenMeta[] = []
+
+    get newNetworkTokenChoices() {
+      return []
+    }
+
+    get newPoolTokenChoices() {
+      return (symbolName: string) => {
+        return []
+      }
+    }
+
+    @action async createPool(poolParams: CreatePoolParams) {
+      return ''
+    }
 
   get supportedFeatures() {
     return (symbolName: string) => {
@@ -124,6 +158,16 @@ export class EthBancorModule extends VuexModule
       tokenAddress: token.tokenAddress || "",
       balance: token.balance || ""
     }));
+  }
+
+  get tokenMetaObj() {
+    return (symbolName: string) => {
+      const token = this.tokenMeta.find(token => token.symbol == symbolName)
+      if (!token) {
+        throw new Error(`Failed to find token meta for symbol ${symbolName}`);
+      }
+      return token
+    }
   }
 
   get token(): (arg0: string) => any {
@@ -174,7 +218,9 @@ export class EthBancorModule extends VuexModule
 
   // @ts-ignore
   get relays() {
-    const relays = this.relaysList.map(relay => {
+    const relays = this.relaysList
+    .filter(relay => relay.reserves.every(reserve => this.tokenMeta.some(tokenMeta => tokenMeta.symbol == reserve.symbol)))
+    .map(relay => {
       const reserveToken = getPoolReserveToken(relay);
       const reserveTokenMeta = this.token(reserveToken.symbol);
       const networkTokenIsBnt = relay.reserves.some(
@@ -187,7 +233,7 @@ export class EthBancorModule extends VuexModule
             symbol: reserve.symbol,
             contract: reserve.contract,
             logo: [
-              this.token(reserve.symbol) && this.token(reserve.symbol).logo,
+              this.tokenMetaObj(reserve.symbol) && this.tokenMetaObj(reserve.symbol).image,
               `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${reserveToken.contract}/logo.png`,
               "https://via.placeholder.com/50"
             ].filter(Boolean)
@@ -211,7 +257,7 @@ export class EthBancorModule extends VuexModule
     });
     // .filter(relay => relay.liqDepth);
 
-    const duplicated = relays
+    const duplicateSmartTokenSymbols = relays
       .map(relay => relay.smartTokenSymbol)
       .filter(
         (smartTokenSymbol, index, array) =>
@@ -219,8 +265,9 @@ export class EthBancorModule extends VuexModule
       );
 
     return relays
-      .filter(relay => duplicated.every(dup => dup !== relay.smartTokenSymbol))
+      .filter(relay => duplicateSmartTokenSymbols.every(dup => dup !== relay.smartTokenSymbol))
       .sort((a, b) => b.liqDepth - a.liqDepth);
+      
   }
 
   @action async fetchUsdPrice() {
@@ -229,6 +276,10 @@ export class EthBancorModule extends VuexModule
 
   @mutation setUsdPrice(price: number) {
     this.usdPrice = price;
+  }
+
+  @mutation setTokenMeta(tokenMeta: TokenMeta[]) {
+    this.tokenMeta = tokenMeta;
   }
 
   @action async triggerTx(actions: any[]) {
@@ -560,12 +611,14 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async init() {
-    const [tokens, relays] = await Promise.all([
+    const [tokens, relays, tokenMeta] = await Promise.all([
       ethBancorApi.getTokens(),
       getEthRelays(),
+      getTokenMeta(),
       this.fetchUsdPrice()
     ]);
     this.setRelaysList(relays);
+    this.setTokenMeta(tokenMeta);
     const tokensWithAddresses = tokens.map(token => ({
       ...token,
       ...(relays.find((relay: Relay) =>
