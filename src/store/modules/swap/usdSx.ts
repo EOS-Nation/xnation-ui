@@ -5,7 +5,8 @@ import {
   ProposedConvertTransaction,
   TradingModule,
   ViewToken,
-  ModulePools
+  ModulePools,
+  BaseToken
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import {
@@ -165,7 +166,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   }
 
   @action async focusSymbol(symbolName: string) {}
-  @action async refreshBalances(symbols: string[] = []) {}
+  @action async refreshBalances(symbols: BaseToken[] = []) {}
 
   @action async convert(propose: ProposedConvertTransaction) {
     console.log(propose, "one of the cases");

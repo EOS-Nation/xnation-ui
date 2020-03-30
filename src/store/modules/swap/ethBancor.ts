@@ -6,7 +6,8 @@ import {
   OpposingLiquidParams,
   OpposingLiquid,
   TradingModule,
-  LiquidityModule
+  LiquidityModule,
+  BaseToken
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancor";
 import {
@@ -691,10 +692,10 @@ export class EthBancorModule extends VuexModule
     }));
   }
 
-  @action async refreshBalances(symbols?: string[]) {
+  @action async refreshBalances(symbols?: BaseToken[]) {
     this.resetBalances();
     if (symbols) {
-      symbols.forEach(symbol => this.focusSymbol(symbol));
+      symbols.forEach(symbol => this.focusSymbol(symbol.symbol));
     }
   }
 

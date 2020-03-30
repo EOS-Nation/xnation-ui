@@ -17,7 +17,8 @@ import {
   ModalChoice,
   NetworkChoice,
   FeeParams,
-  NewOwnerParams
+  NewOwnerParams,
+  BaseToken
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import { fetchRelays, getBalance, fetchTokenStats } from "@/api/helpers";
@@ -49,6 +50,7 @@ import {
 } from "@/api/bancorCalc";
 import { hardCodedTokens } from "./tokenDic";
 import _ from "lodash";
+import wait from "waait";
 
 enum ConvertType {
   API,
@@ -61,11 +63,6 @@ const mandatoryNetworkTokens: BaseToken[] = [
   { contract: "bntbntbntbnt", symbol: "BNT" },
   { contract: "usdbusdbusdb", symbol: "USDB" }
 ];
-
-interface BaseToken {
-  contract: string;
-  symbol: string;
-}
 
 const isBaseToken = (token: BaseToken) => (comparasion: BaseToken): boolean =>
   token.symbol == comparasion.symbol && token.contract == comparasion.contract;
@@ -85,9 +82,7 @@ const relayIncludesBothTokens = (
       networkTokens.some(isBaseToken(reserve))
     );
     const includesTradingToken = relay.reserves.some(reserve =>
-      networkTokensExcluded.some(
-        isBaseToken(reserve)
-      )
+      networkTokensExcluded.some(isBaseToken(reserve))
     );
     const includesNetworkTokens = relay.reserves.every(reserve =>
       networkTokens.some(isBaseToken(reserve))
@@ -213,7 +208,8 @@ const tokenStrategies: Array<(one: string, two: string) => string> = [
   chopSecondSymbol,
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 1)),
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 2)),
-  (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 3))
+  (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 3)),
+  (one, two) => chopSecondSymbol(one, two.split('').reverse().join('')),
 ];
 
 const generateSmartTokenSymbol = async (
@@ -383,10 +379,15 @@ export class EosBancorModule extends VuexModule
               )
             )
         )
-        .filter(token => !mandatoryNetworkTokens.some(networkToken => token.symbol == networkToken.symbol))
+        .filter(
+          token =>
+            !mandatoryNetworkTokens.some(
+              networkToken => token.symbol == networkToken.symbol
+            )
+        )
         .sort((a, b) => {
-          const second = isNaN(b.balance) ? 0 : Number(b.balance)
-          const first = isNaN(a.balance) ? 0 : Number(a.balance)
+          const second = isNaN(b.balance) ? 0 : Number(b.balance);
+          const first = isNaN(a.balance) ? 0 : Number(a.balance);
           return second - first;
         });
     };
@@ -436,6 +437,7 @@ export class EosBancorModule extends VuexModule
       reserves
     );
     const txRes = await this.triggerTx(nukeRelayActions);
+    this.waitAndUpdate();
     return txRes.transaction_id as string;
   }
 
@@ -482,12 +484,10 @@ export class EosBancorModule extends VuexModule
       [
         {
           contract: token1Data.account,
-          // @ts-ignore
           amount: token1Asset
         },
         {
           contract: token2Data.account,
-          // @ts-ignore
           amount: token2Asset
         }
       ],
@@ -496,6 +496,7 @@ export class EosBancorModule extends VuexModule
     );
 
     const txRes = await this.triggerTx(kickStartRelayActions);
+    wait(2000).then(() => this.expectNewRelay(smartTokenSymbol));
     return txRes.transaction_id;
   }
 
@@ -685,12 +686,16 @@ export class EosBancorModule extends VuexModule
     this.setTokenMeta(tokenMeta);
   }
 
-  @action async refreshBalances(symbols: string[] = []) {
+  @action async refreshBalances(tokens: BaseToken[] = []) {
     // @ts-ignore
     const isAuthenticated = this.$store.rootGetters[
       "eosWallet/isAuthenticated"
     ];
     if (!isAuthenticated) return;
+    if (tokens.length > 0) {
+      await vxm.eosNetwork.getBalances({ tokens });
+      return;
+    }
 
     const relayTokens = this.relaysList
       .filter(relay =>
@@ -778,7 +783,39 @@ export class EosBancorModule extends VuexModule
 
     const action = multiContract.removeLiquidityAction(liquidityAsset);
     const txRes = await this.triggerTx([action]);
+    this.waitAndUpdate();
     return txRes.transaction_id as string;
+  }
+
+  @action async waitAndUpdate(time: number = 4000) {
+    await wait(time);
+    return this.init();
+  }
+
+  @action async expectNewRelay(smartToken: string) {
+    const attempts = 10;
+    const waitPeriod = 1000;
+    for (var i = 0; i < attempts; i++) {
+      console.log("Fetching..");
+      console.count("fetching");
+      const relays = await fetchRelays();
+      console.log("Fetched");
+      const includesRelay = relays.find(
+        relay => relay.smartToken.symbol == smartToken
+      );
+      if (includesRelay) {
+        console.log('Found relay!', smartToken);
+        this.setRelays(relays);
+        this.refreshBalances(
+          includesRelay.reserves.map(reserve => ({
+            contract: reserve.contract,
+            symbol: reserve.symbol
+          }))
+        );
+        return;
+      }
+      await wait(waitPeriod);
+    }
   }
 
   @action async getUserBalances(symbolName: string) {

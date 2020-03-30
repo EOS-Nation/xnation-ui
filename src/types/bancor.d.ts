@@ -172,7 +172,7 @@ export interface TradingModule {
   init: () => Promise<void>;
   readonly token: (arg0: string) => ViewToken;
   readonly tokens: ViewToken[];
-  refreshBalances: (symbols?: string[]) => Promise<void>;
+  refreshBalances: (symbols?: BaseToken[]) => Promise<void>;
   convert: (propose: ProposedConvertTransaction) => Promise<string>;
   focusSymbol: (symbolName: string) => Promise<void>;
   getReturn: (propose: ProposedTransaction) => Promise<ConvertReturn>;
@@ -222,6 +222,11 @@ export interface FeeParams {
 export interface NewOwnerParams {
   newOwner: string;
   smartTokenSymbol: string;
+}
+
+export interface BaseToken {
+  contract: string;
+  symbol: string;
 }
 
 export interface LiquidityModule {

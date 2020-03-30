@@ -363,7 +363,8 @@ export default class HeroRelay extends Vue {
   }
 
   async deleteRelay() {
-    this.removeRelay!(this.focusedSymbol);
+    await this.removeRelay!(this.focusedSymbol);
+    this.$router.push({ name: "Relays" });
   }
 
   async setFee() {

@@ -79,11 +79,11 @@ export default class HeroConvert extends Vue {
   tokenTwoClicked() {}
 
   get tokenOneClickable() {
-    return this.tokenOneChoices && this.tokenOneChoices.length || this.choices && this.choices.length
+    return this.tokenOneChoices && this.tokenOneChoices.length > 0 || this.choices && this.choices.length > 0
   }
 
   get tokenTwoClickable() {
-    return this.tokenTwoChoices && this.tokenTwoChoices.length || this.choices && this.choices.length
+    return this.tokenTwoChoices && this.tokenTwoChoices.length > 0 || this.choices && this.choices.length > 0
   }
 }
 </script>

@@ -95,6 +95,12 @@ import TwoTokenHero from "./TwoTokenHero.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
 import ModalTx from "@/components/modals/ModalTx.vue";
 import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
+import { State, Getter, Action, namespace } from "vuex-class";
+import { LiquidityModule } from '../../../types/bancor';
+import wait from 'waait'
+
+const bancor = namespace("bancor");
+
 
 @Component({
   components: {
@@ -118,20 +124,26 @@ export default class HeroConvert extends Vue {
   txModal = false;
   txBusy = false;
 
+  @bancor.Action init!: LiquidityModule["init"];
+
   feeFormatter(fee: number) {
     return `${fee} %`;
   }
 
   cleanUpAfterTx() {
-    this.error = "";
-    this.success = "";
-
+    console.log('clean up triggered')
     if (this.success) {
+      console.log('derp doop was success')
       this.$router.push({ name: "Relays" });
-      this.token2Symbol = this.tokenChoices.find(
+      console.log('should have pushed to relays')
+      const newToken = this.tokenChoices.find(
         choice => choice.symbol !== this.token2Symbol
       )!.symbol;
+      console.log(newToken, 'was new token finding with', this.token2Symbol)
+      this.token2Symbol = newToken;
     }
+    this.error = "";
+    this.success = "";
   }
 
   get createPoolReady() {
@@ -233,10 +245,11 @@ export default class HeroConvert extends Vue {
       this.success = txId;
       this.token1Amount = "";
       this.token2Amount = "";
+      this.txBusy = false;
     } catch (e) {
       this.error = e.message;
+      this.txBusy = false;
     }
-    this.txBusy = false;
   }
 
   created() {

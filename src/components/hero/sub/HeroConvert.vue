@@ -346,8 +346,6 @@ export default class HeroConvert extends Vue {
       this.success = "";
     }
     this.txBusy = false;
-    await wait(500);
-    this.fetchUserTokenBalances();
   }
 
   closeTxModal() {
@@ -429,15 +427,6 @@ export default class HeroConvert extends Vue {
     this.focusSymbol(this.toTokenSymbol);
   }
 
-  @Watch("isAuthenticated")
-  authChange(value: any) {
-    this.fetchUserTokenBalances();
-  }
-
-  async fetchUserTokenBalances() {
-    if (!this.isAuthenticated) return;
-    await this.refreshBalances([this.fromTokenSymbol, this.toTokenSymbol]);
-  }
 
   async loadSimpleReward() {
     this.loading = true;
