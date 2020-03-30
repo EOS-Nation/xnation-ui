@@ -40,11 +40,13 @@ export default class Token extends Vue {
 
   onConvert(symbolName: string) {
     const { query, params } = this.$route;
+    const { base, quote } = query;
     this.$router.push({
       name: "Tokens",
       query: {
         ...query,
-        quote: symbolName
+        quote: symbolName,
+        ...(base == symbolName && { base: quote })
       }
     });
   }
