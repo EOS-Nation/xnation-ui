@@ -5300,17 +5300,17 @@ env-paths@^1.0.0:
   resolved "https://registry.yarnpkg.com/env-paths/-/env-paths-1.0.0.tgz#4168133b42bb05c38a35b1ae4397c8298ab369e0"
   integrity sha1-QWgTO0K7BcOKNbGuQ5fIKYqzaeA=
 
+eos-common@0.7.3, eos-common@^0.7.3:
+  version "0.7.3"
+  resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.7.3.tgz#01250fe1dafca13edac1a74e547cf23a09b837b9"
+  integrity sha512-/1MSR4H67A/1zVugeQMSIGQ50GWv92TGOc5gFI5AXRZ+RQFBRg2AhHElBNPNuNSZrzPQfiDJiRCvrbMITDvWUQ==
+  dependencies:
+    big-integer "^1.6.48"
+
 eos-common@0.x:
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.6.0.tgz#da8d4096c3d34d80ad434fbe8f0d6d2dda5f1aa9"
   integrity sha512-5gPYJSGxIkl6FmEqLp+RT7Lwz0PwfxljXV1pR8O6dixUR8hfH+/VEYHu1CbbWYRS66wuj4X/ezedWm4H5b0Sww==
-
-eos-common@^0.7.2:
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.7.2.tgz#f02b77ec8af7880d79fa461498dbab44bcd80e3c"
-  integrity sha512-ywPBgZezoI4Z+RQprQ+uxqzxXE44M2qABePY1Oh3v103FSqSLuaLdnvawVisE2mpA0kudyC0vGhGq6tGNTUg9w==
-  dependencies:
-    big-integer "^1.6.48"
 
 eos-transit-keycat-provider@^4.0.1:
   version "4.0.1"
@@ -12105,12 +12105,12 @@ swarm-js@0.1.39:
     tar "^4.0.2"
     xhr-request-promise "^0.1.2"
 
-sxjs@^0.5.1:
-  version "0.5.1"
-  resolved "https://registry.yarnpkg.com/sxjs/-/sxjs-0.5.1.tgz#f95a006dd97c78820ce264715307533e1a41dcea"
-  integrity sha512-05eg7Z/zo9SBXroU0ylkaKy0QutAnpSWyyXPf8KVTwFhg0TMP/rDkrRNA2Z2Il1tRDJ0mKrKdc4BusAfBYk+UQ==
+sxjs@^0.5.2:
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/sxjs/-/sxjs-0.5.2.tgz#ce84f03e4c7960bd214e358ffb78bbeceb57b24c"
+  integrity sha512-AU3H//HIt9tdjwJkilE7KtNF179D+lxSVsByXHhsE6JKJB/ASpaX/Way/jEvqXOQICiJMKCTWeC/lshGfGyJcA==
   dependencies:
-    eos-common "^0.7.2"
+    eos-common "0.7.3"
 
 table@4.0.2:
   version "4.0.2"
