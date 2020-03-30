@@ -5312,6 +5312,13 @@ eos-common@^0.7.0:
   dependencies:
     big-integer "^1.6.48"
 
+eos-common@^0.7.2:
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.7.2.tgz#f02b77ec8af7880d79fa461498dbab44bcd80e3c"
+  integrity sha512-ywPBgZezoI4Z+RQprQ+uxqzxXE44M2qABePY1Oh3v103FSqSLuaLdnvawVisE2mpA0kudyC0vGhGq6tGNTUg9w==
+  dependencies:
+    big-integer "^1.6.48"
+
 eos-transit-keycat-provider@^4.0.1:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/eos-transit-keycat-provider/-/eos-transit-keycat-provider-4.0.1.tgz#d5f63d42ec49a997190f03568c2870f1bf56f6ca"

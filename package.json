@@ -27,7 +27,7 @@
     "core-js": "^2.6.9",
     "decimal.js": "^10.2.0",
     "detect-browser": "^5.0.0",
-    "eos-common": "^0.7.0",
+    "eos-common": "^0.7.2",
     "eos-transit": "^4.0.1",
     "eos-transit-keycat-provider": "^4.0.1",
     "eos-transit-ledger-provider": "^4.0.2",
