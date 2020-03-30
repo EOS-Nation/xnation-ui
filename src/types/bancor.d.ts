@@ -207,11 +207,16 @@ export interface NetworkChoice extends ModalChoice {
   usdValue: number;
 }
 
+export interface CreatePoolParams {
+  reserves: [string, string][];
+  fee: number;
+}
+
 export interface CreatePoolModule {
   init: () => Promise<void>;
   readonly newPoolTokenChoices: (networkToken: string) => ModalChoice[];
   readonly newNetworkTokenChoices: ModalChoice[];
-  createPool: (param: any) => Promise<void>;
+  createPool: (param: CreatePoolParams) => Promise<string>;
 }
 
 export interface FeeParams {
