@@ -3235,6 +3235,11 @@ bfj@^6.1.1:
     hoopy "^0.1.4"
     tryer "^1.0.1"
 
+big-integer@^1.6.48:
+  version "1.6.48"
+  resolved "https://registry.yarnpkg.com/big-integer/-/big-integer-1.6.48.tgz#8fd88bd1632cba4a1c8c3e3d7159f08bb95b4b9e"
+  integrity sha512-j51egjPa7/i+RdiRuJbPdJ2FIUYYPhvYLjzoYbcMMm62ooO6F94fETG4MTs46zPAF9Brs04OajboA/qTGuz78w==
+
 big.js@^3.1.3:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/big.js/-/big.js-3.2.0.tgz#a5fc298b81b9e0dca2e458824784b65c52ba588e"
@@ -5295,10 +5300,17 @@ env-paths@^1.0.0:
   resolved "https://registry.yarnpkg.com/env-paths/-/env-paths-1.0.0.tgz#4168133b42bb05c38a35b1ae4397c8298ab369e0"
   integrity sha1-QWgTO0K7BcOKNbGuQ5fIKYqzaeA=
 
-eos-common@0.x, eos-common@^0.6.0:
+eos-common@0.x:
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.6.0.tgz#da8d4096c3d34d80ad434fbe8f0d6d2dda5f1aa9"
   integrity sha512-5gPYJSGxIkl6FmEqLp+RT7Lwz0PwfxljXV1pR8O6dixUR8hfH+/VEYHu1CbbWYRS66wuj4X/ezedWm4H5b0Sww==
+
+eos-common@^0.7.2:
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.7.2.tgz#f02b77ec8af7880d79fa461498dbab44bcd80e3c"
+  integrity sha512-ywPBgZezoI4Z+RQprQ+uxqzxXE44M2qABePY1Oh3v103FSqSLuaLdnvawVisE2mpA0kudyC0vGhGq6tGNTUg9w==
+  dependencies:
+    big-integer "^1.6.48"
 
 eos-transit-keycat-provider@^4.0.1:
   version "4.0.1"
@@ -12093,12 +12105,12 @@ swarm-js@0.1.39:
     tar "^4.0.2"
     xhr-request-promise "^0.1.2"
 
-sxjs@^0.4.0:
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/sxjs/-/sxjs-0.4.0.tgz#b70e431ae23a2f63a93cfcb8fa6415b605596583"
-  integrity sha512-LomxfdBbcqn4Yp2pGABbXxuiKoSsyGzbmPEBnR1ftWHP+UdGaYiYCMe/XBDOmVe4q9GQ6qHbHKvu8UkTlsAhpw==
+sxjs@^0.5.1:
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/sxjs/-/sxjs-0.5.1.tgz#f95a006dd97c78820ce264715307533e1a41dcea"
+  integrity sha512-05eg7Z/zo9SBXroU0ylkaKy0QutAnpSWyyXPf8KVTwFhg0TMP/rDkrRNA2Z2Il1tRDJ0mKrKdc4BusAfBYk+UQ==
   dependencies:
-    eos-common "^0.6.0"
+    eos-common "^0.7.2"
 
 table@4.0.2:
   version "4.0.2"

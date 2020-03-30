@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="loading && supportedBrowser"
+    v-if="loading"
     id="loading"
     class="page-header-fixed page-header-dark align-items-center"
   >
@@ -14,13 +14,6 @@
         <h2 class="text-white">Loading...</h2>
       </div>
     </div>
-  </div>
-
-  <div v-else-if="!supportedBrowser">
-    <h2>
-      {{ browserName }} is currently not supported, please use Chrome, Firefox,
-      Opera or Edge.
-    </h2>
   </div>
 
   <div v-else id="page-container" class="page-header-fixed page-header-dark">
@@ -56,9 +49,6 @@ const browser = detect();
 })
 export default class App extends Vue {
   loading = true;
-  supportedBrowser = false;
-  unSupportedBrowsers = ["safari"];
-  browserName = "";
 
   async loadBancor() {
     await vxm.bancor.init();
@@ -66,16 +56,6 @@ export default class App extends Vue {
   }
 
   async created() {
-    if (
-      browser &&
-      browser.name &&
-      this.unSupportedBrowsers.includes(browser.name)
-    ) {
-      this.browserName = browser.name;
-    } else {
-      this.supportedBrowser = true;
-    }
-
     const autoLogin = localStorage.getItem("autoLogin");
     if (autoLogin) {
       const provider = vxm.eosWallet.walletProviders.find(
