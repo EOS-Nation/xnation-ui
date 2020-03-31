@@ -210,7 +210,14 @@ const tokenStrategies: Array<(one: string, two: string) => string> = [
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 1)),
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 2)),
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 3)),
-  (one, two) => chopSecondSymbol(one, two.split('').reverse().join('')),
+  (one, two) =>
+    chopSecondSymbol(
+      one,
+      two
+        .split("")
+        .reverse()
+        .join("")
+    )
 ];
 
 const generateSmartTokenSymbol = async (
@@ -661,6 +668,40 @@ export class EosBancorModule extends VuexModule
       .sort((a, b) => b.liqDepth - a.liqDepth);
   }
 
+  get convertableRelays() {
+    return this.relaysList
+      .filter(
+        relayIncludesBothTokens(
+          mandatoryNetworkTokens,
+          this.tokenMeta.map(token => ({
+            contract: token.account,
+            symbol: token.symbol
+          }))
+        )
+      )
+      .map(relay => ({
+        ...relay,
+        liqDepth: relay.reserves.find(reserve => reserve.symbol == "BNT")
+          ? relay.reserves.find(reserve => reserve.symbol == "BNT")!.amount *
+            this.usdPriceOfBnt
+          : relay.reserves.find(reserve => reserve.symbol == "USDB")
+          ? relay.reserves.find(reserve => reserve.symbol == "USDB")!.amount
+          : 0
+      }))
+      .sort((a, b) => b.liqDepth - a.liqDepth)
+      .filter(
+        (value, index, arr) =>
+          arr.findIndex(x =>
+            x.reserves.every(reserve =>
+              value.reserves.some(
+                y =>
+                  reserve.symbol == y.symbol && reserve.contract == y.contract
+              )
+            )
+          ) == index
+      );
+  }
+
   @action async fetchUsdPrice() {
     this.setUsdPrice(Number(await bancorApi.getRate("BNT", "USD")));
   }
@@ -805,7 +846,7 @@ export class EosBancorModule extends VuexModule
         relay => relay.smartToken.symbol == smartToken
       );
       if (includesRelay) {
-        console.log('Found relay!', smartToken);
+        console.log("Found relay!", smartToken);
         this.setRelays(relays);
         this.refreshBalances(
           includesRelay.reserves.map(reserve => ({
@@ -1065,16 +1106,16 @@ export class EosBancorModule extends VuexModule
 
     switch (convertType) {
       case ConvertType.API: {
-        console.log("CONVERT API")
+        console.log("CONVERT API");
         return this.convertApi(proposal);
       }
       case ConvertType.Multi: {
-        console.log("CONVERT MULTI")
+        console.log("CONVERT MULTI");
 
         return this.convertMulti(proposal);
       }
       case ConvertType.APItoMulti: {
-        console.log("CONVERT API TO MULTI")
+        console.log("CONVERT API TO MULTI");
         const apiReturn = await this.getReturnBancorApi({
           amount: proposal.fromAmount,
           fromSymbol,
@@ -1125,7 +1166,7 @@ export class EosBancorModule extends VuexModule
         return txRes.transaction_id;
       }
       case ConvertType.MultiToApi: {
-        console.log("CONVERT MULTI TO API")
+        console.log("CONVERT MULTI TO API");
         const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
         const fromSymbolInit = new Symbol(
           fromToken.symbol,
@@ -1280,9 +1321,21 @@ export class EosBancorModule extends VuexModule
     const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
     const assetAmount = number_to_asset(Number(amount), fromSymbolInit);
 
-    const allRelays = eosMultiToDryRelays(this.relaysList);
+    const allRelays = eosMultiToDryRelays(this.convertableRelays);
+    console.log(
+      this.convertableRelays.map(x => x.smartToken.symbol),
+      "were the convertable relays"
+    );
     const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
+    console.log(path, "is the path");
     const hydratedRelays = await this.hydrateRelays(path);
+    console.log(
+      hydratedRelays.map(x => ({
+        ...x,
+        symbol: x.smartToken.symbol.code().to_string()
+      })),
+      "are hydrated relays"
+    );
     const calculatedReturn = findReturn(assetAmount, hydratedRelays);
 
     return {
