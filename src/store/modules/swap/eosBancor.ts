@@ -172,8 +172,8 @@ const arraysContainBoth = (searchString: string, arr: string[][]) =>
 
 const determineConvertType = (sources: string[][]): ConvertType => {
   const [token1Sources, token2Sources] = sources;
-  if (arraysContainBoth("multi", sources)) return ConvertType.Multi;
-  else if (arraysContainBoth("api", sources)) return ConvertType.API;
+  if (arraysContainBoth("api", sources)) return ConvertType.API;
+  else if (arraysContainBoth("multi", sources)) return ConvertType.Multi;
   else if (token1Sources.includes("api") && token2Sources.includes("multi"))
     return ConvertType.APItoMulti;
   else if (token1Sources.includes("multi") && token2Sources.includes("api"))
@@ -1031,7 +1031,7 @@ export class EosBancorModule extends VuexModule
 
     const memo = composeMemo(
       convertPath,
-      String(toAmount * 0.96),
+      String((toAmount * 0.96).toFixed(toSymbolInit.precision())),
       isAuthenticated
     );
 
@@ -1065,12 +1065,16 @@ export class EosBancorModule extends VuexModule
 
     switch (convertType) {
       case ConvertType.API: {
+        console.log("CONVERT API")
         return this.convertApi(proposal);
       }
       case ConvertType.Multi: {
+        console.log("CONVERT MULTI")
+
         return this.convertMulti(proposal);
       }
       case ConvertType.APItoMulti: {
+        console.log("CONVERT API TO MULTI")
         const apiReturn = await this.getReturnBancorApi({
           amount: proposal.fromAmount,
           fromSymbol,
@@ -1121,6 +1125,7 @@ export class EosBancorModule extends VuexModule
         return txRes.transaction_id;
       }
       case ConvertType.MultiToApi: {
+        console.log("CONVERT MULTI TO API")
         const fromToken = this.relayTokens.find(x => x.symbol == fromSymbol)!;
         const fromSymbolInit = new Symbol(
           fromToken.symbol,
