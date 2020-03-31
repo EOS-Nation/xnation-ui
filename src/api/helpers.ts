@@ -155,7 +155,7 @@ export const getTokenBalancesEthplorer = async (
 };
 
 export const getEthRelays = async (): Promise<Relay[]> => {
-  return [
+  const relays = [
     {
       tokenAddress: "0x83cee9e086A77e492eE0bB93C2B0437aD6fdECCc",
       symbol: "MNTP",
@@ -3434,6 +3434,7 @@ export const getEthRelays = async (): Promise<Relay[]> => {
       version: relay.converterVersion,
       owner: relay.owner
     }));
+    return relays;
 };
 
 export type EosAccount = string;

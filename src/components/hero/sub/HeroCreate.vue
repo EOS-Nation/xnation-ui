@@ -3,6 +3,7 @@
     <two-token-hero
       v-if="loaded"
       :tokenOneSymbol.sync="token1Symbol"
+      @update:tokenOneSymbol="networkTokenChange"
       :tokenOneAmount.sync="token1Amount"
       :tokenOneBalance="displayedToken1Balance"
       :tokenOneImg="selectedNetworkToken.img"
@@ -130,6 +131,13 @@ export default class HeroConvert extends Vue {
     return `${fee} %`;
   }
 
+  networkTokenChange(symbolName: string) {
+    const optionAvailable = vxm.bancor.newPoolTokenChoices(symbolName).some(x => x.symbol == this.token2Symbol)
+    if (!optionAvailable) {
+      this.token2Symbol = vxm.bancor.newPoolTokenChoices(symbolName)[0].symbol;
+    }
+  }
+
   cleanUpAfterTx() {
     console.log('clean up triggered')
     if (this.success) {
@@ -207,7 +215,7 @@ export default class HeroConvert extends Vue {
   }
 
   get selectedToken() {
-    return this.tokenChoices.find(x => x.symbol == this.token2Symbol)!;
+    return this.tokenChoices.find(x => x.symbol == this.token2Symbol)!
   }
 
   get networkChoices() {

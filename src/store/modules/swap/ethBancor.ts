@@ -150,12 +150,31 @@ export class EthBancorModule extends VuexModule
 
   get newPoolTokenChoices() {
     return (symbolName: string): ModalChoice[] => {
-      return this.tokenMeta.map(meta => ({
-        contract: meta.contract,
-        symbol: meta.symbol,
-        img: meta.image,
-        balance: ""
-      }));
+      return this.tokenMeta
+        .map(meta => ({
+          contract: meta.contract,
+          symbol: meta.symbol,
+          img: meta.image,
+          balance:
+            (this.tokenBalances.find(
+              balance => balance.symbol == meta.symbol
+            ) &&
+              this.tokenBalances.find(balance => balance.symbol == meta.symbol)!
+                .balance) ||
+            "0"
+        }))
+        .filter(
+          tokenChoice =>
+            !this.relays.some(relay =>
+              relay.reserves.every(
+                reserve =>
+                  reserve.symbol == tokenChoice.symbol ||
+                  reserve.symbol == symbolName
+              )
+            )
+        )
+        .filter(tokenChoice => tokenChoice.symbol !== symbolName)
+        .sort((a, b) => Number(b.balance) - Number(a.balance));
     };
   }
 
@@ -303,7 +322,11 @@ export class EthBancorModule extends VuexModule
       .filter(relay =>
         duplicateSmartTokenSymbols.every(dup => dup !== relay.smartTokenSymbol)
       )
-      .sort((a, b) => b.liqDepth - a.liqDepth);
+      .sort((a, b) => b.liqDepth - a.liqDepth)
+      .filter(relay => {
+        const [first, second] = relay.reserves;
+        return first.symbol !== second.symbol;
+      })
   }
 
   @action async fetchUsdPrice() {
