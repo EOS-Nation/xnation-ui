@@ -459,7 +459,7 @@ export function calculateFundReturn(
   // y(s+1) + 1 / r
 
   const reward = new Decimal(reserveTokens.amount.toString())
-    .times(new Decimal(smartSupply.amount.toString()).plus(one))
+    .times(new Decimal(smartSupply.amount.toString()))
     .plus(one)
     .div(reserveBalance.amount.toString());
 
