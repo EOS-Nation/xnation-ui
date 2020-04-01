@@ -20,12 +20,20 @@ import {
   Token,
   fetchReserveBalance
 } from "@/api/helpers";
-import { ABISmartToken, ABIConverter, BntTokenContract } from "@/api/ethConfig";
+import {
+  ABISmartToken,
+  ABIConverter,
+  BntTokenContract,
+  smartTokenByteCode,
+  FactoryAbi,
+  bancorRegistry
+} from "@/api/ethConfig";
 import { toWei, toHex, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
 import axios, { AxiosResponse } from "axios";
 
 import { vxm } from "@/store";
+import wait from "waait";
 
 const getPoolReserveToken = (
   relay: Relay,
@@ -178,7 +186,95 @@ export class EthBancorModule extends VuexModule
     };
   }
 
+  get isAuthenticated() {
+    return vxm.wallet.isAuthenticated;
+  }
+
+  @action async deploySmartTokenContract({
+    smartTokenName,
+    smartTokenSymbol,
+    precision
+  }: {
+    smartTokenName: string;
+    smartTokenSymbol: string;
+    precision: number;
+  }): Promise<{ txHash: string }> {
+    let txHash: string;
+    return new Promise((resolve, reject) => {
+      // @ts-ignore
+      const contract = new web3.eth.Contract(ABISmartToken, null);
+      contract
+        .deploy({
+          data: smartTokenByteCode,
+          arguments: [smartTokenName, smartTokenSymbol, precision]
+        })
+        .send({
+          from: this.isAuthenticated,
+          gas: 3372732
+        })
+        .on("transactionHash", (hash: string) => {
+          txHash = hash;
+        })
+        .on("confirmation", (confirmationNumber: number) => {
+          console.log(confirmationNumber, 'was confirmation number');
+          resolve({ txHash });
+        });
+    });
+  }
+
+  @action async fetchNewContractAddressFromHash(hash: string): Promise<string> {
+    const interval = 1000;
+    const attempts = 10;
+
+    for (var i = 0; i < attempts; i++) {
+      const info = await web3.eth.getTransactionReceipt(hash);
+      if (info) {
+        return info.contractAddress!
+      }
+      await wait(interval);
+    }
+    throw new Error("Failed to find new address in decent time")
+  }
+
+  @action async deployConverter({ smartTokenAddress, firstReserveTokenAddress }: { smartTokenAddress: string, firstReserveTokenAddress: string }) {
+
+    // @ts-ignore
+    const contract = new web3.eth.Contract(FactoryAbi, null);
+    bancorRegistry
+
+    const res = await contract.methods.createConverter([smartTokenAddress, bancorRegistry, 50000, firstReserveTokenAddress, 500000])
+    console.log(res, 'was res');
+    
+  }
+
   @action async createPool(poolParams: CreatePoolParams) {
+    if (poolParams.reserves.length !== 2)
+      throw new Error("Was expecting two reserves in new pool");
+
+    const networkIndex = poolParams.reserves.findIndex(
+      ([symbol, amount]) => symbol == "BNT" || symbol == "USDB"
+    )!;
+    if (networkIndex == undefined)
+      throw new Error(
+        "Client error: Failed to figure out what should be the network token"
+      );
+    const tokenIndex = networkIndex == 0 ? 1 : 0;
+    const [networkSymbol, networkAmount] = poolParams.reserves[networkIndex];
+    const [tokenSymbol, tokenAmount] = poolParams.reserves[tokenIndex];
+
+    console.log(
+      { networkSymbol, networkAmount, tokenSymbol, tokenAmount },
+      "was details"
+    );
+
+    const smartTokenName = `${tokenSymbol} Smart Relay Token`;
+    const smartTokenSymbol = `${tokenSymbol}${networkSymbol}`;
+    const precision = 18;
+
+    const { txHash } = await this.deploySmartTokenContract({ smartTokenSymbol, precision, smartTokenName });
+    const smartTokenAddress = await this.fetchNewContractAddressFromHash(txHash);
+    console.log(smartTokenAddress, 'we have successfully deployed a smart token contract at', smartTokenAddress);
+    
     return "";
   }
 
@@ -326,7 +422,7 @@ export class EthBancorModule extends VuexModule
       .filter(relay => {
         const [first, second] = relay.reserves;
         return first.symbol !== second.symbol;
-      })
+      });
   }
 
   @action async fetchUsdPrice() {
