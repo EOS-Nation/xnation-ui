@@ -99,7 +99,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         contract,
         symbol: sym.code().to_string()
       })
-      balance = tokenBalance && String(tokenBalance.balance) || "0"
+      balance = tokenBalance && Number(tokenBalance.balance) || 0
 
       try {
         const eosModuleBorrowed = vxm.eosBancor.token(token);

@@ -57,12 +57,12 @@ import TokenField from "@/components/convert/TokenField.vue";
 export default class HeroConvert extends Vue {
   @PropSync("tokenOneSymbol", { type: String }) symbolOne!: string;
   @PropSync("tokenOneAmount", { type: String }) amountOne!: string;
-  @Prop(String) tokenOneBalance!: string;
+  @Prop(Number) tokenOneBalance!: number;
   @Prop(String) tokenOneImg!: string;
   @Prop(String) tokenOneError?: string;
   @PropSync("tokenTwoSymbol", { type: String }) symbolTwo!: string;
   @PropSync("tokenTwoAmount", { type: String }) amountTwo!: string;
-  @Prop(String) tokenTwoBalance!: string;
+  @Prop(Number) tokenTwoBalance!: number;
   @Prop(String) tokenTwoImg!: string;
   @Prop(String) label?: string;
   @Prop(String) tokenTwoError?: string;
@@ -79,11 +79,17 @@ export default class HeroConvert extends Vue {
   tokenTwoClicked() {}
 
   get tokenOneClickable() {
-    return this.tokenOneChoices && this.tokenOneChoices.length > 0 || this.choices && this.choices.length > 0
+    return (
+      (this.tokenOneChoices && this.tokenOneChoices.length > 0) ||
+      (this.choices && this.choices.length > 0)
+    );
   }
 
   get tokenTwoClickable() {
-    return this.tokenTwoChoices && this.tokenTwoChoices.length > 0 || this.choices && this.choices.length > 0
+    return (
+      (this.tokenTwoChoices && this.tokenTwoChoices.length > 0) ||
+      (this.choices && this.choices.length > 0)
+    );
   }
 }
 </script>

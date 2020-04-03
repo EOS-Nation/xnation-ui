@@ -147,7 +147,7 @@ export interface ViewToken {
   logo: string;
   change24h: number;
   volume24h: number;
-  balance?: string;
+  balance?: number;
 }
 
 interface TokenWithLogo extends AgnosticToken {
@@ -207,9 +207,15 @@ export interface NetworkChoice extends ModalChoice {
   usdValue: number;
 }
 
+export interface Step {
+  name: string;
+  description: string;
+}
+
 export interface CreatePoolParams {
   reserves: [string, string][];
   fee: number;
+  onUpdate: (stepIndex: number, steps: Step[]) => void;
 }
 
 export interface CreatePoolModule {
@@ -232,6 +238,18 @@ export interface NewOwnerParams {
 export interface BaseToken {
   contract: string;
   symbol: string;
+}
+
+
+export interface PromiseEvent {
+  name: string;
+  description: string;
+  promise: () => Promise<any>;
+}
+
+export interface PromiseSequence {
+  promises: PromiseEvent[];
+  title: string;
 }
 
 export interface LiquidityModule {

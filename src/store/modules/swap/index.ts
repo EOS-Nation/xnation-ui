@@ -7,7 +7,8 @@ import {
   ModalChoice,
   NetworkChoice,
   FeeParams,
-  NewOwnerParams
+  NewOwnerParams,
+  PromiseSequence
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -101,7 +102,7 @@ export class BancorModule extends VuexModule {
     return this.dispatcher(["getUserBalances", symbolName]);
   }
 
-  @action async createPool(newPoolParams: any) {
+  @action async createPool(newPoolParams: any): Promise<string> {
     return this.dispatcher(["createPool", newPoolParams]);
   }
 

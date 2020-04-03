@@ -19,7 +19,8 @@ import {
   FeeParams,
   NewOwnerParams,
   BaseToken,
-  CreatePoolParams
+  CreatePoolParams,
+  PromiseSequence
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import { fetchRelays, getBalance, fetchTokenStats } from "@/api/helpers";
@@ -104,7 +105,7 @@ export interface ViewTokenMinusLogo {
   source: string;
   precision: number;
   contract: string;
-  balance?: string;
+  balance?: number;
 }
 
 const relayToToken = ({
@@ -154,7 +155,7 @@ const relayToToken = ({
     liqDepth,
     change24h: 0,
     volume24h: 0,
-    balance: "0",
+    balance: 0,
     source: "multi",
     precision,
     contract
@@ -487,7 +488,7 @@ export class EosBancorModule extends VuexModule
       )
     );
 
-    const kickStartRelayActions = await multiContract.kickStartRelay(
+    const actions = await multiContract.kickStartRelay(
       smartTokenSymbol,
       [
         {
@@ -503,9 +504,55 @@ export class EosBancorModule extends VuexModule
       poolParams.fee
     );
 
-    const txRes = await this.triggerTx(kickStartRelayActions);
-    wait(2000).then(() => this.expectNewRelay(smartTokenSymbol));
-    return txRes.transaction_id;
+    const [
+      createRelay,
+      setFirstReserve,
+      setSecondReserve,
+      addFirstLiquidity,
+      addSecondLiquidty,
+      setFee
+    ] = actions;
+
+    const baseSteps = [
+      { name: "Create Relay", description: "Creating Relay..." },
+      { name: "Setting Reserves", description: "Setting Reserves..." },
+      { name: "Adding Liquidity", description: "Adding Liquidity..." },
+      { name: "Setting Fee", description: "Setting Fee..." }
+    ];
+
+    // poolParams.onUpdate(Number(0), baseSteps);
+    let res = await this.triggerTx(actions!);
+    return res.transaction_id;
+
+    // const batches = [
+    //   [createRelay],
+    //   [setFirstReserve, setSecondReserve],
+    //   [addFirstLiquidity, addSecondLiquidty],
+    //   [setFee]
+    // ];
+
+    // const zipped = _.zip(baseSteps, batches)!
+    //   .map(([obj, actions]) => ({
+    //     name: obj!.name,
+    //     description: obj!.description,
+    //     actions
+    //   }))
+    //   .filter(x => (x.name == "Setting Fee" ? setFee : true));
+
+    // const steps = zipped.map(x => ({
+    //   name: x.name,
+    //   description: x.description
+    // }));
+
+    // for (const zip in zipped) {
+    //   let { actions } = zipped[zip];
+    //   poolParams.onUpdate(Number(zip), steps);
+    //   let res = await this.triggerTx(actions!);
+    //   if (Number(zip) + 1 == zipped.length) {
+    //     wait(2000).then(() => this.expectNewRelay(smartTokenSymbol));
+    //     return res.transaction_id;
+    //   }
+    // }
   }
 
   get networkTokenUsdValue() {
@@ -534,7 +581,7 @@ export class EosBancorModule extends VuexModule
             change24h: token.change24h,
             volume24h: token.volume24h.USD,
             // @ts-ignore
-            balance: tokenBalance && String(tokenBalance.balance),
+            balance: tokenBalance && Number(tokenBalance.balance),
             source: "api"
           };
         })
@@ -585,7 +632,7 @@ export class EosBancorModule extends VuexModule
         });
         return {
           ...token,
-          balance: tokenBalance && String(tokenBalance.balance),
+          balance: tokenBalance && Number(tokenBalance.balance),
           logo:
             (tokenMeta && tokenMeta.logo) || "https://via.placeholder.com/50"
         };

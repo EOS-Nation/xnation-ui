@@ -103,7 +103,7 @@ import BalanceLabel from "./BalanceLabel.vue";
 })
 export default class TokenAmountInput extends Vue {
   @PropSync("amount", { type: String }) tokenAmount!: string;
-  @Prop(String) balance!: string;
+  @Prop(Number) balance!: number;
   @Prop(String) img!: string;
   @Prop(String) readonly symbol!: string;
   @Prop(Boolean) loadingBalance?: boolean;
@@ -118,7 +118,7 @@ export default class TokenAmountInput extends Vue {
     const newAmount =
       percentage == "100"
         ? this.balance
-        : (Number(this.balance.split(" ")[0]) * Number(percentage)) / 100;
+        : (this.balance * Number(percentage)) / 100;
     this.tokenAmount = String(newAmount);
   }
 

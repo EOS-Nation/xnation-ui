@@ -70,6 +70,8 @@ export const blackListedConverters: EthAddress[] = [
   "0x6431750a2E43AC6C6b3d84444875576b0Aa7Bd5E"
 ];
 
+export const factoryAddress = '0xbEf6A44d3500Fb314a88359A5791FcDCB104d259'
+
 export const FactoryAbi = [
   {
     constant: false,

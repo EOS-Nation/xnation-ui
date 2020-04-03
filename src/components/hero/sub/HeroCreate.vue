@@ -44,45 +44,58 @@
             <span class="font-w700">Create Pool</span>
           </b-btn>
         </div>
-        <modal-tx
+        <modal-multi-tx
           title="Create Pool"
           v-model="txModal"
           :busy="txBusy"
           @input="cleanUpAfterTx"
         >
-          <token-swap
-            :error="error"
-            :success="success"
-            leftHeader="Network Token"
-            :leftImg="selectedNetworkToken.img"
-            :leftTitle="token1Symbol"
-            :leftSubtitle="token1Amount"
-            rightHeader="Listing token"
-            :rightImg="selectedToken.img"
-            :rightTitle="token2Symbol"
-            :rightSubtitle="token2Amount"
-          >
-            <template v-slot:footer>
-              <b-col cols="12" class="text-center">
-                <h6 v-if="!success && !error">
-                  Please proceed with your wallet to confirm this Transaction.
-                </h6>
-                <h6 v-else-if="error && !success" class="text-danger">
-                  Error: {{ error }}
-                </h6>
-                <h6 v-else-if="!error && success">
-                  <a :href="explorerLink" target="_blank" class="text-success">
-                    SUCCESS: View {{ success.substring(0, 6) }} TX on
-                    {{ explorerName }}
-                  </a>
-                  <span @click="txModal = false" class="cursor text-muted"
-                    >- Close</span
-                  >
-                </h6>
-              </b-col>
-            </template>
-          </token-swap>
-        </modal-tx>
+          <div>
+            <stepper
+              v-if="sections.length > 1"
+              :selectedStep="stepIndex"
+              :steps="sections"
+              :label="sections[stepIndex].description"
+              :numbered="true"
+            />
+            <token-swap
+              :error="error"
+              :success="success"
+              leftHeader="Network Token"
+              :leftImg="selectedNetworkToken.img"
+              :leftTitle="token1Symbol"
+              :leftSubtitle="token1Amount"
+              rightHeader="Listing token"
+              :rightImg="selectedToken.img"
+              :rightTitle="token2Symbol"
+              :rightSubtitle="token2Amount"
+            >
+              <template v-slot:footer>
+                <b-col cols="12" class="text-center">
+                  <h6 v-if="!success && !error">
+                    Please proceed with your wallet to confirm this transaction.
+                  </h6>
+                  <h6 v-else-if="error && !success" class="text-danger">
+                    Error: {{ error }}
+                  </h6>
+                  <h6 v-else-if="!error && success">
+                    <a
+                      :href="explorerLink"
+                      target="_blank"
+                      class="text-success"
+                    >
+                      SUCCESS: View {{ success.substring(0, 6) }} TX on
+                      {{ explorerName }}
+                    </a>
+                    <span @click="txModal = false" class="cursor text-muted"
+                      >- Close</span
+                    >
+                  </h6>
+                </b-col>
+              </template>
+            </token-swap>
+          </div>
+        </modal-multi-tx>
       </div>
     </two-token-hero>
   </hero-wrapper>
@@ -94,22 +107,23 @@ import { vxm } from "@/store";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import TwoTokenHero from "./TwoTokenHero.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
-import ModalTx from "@/components/modals/ModalTx.vue";
+import ModalMultiTx from "@/components/modals/ModalMultiTx.vue";
+import Stepper from "@/components/modals/Stepper.vue";
 import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
 import { State, Getter, Action, namespace } from "vuex-class";
-import { LiquidityModule } from '../../../types/bancor';
-import wait from 'waait'
+import { LiquidityModule } from "../../../types/bancor";
+import wait from "waait";
 
 const bancor = namespace("bancor");
-
 
 @Component({
   components: {
     HeroWrapper,
     TwoTokenHero,
     TokenSwap,
-    ModalTx,
-    RelayFeeAdjuster
+    ModalMultiTx,
+    RelayFeeAdjuster,
+    Stepper
   }
 })
 export default class HeroConvert extends Vue {
@@ -125,6 +139,9 @@ export default class HeroConvert extends Vue {
   txModal = false;
   txBusy = false;
 
+  sections: { name: string; description: string }[] = [];
+  stepIndex = 0;
+
   @bancor.Action init!: LiquidityModule["init"];
 
   feeFormatter(fee: number) {
@@ -132,22 +149,20 @@ export default class HeroConvert extends Vue {
   }
 
   networkTokenChange(symbolName: string) {
-    const optionAvailable = vxm.bancor.newPoolTokenChoices(symbolName).some(x => x.symbol == this.token2Symbol)
+    const optionAvailable = vxm.bancor
+      .newPoolTokenChoices(symbolName)
+      .some(x => x.symbol == this.token2Symbol);
     if (!optionAvailable) {
       this.token2Symbol = vxm.bancor.newPoolTokenChoices(symbolName)[0].symbol;
     }
   }
 
   cleanUpAfterTx() {
-    console.log('clean up triggered')
     if (this.success) {
-      console.log('derp doop was success')
       this.$router.push({ name: "Relays" });
-      console.log('should have pushed to relays')
       const newToken = this.tokenChoices.find(
         choice => choice.symbol !== this.token2Symbol
       )!.symbol;
-      console.log(newToken, 'was new token finding with', this.token2Symbol)
       this.token2Symbol = newToken;
     }
     this.error = "";
@@ -215,7 +230,7 @@ export default class HeroConvert extends Vue {
   }
 
   get selectedToken() {
-    return this.tokenChoices.find(x => x.symbol == this.token2Symbol)!
+    return this.tokenChoices.find(x => x.symbol == this.token2Symbol)!;
   }
 
   get networkChoices() {
@@ -227,7 +242,7 @@ export default class HeroConvert extends Vue {
   }
 
   get displayedToken1Balance() {
-    return this.selectedNetworkToken.balance || "0"
+    return this.selectedNetworkToken.balance || "0";
   }
 
   get displayedToken2Balance() {
@@ -236,6 +251,11 @@ export default class HeroConvert extends Vue {
 
   get isAuthenticated() {
     return vxm.wallet.isAuthenticated;
+  }
+
+  onUpdate(stepIndex: number, steps: any[]) {
+    this.stepIndex = stepIndex;
+    this.sections = steps;
   }
 
   async createRelay() {
@@ -248,7 +268,8 @@ export default class HeroConvert extends Vue {
           [this.token1Symbol, this.token1Amount],
           [this.token2Symbol, this.token2Amount]
         ],
-        fee: fee / 100
+        fee: fee / 100,
+        onUpdate: this.onUpdate
       });
       this.success = txId;
       this.token1Amount = "";

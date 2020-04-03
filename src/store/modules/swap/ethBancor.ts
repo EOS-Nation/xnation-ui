@@ -26,7 +26,8 @@ import {
   BntTokenContract,
   smartTokenByteCode,
   FactoryAbi,
-  bancorRegistry
+  bancorRegistry,
+  factoryAddress
 } from "@/api/ethConfig";
 import { toWei, toHex, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
@@ -34,6 +35,11 @@ import axios, { AxiosResponse } from "axios";
 
 import { vxm } from "@/store";
 import wait from "waait";
+
+const removeLeadingZeros = (hexString: string) => {
+  const withoutOx = hexString.startsWith("0x") ? hexString.slice(2) : hexString;
+  return "0x" + withoutOx.slice(withoutOx.split("").findIndex(x => x !== "0"));
+};
 
 const getPoolReserveToken = (
   relay: Relay,
@@ -216,35 +222,75 @@ export class EthBancorModule extends VuexModule
           txHash = hash;
         })
         .on("confirmation", (confirmationNumber: number) => {
-          console.log(confirmationNumber, 'was confirmation number');
+          console.log(confirmationNumber, "was confirmation number");
           resolve({ txHash });
-        });
+        })
+        .on("error", (error: any) => reject(error));
     });
   }
 
-  @action async fetchNewContractAddressFromHash(hash: string): Promise<string> {
+  @action async fetchNewConverterAddressFromHash(
+    hash: string
+  ): Promise<string> {
     const interval = 1000;
     const attempts = 10;
 
     for (var i = 0; i < attempts; i++) {
       const info = await web3.eth.getTransactionReceipt(hash);
       if (info) {
-        return info.contractAddress!
+        return removeLeadingZeros(info.logs[0].topics[1]);
       }
       await wait(interval);
     }
-    throw new Error("Failed to find new address in decent time")
+    throw new Error("Failed to find new address in decent time");
   }
 
-  @action async deployConverter({ smartTokenAddress, firstReserveTokenAddress }: { smartTokenAddress: string, firstReserveTokenAddress: string }) {
+  @action async fetchNewSmartContractAddressFromHash(
+    hash: string
+  ): Promise<string> {
+    const interval = 1000;
+    const attempts = 10;
 
-    // @ts-ignore
-    const contract = new web3.eth.Contract(FactoryAbi, null);
-    bancorRegistry
+    for (var i = 0; i < attempts; i++) {
+      const info = await web3.eth.getTransactionReceipt(hash);
+      console.log(info, "was info");
+      if (info) {
+        return info.contractAddress!;
+      }
+      await wait(interval);
+    }
+    throw new Error("Failed to find new address in decent time");
+  }
 
-    const res = await contract.methods.createConverter([smartTokenAddress, bancorRegistry, 50000, firstReserveTokenAddress, 500000])
-    console.log(res, 'was res');
-    
+  @action async deployConverter({
+    smartTokenAddress,
+    firstReserveTokenAddress
+  }: {
+    smartTokenAddress: string;
+    firstReserveTokenAddress: string;
+  }): Promise<{ txHash: string }> {
+    let txHash: string;
+    return new Promise((resolve, reject) => {
+      // @ts-ignore
+      const contract = new web3.eth.Contract(FactoryAbi, factoryAddress);
+
+      contract.methods
+        .createConverter(
+          smartTokenAddress,
+          bancorRegistry,
+          50000,
+          firstReserveTokenAddress,
+          500000
+        )
+        .send({ from: this.isAuthenticated })
+        .on("transactionHash", (hash: string) => {
+          txHash = hash;
+        })
+        .on("confirmation", (confirmationNumber: number) => {
+          resolve({ txHash });
+        })
+        .on("error", (error: any) => reject(error));
+    });
   }
 
   @action async createPool(poolParams: CreatePoolParams) {
@@ -271,11 +317,111 @@ export class EthBancorModule extends VuexModule
     const smartTokenSymbol = `${tokenSymbol}${networkSymbol}`;
     const precision = 18;
 
-    const { txHash } = await this.deploySmartTokenContract({ smartTokenSymbol, precision, smartTokenName });
-    const smartTokenAddress = await this.fetchNewContractAddressFromHash(txHash);
-    console.log(smartTokenAddress, 'we have successfully deployed a smart token contract at', smartTokenAddress);
-    
+    const steps = [
+      { name: "Smart Token", description: "Creating Smart Token Contract..." },
+      {
+        name: "Address",
+        description: "Fetching new Smart Token Contract address..."
+      },
+      {
+        name: "Converter",
+        description: "Deploying new Pool..."
+      },
+      {
+        name: "ConverterAddress",
+        description: "Fetching new Converter Address.."
+      },
+      {
+        name: "AddReserve",
+        description: "Setting reserve..."
+      },
+      {
+        name: "AddLiquidity",
+        description: "Adding Liquidity... Not finished"
+      },
+      {
+        name: "SetFee",
+        description: "Setting Fee..."
+      }
+    ];
+
+    poolParams.onUpdate(0, steps);
+    const { txHash } = await this.deploySmartTokenContract({
+      smartTokenSymbol,
+      precision,
+      smartTokenName
+    });
+    poolParams.onUpdate(1, steps);
+    const smartTokenAddress = await this.fetchNewSmartContractAddressFromHash(
+      txHash
+    );
+    poolParams.onUpdate(2, steps);
+
+    const firstReserveTokenAddress = this.token(tokenSymbol).tokenAddress;
+
+    const converterRes = await this.deployConverter({
+      smartTokenAddress,
+      firstReserveTokenAddress
+    });
+    poolParams.onUpdate(3, steps);
+    const converterAddress = await this.fetchNewConverterAddressFromHash(
+      converterRes.txHash
+    );
+
+    poolParams.onUpdate(4, steps);
+    const reserveTokenAddress = this.tokenMetaObj(tokenSymbol).contract;
+    await this.addReserveToken({ converterAddress, reserveTokenAddress });
+
+    poolParams.onUpdate(5, steps);
+
+    console.log(
+      "we have successfully deployed a smart token contract at",
+      smartTokenAddress
+    );
+    console.log({ converterRes });
+
     return "";
+  }
+
+  @action async resolveTxOnConfirmation({
+    tx,
+    gas
+  }: {
+    tx: any;
+    gas?: number;
+  }): Promise<string> {
+    return new Promise((resolve, reject) => {
+      let txHash: string;
+      tx.send({
+        from: this.isAuthenticated,
+        ...(gas && { gas })
+      })
+        .on("transactionHash", (hash: string) => {
+          txHash = hash;
+        })
+        .on("confirmation", (confirmationNumber: number) => {
+          resolve(txHash);
+        })
+        .on("error", (error: any) => reject(error));
+    });
+  }
+
+  @action async addReserveToken({
+    converterAddress,
+    reserveTokenAddress
+  }: {
+    converterAddress: string;
+    reserveTokenAddress: string;
+  }) {
+    const converterContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverter,
+      converterAddress
+    );
+
+    return this.resolveTxOnConfirmation({
+      tx: converterContract.methods.addReserve(reserveTokenAddress, 500000)
+    });
   }
 
   get supportedFeatures() {
@@ -643,12 +789,12 @@ export class EthBancorModule extends VuexModule
       smartTokenSymbol
     )!;
 
-    // const maxGasPrice = await getBancorGasPriceLimit();
     const converterContract = new web3.eth.Contract(
       // @ts-ignore
       ABIConverter,
       converterAddress
     );
+    
     const smartTokenContract = new web3.eth.Contract(
       // @ts-ignore
       ABISmartToken,
@@ -753,7 +899,7 @@ export class EthBancorModule extends VuexModule
           data: tx.data.encodeABI({ from: vxm.wallet.isAuthenticated })
         })
       }))
-      .forEach((transaction: any, index: number) => {
+      .forEach((transaction: any) => {
         batch.add(
           // @ts-ignore
           web3.eth.sendTransaction.request(fillOuter(transaction))
@@ -868,9 +1014,7 @@ export class EthBancorModule extends VuexModule
 
   @action async focusSymbol(symbolName: string) {
     // @ts-ignore
-    const isAuthenticated = this.$store.rootGetters[
-      "ethWallet/isAuthenticated"
-    ];
+    const isAuthenticated = this.isAuthenticated;
     if (!isAuthenticated) return;
     const token = this.token(symbolName);
     if (!token.balance) {

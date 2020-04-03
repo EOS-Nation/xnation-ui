@@ -25,7 +25,7 @@ import numeral from "numeral";
 
 @Component
 export default class TokenAmountInput extends Vue {
-  @Prop(String) balance!: string;
+  @Prop(Number) balance!: number;
   @Prop(Boolean) loading?: boolean;
   @Prop(String) amount!: number;
   @Prop({ default: "Available:" }) readonly label!: string;
