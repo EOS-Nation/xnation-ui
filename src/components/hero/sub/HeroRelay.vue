@@ -137,13 +137,13 @@ export default class HeroRelay extends Vue {
   rateLoading = false;
   token1Amount = "";
   token2Amount = "";
-  token1UserBalance = "";
-  token2UserBalance = "";
+  token1UserBalance = 0;
+  token2UserBalance = 0;
   smartUserBalance = "";
   fundReward = "";
   liquidateCost = "";
-  token1MaxWithdraw = "";
-  token2MaxWithdraw = "";
+  token1MaxWithdraw = 0;
+  token2MaxWithdraw = 0;
   modal = false;
   error = "";
   success = "";
@@ -456,10 +456,12 @@ export default class HeroRelay extends Vue {
       smartTokenBalance
     } = await this.getUserBalances(this.focusedSymbol);
 
-    this.token1MaxWithdraw = token1MaxWithdraw;
-    this.token2MaxWithdraw = token2MaxWithdraw;
-    this.token1UserBalance = token1Balance;
-    this.token2UserBalance = token2Balance;
+    console.log({ token1MaxWithdraw, token1Balance, smartTokenBalance }, 'test')
+
+    this.token1MaxWithdraw = Number(token1MaxWithdraw);
+    this.token2MaxWithdraw = Number(token2MaxWithdraw);
+    this.token1UserBalance = Number(token2Balance);
+    this.token2UserBalance = Number(token1Balance);
     this.smartUserBalance = smartTokenBalance;
   }
 
