@@ -885,15 +885,11 @@ export class EosBancorModule extends VuexModule
     const attempts = 10;
     const waitPeriod = 1000;
     for (var i = 0; i < attempts; i++) {
-      console.log("Fetching..");
-      console.count("fetching");
       const relays = await fetchRelays();
-      console.log("Fetched");
       const includesRelay = relays.find(
         relay => relay.smartToken.symbol == smartToken
       );
       if (includesRelay) {
-        console.log("Found relay!", smartToken);
         this.setRelays(relays);
         this.refreshBalances(
           includesRelay.reserves.map(reserve => ({
