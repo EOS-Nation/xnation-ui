@@ -27,7 +27,8 @@ import {
   smartTokenByteCode,
   FactoryAbi,
   bancorRegistry,
-  factoryAddress
+  ABIContractRegistry,
+  ABIConverterRegistry
 } from "@/api/ethConfig";
 import { toWei, toHex, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
@@ -35,6 +36,14 @@ import axios, { AxiosResponse } from "axios";
 
 import { vxm } from "@/store";
 import wait from "waait";
+import _ from "lodash";
+
+interface RegisteredContracts {
+  BancorNetwork: string;
+  BancorConverterRegistry: string;
+  BancorX: string;
+  BancorConverterFactory: string;
+}
 
 const removeLeadingZeros = (hexString: string) => {
   const withoutOx = hexString.startsWith("0x") ? hexString.slice(2) : hexString;
@@ -134,6 +143,13 @@ export class EthBancorModule extends VuexModule
   relaysList: Relay[] = [];
   tokenBalances: { symbol: string; balance: number }[] = [];
   tokenMeta: TokenMeta[] = [];
+  bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
+  contracts: RegisteredContracts = {
+    BancorNetwork: "",
+    BancorConverterRegistry: "",
+    BancorX: "",
+    BancorConverterFactory: ""
+  };
 
   get newNetworkTokenChoices(): ModalChoice[] {
     const bntTokenMeta = this.tokenMeta.find(token => token.symbol == "BNT")!;
@@ -268,8 +284,11 @@ export class EthBancorModule extends VuexModule
     smartTokenAddress: string;
     firstReserveTokenAddress: string;
   }): Promise<string> {
-    // @ts-ignore
-    const contract = new web3.eth.Contract(FactoryAbi, factoryAddress);
+    const contract = new web3.eth.Contract(
+      // @ts-ignore
+      FactoryAbi,
+      this.contracts.BancorConverterFactory
+    );
     return this.resolveTxOnConfirmation({
       tx: contract.methods.createConverter(
         smartTokenAddress,
@@ -286,7 +305,7 @@ export class EthBancorModule extends VuexModule
       throw new Error("Was expecting two reserves in new pool");
 
     const networkIndex = poolParams.reserves.findIndex(
-      ([symbol, amount]) => symbol == "BNT" || symbol == "USDB"
+      ([symbol]) => symbol == "BNT" || symbol == "USDB"
     )!;
     if (networkIndex == undefined)
       throw new Error(
@@ -329,6 +348,18 @@ export class EthBancorModule extends VuexModule
       {
         name: "SetBalances",
         description: "Adding Liquidity..."
+      },
+      {
+        name: "OfferOwnership",
+        description: "Passing Smart Token Contract ownership to your Pool.."
+      },
+      {
+        name: "AcceptOwnership",
+        description: "Pool accepting ownership of Smart Token Contract..."
+      },
+      {
+        name: "AddPool",
+        description: "Adding pool to Bancor Registry"
       },
       {
         name: "Finished",
@@ -399,8 +430,62 @@ export class EthBancorModule extends VuexModule
     ]);
 
     poolParams.onUpdate(8, steps);
+    await this.transferTokenContractOwnership([
+      smartTokenAddress,
+      converterAddress
+    ]);
+
+    poolParams.onUpdate(9, steps);
+    await this.acceptTokenContractOwnership(converterAddress);
+
+    poolParams.onUpdate(10, steps);
+    await this.addPoolToRegistry(converterAddress);
+
+    poolParams.onUpdate(11, steps);
 
     return txHash;
+  }
+
+  @action async addPoolToRegistry(converterAddress: string) {
+    const registryContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverterRegistry,
+      this.contracts.BancorConverterRegistry
+    );
+    if (
+      this.contracts.BancorConverterRegistry !==
+      "0xF84B332Db34C6A9b554D80cF9BC6124C1C74495D"
+    )
+      throw new Error("I thought it should be same");
+
+    return this.resolveTxOnConfirmation({
+      tx: registryContract.methods.addConverter(converterAddress)
+    });
+  }
+
+  @action async transferTokenContractOwnership([
+    smartTokenAddress,
+    converterAddress
+  ]: string[]) {
+    const tokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      smartTokenAddress
+    );
+    return this.resolveTxOnConfirmation({
+      tx: tokenContract.methods.transferOwnership(converterAddress)
+    });
+  }
+
+  @action async acceptTokenContractOwnership(converterAddress: string) {
+    const converterContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverter,
+      converterAddress
+    );
+    return this.resolveTxOnConfirmation({
+      tx: converterContract.methods.acceptTokenOwnership()
+    });
   }
 
   @action async issueInitialSupply({
@@ -1032,12 +1117,54 @@ export class EthBancorModule extends VuexModule
     return "Done";
   }
 
+  @action async fetchContractAddresses() {
+    const hardCodedBytes: RegisteredContracts = {
+      BancorNetwork: "0x42616e636f724e6574776f726b",
+      BancorConverterRegistry:
+        "0x42616e636f72436f6e7665727465725265676973747279",
+      BancorX:
+        "0x42616e636f725800000000000000000000000000000000000000000000000000",
+      BancorConverterFactory:
+        "0x42616e636f72436f6e766572746572466163746f727900000000000000000000"
+    };
+
+    const registryContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIContractRegistry,
+      this.bancorContractRegistry
+    );
+
+    const bytesKeys = Object.keys(hardCodedBytes);
+    const bytesList = Object.values(hardCodedBytes);
+
+    const contractAddresses = await Promise.all(
+      bytesList.map(bytes => registryContract.methods.addressOf(bytes).call())
+    );
+
+    const zipped = _.zip(bytesKeys, contractAddresses) as [string, string][];
+
+    const object = zipped.reduce(
+      (acc, [key, value]) => ({
+        ...acc,
+        [key!]: value
+      }),
+      {}
+    ) as RegisteredContracts;
+
+    this.setContractAddresses(object);
+  }
+
+  @mutation setContractAddresses(contracts: RegisteredContracts) {
+    this.contracts = contracts;
+  }
+
   @action async init() {
     const [tokens, relays, tokenMeta] = await Promise.all([
       ethBancorApi.getTokens(),
       getEthRelays(),
       getTokenMeta(),
-      this.fetchUsdPrice()
+      this.fetchUsdPrice(),
+      this.fetchContractAddresses()
     ]);
     this.setRelaysList(relays);
     this.setTokenMeta(tokenMeta);
@@ -1198,8 +1325,7 @@ export class EthBancorModule extends VuexModule
     const toAmountWei = web3.utils.toWei(String(toAmount));
     const minimumReturnWei = String((Number(toAmountWei) * 0.98).toFixed(0));
 
-    // @ts-ignore
-    const ownerAddress = this.$store.rootGetters["ethWallet/isAuthenticated"];
+    const ownerAddress = this.isAuthenticated;
     const convertPost = {
       fromCurrencyId: fromObj.id,
       toCurrencyId: toObj.id,

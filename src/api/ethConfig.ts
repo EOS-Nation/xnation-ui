@@ -70,7 +70,217 @@ export const blackListedConverters: EthAddress[] = [
   "0x6431750a2E43AC6C6b3d84444875576b0Aa7Bd5E"
 ];
 
-export const factoryAddress = '0xbEf6A44d3500Fb314a88359A5791FcDCB104d259'
+export const factoryAddress = "0xbEf6A44d3500Fb314a88359A5791FcDCB104d259";
+
+export const ABIContractRegistry = [
+  {
+    constant: true,
+    inputs: [],
+    name: "BANCOR_CONVERTER_UPGRADER",
+    outputs: [{ name: "", type: "bytes32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "BNT_TOKEN",
+    outputs: [{ name: "", type: "bytes32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_contractName", type: "bytes32" }],
+    name: "getAddress",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "CONTRACT_REGISTRY",
+    outputs: [{ name: "", type: "bytes32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [{ name: "_contractName", type: "bytes32" }],
+    name: "unregisterAddress",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "", type: "uint256" }],
+    name: "contractNames",
+    outputs: [{ name: "", type: "string" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "BANCOR_CONVERTER_FACTORY",
+    outputs: [{ name: "", type: "bytes32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "BNT_CONVERTER",
+    outputs: [{ name: "", type: "bytes32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_contractName", type: "bytes32" },
+      { name: "_contractAddress", type: "address" }
+    ],
+    name: "registerAddress",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "itemCount",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "BANCOR_FORMULA",
+    outputs: [{ name: "", type: "bytes32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: "acceptOwnership",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "CONTRACT_FEATURES",
+    outputs: [{ name: "", type: "bytes32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "owner",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "BANCOR_NETWORK",
+    outputs: [{ name: "", type: "bytes32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "BANCOR_GAS_PRICE_LIMIT",
+    outputs: [{ name: "", type: "bytes32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_contractName", type: "bytes32" }],
+    name: "addressOf",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "BANCOR_X",
+    outputs: [{ name: "", type: "bytes32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "newOwner",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [{ name: "_newOwner", type: "address" }],
+    name: "transferOwnership",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "constructor"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "_contractName", type: "bytes32" },
+      { indexed: false, name: "_contractAddress", type: "address" }
+    ],
+    name: "AddressUpdate",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "_prevOwner", type: "address" },
+      { indexed: true, name: "_newOwner", type: "address" }
+    ],
+    name: "OwnerUpdate",
+    type: "event"
+  }
+];
 
 export const FactoryAbi = [
   {
@@ -427,6 +637,354 @@ export const ABISmartToken = [
       { indexed: false, name: "_value", type: "uint256" }
     ],
     name: "Approval",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "_prevOwner", type: "address" },
+      { indexed: true, name: "_newOwner", type: "address" }
+    ],
+    name: "OwnerUpdate",
+    type: "event"
+  }
+];
+
+export const ABIConverterRegistry = [
+  {
+    constant: false,
+    inputs: [{ name: "_onlyOwnerCanUpdateRegistry", type: "bool" }],
+    name: "restrictRegistryUpdate",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "getSmartTokens",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_smartTokens", type: "address[]" }],
+    name: "getConvertersBySmartTokens",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "onlyOwnerCanUpdateRegistry",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_value", type: "address" }],
+    name: "isConvertibleToken",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_value", type: "address" }],
+    name: "isSmartToken",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: "updateRegistry",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "getConvertibleTokens",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "prevRegistry",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "getConvertibleTokenCount",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [{ name: "_converter", type: "address" }],
+    name: "addConverter",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_convertibleToken", type: "address" },
+      { name: "_value", type: "address" }
+    ],
+    name: "isConvertibleTokenSmartToken",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: "acceptOwnership",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "getLiquidityPoolCount",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "registry",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "getLiquidityPools",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_reserveTokens", type: "address[]" },
+      { name: "_reserveRatios", type: "uint256[]" }
+    ],
+    name: "getLiquidityPoolByReserveConfig",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_index", type: "uint256" }],
+    name: "getConvertibleToken",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "owner",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_converter", type: "address" }],
+    name: "isConverterValid",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [{ name: "_converter", type: "address" }],
+    name: "removeConverter",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_index", type: "uint256" }],
+    name: "getSmartToken",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_convertibleToken", type: "address" }],
+    name: "getConvertibleTokenSmartTokenCount",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_index", type: "uint256" }],
+    name: "getLiquidityPool",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: "restoreRegistry",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "newOwner",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_convertibleToken", type: "address" },
+      { name: "_index", type: "uint256" }
+    ],
+    name: "getConvertibleTokenSmartToken",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "getSmartTokenCount",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_value", type: "address" }],
+    name: "isLiquidityPool",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [{ name: "_newOwner", type: "address" }],
+    name: "transferOwnership",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_convertibleToken", type: "address" }],
+    name: "getConvertibleTokenSmartTokens",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [{ name: "_registry", type: "address" }],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "constructor"
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, name: "_smartToken", type: "address" }],
+    name: "SmartTokenAdded",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, name: "_smartToken", type: "address" }],
+    name: "SmartTokenRemoved",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, name: "_liquidityPool", type: "address" }],
+    name: "LiquidityPoolAdded",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, name: "_liquidityPool", type: "address" }],
+    name: "LiquidityPoolRemoved",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "_convertibleToken", type: "address" },
+      { indexed: true, name: "_smartToken", type: "address" }
+    ],
+    name: "ConvertibleTokenAdded",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "_convertibleToken", type: "address" },
+      { indexed: true, name: "_smartToken", type: "address" }
+    ],
+    name: "ConvertibleTokenRemoved",
     type: "event"
   },
   {
