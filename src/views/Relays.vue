@@ -99,7 +99,6 @@ import axios from "axios";
 import SortIcons from "@/components/common/SortIcons.vue";
 import { TokenPrice } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
-import { fetchTokenMeta, fetchTokenStats } from "@/api/helpers";
 import { tableApi } from "../api/TableWrapper";
 import Velocity from "velocity-animate";
 

@@ -27,10 +27,7 @@
           />
           <div class="mb-3 mt-3">
             <div class="text-white font-size-sm">
-              {{
-                smartUserBalance &&
-                  `Your balance: ${smartUserBalance} ${focusedSymbol}`
-              }}
+              {{ `Your balance: ${smartUserBalance} ${focusedSymbol}` }}
               <span v-if="rateLoading">
                 <font-awesome-icon icon="circle-notch" spin />
               </span>
@@ -414,7 +411,9 @@ export default class HeroRelay extends Vue {
     } catch (e) {
       this.error = e.message;
       // @ts-ignore
-      this.$analytics.logEvent("exception", { description: `${this.isAuthenticated} recieved error ${e.message} while attempting a fund action, expecting to receive ${this.fundReward} for ${this.token1Amount} ${this.token1Symbol} + ${this.token2Amount} ${this.token2Symbol}` });
+      this.$analytics.logEvent("exception", {
+        description: `${this.isAuthenticated} recieved error ${e.message} while attempting a fund action, expecting to receive ${this.fundReward} for ${this.token1Amount} ${this.token1Symbol} + ${this.token2Amount} ${this.token2Symbol}`
+      });
     }
     this.txBusy = false;
   }
@@ -456,12 +455,10 @@ export default class HeroRelay extends Vue {
       smartTokenBalance
     } = await this.getUserBalances(this.focusedSymbol);
 
-    console.log({ token1MaxWithdraw, token1Balance, smartTokenBalance }, 'test')
-
     this.token1MaxWithdraw = Number(token1MaxWithdraw);
     this.token2MaxWithdraw = Number(token2MaxWithdraw);
-    this.token1UserBalance = Number(token2Balance);
-    this.token2UserBalance = Number(token1Balance);
+    this.token1UserBalance = Number(token1Balance);
+    this.token2UserBalance = Number(token2Balance);
     this.smartUserBalance = smartTokenBalance;
   }
 
@@ -481,17 +478,13 @@ export default class HeroRelay extends Vue {
 }
 
 .slide-fade-up-enter
-/* .slide-fade-leave-active below version 2.1.8 */
-
- {
+/* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateY(75px);
   opacity: 0;
 }
 
 .slide-fade-up-leave-to
-/* .slide-fade-leave-active below version 2.1.8 */
-
- {
+/* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateY(-75px);
   opacity: 0;
 }
@@ -505,17 +498,13 @@ export default class HeroRelay extends Vue {
 }
 
 .slide-fade-down-enter
-/* .slide-fade-leave-active below version 2.1.8 */
-
- {
+/* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateY(-75px);
   opacity: 0;
 }
 
 .slide-fade-down-leave-to
-/* .slide-fade-leave-active below version 2.1.8 */
-
- {
+/* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateY(75px);
   opacity: 0;
 }
@@ -527,9 +516,7 @@ export default class HeroRelay extends Vue {
 
 .fade-enter,
 .fade-leave-to
-/* .fade-leave-active below version 2.1.8 */
-
- {
+/* .fade-leave-active below version 2.1.8 */ {
   opacity: 0;
 }
 </style>

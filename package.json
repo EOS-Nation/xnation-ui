@@ -88,5 +88,11 @@
     "typescript": "^3.7.4",
     "vue-cli-plugin-i18n": "^0.6.0",
     "vue-template-compiler": "^2.5.21"
+  },
+  "prettier": {
+    "semi": true,
+    "singleQuote": false,
+    "trailingComma": "none",
+    "arrowParens": "avoid"
   }
 }

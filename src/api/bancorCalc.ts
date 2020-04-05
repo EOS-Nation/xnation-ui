@@ -65,12 +65,6 @@ export function calculateReturn(
       .toNumber(),
     balanceTo.symbol
   );
-  console.log({
-    balanceFrom: balanceFrom.to_string(),
-    balanceTo: balanceTo.to_string(),
-    amount: amount.to_string(),
-    reward: rewardAsset.to_string()
-  });
   const slippage = asset_to_number(amount) / asset_to_number(balanceFrom);
 
   return { reward: rewardAsset, slippage };

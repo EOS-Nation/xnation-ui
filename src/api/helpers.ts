@@ -3460,15 +3460,6 @@ export interface Relay {
   owner: string;
 }
 
-export const cacheMetaData = async () => {
-  const res = await axios.get(tokenMetaDataEndpoint);
-  tokenMeta = [
-    ...res.data.filter((meta: TokenMeta) => meta.chain == "eos"),
-    ...tokenMeta
-  ];
-  shouldDownload = false;
-};
-
 export const createAsset = (
   amount: number,
   symbolName: string,
@@ -3478,21 +3469,6 @@ export const createAsset = (
     amount * Math.pow(10, precision),
     new Symbol(symbolName, precision)
   );
-};
-
-export const fetchTokenMeta = async (
-  contract: string,
-  symbol: string
-): Promise<TokenMeta> => {
-  if (shouldDownload) {
-    await cacheMetaData();
-  }
-  const metaData = tokenMeta.find(
-    (tokenMeta: any) =>
-      tokenMeta.symbol == symbol && tokenMeta.account == contract
-  );
-  if (!metaData) throw new Error("Token not found");
-  return metaData;
 };
 
 export const getBankBalance = async (): Promise<{

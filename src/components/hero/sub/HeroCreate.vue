@@ -111,7 +111,11 @@ import ModalMultiTx from "@/components/modals/ModalMultiTx.vue";
 import Stepper from "@/components/modals/Stepper.vue";
 import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
 import { State, Getter, Action, namespace } from "vuex-class";
-import { LiquidityModule } from "../../../types/bancor";
+import {
+  LiquidityModule,
+  TradingModule,
+  CreatePoolModule
+} from "../../../types/bancor";
 import wait from "waait";
 
 const bancor = namespace("bancor");
@@ -143,17 +147,23 @@ export default class HeroConvert extends Vue {
   stepIndex = 0;
 
   @bancor.Action init!: LiquidityModule["init"];
+  @bancor.Action createPool!: CreatePoolModule["createPool"];
+  @bancor.Action focusSymbol!: TradingModule["focusSymbol"];
 
   feeFormatter(fee: number) {
     return `${fee} %`;
   }
 
   networkTokenChange(symbolName: string) {
+    console.log("network token change was hit");
+    this.focusSymbol(symbolName);
     const optionAvailable = vxm.bancor
       .newPoolTokenChoices(symbolName)
       .some(x => x.symbol == this.token2Symbol);
     if (!optionAvailable) {
-      this.token2Symbol = vxm.bancor.newPoolTokenChoices(symbolName)[0].symbol;
+      const listingToken = vxm.bancor.newPoolTokenChoices(symbolName)[0].symbol;
+      this.token2Symbol = listingToken;
+      this.focusSymbol(listingToken);
     }
   }
 
@@ -174,13 +184,15 @@ export default class HeroConvert extends Vue {
   }
 
   get networkTokenReward() {
-    return `1 ${this.token1Symbol} = ${Number(this.token2Amount) /
-      Number(this.token1Amount)} ${this.token2Symbol}`;
+    return `1 ${this.token1Symbol} = ${
+      Number(this.token2Amount) / Number(this.token1Amount)
+    } ${this.token2Symbol}`;
   }
 
   get tokenReward() {
-    return `1 ${this.token2Symbol} = ${Number(this.token1Amount) /
-      Number(this.token2Amount)} ${this.token1Symbol}`;
+    return `1 ${this.token2Symbol} = ${
+      Number(this.token1Amount) / Number(this.token2Amount)
+    } ${this.token1Symbol}`;
   }
 
   get calculationsAvailable() {
@@ -223,10 +235,9 @@ export default class HeroConvert extends Vue {
   }
 
   get selectedNetworkToken() {
-    const res = vxm.bancor.newNetworkTokenChoices.find(
+    return vxm.bancor.newNetworkTokenChoices.find(
       x => x.symbol == this.token1Symbol
     )!;
-    return res;
   }
 
   get selectedToken() {
@@ -238,15 +249,23 @@ export default class HeroConvert extends Vue {
   }
 
   get tokenChoices() {
-    return vxm.bancor.newPoolTokenChoices(this.token1Symbol);
+    console.log(this.token1Symbol, "looking for that shit.. ");
+    const choices = vxm.bancor.newPoolTokenChoices(this.token1Symbol);
+    console.log(
+      choices[0].symbol,
+      "was first to come through on token choices"
+    );
+    return choices;
   }
 
   get displayedToken1Balance() {
-    return this.selectedNetworkToken.balance || "0";
+    console.log(this.selectedNetworkToken, "selected network token");
+    return this.selectedNetworkToken.balance || 0;
   }
 
   get displayedToken2Balance() {
-    return this.selectedToken.balance || "0";
+    console.log(this.selectedToken, "selected token");
+    return this.selectedToken.balance || 0;
   }
 
   get isAuthenticated() {
@@ -263,7 +282,7 @@ export default class HeroConvert extends Vue {
     this.txModal = true;
     this.txBusy = true;
     try {
-      const txId = await vxm.bancor.createPool({
+      const txId = await this.createPool({
         reserves: [
           [this.token1Symbol, this.token1Amount],
           [this.token2Symbol, this.token2Amount]
@@ -281,10 +300,23 @@ export default class HeroConvert extends Vue {
     }
   }
 
+  @Watch("tokenChoices")
+  availableInsurance() {
+    const tokenChoiceStillExists = this.tokenChoices.some(
+      tokenChoice => tokenChoice.symbol == this.token2Symbol
+    );
+    if (!tokenChoiceStillExists)
+      this.token2Symbol = this.tokenChoices[0].symbol;
+  }
+
   created() {
     const networkTokenSymbol = vxm.bancor.newNetworkTokenChoices[0].symbol;
+    const listingTokenSymbol = this.tokenChoices[0].symbol;
+    console.log({ networkTokenSymbol, listingTokenSymbol });
     this.token1Symbol = networkTokenSymbol;
-    this.token2Symbol = this.tokenChoices[0].symbol;
+    this.token2Symbol = listingTokenSymbol;
+    this.focusSymbol(networkTokenSymbol);
+    this.focusSymbol(listingTokenSymbol);
     this.loaded = true;
   }
 }
@@ -304,17 +336,13 @@ export default class HeroConvert extends Vue {
 }
 
 .slide-fade-up-enter
-/* .slide-fade-leave-active below version 2.1.8 */
-
- {
+/* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateY(75px);
   opacity: 0;
 }
 
 .slide-fade-up-leave-to
-/* .slide-fade-leave-active below version 2.1.8 */
-
- {
+/* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateY(-75px);
   opacity: 0;
 }
@@ -328,17 +356,13 @@ export default class HeroConvert extends Vue {
 }
 
 .slide-fade-down-enter
-/* .slide-fade-leave-active below version 2.1.8 */
-
- {
+/* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateY(-75px);
   opacity: 0;
 }
 
 .slide-fade-down-leave-to
-/* .slide-fade-leave-active below version 2.1.8 */
-
- {
+/* .slide-fade-leave-active below version 2.1.8 */ {
   transform: translateY(75px);
   opacity: 0;
 }
@@ -350,9 +374,7 @@ export default class HeroConvert extends Vue {
 
 .fade-enter,
 .fade-leave-to
-/* .fade-leave-active below version 2.1.8 */
-
- {
+/* .fade-leave-active below version 2.1.8 */ {
   opacity: 0;
 }
 </style>

@@ -132,7 +132,7 @@ export class EthBancorModule extends VuexModule
   tokensList: any[] = [];
   usdPrice: number = 0;
   relaysList: Relay[] = [];
-  tokenBalances: { symbol: string; balance: string }[] = [];
+  tokenBalances: { symbol: string; balance: number }[] = [];
   tokenMeta: TokenMeta[] = [];
 
   get newNetworkTokenChoices(): ModalChoice[] {
@@ -145,9 +145,11 @@ export class EthBancorModule extends VuexModule
         img: bntTokenMeta.image,
         balance:
           (this.tokenBalances.find(balance => balance.symbol == "BNT") &&
-            this.tokenBalances.find(balance => balance.symbol == "BNT")!
-              .balance) ||
-          "0"
+            Number(
+              this.tokenBalances.find(balance => balance.symbol == "BNT")!
+                .balance
+            )) ||
+          0
       },
       {
         contract: usdBTokenMeta.contract,
@@ -155,9 +157,11 @@ export class EthBancorModule extends VuexModule
         img: usdBTokenMeta.image,
         balance:
           (this.tokenBalances.find(balance => balance.symbol == "USDB") &&
-            this.tokenBalances.find(balance => balance.symbol == "USDB")!
-              .balance) ||
-          "0"
+            Number(
+              this.tokenBalances.find(balance => balance.symbol == "USDB")!
+                .balance
+            )) ||
+          0
       }
     ];
   }
@@ -173,10 +177,19 @@ export class EthBancorModule extends VuexModule
             (this.tokenBalances.find(
               balance => balance.symbol == meta.symbol
             ) &&
-              this.tokenBalances.find(balance => balance.symbol == meta.symbol)!
-                .balance) ||
-            "0"
+              Number(
+                this.tokenBalances.find(
+                  balance => balance.symbol == meta.symbol
+                )!.balance
+              )) ||
+            0
         }))
+        .filter(
+          meta =>
+            !this.newNetworkTokenChoices.some(
+              choice => choice.symbol == meta.symbol
+            )
+        )
         .filter(
           tokenChoice =>
             !this.relays.some(relay =>
@@ -204,29 +217,15 @@ export class EthBancorModule extends VuexModule
     smartTokenName: string;
     smartTokenSymbol: string;
     precision: number;
-  }): Promise<{ txHash: string }> {
-    let txHash: string;
-    return new Promise((resolve, reject) => {
-      // @ts-ignore
-      const contract = new web3.eth.Contract(ABISmartToken, null);
-      contract
-        .deploy({
-          data: smartTokenByteCode,
-          arguments: [smartTokenName, smartTokenSymbol, precision]
-        })
-        .send({
-          from: this.isAuthenticated,
-          gas: 1200000
-        })
-        .on("transactionHash", (hash: string) => {
-          txHash = hash;
-        })
-        .on("confirmation", (confirmationNumber: number) => {
-          console.log(confirmationNumber, "was confirmation number");
-          resolve({ txHash });
-        })
-        .on("error", (error: any) => reject(error));
+  }): Promise<string> {
+    // @ts-ignore
+    const contract = new web3.eth.Contract(ABISmartToken, null);
+    contract.deploy({
+      data: smartTokenByteCode,
+      arguments: [smartTokenName, smartTokenSymbol, precision]
     });
+
+    return this.resolveTxOnConfirmation({ tx: contract, gas: 1200000 });
   }
 
   @action async fetchNewConverterAddressFromHash(
@@ -268,28 +267,17 @@ export class EthBancorModule extends VuexModule
   }: {
     smartTokenAddress: string;
     firstReserveTokenAddress: string;
-  }): Promise<{ txHash: string }> {
-    let txHash: string;
-    return new Promise((resolve, reject) => {
-      // @ts-ignore
-      const contract = new web3.eth.Contract(FactoryAbi, factoryAddress);
-
-      contract.methods
-        .createConverter(
-          smartTokenAddress,
-          bancorRegistry,
-          50000,
-          firstReserveTokenAddress,
-          500000
-        )
-        .send({ from: this.isAuthenticated })
-        .on("transactionHash", (hash: string) => {
-          txHash = hash;
-        })
-        .on("confirmation", (confirmationNumber: number) => {
-          resolve({ txHash });
-        })
-        .on("error", (error: any) => reject(error));
+  }): Promise<string> {
+    // @ts-ignore
+    const contract = new web3.eth.Contract(FactoryAbi, factoryAddress);
+    return this.resolveTxOnConfirmation({
+      tx: contract.methods.createConverter(
+        smartTokenAddress,
+        bancorRegistry,
+        50000,
+        firstReserveTokenAddress,
+        500000
+      )
     });
   }
 
@@ -354,7 +342,7 @@ export class EthBancorModule extends VuexModule
     const listedTokenAddress = this.tokenMetaObj(tokenSymbol).contract;
 
     poolParams.onUpdate(0, steps);
-    const { txHash } = await this.deploySmartTokenContract({
+    const txHash = await this.deploySmartTokenContract({
       smartTokenSymbol,
       precision,
       smartTokenName
@@ -376,7 +364,7 @@ export class EthBancorModule extends VuexModule
 
     poolParams.onUpdate(3, steps);
     const converterAddress = await this.fetchNewConverterAddressFromHash(
-      converterRes.txHash
+      converterRes
     );
 
     poolParams.onUpdate(4, steps);
@@ -580,7 +568,7 @@ export class EthBancorModule extends VuexModule
       change24h: token.change24h,
       volume24h: token.volume24h.USD,
       tokenAddress: token.tokenAddress || "",
-      balance: token.balance || ""
+      balance: token.balance || 0
     }));
   }
 
@@ -612,10 +600,9 @@ export class EthBancorModule extends VuexModule
         tokenAddress: reserve.contract,
         logo: `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${reserve.contract}/logo.png`,
         balance:
-          (this.tokenBalances.find(balance => balance.symbol == symbolName) &&
-            this.tokenBalances.find(balance => balance.symbol == symbolName)!
-              .balance) ||
-          "0"
+          this.tokenBalances.find(balance => balance.symbol == symbolName) &&
+          this.tokenBalances.find(balance => balance.symbol == symbolName)!
+            .balance
       };
     };
   }
@@ -790,6 +777,7 @@ export class EthBancorModule extends VuexModule
     });
   }
 
+  // @ts-ignore
   @action async getUserBalances(symbolName: string) {
     if (!vxm.wallet.isAuthenticated)
       throw new Error("Cannot find users .isAuthenticated");
@@ -819,10 +807,10 @@ export class EthBancorModule extends VuexModule
     const token1SmartInt = token1SmartBalance.toFixed(0);
     const token2SmartInt = token2SmartBalance.toFixed(0);
     return {
-      token1MaxWithdraw: fromWei(token1SmartInt),
-      token2MaxWithdraw: fromWei(token2SmartInt),
-      token1Balance: tokenUserBalance,
-      token2Balance: bntUserBalance,
+      token1MaxWithdraw: Number(fromWei(token1SmartInt)),
+      token2MaxWithdraw: Number(fromWei(token2SmartInt)),
+      token1Balance: bntUserBalance,
+      token2Balance: tokenUserBalance,
       smartTokenBalance: smartTokenUserBalance
     };
   }
@@ -862,9 +850,9 @@ export class EthBancorModule extends VuexModule
       liquidateCost,
       String(Number(smartUserBalance) * Math.pow(10, 18))
     );
-    let smartTokenAmount;
+    let smartTokenAmount: string;
     if (percentDifferenceBetweenSmartBalance > 0.99) {
-      const userSmartTokenBalance = toWei(smartUserBalance);
+      const userSmartTokenBalance = toWei(String(smartUserBalance));
       smartTokenAmount = userSmartTokenBalance;
     } else {
       smartTokenAmount = liquidateCost;
@@ -1146,7 +1134,6 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async focusSymbol(symbolName: string) {
-    // @ts-ignore
     const isAuthenticated = this.isAuthenticated;
     if (!isAuthenticated) return;
     const token = this.token(symbolName);
@@ -1159,7 +1146,7 @@ export class EthBancorModule extends VuexModule
     }
   }
 
-  @mutation updateBalance([symbolName, balance]: [string, string]) {
+  @mutation updateBalance([symbolName, balance]: [string, number]) {
     this.tokensList = this.tokensList.map(token =>
       token.code == symbolName ? { ...token, balance } : token
     );

@@ -122,7 +122,6 @@ import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import TokenField from "@/components/convert/TokenField.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
-import { parseTokens, fetchTokenMeta } from "@/api/helpers";
 import wait from "waait";
 import { Route } from "vue-router";
 import TwoTokenHero from "./TwoTokenHero.vue";
