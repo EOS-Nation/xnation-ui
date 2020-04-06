@@ -98,11 +98,12 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       const tokenBalance = vxm.eosNetwork.balance({
         contract,
         symbol: sym.code().to_string()
-      })
-      balance = tokenBalance && Number(tokenBalance.balance) || 0
+      });
+      balance = (tokenBalance && Number(tokenBalance.balance)) || 0;
 
       try {
-        const eosModuleBorrowed = vxm.eosBancor.token(token);
+        const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(tokenMeta => tokenMeta.symbol == token)!
+        if (!eosModuleBorrowed) throw new Error("Failed to find token");
         name = eosModuleBorrowed.name;
         logo = eosModuleBorrowed.logo;
       } catch (e) {
@@ -209,9 +210,10 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   @action async getReturn(propose: ProposedTransaction) {
     const { fromSymbol, amount, toSymbol } = propose;
 
-    const pools = await get_pools(rpc);
-
-    const settings = await get_settings(rpc);
+    const [pools, settings] = await Promise.all([
+      get_pools(rpc),
+      get_settings(rpc)
+    ]);
 
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();
@@ -245,8 +247,10 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   @action async getCost(propose: ProposedTransaction) {
     const { fromSymbol, amount, toSymbol } = propose;
 
-    const pools = await get_pools(rpc);
-    const settings = await get_settings(rpc);
+    const [pools, settings] = await Promise.all([
+      get_pools(rpc),
+      get_settings(rpc)
+    ]);
 
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();

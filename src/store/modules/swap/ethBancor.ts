@@ -150,6 +150,7 @@ export class EthBancorModule extends VuexModule
     BancorX: "",
     BancorConverterFactory: ""
   };
+  convertibleTokens: string[] = [];
 
   get newNetworkTokenChoices(): ModalChoice[] {
     const bntTokenMeta = this.tokenMeta.find(token => token.symbol == "BNT")!;
@@ -1152,6 +1153,7 @@ export class EthBancorModule extends VuexModule
     ) as RegisteredContracts;
 
     this.setContractAddresses(object);
+    return object;
   }
 
   @mutation setContractAddresses(contracts: RegisteredContracts) {
@@ -1159,12 +1161,12 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async init() {
-    const [tokens, relays, tokenMeta] = await Promise.all([
+    const [tokens, relays, tokenMeta, contractAddresses] = await Promise.all([
       ethBancorApi.getTokens(),
       getEthRelays(),
       getTokenMeta(),
-      this.fetchUsdPrice(),
-      this.fetchContractAddresses()
+      this.fetchContractAddresses(),
+      this.fetchUsdPrice()
     ]);
     this.setRelaysList(relays);
     this.setTokenMeta(tokenMeta);
@@ -1188,6 +1190,26 @@ export class EthBancorModule extends VuexModule
     this.fetchLiquidityDepths(relaysNotTrackedOnApi);
 
     this.setTokensList(tokensWithAddresses);
+
+    this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry);
+  }
+
+  @action async fetchConvertibleTokens(converterRegistryAddress: string) {
+    const registryContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverterRegistry,
+      converterRegistryAddress
+    );
+    const convertibleTokens: string[] = await registryContract.methods
+      .getConvertibleTokens()
+      .call();
+
+    console.log("CONVERTIBLE TOKENS", convertibleTokens);
+    this.setConvertibleTokens(convertibleTokens);
+  }
+
+  @mutation setConvertibleTokens(convertibleTokens: string[]) {
+    this.convertibleTokens = convertibleTokens;
   }
 
   @action async fetchLiquidityDepths(relays: Relay[]) {
