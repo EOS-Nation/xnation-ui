@@ -10,6 +10,8 @@ import { client } from "./dFuse";
 import { TokenBalances, EthplorerBalance, EosMultiRelay } from "@/types/bancor";
 import Web3 from "web3";
 import { ABIBancorGasPriceLimit, BancorGasLimit } from "./ethConfig";
+import { Wallet } from "eos-transit/lib";
+import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
 
 const tokenMetaDataEndpoint =
   "https://raw.githubusercontent.com/eoscafe/eos-airdrops/master/tokens.json";
@@ -3434,7 +3436,7 @@ export const getEthRelays = async (): Promise<Relay[]> => {
       version: relay.converterVersion,
       owner: relay.owner
     }));
-    return relays;
+  return relays;
 };
 
 export type EosAccount = string;
@@ -3471,20 +3473,27 @@ export const createAsset = (
   );
 };
 
-export const getBankBalance = async (): Promise<{
-  id: number;
-  quantity: string;
-  symbl: string;
-}[]> => {
-  // @ts-ignore
-  const account = vxm.eosWallet.wallet.auth.accountName;
-  const res = await client.stateTable(
-    process.env.VUE_APP_MULTICONTRACT!,
-    account,
-    "accounts"
-  );
-  // @ts-ignore
-  return res.rows.map(row => row.json);
+const isAuthenticatedViaModule = (module: EosTransitModule) => {
+  const isAuthenticated =
+    module.wallet && module.wallet.auth && module.wallet.auth.accountName;
+  if (!isAuthenticated) throw new Error("Not logged in");
+  return isAuthenticated;
+};
+
+export const getBankBalance = async (): Promise<
+  {
+    id: number;
+    quantity: string;
+    symbl: string;
+  }[]
+> => {
+  const account = isAuthenticatedViaModule(vxm.eosWallet);
+  const res = await client.stateTable<{
+    id: number;
+    quantity: string;
+    symbl: string;
+  }>(process.env.VUE_APP_MULTICONTRACT!, account, "accounts")!;
+  return res.rows.map(row => row.json!);
 };
 
 export enum Feature {
@@ -3509,44 +3518,46 @@ export const services: Service[] = [
       Feature.CreatePool
     ]
   },
-  { namespace: "eth", features: [Feature.Trade, Feature.Liquidity, Feature.CreatePool ] },
+  {
+    namespace: "eth",
+    features: [Feature.Trade, Feature.Liquidity, Feature.CreatePool]
+  },
   { namespace: "usds", features: [Feature.Trade] }
 ];
 
 export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
   const { scopes } = await client.stateTableScopes(contractName, "converters");
-  const rawConverters = await client.stateTablesForScopes(
-    contractName,
-    scopes,
-    "converters"
-  );
+  const rawConverters = await client.stateTablesForScopes<{
+    currency: string;
+    owner: string;
+    stake_enabled: boolean;
+    fee: number;
+  }>(contractName, scopes, "converters");
   const polishedConverters = rawConverters.tables;
-  const rawReserves = await client.stateTablesForScopes(
-    contractName,
-    scopes,
-    "reserves"
-  );
+  const rawReserves = await client.stateTablesForScopes<{
+    contract: string;
+    ratio: number;
+    balance: string;
+  }>(contractName, scopes, "reserves");
   const polishedReserves = rawReserves.tables;
 
   const flatRelays = polishedReserves
-    .filter((reserveTable: any) => reserveTable.rows.length == 2)
-    .map((reserveTable: any) => {
-      // @ts-ignore
-      const { json, key } = polishedConverters.find(
-        (converter: any) => converter.scope == reserveTable.scope
+    .filter(reserveTable => reserveTable.rows.length == 2)
+    .map(reserveTable => {
+      const { json } = polishedConverters.find(
+        converter => converter.scope == reserveTable.scope
       )!.rows[0];
       return {
-        key,
-        settings: json,
-        reserves: reserveTable.rows.map((reserve: any) => reserve.json)
+        settings: json!,
+        reserves: reserveTable.rows.map(reserve => reserve.json!)
       };
     });
 
-  const relays: EosMultiRelay[] = flatRelays.map((flatRelay: any) => {
+  const relays: EosMultiRelay[] = flatRelays.map(flatRelay => {
     const [precision, symbolName] = flatRelay.settings.currency.split(",");
     return {
-      reserves: flatRelay.reserves.map(({ contract, balance }: any) => ({
+      reserves: flatRelay.reserves.map(({ contract, balance }) => ({
         contract,
         precision: Number(balance.split(" ")[0].split(".")[1].length),
         symbol: balance.split(" ")[1],
@@ -3559,7 +3570,7 @@ export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
       smartToken: {
         contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
         symbol: symbolName,
-        precision,
+        precision: Number(precision),
         amount: 0,
         network: "eos"
       },
