@@ -1,10 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
-// @ts-ignore
-import { Asset, Symbol } from "eos-common";
-// @ts-ignore
-import { EosAccount, nRelay } from "bancorx/build/interfaces";
+import { Asset } from "eos-common";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
 import { TokenBalances, EthplorerBalance, EosMultiRelay } from "@/types/bancor";
@@ -76,9 +73,7 @@ export const getBalance = async (
   contract: string,
   symbolName: string
 ): Promise<string> => {
-  // @ts-ignore
-  const account = vxm.eosWallet.wallet.auth.accountName;
-  if (!account) throw new Error("Failed to get account name");
+  const account = isAuthenticatedViaModule(vxm.eosWallet);
   const tableResult = await eosRpc.get_currency_balance(
     contract,
     account,
@@ -120,40 +115,13 @@ let tokenMeta: TokenMeta[] = [
   }
 ];
 
-let shouldDownload = true;
-
 export const getTokenBalances = async (
   accountName: string
 ): Promise<TokenBalances> => {
-  const res = await axios.get(
+  const res = await axios.get<TokenBalances>(
     `https://api.eossweden.org/v2/state/get_tokens?account=${accountName}`
   );
   return res.data;
-};
-
-export const getTokenBalancesEthplorerRequest = async (
-  accountAddress: string
-): Promise<EthplorerBalance> => {
-  const res = await axios.get(
-    `https://api.ethplorer.io/getAddressInfo/${accountAddress}?apiKey=freekey`
-  );
-  return res.data;
-};
-
-export const getTokenBalancesEthplorer = async (
-  accountAddress: string
-): Promise<{ symbol: string; amount: string }[]> => {
-  const res = await getTokenBalancesEthplorerRequest(accountAddress);
-  return [
-    {
-      symbol: "ETH",
-      amount: String(res.ETH.balance)
-    },
-    ...res.tokens.map(token => ({
-      symbol: token.tokenInfo.symbol,
-      amount: Web3.utils.fromWei(String(token.balance))
-    }))
-  ];
 };
 
 export const getEthRelays = async (): Promise<Relay[]> => {
@@ -3462,17 +3430,6 @@ export interface Relay {
   owner: string;
 }
 
-export const createAsset = (
-  amount: number,
-  symbolName: string,
-  precision: number
-): Asset => {
-  return new Asset(
-    amount * Math.pow(10, precision),
-    new Symbol(symbolName, precision)
-  );
-};
-
 const isAuthenticatedViaModule = (module: EosTransitModule) => {
   const isAuthenticated =
     module.wallet && module.wallet.auth && module.wallet.auth.accountName;
@@ -3594,7 +3551,7 @@ interface BlockChainTickerRes {
 }
 
 export const getBitcoinPrice = async () => {
-  const res: AxiosResponse<BlockChainTickerRes> = await axios.get(
+  const res = await axios.get<BlockChainTickerRes>(
     "https://blockchain.info/ticker"
   );
   return res.data["USD"].last;
