@@ -278,6 +278,21 @@ export class EthBancorModule extends VuexModule
     throw new Error("Failed to find new address in decent time");
   }
 
+  @action async existingReserveAddress(
+    reserveTokens: string[]
+  ): Promise<string | false> {
+    const registryContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverterRegistry,
+      this.contracts.BancorConverterRegistry
+    );
+    const address = await registryContract.methods
+      .getLiquidityPoolByReserveConfig(reserveTokens, [500000, 500000])
+      .call();
+
+    return address !== "0x0000000000000000000000000000000000000000" && address;
+  }
+
   @action async deployConverter({
     smartTokenAddress,
     firstReserveTokenAddress
