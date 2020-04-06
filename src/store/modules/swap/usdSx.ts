@@ -90,7 +90,6 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const tokens = Object.keys(this.tokensList!);
     return tokens.map(token => {
       let name, logo, balance;
-      console.log("handling", this.tokensList![token]);
       let {
         id: { sym, contract }
       } = this.tokensList![token];

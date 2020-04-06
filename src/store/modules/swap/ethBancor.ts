@@ -1198,15 +1198,185 @@ export class EthBancorModule extends VuexModule
       })
     }));
 
+    // Tokens include the liquidity depth of their relay from the API
+    // API does not include all relays
+    // Relays are currently hard coded,
+    // need to expand on hard coded relays and add smartToken registered ones
+    // 1. fetch smart tokens
+    // 2. create list of all smart tokens not tracked
+    // 3. build Relay[] list, and add onto relaysNotTrackedOnApi
+    const smartTokenAddresses = await this.fetchSmartTokenAddresses(
+      contractAddresses.BancorConverterRegistry
+    );
+    const alreadyTrackedSmartTokenAddresses = relays.map(
+      relay => relay.smartToken.contract
+    );
+    const smartTokenAddressesNotTracked = smartTokenAddresses.filter(
+      smartTokenAddress =>
+        !alreadyTrackedSmartTokenAddresses.includes(smartTokenAddress)
+    );
+
+    console.log({
+      smartTokenAddresses,
+      alreadyTrackedSmartTokenAddresses,
+      smartTokenAddressesNotTracked
+    });
+
+    this.appendRelaysWithSmartTokenAddresses(smartTokenAddressesNotTracked);
+
     const relaysNotTrackedOnApi = relays.filter(
       relay =>
         !tokens.find(token => token.code == getPoolReserveToken(relay).symbol)
     );
+
     this.fetchLiquidityDepths(relaysNotTrackedOnApi);
 
     this.setTokensList(tokensWithAddresses);
 
     this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry);
+  }
+
+  @action async appendRelaysWithSmartTokenAddresses(
+    smartTokenAddresses: string[]
+  ): Promise<void> {
+    const relays = await this.buildRelaysFromSmartTokenAddresses(
+      smartTokenAddresses
+    );
+    this.fetchLiquidityDepths(relays);
+  }
+
+  @action async buildRelaysFromSmartTokenAddresses(
+    smartTokenAddresses: string[]
+  ): Promise<Relay[]> {
+    const converterAddresses = await this.fetchConverterAddressesBySmartTokenAddresses(
+      smartTokenAddresses
+    );
+
+    if (converterAddresses.length !== smartTokenAddresses.length)
+      throw new Error(
+        "Was expecting as many converters as smartTokenAddresses"
+      );
+
+    const combined = _.zip(
+      converterAddresses,
+      smartTokenAddresses
+    ) as string[][];
+
+    const builtRelays = await Promise.all(
+      combined.map(([converterAddress, smartTokenAddress]) =>
+        this.buildRelay({ smartTokenAddress, converterAddress }).catch(
+          e => false
+        )
+      )
+    );
+    return builtRelays.filter(Boolean) as Relay[];
+  }
+
+  @action async buildRelay(relayAddresses: {
+    smartTokenAddress: string;
+    converterAddress: string;
+  }): Promise<Relay> {
+    const converterContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverter,
+      relayAddresses.converterAddress
+    );
+
+    const [
+      owner,
+      version,
+      connectorCount,
+      reserve1Address,
+      reserve2Address,
+      fee
+    ] = await Promise.all([
+      converterContract.methods.owner().call() as string,
+      converterContract.methods.version().call() as string,
+      converterContract.methods.connectorTokenCount().call() as string,
+      converterContract.methods.connectorTokens(0).call() as string,
+      converterContract.methods.connectorTokens(1).call() as string,
+      converterContract.methods.conversionFee().call() as string
+    ]);
+
+    if (connectorCount !== "2")
+      throw new Error(
+        "Converter not valid, does not have 2 tokens in converter"
+      );
+
+    const tokenAddresses = [
+      reserve1Address,
+      reserve2Address,
+      relayAddresses.smartTokenAddress
+    ];
+
+    const [reserve1, reserve2, smartToken] = await Promise.all(
+      tokenAddresses.map(address => this.buildTokenByTokenAddress(address))
+    );
+
+    return {
+      fee: Number(fee) / 1000000,
+      owner,
+      network: "ETH",
+      version,
+      contract: relayAddresses.converterAddress,
+      smartToken,
+      reserves: [reserve1, reserve2],
+      isMultiContract: false
+    };
+  }
+
+  @action async buildTokenByTokenAddress(address: string): Promise<Token> {
+    const tokenContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABISmartToken,
+      address
+    );
+
+    const existingTokens = this.relaysList
+      .map(relay => [...relay.reserves, relay.smartToken])
+      .flat(1);
+    const existingToken = existingTokens.find(
+      token => token.contract == address
+    );
+    if (existingToken) return existingToken;
+
+    const [symbol, decimals] = await Promise.all([
+      tokenContract.methods.symbol().call() as string,
+      tokenContract.methods.decimals().call() as string
+    ]);
+
+    return {
+      contract: address,
+      decimals: Number(decimals),
+      network: "ETH",
+      symbol
+    };
+  }
+
+  @action async fetchConverterAddressesBySmartTokenAddresses(
+    smartTokenAddresses: string[]
+  ) {
+    const registryContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverterRegistry,
+      this.contracts.BancorConverterRegistry
+    );
+    const converterAddresses: string[] = await registryContract.methods
+      .getConvertersBySmartTokens(smartTokenAddresses)
+      .call();
+    return converterAddresses;
+  }
+
+  @action async fetchSmartTokenAddresses(converterRegistryAddress: string) {
+    const registryContract = new web3.eth.Contract(
+      // @ts-ignore
+      ABIConverterRegistry,
+      converterRegistryAddress
+    );
+    const smartTokenAddresses: string[] = await registryContract.methods
+      .getSmartTokens()
+      .call();
+    return smartTokenAddresses;
   }
 
   @action async fetchConvertibleTokens(converterRegistryAddress: string) {
@@ -1261,21 +1431,10 @@ export class EthBancorModule extends VuexModule
       ...this.relaysList
     ].filter(
       (item, index, arr) =>
-        arr.findIndex(x => x.smartToken == item.smartToken) == index
+        arr.findIndex(x => x.smartToken.contract == item.smartToken.contract) ==
+        index
     );
     this.setRelaysList(allRelays.filter(Boolean));
-
-    // for (const relay in relaysCaredAbout) {
-    //   const x = relaysCaredAbout[relay];
-    // const liqDepthN = x.smartToken.symbol == "BNT" ? this.usdPrice : 1;
-    // const liqDepth = String(liqDepthN * Number(web3.utils.fromWei(balance)));
-    //   const relays = this.relaysList.map(relay =>
-    //     relay.smartToken.symbol == x.smartToken.symbol
-    //       ? { ...relay, liqDepth }
-    //       : relay
-    //   );
-    //   this.setRelaysList(relays);
-    // }
   }
 
   @action async getNetworkReserve(relay: Relay) {
