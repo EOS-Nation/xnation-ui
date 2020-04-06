@@ -3509,7 +3509,7 @@ export const services: Service[] = [
       Feature.CreatePool
     ]
   },
-  { namespace: "eth", features: [Feature.Trade, Feature.Liquidity, ] },
+  { namespace: "eth", features: [Feature.Trade, Feature.Liquidity, Feature.CreatePool ] },
   { namespace: "usds", features: [Feature.Trade] }
 ];
 
