@@ -211,14 +211,7 @@ const tokenStrategies: Array<(one: string, two: string) => string> = [
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 1)),
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 2)),
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 3)),
-  (one, two) =>
-    chopSecondSymbol(
-      one,
-      two
-        .split("")
-        .reverse()
-        .join("")
-    )
+  (one, two) => chopSecondSymbol(one, two.split("").reverse().join(""))
 ];
 
 const generateSmartTokenSymbol = async (
@@ -251,14 +244,16 @@ interface TokenMeta {
 }
 
 const getTokenMeta = async (): Promise<TokenMeta[]> => {
-  const res: AxiosResponse<{
-    name: string;
-    logo: string;
-    logo_lg: string;
-    symbol: string;
-    account: string;
-    chain: string;
-  }[]> = await axios.get(tokenMetaDataEndpoint);
+  const res: AxiosResponse<
+    {
+      name: string;
+      logo: string;
+      logo_lg: string;
+      symbol: string;
+      account: string;
+      chain: string;
+    }[]
+  > = await axios.get(tokenMetaDataEndpoint);
   return res.data.filter(
     token => token.chain.toLowerCase() == "eos" && token.symbol !== "KARMA"
   );
