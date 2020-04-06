@@ -1232,8 +1232,6 @@ export class EthBancorModule extends VuexModule
     this.fetchLiquidityDepths(relaysNotTrackedOnApi);
 
     this.setTokensList(tokensWithAddresses);
-
-    this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry);
   }
 
   @action async appendRelaysWithSmartTokenAddresses(
@@ -1389,7 +1387,6 @@ export class EthBancorModule extends VuexModule
       .getConvertibleTokens()
       .call();
 
-    console.log("CONVERTIBLE TOKENS", convertibleTokens);
     this.setConvertibleTokens(convertibleTokens);
   }
 

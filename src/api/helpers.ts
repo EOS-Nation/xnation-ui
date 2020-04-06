@@ -3570,20 +3570,6 @@ export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
   return relays;
 };
 
-const getOppositeSymbol = (symbol: Symbol) => {
-  return function(relay: nRelay) {
-    // @ts-ignore
-    return relay.reserves.find(reserve => !reserve.symbol.isEqual(symbol));
-  };
-};
-
-export const parseTokens = (
-  relays: nRelay[],
-  networkToken = new Symbol("BNT", 10)
-) => {
-  return relays.map(getOppositeSymbol(networkToken));
-};
-
 export interface TickerPrice {
   "15m": number;
   last: number;
