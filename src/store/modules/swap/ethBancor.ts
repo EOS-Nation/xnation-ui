@@ -12,7 +12,7 @@ import {
   CreatePoolParams,
   ModalChoice
 } from "@/types/bancor";
-import { ethBancorApi } from "@/api/bancor";
+import { ethBancorApi, bancorApi } from "@/api/bancor";
 import {
   getEthRelays,
   web3,
@@ -37,6 +37,8 @@ import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import wait from "waait";
 import _ from "lodash";
+import { network } from '../network';
+import { bancor } from '.';
 
 interface RegisteredContracts {
   BancorNetwork: string;
@@ -1183,15 +1185,16 @@ export class EthBancorModule extends VuexModule
       this.fetchContractAddresses(),
       this.fetchUsdPrice()
     ]);
-    this.setRelaysList(relays);
+
+    ethBancorApi.getToken("5e70d03d6ea615ea174b77ae").then(x => console.log(x, 'was tokens'))
     this.setTokenMeta(tokenMeta);
     const tokensWithAddresses = tokens.map(token => ({
       ...token,
-      ...(relays.find((relay: Relay) =>
+      ...(relays.find(relay =>
         relay.reserves.find(reserve => reserve.symbol == token.code)
       ) && {
         tokenAddress: relays
-          .find((relay: Relay) =>
+          .find(relay =>
             relay.reserves.find(reserve => reserve.symbol == token.code)
           )!
           .reserves.find(reserve => reserve.symbol == token.code)!.contract
@@ -1207,6 +1210,12 @@ export class EthBancorModule extends VuexModule
     // 3. build Relay[] list, and add onto relaysNotTrackedOnApi
     const smartTokenAddresses = await this.fetchSmartTokenAddresses(
       contractAddresses.BancorConverterRegistry
+    );
+
+    this.setRelaysList(
+      relays.filter(relay =>
+        smartTokenAddresses.includes(relay.smartToken.contract)
+      )
     );
     const alreadyTrackedSmartTokenAddresses = relays.map(
       relay => relay.smartToken.contract
