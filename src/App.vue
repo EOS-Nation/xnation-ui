@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="loading"
+    v-if="loading && !error"
     id="loading"
     class="page-header-fixed page-header-dark align-items-center"
   >
@@ -12,6 +12,18 @@
           label="Loading..."
         ></b-spinner>
         <h2 class="text-white">Loading...</h2>
+      </div>
+    </div>
+  </div>
+
+  <div
+    v-else-if="error"
+    id="loading"
+    class="page-header-fixed page-header-dark align-items-center"
+  >
+    <div class="d-flex justify-content-center align-items-center mb-3">
+      <div>
+        <h2 class="text-white">{{ error }}</h2>
       </div>
     </div>
   </div>
@@ -49,10 +61,16 @@ const browser = detect();
 })
 export default class App extends Vue {
   loading = true;
+  error = false;
 
   async loadBancor() {
-    await vxm.bancor.init();
-    this.loading = false;
+    try {
+      await vxm.bancor.init();
+      this.loading = false;
+    } catch (e) {
+      this.loading = false;
+      this.error = e.message;
+    }
   }
 
   async created() {
@@ -85,9 +103,7 @@ h2 {
 
 .fade-enter,
 .fade-leave-to
-/* .fade-leave-active below version 2.1.8 */
-
- {
+/* .fade-leave-active below version 2.1.8 */ {
   opacity: 0;
 }
 </style>
