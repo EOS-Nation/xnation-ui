@@ -1263,7 +1263,7 @@ export class EthBancorModule extends VuexModule
     const builtRelays = await Promise.all(
       combined.map(([converterAddress, smartTokenAddress]) =>
         this.buildRelay({ smartTokenAddress, converterAddress }).catch(
-          e => false
+          () => false
         )
       )
     );
@@ -1312,7 +1312,7 @@ export class EthBancorModule extends VuexModule
     );
 
     return {
-      fee: Number(fee) / 1000000,
+      fee: Number(fee) / 10000,
       owner,
       network: "ETH",
       version,
