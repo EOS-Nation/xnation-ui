@@ -57,7 +57,7 @@ const calculateSlippage = (
     amount
   }: PreviousCalculation,
   cost = false,
-  minimalAmount = 0.01
+  minimalAmount = 0.1
 ) => {
   const minimal = get_rate(
     number_to_asset(minimalAmount, symbol(fromSymbol, fromPrecision)),
@@ -65,7 +65,7 @@ const calculateSlippage = (
     pools,
     settings
   );
-  const minimalReward = pricePerUnit(minimal.price, minimalAmount);
+  const minimalReward = pricePerUnit(minimal.out, minimalAmount);
   const rewardReward = pricePerUnit(reward, amount);
   const slippage = cost
     ? (rewardReward - minimalReward) / rewardReward
@@ -101,7 +101,9 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       balance = (tokenBalance && Number(tokenBalance.balance)) || 0;
 
       try {
-        const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(tokenMeta => tokenMeta.symbol == token)!
+        const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(
+          tokenMeta => tokenMeta.symbol == token
+        )!;
         if (!eosModuleBorrowed) throw new Error("Failed to find token");
         name = eosModuleBorrowed.name;
         logo = eosModuleBorrowed.logo;
@@ -113,12 +115,9 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       return {
         symbol: token,
         name,
-        // @ts-ignore
         price: asset_to_number(this.tokensList![token].pegged),
         liqDepth:
-          // @ts-ignore
           asset_to_number(this.tokensList![token].depth) *
-          // @ts-ignore
           asset_to_number(this.tokensList![token].pegged),
         logo,
         change24h: 0,
@@ -146,10 +145,8 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
   @action async init() {
     const [pools, volume] = await Promise.all([
-      // @ts-ignore
       get_pools(rpc),
-      // @ts-ignore
-      get_volume(rpc, 1)
+      get_volume(rpc, { days: 1 })
     ]);
     for (const pool in pools) {
       pools[pool] = {
@@ -168,13 +165,13 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   @action async focusSymbol(symbolName: string) {}
   @action async refreshBalances(symbols: BaseToken[] = []) {}
 
-  @action async convert(propose: ProposedConvertTransaction) {
-    console.log(propose, "one of the cases");
-    console.log(this.tokensList);
-
+  get isAuthenticated() {
     // @ts-ignore
-    const accountName = this.$store.rootState.eosWallet.walletState.auth
-      .accountName;
+    return this.$store.rootState.eosWallet.walletState.auth.accountName;
+  }
+
+  @action async convert(propose: ProposedConvertTransaction) {
+    const accountName = this.isAuthenticated;
 
     const fromToken = this.tokensList![propose.fromSymbol];
 
@@ -217,7 +214,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();
 
-    const reward = get_rate(
+    const { out } = get_rate(
       number_to_asset(amount, symbol(fromSymbol, fromPrecision)),
       symbol(toSymbol, toPrecision).code(),
       pools,
@@ -230,15 +227,13 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       toSymbol,
       toPrecision,
       amount,
-      reward: reward.price,
+      reward: out,
       pools,
       settings
     });
 
     return {
-      amount: String(
-        asset_to_number(reward.price) - asset_to_number(reward.fee)
-      ),
+      amount: String(asset_to_number(out)),
       slippage
     };
   }
@@ -254,7 +249,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();
 
-    const { price, fee } = get_inverse_rate(
+    const { quantity, fee } = get_inverse_rate(
       number_to_asset(amount, symbol(fromSymbol, fromPrecision)),
       symbol(toSymbol, toPrecision).code(),
       pools,
@@ -268,7 +263,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         toPrecision: fromPrecision,
         toSymbol: fromSymbol,
         amount,
-        reward: price,
+        reward: quantity,
         pools,
         settings
       },
@@ -276,7 +271,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     );
 
     return {
-      amount: String(asset_to_number(price) - asset_to_number(fee)),
+      amount: String(asset_to_number(quantity)),
       slippage
     };
   }
