@@ -1185,11 +1185,12 @@ export class EthBancorModule extends VuexModule
     source: string;
     destination: string;
   }) {
+    console.log(path, destination, 'was shit')
     const rebuilt = _.uniqWith(
       path,
       (one, two) => one.contract == two.contract
     );
-    console.log(rebuilt);
+    console.log(rebuilt, 'was rebuilt');
 
     const tokensList = path.map(x => x.reserves).flat(1);
     const symbolPath = rebuilt
@@ -1197,6 +1198,7 @@ export class EthBancorModule extends VuexModule
       .flat(1)
       .concat(destination);
 
+    console.log(symbolPath, tokensList, 'mcree');
     const final = symbolPath.map(
       symbol => tokensList.find(x => x.symbol == symbol)!.contract
     );
@@ -1236,22 +1238,6 @@ export class EthBancorModule extends VuexModule
       destination
     });
     console.log(add, "was add returned");
-
-    const xx = [
-      "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-      "0xF2ff22976B973d6bcC17a7dC93B719162ADA2045",
-      "0x309627af60f0926daa6041b8279484312f2bf060",
-      "0xcb913ED43e43cc7Cec1D77243bA381615101E7E4",
-      "0x6B175474E89094C44Da98b954EedeAC495271d0F",
-      "0xee01b3AB5F6728adc137Be101d99c678938E6E72",
-      "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c",
-      "0x0c485BffD5df019F66927B2C32360159884D4409",
-      "0x960b236A07cf122663c4303350609A66A7B288C0"
-    ];
-    // const symbolPath = reserves.reduce((acc, item) => {
-    //   let last = acc[acc.length - 1]
-    //   return [...acc, ]
-    // }, [source])
   }
 
   @action async init() {
@@ -1315,15 +1301,7 @@ export class EthBancorModule extends VuexModule
     );
 
     this.fetchLiquidityDepths(relaysNotTrackedOnApi);
-
     this.setTokensList(tokensWithAddresses);
-
-    const x = await this.createPath({
-      source: "USDT",
-      destination: "ANT",
-      relays
-    });
-    console.log(x, "was x");
   }
 
   @action async appendRelaysWithSmartTokenAddresses(
@@ -1619,9 +1597,6 @@ export class EthBancorModule extends VuexModule
       ownerAddress
     };
     const res = await ethBancorApi.convert(convertPost);
-    if (res.errorCode) {
-      throw new Error(res.errorCode);
-    }
     const params = res.data;
     const txRes = await this.triggerTx(params[0]);
     return txRes;

@@ -89,16 +89,87 @@ export function findPath(
   );
 }
 
+const highestRecurringString = (list: string[]): string => {
+  const uniqueStrings = _.uniq(list);
+  const counts = uniqueStrings.map(uniqueString => ({
+    name: uniqueString,
+    count: list.filter(x => x == uniqueString).length
+  }));
+  return counts.sort((a, b) => b.count - a.count)[0].name;
+};
+
+const unChopRelays = (relays: ChoppedRelay[]): DryRelay[] => {
+  const contractAddresses = relays.map(relay => relay.contract);
+  const uniqueAddresses = _.uniq(contractAddresses);
+  console.log({ uniqueAddresses });
+
+  const matches = uniqueAddresses.map(address =>
+    relays.filter(relay => relay.contract == address)
+  );
+
+  return matches.map(
+    ([one, two]): DryRelay => {
+      const symbols = [...one.reserves, ...two.reserves];
+      const smartSymbol = highestRecurringString(symbols.map(x => x.symbol));
+      const reserveSymbols = symbols.filter(x => x.symbol !== smartSymbol);
+
+      return {
+        contract: one.contract,
+        reserves: symbols.filter(x =>
+          reserveSymbols.some(reserve => reserve.symbol == x.symbol)
+        ),
+        smartToken: {
+          contract: symbols.find(x => x.symbol == smartSymbol)!.contract,
+          symbol: symbols.find(x => x.symbol == smartSymbol)!.symbol
+        }
+      };
+    }
+  );
+};
+
+const sortRelaysBy = (to: string) => (relay: DryRelay) =>
+  relay.reserves.some(reserve => reserve.symbol == to) ? -1 : 1;
+
 export function createPath(
   from: string,
   to: string,
   relays: DryRelay[]
 ): ChoppedRelay[] {
-  const sortedRelays = relays.sort(relay =>
-    relay.reserves.some(reserve => reserve.symbol == to) ? -1 : 1
-  );
+  const sortedRelays = relays.sort(sortRelaysBy(to));
 
   const choppedRelays = chopRelays(sortedRelays);
   const choppedRelaysPath = findPath(from, to, choppedRelays);
+  const y = unChopRelays(choppedRelaysPath);
+  if (y.length > 2) {
+    console.log('walker', y.length)
+    const toTryWithout = y
+      .filter((_, index, arr) => index == 0 || index == arr.length - 1)
+      .map(x => x.contract);
+
+    const attempts = toTryWithout
+      .map(without => {
+        const newRelays = relays
+          .filter(relay => relay.smartToken.contract !== without)
+          .sort(sortRelaysBy(to));
+        console.log(newRelays.length, relays.length, 'donation', without)
+        try {
+          const path = findPath(from, to, newRelays);
+          return path;
+        } catch (e) {
+          return false;
+        }
+      })
+      .flat(1);
+
+    const x: ChoppedRelay[] = attempts.filter(Boolean);
+
+    if (attempts.length > 0) {
+      console.log(x, "new answer!!!!!!!!!!!!!!!");
+      return x;
+    }
+  }
+  console.log(y, "xxxxxxxxxxxxx");
+  console.log(choppedRelaysPath, "was chopped relays path, can unchop?");
+
   return choppedRelaysPath;
 }

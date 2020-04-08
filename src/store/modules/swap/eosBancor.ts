@@ -1099,10 +1099,8 @@ export class EosBancorModule extends VuexModule
     const allRelays = eosMultiToDryRelays(this.relaysList);
     const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
-    // @ts-ignore
-    const isAuthenticated = this.$store.rootGetters[
-      "eosWallet/isAuthenticated"
-    ];
+
+    const isAuthenticated = this.isAuthenticated;
 
     const memo = composeMemo(
       convertPath,
