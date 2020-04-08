@@ -419,14 +419,14 @@ export class EthBancorModule extends VuexModule
     await this.claimOwnership(converterAddress);
 
     poolParams.onUpdate(5, steps);
-    let lastTxHash = await this.addReserveToken({
+    await this.addReserveToken({
       converterAddress,
       reserveTokenAddress: listedTokenAddress
     });
 
     poolParams.onUpdate(6, steps);
     if (poolParams.fee) {
-      lastTxHash = await this.setFee({
+      await this.setFee({
         converterAddress,
         decFee: poolParams.fee
       });
@@ -460,6 +460,8 @@ export class EthBancorModule extends VuexModule
 
     poolParams.onUpdate(11, steps);
 
+    wait(5000).then(() => this.init());
+
     return txHash;
   }
 
@@ -469,12 +471,6 @@ export class EthBancorModule extends VuexModule
       ABIConverterRegistry,
       this.contracts.BancorConverterRegistry
     );
-    if (
-      this.contracts.BancorConverterRegistry !==
-      "0xF84B332Db34C6A9b554D80cF9BC6124C1C74495D"
-    )
-      throw new Error("I thought it should be same");
-
     return this.resolveTxOnConfirmation({
       tx: registryContract.methods.addConverter(converterAddress)
     });
@@ -604,11 +600,13 @@ export class EthBancorModule extends VuexModule
   @action async resolveTxOnConfirmation({
     tx,
     gas,
-    resolveImmediately = false
+    resolveImmediately = false,
+    onHash
   }: {
     tx: any;
     gas?: number;
     resolveImmediately?: boolean;
+    onHash?: (hash: string) => void;
   }): Promise<string> {
     return new Promise((resolve, reject) => {
       let txHash: string;
@@ -618,6 +616,7 @@ export class EthBancorModule extends VuexModule
       })
         .on("transactionHash", (hash: string) => {
           txHash = hash;
+          if (onHash) onHash(hash);
           if (resolveImmediately) {
             resolve(txHash);
           }
@@ -1185,12 +1184,12 @@ export class EthBancorModule extends VuexModule
     source: string;
     destination: string;
   }) {
-    console.log(path, destination, 'was shit')
+    console.log(path, destination, "was shit");
     const rebuilt = _.uniqWith(
       path,
       (one, two) => one.contract == two.contract
     );
-    console.log(rebuilt, 'was rebuilt');
+    console.log(rebuilt, "was rebuilt");
 
     const tokensList = path.map(x => x.reserves).flat(1);
     const symbolPath = rebuilt
@@ -1198,7 +1197,7 @@ export class EthBancorModule extends VuexModule
       .flat(1)
       .concat(destination);
 
-    console.log(symbolPath, tokensList, 'mcree');
+    console.log(symbolPath, tokensList, "mcree");
     const final = symbolPath.map(
       symbol => tokensList.find(x => x.symbol == symbol)!.contract
     );
@@ -1231,7 +1230,7 @@ export class EthBancorModule extends VuexModule
     );
     const path = createPath(source, destination, dryRelays);
 
-    console.log(path, 'was path')
+    console.log(path, "was path");
     const add = await this.choppedRelaysToAddresses({
       path,
       source,
@@ -1483,11 +1482,7 @@ export class EthBancorModule extends VuexModule
             liqDepth
           };
         } catch (e) {
-          console.log(
-            "Failed fetching",
-            relay.reserves.map(x => x.symbol),
-            e
-          );
+          console.log("Failed fetching", relay.reserves.map(x => x.symbol), e);
           return relay;
         }
       })
