@@ -1096,7 +1096,7 @@ export class EosBancorModule extends VuexModule
     const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
     const assetAmount = number_to_asset(Number(fromAmount), fromSymbolInit);
 
-    const allRelays = eosMultiToDryRelays(this.relaysList);
+    const allRelays = eosMultiToDryRelays(this.convertableRelays);
     const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
 
@@ -1175,7 +1175,7 @@ export class EosBancorModule extends VuexModule
           new Symbol(fromSymbol, fromTokenPrecision.decimals)
         );
 
-        const allRelays = eosMultiToDryRelays(this.relaysList);
+        const allRelays = eosMultiToDryRelays(this.convertableRelays);
         const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
         const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
         const fromTokenRes = await bancorApi.getToken(fromSymbol);
@@ -1210,7 +1210,7 @@ export class EosBancorModule extends VuexModule
         // @ts-ignore
         const assetAmount = number_to_asset(Number(fromAmount), fromSymbolInit);
 
-        const allRelays = eosMultiToDryRelays(this.relaysList);
+        const allRelays = eosMultiToDryRelays(this.convertableRelays);
         const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
         const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
 
@@ -1452,9 +1452,10 @@ export class EosBancorModule extends VuexModule
     const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
     const assetAmount = number_to_asset(Number(amount), toSymbolInit);
 
-    const allRelays = eosMultiToDryRelays(this.relaysList);
+    const allRelays = eosMultiToDryRelays(this.convertableRelays);
     const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const hydratedRelays = await this.hydrateRelays(path);
+    console.log('getCostMulti', 'go home')
     const calculatedCost = findCost(assetAmount, hydratedRelays);
 
     return {
