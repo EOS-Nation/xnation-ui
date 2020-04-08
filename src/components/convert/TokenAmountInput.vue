@@ -61,11 +61,7 @@
           </b-button>
         </b-input-group-append>
       </b-input-group>
-      <balance-label
-        v-if="balance"
-        :label="label"
-        :balance="formattedBalance"
-      />
+      <balance-label :label="label" :balance="formattedBalance" />
       <percentages
         :v-if="balance"
         @percentUpdate="updatePercent"

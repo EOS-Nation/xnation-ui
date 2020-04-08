@@ -47,7 +47,7 @@ import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 export default class TokenField extends Vue {
   @PropSync("amount", { type: String }) tokenAmount!: string;
   @PropSync("symbol", { type: String }) currentSymbol!: string;
-  @Prop(Number) balance!: number;
+  @Prop({ default: 0 }) balance!: number;
   @Prop(Boolean) loading?: boolean;
   @Prop({ default: "Available:" }) readonly label!: string;
   @Prop(String) img!: string;
