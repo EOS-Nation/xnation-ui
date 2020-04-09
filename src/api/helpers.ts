@@ -3425,6 +3425,7 @@ export interface Relay {
   isMultiContract: boolean;
   fee: number;
   liqDepth?: string;
+  singleUnitCostByNetworkToken?: number;
   network: string;
   version: string;
   owner: string;

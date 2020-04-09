@@ -20,7 +20,8 @@ import {
   NewOwnerParams,
   BaseToken,
   CreatePoolParams,
-  PromiseSequence
+  PromiseSequence,
+  ViewRelay
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import { fetchRelays, getBalance, fetchTokenStats } from "@/api/helpers";
@@ -675,7 +676,7 @@ export class EosBancorModule extends VuexModule
     };
   }
 
-  get relays() {
+  get relays(): ViewRelay[] {
     return this.relaysList
       .filter(
         relayIncludesBothTokens(
