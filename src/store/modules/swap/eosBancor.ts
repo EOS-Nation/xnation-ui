@@ -781,11 +781,7 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async refreshBalances(tokens: BaseToken[] = []) {
-    // @ts-ignore
-    const isAuthenticated = this.$store.rootGetters[
-      "eosWallet/isAuthenticated"
-    ];
-    if (!isAuthenticated) return;
+    if (!this.isAuthenticated) return;
     if (tokens.length > 0) {
       await vxm.eosNetwork.getBalances({ tokens });
       return;
