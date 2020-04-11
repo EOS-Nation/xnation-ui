@@ -3,7 +3,7 @@
     :formatter-fn="feeFormatter"
     min="0"
     max="3"
-    step="0.2"
+    step="0.1"
     id="sb-inline"
     size="sm"
     v-model="feeAmount"
