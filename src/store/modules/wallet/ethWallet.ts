@@ -87,6 +87,7 @@ export class EthereumModule extends VuexModule {
       const weiBalance = await web3.eth.getBalance(accountHolder);
       return Number(fromWei(weiBalance));
     } else {
+      if (!tokenContractAddress) throw new Error("tokenContractAddress is falsy");
       const tokenContract = new web3.eth.Contract(
         // @ts-ignore
         ABISmartToken,

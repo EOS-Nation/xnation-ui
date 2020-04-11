@@ -50,9 +50,9 @@ const tokenPriceToFeed = (
 ): RelayFeed => ({
   smartTokenContract: smartTokenAddress,
   costByNetworkUsd: tokenPrice.price,
-  liqDepth: tokenPrice.liquidityDepth,
+  liqDepth: tokenPrice.liquidityDepth * usdPriceOfEth * 2,
   change24H: tokenPrice.change24h,
-  volume24H: tokenPrice.volume24h.USD * usdPriceOfEth
+  volume24H: tokenPrice.volume24h.USD
 });
 
 const sortNetworkToken = (tokenCount: [Token, number][]) => {
@@ -207,7 +207,7 @@ export class EthBancorModule extends VuexModule
   relayFeed: RelayFeed[] = [];
   usdPrice: number = 0;
   relaysList: Relay[] = [];
-  tokenBalances: { symbol: string; balance: number }[] = [];
+  tokenBalances: { id: string; balance: number }[] = [];
   tokenMeta: TokenMeta[] = [];
   bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
   contracts: RegisteredContracts = {
@@ -734,24 +734,25 @@ export class EthBancorModule extends VuexModule
           const relayFeed = this.relayFeed.find(feed =>
             compareString(feed.smartTokenContract, relay.smartToken.contract)
           )!;
-
+          const balance = this.tokenBalance(reserve.contract);
           return {
             id: reserve.contract,
             symbol: reserve.symbol,
             name,
-            price: relayFeed.costByNetworkUsd || 117,
+            price: relayFeed.costByNetworkUsd,
             liqDepth: relayFeed.liqDepth,
             logo: image,
             ...(relayFeed.change24H && { change24h: relayFeed.change24H }),
             ...(relayFeed.volume24H && { volume24h: relayFeed.volume24H }),
-            balance: 0
+            ...(balance && { balance: balance.balance })
           };
         });
       })
       .flat(1)
       .sort((a, b) => b.liqDepth - a.liqDepth)
       .filter(
-        (token, index, arr) => arr.findIndex(t => t.id == token.id) == index
+        (token, index, arr) =>
+          arr.findIndex(t => compareString(t.id, token.id)) == index
       );
     return tokens;
   }
@@ -768,7 +769,7 @@ export class EthBancorModule extends VuexModule
 
   get tokenBalance() {
     return (tokenId: string) => {
-      return this.tokenBalances.find(token => token.symbol == tokenId);
+      return this.tokenBalances.find(token => token.id == tokenId);
     };
   }
 
@@ -1312,7 +1313,7 @@ export class EthBancorModule extends VuexModule
     this.bancorTokens = tokens;
   }
 
-  @action async buildableRelayFeedsFromBancorApi(
+  @action async possibleRelayFeedsFromBancorApi(
     smartTokenAddresses: string[]
   ): Promise<RelayFeed[]> {
     const tokens = await ethBancorApi.getTokens();
@@ -1327,19 +1328,19 @@ export class EthBancorModule extends VuexModule
         tokens.some(token => compareString(token.id, catalog.tokenId))
       );
 
+    const ethUsdPrice = tokens.find(token => token.code == "ETH")!.price;
+
     return catalogedAddresses.map(catalog =>
       tokenPriceToFeed(
         catalog.smartTokenAddress,
-        tokens.find(
-          token => token.id.toLowerCase() == catalog.tokenId.toLowerCase()
-        )!,
-        this.usdPrice
+        tokens.find(token => compareString(token.id, catalog.tokenId))!,
+        ethUsdPrice
       )
     );
   }
 
   @action async fetchAndUpdateRelayFeeds(relays: Relay[]) {
-    const bancorApiFeeds = await this.buildableRelayFeedsFromBancorApi(
+    const bancorApiFeeds = await this.possibleRelayFeedsFromBancorApi(
       relays.map(relay => relay.smartToken.contract)
     );
     const remainingRelays = _.differenceWith(
@@ -1348,7 +1349,7 @@ export class EthBancorModule extends VuexModule
       (relay, feed) =>
         compareString(relay.smartToken.contract, feed.smartTokenContract)
     );
-    const feeds = await this.buildRelayFeeds(remainingRelays)
+    const feeds = await this.buildRelayFeeds(remainingRelays);
     this.updateRelayFeeds([...bancorApiFeeds, ...feeds]);
   }
 
@@ -1389,44 +1390,6 @@ export class EthBancorModule extends VuexModule
     );
   }
 
-  @action async buildRelayFeedFromBancor(
-    relays: Relay[]
-  ): Promise<RelayFeed[]> {
-    console.log(
-      relays.find(
-        x => x.reserves.some(x => x.symbol == "ANT"),
-        " was meant to be ANT"
-      )
-    );
-    const relaysAvailableOnApi = relays.filter(relay =>
-      bancorApiSmartTokens.some(
-        entry => entry.smartTokenAddress == relay.smartToken.contract
-      )
-    );
-    console.log(
-      relays.map(x => x.smartToken.contract),
-      bancorApiSmartTokens.map(x => x.smartTokenAddress),
-      relaysAvailableOnApi
-    );
-
-    console.log(
-      `I am trying to work out out of ${relays}, ${bancorApiSmartTokens} should be added to ${relaysAvailableOnApi}`
-    );
-
-    return relaysAvailableOnApi.map(
-      (relay): RelayFeed => {
-        const apiId = bancorApiSmartTokens.find(
-          x => x.smartTokenAddress == relay.smartToken.contract
-        )!.tokenId;
-        const apiInstance = this.bancorTokens.find(token => token.id == apiId)!;
-        return {
-          costByNetworkUsd: apiInstance.price,
-          smartTokenContract: relay.smartToken.contract,
-          liqDepth: apiInstance.liquidityDepth * this.usdPrice
-        };
-      }
-    );
-  }
 
   @action async init() {
     const [
@@ -1687,23 +1650,17 @@ export class EthBancorModule extends VuexModule
   @action async focusSymbol(symbolName: string) {
     if (!this.isAuthenticated) return;
     const token = this.token(symbolName);
-    if (!token.balance) {
-      const balance = await vxm.ethWallet.getBalance({
-        accountHolder: this.isAuthenticated,
-        tokenContractAddress: token.tokenAddress
-      });
-      this.updateBalance([symbolName, balance]);
-    }
+    console.log('id for', symbolName, token)
+    const balance = await vxm.ethWallet.getBalance({
+      accountHolder: this.isAuthenticated,
+      tokenContractAddress: token.id
+    });
+    this.updateBalance([token.id, balance]);
   }
 
-  @mutation updateBalance([symbolName, balance]: [string, number]) {
-    this.tokensList = this.tokensList.map(token =>
-      token.code == symbolName ? { ...token, balance } : token
-    );
-    const newBalances = this.tokenBalances.filter(
-      balance => balance.symbol !== symbolName
-    );
-    newBalances.push({ symbol: symbolName, balance });
+  @mutation updateBalance([id, balance]: [string, number]) {
+    const newBalances = this.tokenBalances.filter(balance => balance.id !== id);
+    newBalances.push({ id, balance });
     this.tokenBalances = newBalances;
   }
 
