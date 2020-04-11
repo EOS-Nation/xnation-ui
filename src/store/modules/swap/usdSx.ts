@@ -195,22 +195,19 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();
 
-    const fromAsset = number_to_asset(
+    const expectedReward = number_to_asset(
       amount,
-      symbol(fromSymbol, fromPrecision)
+      symbol(toSymbol, toPrecision)
     );
 
-    const toSymbolObj = symbol(toSymbol, toPrecision);
+    const offering = symbol(fromSymbol, fromPrecision);
 
     const { quantity, slippage } = get_inverse_rate(
-      fromAsset,
-      toSymbolObj.code(),
+      expectedReward,
+      offering.code(),
       pools,
       settings
     );
-
-    console.log('In:', fromAsset.to_string(), toSymbolObj.precision(), toSymbolObj.code().to_string())
-    console.log('Out:', quantity.to_string(), 'Slippage', slippage)
 
     return {
       amount: String(asset_to_number(quantity)),
