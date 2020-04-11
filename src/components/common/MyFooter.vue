@@ -17,10 +17,8 @@
         />
         by
       </span>
-      <a :href="website" target="_blank" class="fas orange"
-        >EOS Nation
-      </a>
-      <span class="text">| Version:  {{ appVersion }} </span>
+      <a :href="website" target="_blank" class="fas orange">EOS Nation </a>
+      <span class="text">| Version: {{ appVersion }} </span>
     </div>
   </div>
 </template>
