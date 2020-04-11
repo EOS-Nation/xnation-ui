@@ -211,7 +211,14 @@ const tokenStrategies: Array<(one: string, two: string) => string> = [
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 1)),
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 2)),
   (one, two) => chopSecondSymbol(one, chopSecondLastChar(two, 3)),
-  (one, two) => chopSecondSymbol(one, two.split("").reverse().join(""))
+  (one, two) =>
+    chopSecondSymbol(
+      one,
+      two
+        .split("")
+        .reverse()
+        .join("")
+    )
 ];
 
 const generateSmartTokenSymbol = async (
@@ -571,7 +578,7 @@ export class EosBancorModule extends VuexModule
             symbol,
             name: token.name,
             price: token.price,
-            liqDepth: token.liquidityDepth * this.usdPrice,
+            liqDepth: token.liquidityDepth * this.usdPrice * 2,
             logo: token.primaryCommunityImageName,
             change24h: token.change24h,
             volume24h: token.volume24h.USD,
@@ -607,10 +614,13 @@ export class EosBancorModule extends VuexModule
           }))
         )
       )
-      .reduce((prev, relay) => {
-        const tokens = relayToTokens(relay, this.usdPriceOfBnt);
-        return prev.concat(tokens);
-      }, [] as ViewTokenMinusLogo[])
+      .reduce(
+        (prev, relay) => {
+          const tokens = relayToTokens(relay, this.usdPriceOfBnt);
+          return prev.concat(tokens);
+        },
+        [] as ViewTokenMinusLogo[]
+      )
       .sort((a, b) => b.liqDepth - a.liqDepth)
       .filter(
         (token, index, arr) =>
@@ -696,7 +706,7 @@ export class EosBancorModule extends VuexModule
           ? relay.reserves.find(reserve => reserve.symbol == "BNT")!.amount *
             this.usdPriceOfBnt
           : relay.reserves.find(reserve => reserve.symbol == "USDB")
-          ? relay.reserves.find(reserve => reserve.symbol == "USDB")!.amount
+          ? relay.reserves.find(reserve => reserve.symbol == "USDB")!.amount * 2
           : 0,
         reserves: relay.reserves
           .map((reserve: AgnosticToken) => ({
@@ -787,10 +797,13 @@ export class EosBancorModule extends VuexModule
           reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
         )
       )
-      .reduce((prev, relay) => {
-        const tokens = relayToTokens(relay, this.usdPriceOfBnt);
-        return prev.concat(tokens);
-      }, [] as ViewTokenMinusLogo[])
+      .reduce(
+        (prev, relay) => {
+          const tokens = relayToTokens(relay, this.usdPriceOfBnt);
+          return prev.concat(tokens);
+        },
+        [] as ViewTokenMinusLogo[]
+      )
       .map(token => ({
         contract: token.contract,
         symbol: token.symbol,

@@ -664,7 +664,7 @@ export class EthBancorModule extends VuexModule
       symbol: token.code,
       name: token.name,
       price: token.price,
-      liqDepth: token.liquidityDepth * Number(ethToken.price),
+      liqDepth: token.liquidityDepth * Number(ethToken.price) * 2,
       logo: token.primaryCommunityImageName,
       change24h: token.change24h,
       volume24h: token.volume24h.USD,
@@ -768,8 +768,10 @@ export class EthBancorModule extends VuexModule
           tokenAddress: getPoolReserveToken(relay).contract,
           version: relay.version,
           liqDepth:
-            relay.liqDepth ||
-            (networkTokenIsBnt && reserveTokenMeta && reserveTokenMeta.liqDepth)
+            (relay.liqDepth ||
+              (networkTokenIsBnt &&
+                reserveTokenMeta &&
+                reserveTokenMeta.liqDepth)) * 2
         };
       });
     // .filter(relay => relay.liqDepth);
@@ -1416,11 +1418,7 @@ export class EthBancorModule extends VuexModule
             liqDepth
           };
         } catch (e) {
-          console.log(
-            "Failed fetching",
-            relay.reserves.map(x => x.symbol),
-            e
-          );
+          console.log("Failed fetching", relay.reserves.map(x => x.symbol), e);
           return relay;
         }
       })
