@@ -422,8 +422,7 @@ export default class HeroConvert extends Vue {
   tokenChange(symbol: string) {
     this.loadSimpleReward();
     this.updatePriceReturn(this.fromTokenAmount);
-    this.focusSymbol(this.fromTokenSymbol);
-    this.focusSymbol(this.toTokenSymbol);
+    this.focusSymbol(symbol);
   }
 
 
