@@ -380,16 +380,16 @@ export class EosBancorModule extends VuexModule
           (value, index, array) =>
             array.findIndex(token => value.symbol == token.symbol) == index
         )
-        .filter(
-          tokenMeta =>
-            !this.relaysList.find(relay =>
-              relay.reserves.every(
-                reserve =>
-                  reserve.symbol == tokenMeta.symbol ||
-                  reserve.symbol == networkToken
-              )
-            )
-        )
+        // .filter(
+        //   tokenMeta =>
+        //     !this.relaysList.find(relay =>
+        //       relay.reserves.every(
+        //         reserve =>
+        //           reserve.symbol == tokenMeta.symbol ||
+        //           reserve.symbol == networkToken
+        //       )
+        //     )
+        // )
         .filter(
           token =>
             !mandatoryNetworkTokens.some(
