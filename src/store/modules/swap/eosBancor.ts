@@ -1297,12 +1297,21 @@ export class EosBancorModule extends VuexModule
 
   @action async hydrateRelays(relays: DryRelay[]): Promise<HydratedRelay[]> {
     const [reservesRes, settingsRes] = await Promise.all([
-      client.stateTablesForScopes(
+      client.stateTablesForScopes<{
+        contract: string;
+        ratio: number;
+        balance: string;
+      }>(
         process.env.VUE_APP_MULTICONTRACT!,
         relays.map(relay => relay.smartToken.symbol.code().to_string()),
         "reserves"
       ),
-      client.stateTablesForScopes(
+      client.stateTablesForScopes<{
+        currency: string;
+        owner: string;
+        stake_enabled: boolean;
+        fee: number;
+      }>(
         process.env.VUE_APP_MULTICONTRACT!,
         relays.map(relay => relay.smartToken.symbol.code().to_string()),
         "converters"
