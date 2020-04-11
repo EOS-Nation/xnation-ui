@@ -12102,10 +12102,10 @@ swarm-js@0.1.39:
     tar "^4.0.2"
     xhr-request-promise "^0.1.2"
 
-sxjs@^0.6.0:
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/sxjs/-/sxjs-0.6.0.tgz#bb305d9b42fe91022bdd7f4d9f9cf638840f00b3"
-  integrity sha512-azMQrFdfzd3qQHVqrwHucHAYEVVBxfgHIM35vpGvWRGfdBfq4+/l83TU0k+bLovSyhbk7Z2XzRviqV/J1VD2kg==
+sxjs@^0.6.1:
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/sxjs/-/sxjs-0.6.1.tgz#0d861de620b96dda933090ecb5423e18089f9155"
+  integrity sha512-0hLElKS92+cxAMkVvzT97rENBID3DG9EcgYhmmvG3you3T60qv9sPjppWgzKqwpxP44ry5/6eYCCa0NyR9HQ2g==
   dependencies:
     eos-common "^0.7.6"
 
