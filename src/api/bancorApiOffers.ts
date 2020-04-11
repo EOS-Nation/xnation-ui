@@ -60,6 +60,10 @@ export const bancorApiSmartTokens = [
     tokenId: "5c84d2db49aae47399d738f2"
   },
   {
+    smartTokenAddress: "0xb1CD6e4153B2a390Cf00A6556b0fC1458C4A5533",
+    tokenId: "594bb7e468a95e00203b048d"
+  },
+  {
     smartTokenAddress: "0xfceb45cf070b277fede520c5539ae204bc1d493e",
     tokenId: "5a69a9d91b67798dab40b9ec"
   },
@@ -390,5 +394,41 @@ export const bancorApiSmartTokens = [
   {
     smartTokenAddress: "0xf3ad2cbc4276eb4b0fb627af0059cfce094e20a1",
     tokenId: "5a174c5145a97200011ad30a"
+  },
+  {
+    smartTokenAddress: "0xb1cd6e4153b2a390cf00a6556b0fc1458c4a5533",
+    tokenId: "5937d635231e97001f744267"
+  },
+  {
+    smartTokenAddress: "0x38838b895cbf02048455fb7f649d97c564fc18a8",
+    tokenId: "5b27eb823751b7bb8dad17bb"
+  },
+  {
+    smartTokenAddress: "0xdd8a17169aa94e548602096eb9c9d44216ce8a37",
+    tokenId: "5af19e5820e434fb44cdeaed"
+  },
+  {
+    smartTokenAddress: "0x290bd3a8f785a8db30a0f6baf9b88863b831747f",
+    tokenId: "5e71f0216ea615ea17866be1"
+  },
+  {
+    smartTokenAddress: "0xe5df055773bf9710053923599504831c7dbdd697",
+    tokenId: "5e736e776ea615ea177bedf9"
+  },
+  {
+    smartTokenAddress: "0x131da075a2832549128e93acc2b54174045232cf",
+    tokenId: "5a1fd517634e000001878565"
+  },
+  {
+    smartTokenAddress: "0x248afff1aa83cf860198ddee14b5b3e8edb46d47",
+    tokenId: "5a69a9cb1b67798dab40b997"
+  },
+  {
+    smartTokenAddress: "0xa7774f9386e1653645e1a08fb7aae525b4dedb24",
+    tokenId: "5a3cb6868fb75500011ab51d"
+  },
+  {
+    smartTokenAddress: "0xa3b3c5a8b22c044d5f2d372f628245e2106d310d",
+    tokenId: "5a2d307c47bbf500018ecc6e"
   }
 ];
