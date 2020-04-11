@@ -146,8 +146,8 @@ export interface ViewToken {
   price: number;
   liqDepth: number;
   logo: string;
-  change24h: number;
-  volume24h: number;
+  change24h?: number;
+  volume24h?: number;
   balance?: number;
 }
 

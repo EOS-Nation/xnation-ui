@@ -43,6 +43,18 @@ import _ from "lodash";
 import { createPath, DryRelay, ChoppedRelay } from "@/api/ethBancorCalc";
 import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
 
+const tokenPriceToFeed = (
+  smartTokenAddress: string,
+  tokenPrice: TokenPrice,
+  usdPriceOfEth: number
+): RelayFeed => ({
+  smartTokenContract: smartTokenAddress,
+  costByNetworkUsd: tokenPrice.price,
+  liqDepth: tokenPrice.liquidityDepth,
+  change24H: tokenPrice.change24h,
+  volume24H: tokenPrice.volume24h.USD * usdPriceOfEth
+});
+
 const sortNetworkToken = (tokenCount: [Token, number][]) => {
   return (a: Token, b: Token) => {
     const aCount = tokenCount.find(
@@ -175,10 +187,16 @@ const getTokenMeta = async () => {
   return res.data;
 };
 
+const compareString = (stringOne: string, stringTwo: string) => {
+  return stringOne.toLowerCase() == stringTwo.toLowerCase();
+};
+
 interface RelayFeed {
   smartTokenContract: string;
   liqDepth: number;
   costByNetworkUsd: number;
+  change24H?: number;
+  volume24H?: number;
 }
 
 @Module({ namespacedPath: "ethBancor/" })
@@ -706,44 +724,35 @@ export class EthBancorModule extends VuexModule
   get tokens(): ViewToken[] {
     const tokens = this.relaysList
       .filter(relay =>
-        this.relayFeed.some(
-          feed => feed.smartTokenContract == relay.smartToken.contract
+        this.relayFeed.some(feed =>
+          compareString(feed.smartTokenContract, relay.smartToken.contract)
         )
       )
       .map(relay => {
         return relay.reserves.map(reserve => {
           const { name, image } = this.tokenMetaObj(reserve.symbol);
-          const relayFeed = this.relayFeed.find(
-            feed => feed.smartTokenContract == relay.smartToken.contract
+          const relayFeed = this.relayFeed.find(feed =>
+            compareString(feed.smartTokenContract, relay.smartToken.contract)
           )!;
 
           return {
             id: reserve.contract,
             symbol: reserve.symbol,
             name,
-            price: relayFeed.costByNetworkUsd,
+            price: relayFeed.costByNetworkUsd || 117,
             liqDepth: relayFeed.liqDepth,
             logo: image,
-            change24h: 0,
-            volume24h: 0,
+            ...(relayFeed.change24H && { change24h: relayFeed.change24H }),
+            ...(relayFeed.volume24H && { volume24h: relayFeed.volume24H }),
             balance: 0
           };
         });
       })
       .flat(1)
-      .reduce<ViewToken[]>((acc, item) => {
-        const alreadyExists = acc.find(token => token.symbol == item.symbol);
-        return alreadyExists
-          ? [
-              ...acc.filter(token => token.symbol !== alreadyExists.symbol),
-              {
-                ...alreadyExists,
-                liqDepth: alreadyExists.liqDepth + item.liqDepth
-              }
-            ]
-          : [...acc, item];
-      }, []);
-
+      .sort((a, b) => b.liqDepth - a.liqDepth)
+      .filter(
+        (token, index, arr) => arr.findIndex(t => t.id == token.id) == index
+      );
     return tokens;
   }
 
@@ -807,8 +816,8 @@ export class EthBancorModule extends VuexModule
   get relays(): ViewRelay[] {
     return this.relaysList
       .filter(relay =>
-        this.relayFeed.some(
-          feed => feed.smartTokenContract == relay.smartToken.contract
+        this.relayFeed.some(feed =>
+          compareString(feed.smartTokenContract, relay.smartToken.contract)
         )
       )
       .map(relay => {
@@ -819,8 +828,8 @@ export class EthBancorModule extends VuexModule
           ])
           .sort((a, b) => a[1] - b[1])[0][0];
 
-        const relayFeed = this.relayFeed.find(
-          feed => feed.smartTokenContract == relay.smartToken.contract
+        const relayFeed = this.relayFeed.find(feed =>
+          compareString(feed.smartTokenContract, relay.smartToken.contract)
         )!;
 
         return {
@@ -1303,22 +1312,51 @@ export class EthBancorModule extends VuexModule
     this.bancorTokens = tokens;
   }
 
+  @action async buildableRelayFeedsFromBancorApi(
+    smartTokenAddresses: string[]
+  ): Promise<RelayFeed[]> {
+    const tokens = await ethBancorApi.getTokens();
+    console.log(tokens, "was tokens res");
+    const catalogedAddresses = bancorApiSmartTokens
+      .filter(catalog =>
+        smartTokenAddresses.some(address =>
+          compareString(address, catalog.smartTokenAddress)
+        )
+      )
+      .filter(catalog =>
+        tokens.some(token => compareString(token.id, catalog.tokenId))
+      );
+
+    return catalogedAddresses.map(catalog =>
+      tokenPriceToFeed(
+        catalog.smartTokenAddress,
+        tokens.find(
+          token => token.id.toLowerCase() == catalog.tokenId.toLowerCase()
+        )!,
+        this.usdPrice
+      )
+    );
+  }
+
   @action async fetchAndUpdateRelayFeeds(relays: Relay[]) {
-    const feeds = await this.buildRelayFeeds(relays);
-    this.updateRelayFeeds(feeds);
+    const bancorApiFeeds = await this.buildableRelayFeedsFromBancorApi(
+      relays.map(relay => relay.smartToken.contract)
+    );
+    const remainingRelays = _.differenceWith(
+      relays,
+      bancorApiFeeds,
+      (relay, feed) =>
+        compareString(relay.smartToken.contract, feed.smartTokenContract)
+    );
+    const feeds = await this.buildRelayFeeds(remainingRelays)
+    this.updateRelayFeeds([...bancorApiFeeds, ...feeds]);
   }
 
   @mutation updateRelayFeeds(feeds: RelayFeed[]) {
     const allFeeds = [...feeds, ...this.relayFeed];
-    this.relayFeed = allFeeds.filter(
-      (feed, index, arr) =>
-        arr.findIndex(x => x.smartTokenContract == feed.smartTokenContract) ==
-        index
+    this.relayFeed = _.uniqWith(allFeeds, (a, b) =>
+      compareString(a.smartTokenContract, b.smartTokenContract)
     );
-  }
-
-  @mutation setRelayFeeds(feeds: RelayFeed[]) {
-    this.relayFeed = feeds;
   }
 
   @action async buildRelayFeeds(relays: Relay[]): Promise<RelayFeed[]> {
@@ -1340,10 +1378,11 @@ export class EthBancorModule extends VuexModule
           const networkReserveIsUsd = networkReserve.symbol == "USDB";
           return {
             smartTokenContract: relay.smartToken.contract,
-            costByNetworkUsd: 2,
-            liqDepth: networkReserveIsUsd
-              ? networkReserveAmount
-              : networkReserveAmount * this.usdPrice
+            costByNetworkUsd: 69,
+            liqDepth:
+              (networkReserveIsUsd
+                ? networkReserveAmount
+                : networkReserveAmount * this.usdPrice) * 2
           };
         }
       )
@@ -1417,8 +1456,8 @@ export class EthBancorModule extends VuexModule
       tokenMeta
     );
 
-    this.addOrReplaceRelays(hardCodedRelaysInRegistry);
-    this.fetchAndUpdateRelayFeeds(hardCodedRelaysInRegistry);
+    this.updateRelays(hardCodedRelaysInRegistry);
+    await this.fetchAndUpdateRelayFeeds(hardCodedRelaysInRegistry);
 
     const hardCodedSmartTokenAddresses = hardCodedRelaysInRegistry.map(
       relay => relay.smartToken.contract
@@ -1433,8 +1472,8 @@ export class EthBancorModule extends VuexModule
       nonHardCodedSmartTokenAddresses
     );
 
-    this.addOrReplaceRelays(relaysWithTokenMeta(nonHardCodedRelays, tokenMeta));
-    this.fetchAndUpdateRelayFeeds(
+    this.updateRelays(relaysWithTokenMeta(nonHardCodedRelays, tokenMeta));
+    await this.fetchAndUpdateRelayFeeds(
       relaysWithTokenMeta(nonHardCodedRelays, tokenMeta)
     );
   }
@@ -1590,13 +1629,13 @@ export class EthBancorModule extends VuexModule
     this.convertibleTokens = convertibleTokens;
   }
 
-  @mutation addOrReplaceRelays(relays: Relay[]) {
+  @mutation updateRelays(relays: Relay[]) {
     const meshedRelays = _.uniqWith(
       [...relays, ...this.relaysList],
       (a, b) => a.smartToken.contract == b.smartToken.contract
     );
     this.relaysList = meshedRelays;
-    console.log(meshedRelays.length, "relays should be set");
+    console.log("relays gained", relays.length - this.relaysList.length);
   }
 
   @action async getNetworkReserve(relay: Relay) {
@@ -1683,6 +1722,7 @@ export class EthBancorModule extends VuexModule
   }
 
   @mutation setRelaysList(relays: Relay[]) {
+    console.log("We gained", relays.length - this.relaysList.length, "relays");
     this.relaysList = relays;
   }
 
