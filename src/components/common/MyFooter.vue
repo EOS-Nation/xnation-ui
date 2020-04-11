@@ -19,6 +19,14 @@
       </span>
       <a :href="website" target="_blank" class="fas orange">EOS Nation </a>
       <span class="text">| Version: {{ appVersion }} </span>
+      <span class="text">
+        <a href="https://github.com/EOS-Nation/xnation-ui" target="_blank"
+          ><font-awesome-icon
+            :style="{ color: 'white' }"
+            :icon="['fab', 'github']"
+            fixed-width
+        /></a>
+      </span>
     </div>
   </div>
 </template>
