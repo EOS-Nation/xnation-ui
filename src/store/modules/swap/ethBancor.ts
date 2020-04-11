@@ -90,7 +90,7 @@ const relaysWithTokenMeta = (relays: Relay[], tokenMeta: TokenMeta[]) => {
   const missedRelays = _.differenceWith(
     relays,
     passedRelays,
-    (a, b) => a.smartToken.contract == b.smartToken.contract
+    compareRelayBySmartTokenAddress
   );
   console.warn(
     missedRelays
@@ -100,17 +100,6 @@ const relaysWithTokenMeta = (relays: Relay[], tokenMeta: TokenMeta[]) => {
     "are being ditched due to not being included in token meta. "
   );
   return passedRelays;
-};
-
-const getPoolReserveToken = (
-  relay: Relay,
-  networkSymbols = ["BNT", "USDB"]
-) => {
-  return (
-    relay.reserves.find(reserve =>
-      networkSymbols.every(networkSymbol => reserve.symbol !== networkSymbol)
-    ) || relay.reserves[0]
-  );
 };
 
 const percentageOfReserve = (
@@ -187,9 +176,11 @@ const getTokenMeta = async () => {
   return res.data;
 };
 
-const compareString = (stringOne: string, stringTwo: string) => {
-  return stringOne.toLowerCase() == stringTwo.toLowerCase();
-};
+const compareString = (stringOne: string, stringTwo: string) =>
+  stringOne.toLowerCase() == stringTwo.toLowerCase();
+
+const compareRelayBySmartTokenAddress = (a: Relay, b: Relay) =>
+  compareString(a.smartToken.contract, b.smartToken.contract);
 
 interface RelayFeed {
   smartTokenContract: string;
@@ -1390,7 +1381,6 @@ export class EthBancorModule extends VuexModule
     );
   }
 
-
   @action async init() {
     const [
       tokens,
@@ -1595,10 +1585,9 @@ export class EthBancorModule extends VuexModule
   @mutation updateRelays(relays: Relay[]) {
     const meshedRelays = _.uniqWith(
       [...relays, ...this.relaysList],
-      (a, b) => a.smartToken.contract == b.smartToken.contract
+      compareRelayBySmartTokenAddress
     );
     this.relaysList = meshedRelays;
-    console.log("relays gained", relays.length - this.relaysList.length);
   }
 
   @action async getNetworkReserve(relay: Relay) {
@@ -1650,7 +1639,6 @@ export class EthBancorModule extends VuexModule
   @action async focusSymbol(symbolName: string) {
     if (!this.isAuthenticated) return;
     const token = this.token(symbolName);
-    console.log('id for', symbolName, token)
     const balance = await vxm.ethWallet.getBalance({
       accountHolder: this.isAuthenticated,
       tokenContractAddress: token.id
