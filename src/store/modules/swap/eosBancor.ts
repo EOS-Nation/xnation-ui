@@ -20,7 +20,8 @@ import {
   NewOwnerParams,
   BaseToken,
   CreatePoolParams,
-  PromiseSequence
+  PromiseSequence,
+  ViewRelay
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import { fetchRelays, getBalance, fetchTokenStats } from "@/api/helpers";
@@ -685,7 +686,7 @@ export class EosBancorModule extends VuexModule
     };
   }
 
-  get relays() {
+  get relays(): ViewRelay[] {
     return this.relaysList
       .filter(
         relayIncludesBothTokens(
@@ -1112,10 +1113,8 @@ export class EosBancorModule extends VuexModule
     const allRelays = eosMultiToDryRelays(this.convertableRelays);
     const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
-    // @ts-ignore
-    const isAuthenticated = this.$store.rootGetters[
-      "eosWallet/isAuthenticated"
-    ];
+
+    const isAuthenticated = this.isAuthenticated;
 
     const memo = composeMemo(
       convertPath,
@@ -1311,12 +1310,21 @@ export class EosBancorModule extends VuexModule
 
   @action async hydrateRelays(relays: DryRelay[]): Promise<HydratedRelay[]> {
     const [reservesRes, settingsRes] = await Promise.all([
-      client.stateTablesForScopes(
+      client.stateTablesForScopes<{
+        contract: string;
+        ratio: number;
+        balance: string;
+      }>(
         process.env.VUE_APP_MULTICONTRACT!,
         relays.map(relay => relay.smartToken.symbol.code().to_string()),
         "reserves"
       ),
-      client.stateTablesForScopes(
+      client.stateTablesForScopes<{
+        currency: string;
+        owner: string;
+        stake_enabled: boolean;
+        fee: number;
+      }>(
         process.env.VUE_APP_MULTICONTRACT!,
         relays.map(relay => relay.smartToken.symbol.code().to_string()),
         "converters"
@@ -1470,6 +1478,7 @@ export class EosBancorModule extends VuexModule
     const allRelays = eosMultiToDryRelays(this.convertableRelays);
     const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const hydratedRelays = await this.hydrateRelays(path);
+    console.log('getCostMulti', 'go home')
     const calculatedCost = findCost(assetAmount, hydratedRelays);
 
     return {
