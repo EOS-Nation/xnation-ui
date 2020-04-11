@@ -440,8 +440,8 @@ export default class HeroConvert extends Vue {
 
   async created() {
     this.loadSimpleReward();
-    // @ts-ignore
-    this.$analytics.logEvent("hero_component_created");
+    this.focusSymbol(this.fromTokenSymbol);
+    this.focusSymbol(this.toTokenSymbol);
   }
 }
 </script>
