@@ -1,5 +1,4 @@
 import { VuexModule, action, Module, mutation } from "vuex-class-component";
-
 import {
   ProposedTransaction,
   ProposedConvertTransaction,
@@ -11,68 +10,13 @@ import {
 import { vxm } from "@/store";
 import {
   get_pools,
-  get_price,
   get_settings,
-  get_fee,
   get_volume,
   get_rate,
-  get_inverse_rate,
-  Settings,
-  Pools
+  get_inverse_rate
 } from "sxjs";
 import { rpc } from "@/api/rpc";
-// @ts-ignore
-import {
-  asset_to_number,
-  number_to_asset,
-  symbol,
-  asset,
-  Asset
-} from "eos-common";
-
-const pricePerUnit = (asset: Asset, amountRequested: number): number => {
-  return asset_to_number(asset) / amountRequested;
-};
-
-interface PreviousCalculation {
-  fromSymbol: string;
-  fromPrecision: number;
-  toSymbol: string;
-  toPrecision: number;
-  pools: Pools;
-  settings: Settings;
-  reward: Asset;
-  amount: number;
-}
-
-const calculateSlippage = (
-  {
-    fromSymbol,
-    fromPrecision,
-    toSymbol,
-    toPrecision,
-    pools,
-    settings,
-    reward,
-    amount
-  }: PreviousCalculation,
-  cost = false,
-  minimalAmount = 0.01
-) => {
-  const minimal = get_rate(
-    number_to_asset(minimalAmount, symbol(fromSymbol, fromPrecision)),
-    symbol(toSymbol, toPrecision).code(),
-    pools,
-    settings
-  );
-  const minimalReward = pricePerUnit(minimal.price, minimalAmount);
-  const rewardReward = pricePerUnit(reward, amount);
-  const slippage = cost
-    ? (rewardReward - minimalReward) / rewardReward
-    : (minimalReward - rewardReward) / minimalReward;
-
-  return slippage;
-};
+import { asset_to_number, number_to_asset, symbol } from "eos-common";
 
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
@@ -101,7 +45,9 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       balance = (tokenBalance && Number(tokenBalance.balance)) || 0;
 
       try {
-        const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(tokenMeta => tokenMeta.symbol == token)!
+        const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(
+          tokenMeta => tokenMeta.symbol == token
+        )!;
         if (!eosModuleBorrowed) throw new Error("Failed to find token");
         name = eosModuleBorrowed.name;
         logo = eosModuleBorrowed.logo;
@@ -217,28 +163,23 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();
 
-    const reward = get_rate(
-      number_to_asset(amount, symbol(fromSymbol, fromPrecision)),
-      symbol(toSymbol, toPrecision).code(),
+    const fromAsset = number_to_asset(
+      amount,
+      symbol(fromSymbol, fromPrecision)
+    );
+
+    const toSymbolObj = symbol(toSymbol, toPrecision);
+
+    const { out, slippage } = get_rate(
+      fromAsset,
+      toSymbolObj.code(),
       pools,
       settings
     );
 
-    const slippage = calculateSlippage({
-      fromSymbol,
-      fromPrecision,
-      toSymbol,
-      toPrecision,
-      amount,
-      reward: reward.price,
-      pools,
-      settings
-    });
 
     return {
-      amount: String(
-        asset_to_number(reward.price) - asset_to_number(reward.fee)
-      ),
+      amount: String(asset_to_number(out)),
       slippage
     };
   }
@@ -254,29 +195,22 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();
 
-    const { price, fee } = get_inverse_rate(
-      number_to_asset(amount, symbol(fromSymbol, fromPrecision)),
-      symbol(toSymbol, toPrecision).code(),
+    const expectedReward = number_to_asset(
+      amount,
+      symbol(toSymbol, toPrecision)
+    );
+
+    const offering = symbol(fromSymbol, fromPrecision);
+
+    const { quantity, slippage } = get_inverse_rate(
+      expectedReward,
+      offering.code(),
       pools,
       settings
     );
 
-    const slippage = calculateSlippage(
-      {
-        fromSymbol: toSymbol,
-        fromPrecision: toPrecision,
-        toPrecision: fromPrecision,
-        toSymbol: fromSymbol,
-        amount,
-        reward: price,
-        pools,
-        settings
-      },
-      true
-    );
-
     return {
-      amount: String(asset_to_number(price) - asset_to_number(fee)),
+      amount: String(asset_to_number(quantity)),
       slippage
     };
   }
