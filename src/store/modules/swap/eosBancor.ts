@@ -363,44 +363,46 @@ export class EosBancorModule extends VuexModule
 
   get newPoolTokenChoices() {
     return (networkToken: string): ModalChoice[] => {
-      return this.tokenMeta
-        .map(tokenMeta => {
-          const balance = this.balance({
-            contract: tokenMeta.account,
-            symbol: tokenMeta.symbol
-          });
-          return {
-            symbol: tokenMeta.symbol,
-            contract: tokenMeta.account,
-            balance: balance && balance.amount,
-            img: tokenMeta.logo
-          };
-        })
-        .filter(
-          (value, index, array) =>
-            array.findIndex(token => value.symbol == token.symbol) == index
-        )
-        // .filter(
-        //   tokenMeta =>
-        //     !this.relaysList.find(relay =>
-        //       relay.reserves.every(
-        //         reserve =>
-        //           reserve.symbol == tokenMeta.symbol ||
-        //           reserve.symbol == networkToken
-        //       )
-        //     )
-        // )
-        .filter(
-          token =>
-            !mandatoryNetworkTokens.some(
-              networkToken => token.symbol == networkToken.symbol
-            )
-        )
-        .sort((a, b) => {
-          const second = isNaN(b.balance) ? 0 : Number(b.balance);
-          const first = isNaN(a.balance) ? 0 : Number(a.balance);
-          return second - first;
-        });
+      return (
+        this.tokenMeta
+          .map(tokenMeta => {
+            const balance = this.balance({
+              contract: tokenMeta.account,
+              symbol: tokenMeta.symbol
+            });
+            return {
+              symbol: tokenMeta.symbol,
+              contract: tokenMeta.account,
+              balance: balance && balance.amount,
+              img: tokenMeta.logo
+            };
+          })
+          .filter(
+            (value, index, array) =>
+              array.findIndex(token => value.symbol == token.symbol) == index
+          )
+          // .filter(
+          //   tokenMeta =>
+          //     !this.relaysList.find(relay =>
+          //       relay.reserves.every(
+          //         reserve =>
+          //           reserve.symbol == tokenMeta.symbol ||
+          //           reserve.symbol == networkToken
+          //       )
+          //     )
+          // )
+          .filter(
+            token =>
+              !mandatoryNetworkTokens.some(
+                networkToken => token.symbol == networkToken.symbol
+              )
+          )
+          .sort((a, b) => {
+            const second = isNaN(b.balance) ? 0 : Number(b.balance);
+            const first = isNaN(a.balance) ? 0 : Number(a.balance);
+            return second - first;
+          })
+      );
     };
   }
 
@@ -1067,6 +1069,32 @@ export class EosBancorModule extends VuexModule
   // Could be an oppurtunity to get precision
   @action async focusSymbol(symbolName: string) {}
 
+  @action async hasExistingBalance({
+    contract,
+    symbol
+  }: {
+    contract: string;
+    symbol: string;
+  }) {
+    try {
+      const res = await client.stateTable<{ balance: string }>(
+        contract,
+        this.isAuthenticated,
+        "accounts"
+      );
+      return (
+        res.rows.length > 0 &&
+        res.rows
+          .map(x => x.json!)
+          .map(({ balance }) => balance)
+          .some(balance => balance.includes(symbol))
+      );
+    } catch (e) {
+      console.log("Balance error", e);
+      return false;
+    }
+  }
+
   @action async convertApi({
     fromAmount,
     fromSymbol,
@@ -1092,7 +1120,6 @@ export class EosBancorModule extends VuexModule
     });
 
     const { actions } = res.data[0];
-    console.log(actions, "came through from bancorApi ");
     const txRes = await this.triggerTx(actions);
     return txRes.transaction_id;
   }
@@ -1125,11 +1152,31 @@ export class EosBancorModule extends VuexModule
 
     // @ts-ignore
     const fromTokenContract = fromToken.contract;
-    const convertActions = await multiContract.convert(
+    let convertActions = await multiContract.convert(
       fromTokenContract,
       assetAmount,
       memo
     );
+
+    const contract = relaysPath[relaysPath.length - 1].reserves.find(
+      reserve => reserve.symbol.code().to_string() == toSymbol
+    )!.contract;
+
+    const existingBalance =
+      this.balance({ contract, symbol: toSymbol }) ||
+      (await this.hasExistingBalance({ contract, symbol: toSymbol }));
+
+    if (!existingBalance) {
+      const openActions = await multiContract.openActions(
+        contract,
+        // @ts-ignore
+        `${toToken.precision},${toSymbol}`,
+        this.isAuthenticated
+      );
+      convertActions = [...openActions, ...convertActions];
+    }
+
+    
     const txRes = await this.triggerTx(convertActions);
     return txRes.transaction_id;
   }
@@ -1192,6 +1239,7 @@ export class EosBancorModule extends VuexModule
 
         const allRelays = eosMultiToDryRelays(this.convertableRelays);
         const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
+        console.log(relaysPath, "was relaysPath");
         const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
         const fromTokenRes = await bancorApi.getToken(fromSymbol);
         const fromTokenContract = fromTokenRes.details[0].blockchainId;
@@ -1204,11 +1252,29 @@ export class EosBancorModule extends VuexModule
           vxm.wallet.isAuthenticated
         );
 
-        const convertActions = await multiContract.convert(
+        let convertActions = await multiContract.convert(
           fromTokenContract,
           assetAmount,
           memo
         );
+
+        const contract = relaysPath[relaysPath.length - 1].reserves.find(
+          reserve => reserve.symbol.code().to_string() == toSymbol
+        )!.contract;
+
+        const existingBalance =
+          this.balance({ contract, symbol: toSymbol }) ||
+          (await this.hasExistingBalance({ contract, symbol: toSymbol }));
+
+        if (!existingBalance) {
+          const openActions = await multiContract.openActions(
+            contract,
+            // @ts-ignore
+            `${toToken.precision},${toSymbol}`,
+            this.isAuthenticated
+          );
+          convertActions = [...openActions, ...convertActions];
+        }
         const txRes = await this.triggerTx(convertActions);
         return txRes.transaction_id;
       }
