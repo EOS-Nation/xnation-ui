@@ -44,6 +44,20 @@ class MultiContractTx {
     return authedActions;
   }
 
+  openActions(contract: string, symbol: string, owner: string, payer = owner) {
+    return this.tx([
+      {
+        account: contract,
+        name: "open",
+        data: {
+          owner,
+          symbol,
+          ram_payer: payer
+        }
+      }
+    ]);
+  }
+
   deleteReserve(symbolCode: string, currency: string): Promise<TxResponse> {
     const action = multiContractAction.delreserve(
       symbolCode,
