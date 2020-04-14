@@ -33,7 +33,7 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
     return ({ contract, symbol }: { contract: string; symbol: string }) => {
       return this.balances.find(
         x => x.symbol == symbol && x.contract == contract
-      )!;
+      );
     };
   }
 

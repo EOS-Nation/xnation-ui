@@ -1162,11 +1162,20 @@ export class EosBancorModule extends VuexModule
       reserve => reserve.symbol.code().to_string() == toSymbol
     )!.contract;
 
-    const existingBalance =
-      this.balance({ contract, symbol: toSymbol }) ||
-      (await this.hasExistingBalance({ contract, symbol: toSymbol }));
+    const existingBalance = await this.hasExistingBalance({
+      contract,
+      symbol: toSymbol
+    });
 
     if (!existingBalance) {
+      const abiConf = await client.stateAbi(contract);
+      const openSupported = abiConf.abi.actions.some(
+        action => action.name == "open"
+      );
+      if (!openSupported)
+        throw new Error(
+          `You do not have an existing balance of ${toSymbol} and it's token contract ${contract} does not support 'open' functionality.`
+        );
       const openActions = await multiContract.openActions(
         contract,
         // @ts-ignore
@@ -1224,7 +1233,6 @@ export class EosBancorModule extends VuexModule
         const fromTokenPrecision = await this.getEosTokenWithDecimals(
           fromSymbol
         );
-        console.log(fromTokenPrecision, "iS the from token");
         const toToken = this.relayTokens.find(x => x.symbol == toSymbol)!;
 
         const fromSymbolInit = new Symbol("BNT", 10);
@@ -1238,7 +1246,6 @@ export class EosBancorModule extends VuexModule
 
         const allRelays = eosMultiToDryRelays(this.convertableRelays);
         const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
-        console.log(relaysPath, "was relaysPath");
         const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
         const fromTokenRes = await bancorApi.getToken(fromSymbol);
         const fromTokenContract = fromTokenRes.details[0].blockchainId;
@@ -1261,11 +1268,20 @@ export class EosBancorModule extends VuexModule
           reserve => reserve.symbol.code().to_string() == toSymbol
         )!.contract;
 
-        const existingBalance =
-          this.balance({ contract, symbol: toSymbol }) ||
-          (await this.hasExistingBalance({ contract, symbol: toSymbol }));
+        const existingBalance = await this.hasExistingBalance({
+          contract,
+          symbol: toSymbol
+        });
 
         if (!existingBalance) {
+          const abiConf = await client.stateAbi(contract);
+          const openSupported = abiConf.abi.actions.some(
+            action => action.name == "open"
+          );
+          if (!openSupported)
+            throw new Error(
+              `You do not have an existing balance of ${toSymbol} and it's token contract ${contract} does not support 'open' functionality.`
+            );
           const openActions = await multiContract.openActions(
             contract,
             // @ts-ignore
