@@ -31,7 +31,9 @@ import {
   FactoryAbi,
   bancorRegistry,
   ABIContractRegistry,
-  ABIConverterRegistry
+  ABINetworkContract,
+  ABIConverterRegistry,
+  ABINetworkPathFinder
 } from "@/api/ethConfig";
 import { toWei, toHex, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
@@ -42,6 +44,11 @@ import wait from "waait";
 import _ from "lodash";
 import { createPath, DryRelay, ChoppedRelay } from "@/api/ethBancorCalc";
 import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
+
+const expandToken = (amount: string | number, precision: number) =>
+  String(Number(amount) * Math.pow(10, precision));
+const shrinkToken = (amount: string | number, precision: number) =>
+  String(Number(amount) / Math.pow(10, precision));
 
 const tokenPriceToFeed = (
   smartTokenAddress: string,
@@ -201,6 +208,7 @@ export class EthBancorModule extends VuexModule
   tokenBalances: { id: string; balance: number }[] = [];
   tokenMeta: TokenMeta[] = [];
   bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
+  bancorNetworkPathFinder = "0x6F0cD8C4f6F06eAB664C7E3031909452b4B72861";
   contracts: RegisteredContracts = {
     BancorNetwork: "",
     BancorConverterRegistry: "",
@@ -1400,6 +1408,7 @@ export class EthBancorModule extends VuexModule
       this.fetchContractAddresses(),
       this.fetchUsdPrice()
     ]);
+    console.log(contractAddresses, "are contract addresses");
 
     this.setTokenMeta(tokenMeta);
     this.setBancorApiTokens(tokens);
@@ -1589,6 +1598,29 @@ export class EthBancorModule extends VuexModule
   }
 
   @mutation updateRelays(relays: Relay[]) {
+    const allReserves = this.relaysList
+      .concat(relays)
+      .map(relay => relay.reserves)
+      .flat(1);
+    const uniqueTokens = _.uniqWith(allReserves, (a, b) =>
+      compareString(a.contract, b.contract)
+    );
+
+    const decimalUniformityBetweenTokens = uniqueTokens.every(token => {
+      const allReservesTokenFoundIn = allReserves.filter(reserve =>
+        compareString(token.contract, reserve.contract)
+      );
+      return allReservesTokenFoundIn.every(
+        (reserve, _, arr) => reserve.decimals == arr[0].decimals
+      );
+    });
+    if (!decimalUniformityBetweenTokens) {
+      console.error(
+        `There is a mismatch of decimals between relays of the same token, will not store ${relays.length} new relays`
+      );
+      return;
+    }
+
     const meshedRelays = _.uniqWith(
       [...relays, ...this.relaysList],
       compareRelayBySmartTokenAddress
@@ -1673,7 +1705,19 @@ export class EthBancorModule extends VuexModule
   }
 
   @mutation setRelaysList(relays: Relay[]) {
-    console.log("We gained", relays.length - this.relaysList.length, "relays");
+    const allReserves = relays.map(relay => relay.reserves).flat(1);
+    const uniqueTokens = _.uniqWith(allReserves, (a, b) =>
+      compareString(a.contract, b.contract)
+    );
+    const decimalUniformity = uniqueTokens.every(token => {
+      const allReservesTokenFoundIn = allReserves.filter(reserve =>
+        compareString(token.contract, reserve.contract)
+      );
+      return allReservesTokenFoundIn.every(
+        (reserve, _, arr) => reserve.decimals == arr[0].decimals
+      );
+    });
+    console.log(decimalUniformity, "is decimal uniformity!");
     this.relaysList = relays;
   }
 
@@ -1706,38 +1750,84 @@ export class EthBancorModule extends VuexModule
     // return txRes;
   }
 
+  @action async getPathByContract({
+    fromTokenContract,
+    toTokenContract
+  }: {
+    fromTokenContract: string;
+    toTokenContract: string;
+  }): Promise<string[]> {
+    const contract = new web3.eth.Contract(
+      ABINetworkPathFinder,
+      this.bancorNetworkPathFinder
+    );
+
+    const res = await contract.methods
+      .generatePath(fromTokenContract, toTokenContract)
+      .call();
+    return res;
+  }
+
+  @action async getReturnByPath({
+    path,
+    amount
+  }: {
+    path: string[];
+    amount: string;
+  }) {
+    const contract = new web3.eth.Contract(
+      ABINetworkContract,
+      this.contracts.BancorNetwork
+    );
+
+    const res = await contract.methods.getReturnByPath(path, amount).call();
+    return res["0"];
+  }
+
+  @action async getDecimalsByTokenAddress(tokenAddress: string) {
+    const reserve = this.relaysList
+      .map(relay => relay.reserves)
+      .flat(1)
+      .find(reserve => compareString(reserve.contract, tokenAddress));
+    if (!reserve)
+      throw new Error(
+        `Failed to find token address ${tokenAddress} in list of reserves.`
+      );
+    return reserve.decimals;
+  }
+
   @action async getReturn({
     fromSymbol,
     toSymbol,
     amount
   }: ProposedTransaction) {
-    return {
-      amount: "1"
-    };
+    const fromToken = this.tokens.find(x => x.symbol == fromSymbol)!;
+    const toToken = this.tokens.find(x => x.symbol == toSymbol)!;
 
-    // const apiContained = this.bothSymbolsInApi([fromSymbol, toSymbol]);
-    // if (apiContained) {
-    //   console.log("we are api contained");
-    //   const fromSymbolApiInstance = this.backgroundToken(fromSymbol);
-    //   const toSymbolApiInstance = this.backgroundToken(toSymbol);
-    //   const [fromTokenDecimals, toTokenDecimals] = await Promise.all([
-    //     this.getDecimals(fromSymbolApiInstance.id),
-    //     this.getDecimals(toSymbolApiInstance.id)
-    //   ]);
-    //   const result = await ethBancorApi.calculateReturn(
-    //     fromSymbolApiInstance.id,
-    //     toSymbolApiInstance.id,
-    //     String(amount * Math.pow(10, fromTokenDecimals))
-    //   );
-    //   return {
-    //     amount: String(Number(result) / Math.pow(10, toTokenDecimals))
-    //   };
-    // } else {
-    //   console.log("we are not api contained");
-    //   return {
-    //     amount: "1"
-    //   };
-    // }
+    const [fromTokenContract, toTokenContract] = [fromToken, toToken].map(
+      token => token.id!
+    );
+
+    const fromTokenDecimals = await this.getDecimalsByTokenAddress(
+      fromTokenContract
+    );
+    const toTokenDecimals = await this.getDecimalsByTokenAddress(
+      toTokenContract
+    );
+
+    const path = await this.getPathByContract({
+      fromTokenContract,
+      toTokenContract
+    });
+
+    const returnWei = await this.getReturnByPath({
+      path,
+      amount: expandToken(amount, fromTokenDecimals)
+    });
+
+    return {
+      amount: shrinkToken(returnWei, toTokenDecimals)
+    };
   }
 
   @action async getCost({ fromSymbol, toSymbol, amount }: ProposedTransaction) {
