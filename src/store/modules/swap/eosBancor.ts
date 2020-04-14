@@ -1176,7 +1176,6 @@ export class EosBancorModule extends VuexModule
       convertActions = [...openActions, ...convertActions];
     }
 
-    
     const txRes = await this.triggerTx(convertActions);
     return txRes.transaction_id;
   }
