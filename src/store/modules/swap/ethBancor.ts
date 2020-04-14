@@ -218,10 +218,13 @@ export class EthBancorModule extends VuexModule
         symbol: bntTokenMeta.symbol,
         img: bntTokenMeta.image,
         balance:
-          (this.tokenBalances.find(balance => balance.symbol == "BNT") &&
+          (this.tokenBalances.find(balance =>
+            compareString(balance.id, bntTokenMeta.contract)
+          ) &&
             Number(
-              this.tokenBalances.find(balance => balance.symbol == "BNT")!
-                .balance
+              this.tokenBalances.find(balance =>
+                compareString(balance.id, bntTokenMeta.contract)
+              )!.balance
             )) ||
           0
       },
@@ -230,10 +233,13 @@ export class EthBancorModule extends VuexModule
         symbol: usdBTokenMeta.symbol,
         img: usdBTokenMeta.image,
         balance:
-          (this.tokenBalances.find(balance => balance.symbol == "USDB") &&
+          (this.tokenBalances.find(balance =>
+            compareString(balance.id, usdBTokenMeta.contract)
+          ) &&
             Number(
-              this.tokenBalances.find(balance => balance.symbol == "USDB")!
-                .balance
+              this.tokenBalances.find(balance =>
+                compareString(balance.id, usdBTokenMeta.contract)
+              )!.balance
             )) ||
           0
       }
@@ -248,12 +254,12 @@ export class EthBancorModule extends VuexModule
           symbol: meta.symbol,
           img: meta.image,
           balance:
-            (this.tokenBalances.find(
-              balance => balance.symbol == meta.symbol
+            (this.tokenBalances.find(balance =>
+              compareString(balance.id, meta.contract)
             ) &&
               Number(
-                this.tokenBalances.find(
-                  balance => balance.symbol == meta.symbol
+                this.tokenBalances.find(balance =>
+                  compareString(balance.id, meta.contract)
                 )!.balance
               )) ||
             0
