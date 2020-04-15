@@ -32,7 +32,7 @@ export type Wei = string | number;
 export type Ether = string | number;
 
 export const web3 = new Web3(
-  Web3.givenProvider || "https://api.myetherapi.com/eth"
+  Web3.givenProvider || "https://mainnet.infura.io/v3/da059c364a2f4e6eb89bfd89600bce07"
 );
 
 export const fetchReserveBalance = async (
