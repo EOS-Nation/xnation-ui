@@ -227,7 +227,7 @@ export const ABIContractRegistry: AbiItem[] = [
   }
 ];
 
-export const FactoryAbi = [
+export const FactoryAbi: AbiItem[] = [
   {
     constant: false,
     inputs: [
@@ -260,7 +260,7 @@ export const FactoryAbi = [
   }
 ];
 
-export const ABIBancorGasPriceLimit = [
+export const ABIBancorGasPriceLimit: AbiItem[] = [
   {
     constant: false,
     inputs: [],
@@ -592,7 +592,7 @@ export const ABISmartToken: AbiItem[] = [
   }
 ];
 
-export const ABIConverterRegistry = [
+export const ABIConverterRegistry: AbiItem[] = [
   {
     constant: false,
     inputs: [{ name: "_onlyOwnerCanUpdateRegistry", type: "bool" }],
@@ -940,7 +940,7 @@ export const ABIConverterRegistry = [
   }
 ];
 
-export const ABIConverter = [
+export const ABIConverter: AbiItem[] = [
   {
     constant: false,
     inputs: [{ name: "_adminOnly", type: "bool" }],
