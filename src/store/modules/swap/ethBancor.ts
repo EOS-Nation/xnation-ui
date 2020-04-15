@@ -52,7 +52,7 @@ import {
 import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
 
 const expandToken = (amount: string | number, precision: number) =>
-  String(Number(amount) * Math.pow(10, precision));
+  String((Number(amount) * Math.pow(10, precision)).toFixed(0));
 const shrinkToken = (amount: string | number, precision: number) =>
   String(Number(amount) / Math.pow(10, precision));
 
@@ -209,7 +209,6 @@ export class EthBancorModule extends VuexModule
   tokensList: any[] = [];
   bancorTokens: TokenPrice[] = [];
   relayFeed: RelayFeed[] = [];
-  usdPrice: number = 0;
   relaysList: Relay[] = [];
   tokenBalances: { id: string; balance: number }[] = [];
   tokenMeta: TokenMeta[] = [];
@@ -635,8 +634,9 @@ export class EthBancorModule extends VuexModule
         return this.resolveTxOnConfirmation({
           tx: tokenContract.methods.approve(
             approval.approvedAddress,
-            toWei(approval.amount)
-          )
+            approval.amount
+          ),
+          gas: 70000
         });
       })
     );
@@ -870,14 +870,6 @@ export class EthBancorModule extends VuexModule
       const bScore = this.count(b.contract)!;
       return bScore - aScore;
     };
-  }
-
-  @action async fetchUsdPrice() {
-    this.setUsdPrice(Number(await ethBancorApi.getRate("BNT", "USD")));
-  }
-
-  @mutation setUsdPrice(price: number) {
-    this.usdPrice = price;
   }
 
   @mutation setTokenMeta(tokenMeta: TokenMeta[]) {
@@ -1320,10 +1312,6 @@ export class EthBancorModule extends VuexModule
     console.log(add, "was add returned");
   }
 
-  @mutation setBancorApiTokens(tokens: TokenPrice[]) {
-    this.bancorTokens = tokens;
-  }
-
   @action async possibleRelayFeedsFromBancorApi(
     smartTokenAddresses: string[]
   ): Promise<RelayFeed[]> {
@@ -1372,6 +1360,7 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async buildRelayFeeds(relays: Relay[]): Promise<RelayFeed[]> {
+    const usdPriceOfBnt = Number(await ethBancorApi.getRate("BNT", "USD"));
     return Promise.all(
       relays.map(
         async (relay): Promise<RelayFeed> => {
@@ -1394,7 +1383,7 @@ export class EthBancorModule extends VuexModule
             liqDepth:
               (networkReserveIsUsd
                 ? networkReserveAmount
-                : networkReserveAmount * this.usdPrice) * 2
+                : networkReserveAmount * usdPriceOfBnt) * 2
           };
         }
       )
@@ -1402,22 +1391,13 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async init() {
-    const [
-      tokens,
-      hardCodedRelays,
-      tokenMeta,
-      contractAddresses
-    ] = await Promise.all([
-      ethBancorApi.getTokens(),
+    const [hardCodedRelays, tokenMeta, contractAddresses] = await Promise.all([
       getEthRelays(),
       getTokenMeta(),
-      this.fetchContractAddresses(),
-      this.fetchUsdPrice()
+      this.fetchContractAddresses()
     ]);
-    console.log(contractAddresses, "are contract addresses");
 
     this.setTokenMeta(tokenMeta);
-    this.setBancorApiTokens(tokens);
 
     const registeredSmartTokenAddresses = await this.fetchSmartTokenAddresses(
       contractAddresses.BancorConverterRegistry
@@ -1484,7 +1464,6 @@ export class EthBancorModule extends VuexModule
     converterAddress: string;
   }): Promise<Relay> {
     const converterContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverter,
       relayAddresses.converterAddress
     );
@@ -1710,50 +1689,115 @@ export class EthBancorModule extends VuexModule
     }
   }
 
-  @mutation setRelaysList(relays: Relay[]) {
-    const allReserves = relays.map(relay => relay.reserves).flat(1);
-    const uniqueTokens = _.uniqWith(allReserves, (a, b) =>
-      compareString(a.contract, b.contract)
-    );
-    const decimalUniformity = uniqueTokens.every(token => {
-      const allReservesTokenFoundIn = allReserves.filter(reserve =>
-        compareString(token.contract, reserve.contract)
-      );
-      return allReservesTokenFoundIn.every(
-        (reserve, _, arr) => reserve.decimals == arr[0].decimals
-      );
-    });
-    console.log(decimalUniformity, "is decimal uniformity!");
-    this.relaysList = relays;
-  }
-
   @action async convert({
     fromSymbol,
     toSymbol,
     fromAmount,
     toAmount
   }: ProposedConvertTransaction) {
-    return "fwe";
+    const fromToken = this.tokens.find(x => x.symbol == fromSymbol)!;
+    const toToken = this.tokens.find(x => x.symbol == toSymbol)!;
 
-    // const fromObj = this.backgroundToken(fromSymbol);
-    // const toObj = this.backgroundToken(toSymbol);
-    //
-    // const fromAmountWei = web3.utils.toWei(String(fromAmount));
-    // const toAmountWei = web3.utils.toWei(String(toAmount));
-    // const minimumReturnWei = String((Number(toAmountWei) * 0.98).toFixed(0));
-    //
-    // const ownerAddress = this.isAuthenticated;
-    // const convertPost = {
-    //   fromCurrencyId: fromObj.id,
-    //   toCurrencyId: toObj.id,
-    //   amount: fromAmountWei,
-    //   minimumReturn: minimumReturnWei,
-    //   ownerAddress
-    // };
-    // const res = await ethBancorApi.convert(convertPost);
-    // const params = res.data;
-    // const txRes = await this.triggerTx(params[0]);
-    // return txRes;
+    const [fromTokenContract, toTokenContract] = [fromToken, toToken].map(
+      token => token.id!
+    );
+
+    const fromTokenDecimals = await this.getDecimalsByTokenAddress(
+      fromTokenContract
+    );
+    const toTokenDecimals = await this.getDecimalsByTokenAddress(
+      toTokenContract
+    );
+
+    const { dryRelays } = createPath(
+      fromSymbol,
+      toSymbol,
+      this.relaysList.map(
+        (x): DryRelay => ({
+          contract: x.contract,
+          reserves: x.reserves.map(
+            (reserve): TokenSymbol => ({
+              contract: reserve.contract,
+              symbol: reserve.symbol
+            })
+          ),
+          smartToken: x.smartToken
+        })
+      )
+    );
+
+    const path = generateEthPath(fromSymbol, dryRelays);
+
+    await this.triggerApprovalIfRequired({
+      owner: this.isAuthenticated,
+      amount: expandToken(fromAmount, fromTokenDecimals),
+      spender: this.contracts.BancorNetwork,
+      tokenAddress: fromTokenContract
+    });
+
+    const networkContract = new web3.eth.Contract(
+      ABINetworkContract,
+      this.contracts.BancorNetwork
+    );
+
+    return this.resolveTxOnConfirmation({
+      tx: networkContract.methods.claimAndConvert2(
+        path,
+        expandToken(fromAmount, fromTokenDecimals),
+        expandToken(toAmount * 0.95, toTokenDecimals),
+        "0x0000000000000000000000000000000000000000",
+        0
+      ),
+      gas: 550000
+    });
+  }
+
+  @action async triggerApprovalIfRequired({
+    owner,
+    spender,
+    amount,
+    tokenAddress
+  }: {
+    owner: string;
+    spender: string;
+    tokenAddress: string;
+    amount: string;
+  }) {
+    const currentApprovedBalance = await this.getApprovedBalanceWei({
+      owner,
+      spender,
+      tokenAddress
+    });
+
+    if (Number(currentApprovedBalance) >= Number(amount)) return;
+
+    const nullingTxRequired = fromWei(currentApprovedBalance) !== "0";
+    if (nullingTxRequired) {
+      await this.approveTokenWithdrawals([
+        { approvedAddress: spender, amount: toWei("0"), tokenAddress }
+      ]);
+    }
+
+    await this.approveTokenWithdrawals([
+      { approvedAddress: spender, amount, tokenAddress }
+    ]);
+  }
+
+  @action async getApprovedBalanceWei({
+    tokenAddress,
+    owner,
+    spender
+  }: {
+    tokenAddress: string;
+    owner: string;
+    spender: string;
+  }) {
+    const tokenContract = new web3.eth.Contract(ABISmartToken, tokenAddress);
+
+    const approvedFromTokenBalance = await tokenContract.methods
+      .allowance(owner, spender)
+      .call();
+    return approvedFromTokenBalance;
   }
 
   @action async getPathByContract({
@@ -1891,7 +1935,7 @@ export class EthBancorModule extends VuexModule
       )
     );
     if (!allCoveredUnderBancorApi)
-      throw new Error("Getting the cost of this token is not yet supported.");
+      throw new Error("Fetching the cost of this token is not yet supported.");
 
     const [fromTokenTicker, toTokenTicker] = await Promise.all([
       ethBancorApi.getToken(fromSymbol),
