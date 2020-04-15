@@ -358,7 +358,6 @@ export class EthBancorModule extends VuexModule
     reserveTokens: string[]
   ): Promise<string | false> {
     const registryContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverterRegistry,
       this.contracts.BancorConverterRegistry
     );
@@ -377,7 +376,6 @@ export class EthBancorModule extends VuexModule
     firstReserveTokenAddress: string;
   }): Promise<string> {
     const contract = new web3.eth.Contract(
-      // @ts-ignore
       FactoryAbi,
       this.contracts.BancorConverterFactory
     );
@@ -542,7 +540,6 @@ export class EthBancorModule extends VuexModule
 
   @action async addPoolToRegistry(converterAddress: string) {
     const registryContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverterRegistry,
       this.contracts.BancorConverterRegistry
     );
@@ -556,7 +553,6 @@ export class EthBancorModule extends VuexModule
     converterAddress
   ]: string[]) {
     const tokenContract = new web3.eth.Contract(
-      // @ts-ignore
       ABISmartToken,
       smartTokenAddress
     );
@@ -567,7 +563,6 @@ export class EthBancorModule extends VuexModule
 
   @action async acceptTokenContractOwnership(converterAddress: string) {
     const converterContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverter,
       converterAddress
     );
@@ -582,7 +577,6 @@ export class EthBancorModule extends VuexModule
     smartTokenAddress: string;
   }) {
     const tokenContract = new web3.eth.Contract(
-      // @ts-ignore
       ABISmartToken,
       smartTokenAddress
     );
@@ -598,7 +592,6 @@ export class EthBancorModule extends VuexModule
     return Promise.all(
       tokens.map(async token => {
         const tokenContract = new web3.eth.Contract(
-          // @ts-ignore
           ABISmartToken,
           token.tokenContract
         );
@@ -626,7 +619,6 @@ export class EthBancorModule extends VuexModule
     return Promise.all(
       approvals.map(approval => {
         const tokenContract = new web3.eth.Contract(
-          // @ts-ignore
           ABISmartToken,
           approval.tokenAddress
         );
@@ -644,7 +636,6 @@ export class EthBancorModule extends VuexModule
 
   @action async claimOwnership(converterAddress: string) {
     const converterContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverter,
       converterAddress
     );
@@ -661,7 +652,6 @@ export class EthBancorModule extends VuexModule
     decFee: number;
   }) {
     const converterContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverter,
       converterAddress
     );
@@ -712,7 +702,6 @@ export class EthBancorModule extends VuexModule
     reserveTokenAddress: string;
   }) {
     const converterContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverter,
       converterAddress
     );
@@ -890,13 +879,11 @@ export class EthBancorModule extends VuexModule
     } = this.relay(smartTokenSymbol)!;
 
     const converterContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverter,
       converterAddress
     );
 
     const smartTokenContract = new web3.eth.Contract(
-      // @ts-ignore
       ABISmartToken,
       smartTokenAddress
     );
@@ -1044,7 +1031,6 @@ export class EthBancorModule extends VuexModule
     const { converterAddress } = this.relay(smartTokenSymbol)!;
 
     const converterContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverter,
       converterAddress
     );
@@ -1085,25 +1071,21 @@ export class EthBancorModule extends VuexModule
     )!;
 
     const converterContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverter,
       converterAddress
     );
 
     const smartTokenContract = new web3.eth.Contract(
-      // @ts-ignore
       ABISmartToken,
       smartTokenAddress
     );
 
     const tokenContract = new web3.eth.Contract(
-      // @ts-ignore
       ABISmartToken,
       tokenAddress
     );
 
     const bancorTokenContract = new web3.eth.Contract(
-      // @ts-ignore
       ABISmartToken,
       BntTokenContract
     );
@@ -1218,7 +1200,6 @@ export class EthBancorModule extends VuexModule
     };
 
     const registryContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIContractRegistry,
       this.bancorContractRegistry
     );
@@ -1512,11 +1493,7 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async buildTokenByTokenAddress(address: string): Promise<Token> {
-    const tokenContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABISmartToken,
-      address
-    );
+    const tokenContract = new web3.eth.Contract(ABISmartToken, address);
 
     const existingTokens = this.relaysList
       .map(relay => [...relay.reserves, relay.smartToken])
@@ -1543,7 +1520,6 @@ export class EthBancorModule extends VuexModule
     smartTokenAddresses: string[]
   ) {
     const registryContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverterRegistry,
       this.contracts.BancorConverterRegistry
     );
@@ -1555,7 +1531,6 @@ export class EthBancorModule extends VuexModule
 
   @action async fetchSmartTokenAddresses(converterRegistryAddress: string) {
     const registryContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverterRegistry,
       converterRegistryAddress
     );
@@ -1567,7 +1542,6 @@ export class EthBancorModule extends VuexModule
 
   @action async fetchConvertibleTokens(converterRegistryAddress: string) {
     const registryContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverterRegistry,
       converterRegistryAddress
     );
@@ -1613,25 +1587,6 @@ export class EthBancorModule extends VuexModule
     this.relaysList = meshedRelays;
   }
 
-  @action async getNetworkReserve(relay: Relay) {
-    const converterContract = new web3.eth.Contract(
-      // @ts-ignore
-      ABIConverter,
-      relay.contract
-    );
-    const tokenReserve = getPoolReserveToken(relay);
-    const networkReserve = relay.reserves.find(
-      reserve => reserve.symbol !== tokenReserve.symbol
-    )!;
-
-    const reserveBalance = await fetchReserveBalance(
-      converterContract,
-      networkReserve.contract,
-      relay.version
-    );
-    return [reserveBalance, networkReserve.symbol];
-  }
-
   @action async fetchReserveBalance({
     relay,
     reserveContract
@@ -1644,7 +1599,6 @@ export class EthBancorModule extends VuexModule
     );
     if (!reserveInRelay) throw new Error("Reserve is not in this relay!");
     const converterContract = new web3.eth.Contract(
-      // @ts-ignore
       ABIConverter,
       relay.contract
     );
