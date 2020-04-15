@@ -42,7 +42,13 @@ import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import wait from "waait";
 import _ from "lodash";
-import { createPath, DryRelay, ChoppedRelay } from "@/api/ethBancorCalc";
+import {
+  createPath,
+  DryRelay,
+  ChoppedRelay,
+  TokenSymbol,
+  generateEthPath
+} from "@/api/ethBancorCalc";
 import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
 
 const expandToken = (amount: string | number, precision: number) =>
@@ -1774,7 +1780,7 @@ export class EthBancorModule extends VuexModule
   }: {
     path: string[];
     amount: string;
-  }) {
+  }): Promise<string> {
     const contract = new web3.eth.Contract(
       ABINetworkContract,
       this.contracts.BancorNetwork
@@ -1815,39 +1821,94 @@ export class EthBancorModule extends VuexModule
       toTokenContract
     );
 
-    const path = await this.getPathByContract({
-      fromTokenContract,
-      toTokenContract
-    });
+    const { dryRelays } = createPath(
+      fromSymbol,
+      toSymbol,
+      this.relaysList.map(
+        (x): DryRelay => ({
+          contract: x.contract,
+          reserves: x.reserves.map(
+            (reserve): TokenSymbol => ({
+              contract: reserve.contract,
+              symbol: reserve.symbol
+            })
+          ),
+          smartToken: x.smartToken
+        })
+      )
+    );
 
-    const returnWei = await this.getReturnByPath({
+    const path = generateEthPath(fromSymbol, dryRelays);
+
+    const wei = await this.getReturnByPath({
       path,
       amount: expandToken(amount, fromTokenDecimals)
     });
 
     return {
-      amount: shrinkToken(returnWei, toTokenDecimals)
+      amount: shrinkToken(wei, toTokenDecimals)
     };
   }
 
   @action async getCost({ fromSymbol, toSymbol, amount }: ProposedTransaction) {
+    const fromToken = this.tokens.find(x => x.symbol == fromSymbol)!;
+    const toToken = this.tokens.find(x => x.symbol == toSymbol)!;
+
+    const [fromTokenContract, toTokenContract] = [fromToken, toToken].map(
+      token => token.id!
+    );
+
+    const fromTokenDecimals = await this.getDecimalsByTokenAddress(
+      fromTokenContract
+    );
+    const toTokenDecimals = await this.getDecimalsByTokenAddress(
+      toTokenContract
+    );
+
+    const { dryRelays } = createPath(
+      fromSymbol,
+      toSymbol,
+      this.relaysList.map(
+        (x): DryRelay => ({
+          contract: x.contract,
+          reserves: x.reserves.map(
+            (reserve): TokenSymbol => ({
+              contract: reserve.contract,
+              symbol: reserve.symbol
+            })
+          ),
+          smartToken: x.smartToken
+        })
+      )
+    );
+
+    const smartTokenAddresses = dryRelays.map(
+      relay => relay.smartToken.contract
+    );
+    const allCoveredUnderBancorApi = smartTokenAddresses.every(address =>
+      bancorApiSmartTokens.some(dic =>
+        compareString(address, dic.smartTokenAddress)
+      )
+    );
+    if (!allCoveredUnderBancorApi)
+      throw new Error("Getting the cost of this token is not yet supported.");
+
+    const [fromTokenTicker, toTokenTicker] = await Promise.all([
+      ethBancorApi.getToken(fromSymbol),
+      ethBancorApi.getToken(toSymbol)
+    ]);
+    const fromTokenId = fromTokenTicker._id;
+    const toTokenId = toTokenTicker._id;
+
+    const result = await ethBancorApi.calculateCost(
+      fromTokenId,
+      toTokenId,
+      expandToken(amount, toTokenDecimals)
+    );
+
     return {
-      amount: "1"
+      amount: shrinkToken(result, fromTokenDecimals)
     };
-    // const fromSymbolApiInstance = this.backgroundToken(fromSymbol);
-    // const toSymbolApiInstance = this.backgroundToken(toSymbol);
-    // const [fromTokenDetail, toTokenDetail] = await Promise.all([
-    //   this.getDecimals(fromSymbolApiInstance.id),
-    //   this.getDecimals(toSymbolApiInstance.id)
-    // ]);
-    // const result = await ethBancorApi.calculateCost(
-    //   fromSymbolApiInstance.id,
-    //   toSymbolApiInstance.id,
-    //   String(amount * Math.pow(10, toTokenDetail.decimals))
-    // );
-    // return {
-    //   amount: String(Number(result) / Math.pow(10, fromTokenDetail.decimals))
-    // };
   }
 
   @mutation updateEthToken(token: any) {
