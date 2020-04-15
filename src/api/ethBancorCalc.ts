@@ -53,7 +53,7 @@ const relayHasBothSymbols = (symbol1: string, symbol2: string) => (
 const getOppositeSymbol = (relay: ChoppedRelay, symbol: string) =>
   relay.reserves.find(reserve => reserve.symbol !== symbol)!.symbol;
 
-export function findPath(
+export function firstPathFound(
   from: string,
   to: string,
   relays: ChoppedRelay[],
@@ -76,10 +76,10 @@ export function findPath(
   )!;
 
   if (!potentialHopRelay)
-    return findPath(from, to, searchScope, attemptNumber + 1, []);
+    return firstPathFound(from, to, searchScope, attemptNumber + 1, []);
 
   const oppositeSymbol = getOppositeSymbol(potentialHopRelay, attempt);
-  return findPath(
+  return firstPathFound(
     from,
     to,
     searchScope,
@@ -134,42 +134,62 @@ export function createPath(
   from: string,
   to: string,
   relays: DryRelay[]
-): ChoppedRelay[] {
+): { choppedRelaysPath: ChoppedRelay[]; dryRelays: DryRelay[] } {
   const sortedRelays = relays.sort(sortRelaysBy(to));
 
   const choppedRelays = chopRelays(sortedRelays);
-  const choppedRelaysPath = findPath(from, to, choppedRelays);
-  const y = unChopRelays(choppedRelaysPath);
-  if (y.length > 2) {
-    console.log('walker', y.length)
-    const toTryWithout = y
-      .filter((_, index, arr) => index == 0 || index == arr.length - 1)
-      .map(x => x.contract);
+  const choppedRelaysPath = firstPathFound(from, to, choppedRelays);
 
-    const attempts = toTryWithout
-      .map(without => {
-        const newRelays = relays
-          .filter(relay => relay.smartToken.contract !== without)
-          .sort(sortRelaysBy(to));
-        console.log(newRelays.length, relays.length, 'donation', without)
-        try {
-          const path = findPath(from, to, newRelays);
-          return path;
-        } catch (e) {
-          return false;
-        }
-      })
-      .flat(1);
+  const dryRelays = unChopRelays(choppedRelaysPath);
 
-    const x: ChoppedRelay[] = attempts.filter(Boolean);
-
-    if (attempts.length > 0) {
-      console.log(x, "new answer!!!!!!!!!!!!!!!");
-      return x;
-    }
+  // To do
+  // Count the amount of duplicate conversions, eliminate the relays between them as they are redundant
+  // then either just return straight up, or run again
+  const allReserves = dryRelays.map(relay => relay.reserves).flat(1);
+  const uniqueReserves = _.uniqWith(
+    allReserves,
+    (a, b) => a.contract.toLowerCase() == b.contract.toLowerCase()
+  );
+  const counted = uniqueReserves
+    .map(reserve => [
+      reserve.symbol,
+      allReserves.filter(
+        r => r.contract.toLowerCase() == reserve.contract.toLowerCase()
+      ).length
+    ])
+    .filter(([symbol, count]) => count > 2);
+  if (counted.length > 0) {
+    console.error(
+      "Recommended a path longer than what was needed, the following tokens were found in the relay reserves path",
+      counted
+    );
   }
-  console.log(y, "xxxxxxxxxxxxx");
-  console.log(choppedRelaysPath, "was chopped relays path, can unchop?");
 
-  return choppedRelaysPath;
+  return {
+    choppedRelaysPath,
+    dryRelays
+  };
 }
+
+export const generateEthPath = (from: string, relays: DryRelay[]) =>
+  relays.reduce<{ lastSymbol: string; path: string[] }>(
+    (acc, item) => {
+      const destinationSymbol = item.reserves.find(
+        reserve => reserve.symbol !== acc.lastSymbol
+      )!;
+      return {
+        path: [
+          ...acc.path,
+          item.smartToken.contract,
+          destinationSymbol.contract
+        ],
+        lastSymbol: destinationSymbol.symbol
+      };
+    },
+    {
+      lastSymbol: from,
+      path: [
+        relays[0].reserves.find(reserve => reserve.symbol == from)!.contract
+      ]
+    }
+  ).path;
