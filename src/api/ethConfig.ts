@@ -341,7 +341,7 @@ export const ABIBancorGasPriceLimit = [
   }
 ];
 
-export const ABISmartToken = [
+export const ABISmartToken: AbiItem[] = [
   {
     constant: true,
     inputs: [],
