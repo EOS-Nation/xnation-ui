@@ -385,7 +385,9 @@ export default class HeroConvert extends Vue {
       }
       this.toTokenAmount = reward.amount;
       this.fromTokenError = "";
+      this.toTokenError = "";
     } catch (e) {
+      this.toTokenError = ""
       this.fromTokenError = e.message;
     }
     this.loadingConversion = false;
@@ -410,8 +412,10 @@ export default class HeroConvert extends Vue {
       if (reward.slippage) {
         this.slippage = reward.slippage;
       }
+      this.fromTokenError = "";
       this.toTokenError = "";
     } catch (e) {
+      this.fromTokenError = "";
       this.toTokenError = e.message;
     }
     this.loading = false;

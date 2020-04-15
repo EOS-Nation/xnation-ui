@@ -317,8 +317,10 @@ export default class HeroRelay extends Vue {
         this.withdrawLiquidity ? "liquidateCost" : "fundReward"
       ] = smartTokenAmount;
       this.token1Error = "";
+      this.token2Error = "";
     } catch (e) {
       this.token1Error = e.message;
+      this.token2Error = "";
     }
     this.rateLoading = false;
   }
@@ -340,7 +342,9 @@ export default class HeroRelay extends Vue {
         this.withdrawLiquidity ? "liquidateCost" : "fundReward"
       ] = smartTokenAmount;
       this.token2Error = "";
+      this.token1Error = "";
     } catch (e) {
+      this.token1Error = "";
       this.token2Error = e.message;
     }
     this.rateLoading = false;
