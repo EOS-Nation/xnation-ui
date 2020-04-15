@@ -1259,39 +1259,6 @@ export class EthBancorModule extends VuexModule
     return final;
   }
 
-  @action async createPath({
-    source,
-    destination,
-    relays
-  }: {
-    source: string;
-    destination: string;
-    relays: Relay[];
-  }) {
-    console.log(relays, "was relays");
-    const dryRelays: DryRelay[] = relays.map(
-      (relay): DryRelay => ({
-        contract: relay.contract,
-        reserves: relay.reserves.map(reserve => ({
-          contract: reserve.contract,
-          symbol: reserve.symbol
-        })),
-        smartToken: {
-          contract: relay.smartToken.contract,
-          symbol: relay.smartToken.symbol
-        }
-      })
-    );
-    const path = createPath(source, destination, dryRelays);
-
-    console.log(path, "was path");
-    const add = await this.choppedRelaysToAddresses({
-      path,
-      source,
-      destination
-    });
-    console.log(add, "was add returned");
-  }
 
   @action async possibleRelayFeedsFromBancorApi(
     smartTokenAddresses: string[]
