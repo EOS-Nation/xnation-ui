@@ -12,7 +12,7 @@ import {
   CreatePoolParams,
   ModalChoice
 } from "@/types/bancor";
-import { ethBancorApi, bancorApi } from "@/api/bancor";
+import { ethBancorApi } from "@/api/bancor";
 import {
   getEthRelays,
   web3,
@@ -37,8 +37,6 @@ import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import wait from "waait";
 import _ from "lodash";
-import { network } from '../network';
-import { bancor } from '.';
 
 interface RegisteredContracts {
   BancorNetwork: string;
@@ -797,7 +795,13 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async fetchUsdPrice() {
-    this.setUsdPrice(Number(await ethBancorApi.getRate("BNT", "USD")));
+    console.time("BancorApiRequest");
+    const tokens = await ethBancorApi.getTokens();
+    const usdPriceOfBnt = tokens.find(token => token.code == "BNT")!.price;
+    console.log(usdPriceOfBnt, "is usd price of BNT");
+    console.timeEnd("BancorApiRequest");
+
+    this.setUsdPrice(Number(usdPriceOfBnt));
   }
 
   @mutation setUsdPrice(price: number) {
@@ -1188,7 +1192,6 @@ export class EthBancorModule extends VuexModule
       this.fetchUsdPrice()
     ]);
 
-    ethBancorApi.getToken("5e70d03d6ea615ea174b77ae").then(x => console.log(x, 'was tokens'))
     this.setTokenMeta(tokenMeta);
     const tokensWithAddresses = tokens.map(token => ({
       ...token,
