@@ -73,53 +73,53 @@
       :busy="txBusy"
       @input="closeTxModal"
     >
-    <div>
-      <stepper
-        v-if="sections.length > 1"
-        :selectedStep="stepIndex"
-        :steps="sections"
-        :label="sections[stepIndex].description"
-        :numbered="true"
-      />
-      <token-swap
-        :error="error"
-        :success="success"
-        :leftImg="fromToken.logo"
-        :leftTitle="`${fromTokenAmount} ${fromTokenSymbol}`"
-        :leftSubtitle="
-          `${fromToken.name} ($${(
-            token(fromTokenSymbol).price * Number(fromTokenAmount)
-          ).toFixed(2)} USD)`
-        "
-        :rightImg="toToken.logo"
-        :rightTitle="`${toTokenAmount} ${toTokenSymbol}`"
-        :rightSubtitle="toToken.name"
-      >
-        <template v-slot:footer>
-          <b-col cols="12" class="text-center">
-            <div v-if="!success && !error">
-              <h6>
-                Please proceed with your wallet to confirm this Transaction.
+      <div>
+        <stepper
+          v-if="sections.length > 1"
+          :selectedStep="stepIndex"
+          :steps="sections"
+          :label="sections[stepIndex].description"
+          :numbered="true"
+        />
+        <token-swap
+          :error="error"
+          :success="success"
+          :leftImg="fromToken.logo"
+          :leftTitle="`${fromTokenAmount} ${fromTokenSymbol}`"
+          :leftSubtitle="
+            `${fromToken.name} ($${(
+              token(fromTokenSymbol).price * Number(fromTokenAmount)
+            ).toFixed(2)} USD)`
+          "
+          :rightImg="toToken.logo"
+          :rightTitle="`${toTokenAmount} ${toTokenSymbol}`"
+          :rightSubtitle="toToken.name"
+        >
+          <template v-slot:footer>
+            <b-col cols="12" class="text-center">
+              <div v-if="!success && !error">
+                <h6>
+                  Please proceed with your wallet to confirm this Transaction.
+                </h6>
+                <!-- <p>BNT trades include a 1% affiliate fee.</p> -->
+              </div>
+              <h6 v-else-if="error && !success" class="text-danger">
+                Error: {{ error }}
+                <!-- <span class="cursor text-muted"> - Try again</span> -->
               </h6>
-              <!-- <p>BNT trades include a 1% affiliate fee.</p> -->
-            </div>
-            <h6 v-else-if="error && !success" class="text-danger">
-              Error: {{ error }}
-              <!-- <span class="cursor text-muted"> - Try again</span> -->
-            </h6>
-            <h6 v-else-if="!error && success">
-              <a :href="explorerLink" target="_blank" class="text-success">
-                SUCCESS: View {{ success.substring(0, 6) }} TX on
-                {{ explorerName }}
-              </a>
-              <span @click="txModal = false" class="cursor text-muted"
-                >- Close</span
-              >
-            </h6>
-          </b-col>
-        </template>
-      </token-swap>
-    </div>
+              <h6 v-else-if="!error && success">
+                <a :href="explorerLink" target="_blank" class="text-success">
+                  SUCCESS: View {{ success.substring(0, 6) }} TX on
+                  {{ explorerName }}
+                </a>
+                <span @click="txModal = false" class="cursor text-muted"
+                  >- Close</span
+                >
+              </h6>
+            </b-col>
+          </template>
+        </token-swap>
+      </div>
     </modal-tx>
   </hero-wrapper>
 </template>
@@ -331,7 +331,7 @@ export default class HeroConvert extends Vue {
     setTimeout(() => (this.flipping = false), 500);
   }
 
-  onUpdate(stepIndex: number, steps: any[]) {
+  onUpdate(stepIndex: number, steps: Step[]) {
     this.stepIndex = stepIndex;
     this.sections = steps;
   }

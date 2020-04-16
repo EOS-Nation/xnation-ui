@@ -20,8 +20,8 @@ import {
   NewOwnerParams,
   BaseToken,
   CreatePoolParams,
-  PromiseSequence,
-  ViewRelay
+  ViewRelay,
+  Step
 } from "@/types/bancor";
 import { bancorApi, ethBancorApi } from "@/api/bancor";
 import { fetchRelays, getBalance, fetchTokenStats } from "@/api/helpers";
@@ -780,6 +780,7 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async refreshBalances(tokens: BaseToken[] = []) {
+    console.log('refresh balances received', tokens);
     if (!this.isAuthenticated) return;
     if (tokens.length > 0) {
       await vxm.eosNetwork.getBalances({ tokens });
@@ -826,8 +827,36 @@ export class EosBancorModule extends VuexModule
     token1Amount,
     token1Symbol,
     token2Amount,
-    token2Symbol
+    token2Symbol,
+    onUpdate
   }: LiquidityParams) {
+    const steps: Step[] = [
+      {
+        name: "DepositAndFund",
+        description: "Depositing liquidity..."
+      },
+      {
+        name: "ReAttempt",
+        description: "Fund failed, trying again..."
+      },
+      {
+        name: "WaitingForNetwork",
+        description: "Success! Waiting 5 seconds for dFuse to catch up..."
+      },
+      {
+        name: "DustCollectionFetch",
+        description: "Checking for left over deposits..."
+      },
+      {
+        name: "DustCollection",
+        description: "Collecting left over deposit(s)"
+      },
+      {
+        name: "Done",
+        description: "Done!"
+      }
+    ];
+
     const relay = this.relay(smartTokenSymbol);
     const deposits = [
       { symbol: token1Symbol, amount: token1Amount },
@@ -846,6 +875,8 @@ export class EosBancorModule extends VuexModule
       };
     });
 
+    onUpdate!(0, steps);
+
     const addLiquidityActions = multiContract.addLiquidityActions(
       smartTokenSymbol,
       // @ts-ignore
@@ -860,8 +891,73 @@ export class EosBancorModule extends VuexModule
     );
 
     const actions = [...addLiquidityActions, fundAction];
-    const txRes = await this.triggerTx(actions);
+    let txRes: any;
+    try {
+      txRes = await this.triggerTx(actions);
+    } catch (e) {
+      if (e.message !== "assertion failure with message: insufficient balance")
+        throw new Error(e);
+      onUpdate!(1, steps);
+
+      const backupFundAction = multiContractAction.fund(
+        vxm.wallet.isAuthenticated,
+        number_to_asset(
+          Number(fundAmount) * 0.96,
+          new Symbol(smartTokenSymbol, 4)
+        ).to_string()
+      );
+
+      const newActions = [...addLiquidityActions, backupFundAction];
+      txRes = await this.triggerTx(newActions);
+    }
+
+    onUpdate!(2, steps);
+    await wait(5000);
+    onUpdate!(3, steps);
+
+    const bankBalances = await this.fetchBankBalances({
+      smartTokenSymbol,
+      accountHolder: this.isAuthenticated
+    });
+    onUpdate!(4, steps);
+
+    const aboveZeroBalances = bankBalances
+      .map(balance => ({ ...balance, quantity: new Asset(balance.quantity) }))
+      .filter(balance => asset_to_number(balance.quantity) > 0);
+
+    const withdrawActions = aboveZeroBalances.map(balance =>
+      multiContract.withdrawAction(balance.symbl, balance.quantity)
+    );
+    if (withdrawActions.length > 0) {
+      await this.triggerTx(withdrawActions);
+    }
+    onUpdate!(5, steps);
+    this.refreshBalances(
+      tokenAmounts.map(tokenAmount => ({
+        contract: tokenAmount.contract,
+        symbol: tokenAmount.amount.symbol.code().to_string()
+      }))
+    );
     return txRes.transaction_id as string;
+  }
+
+  @action async fetchBankBalances({
+    smartTokenSymbol,
+    accountHolder
+  }: {
+    smartTokenSymbol: string;
+    accountHolder: string;
+  }) {
+    const res: {
+      rows: { symbl: string; quantity: string }[];
+      more: boolean;
+    } = await rpc.get_table_rows({
+      json: true,
+      code: process.env.VUE_APP_MULTICONTRACT,
+      scope: accountHolder,
+      table: "accounts"
+    });
+    return res.rows.filter(row => row.symbl == smartTokenSymbol);
   }
 
   @action async removeLiquidity({
@@ -1555,7 +1651,6 @@ export class EosBancorModule extends VuexModule
     const allRelays = eosMultiToDryRelays(this.convertableRelays);
     const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const hydratedRelays = await this.hydrateRelays(path);
-    console.log('getCostMulti', 'go home')
     const calculatedCost = findCost(assetAmount, hydratedRelays);
 
     return {

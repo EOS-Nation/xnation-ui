@@ -1686,7 +1686,6 @@ export class EthBancorModule extends VuexModule
 
     onUpdate!(2, steps);
 
-
     const networkContract = new web3.eth.Contract(
       ABINetworkContract,
       this.contracts.BancorNetwork

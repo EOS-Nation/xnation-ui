@@ -58,39 +58,49 @@
         @input="modalClosed"
         :busy="txBusy"
       >
-        <token-swap
-          :error="error"
-          :success="success"
-          :leftHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
-          :leftImg="token1Img"
-          :leftTitle="`${token1Symbol} ${token1Amount}`"
-          leftSubtitle=""
-          :rightImg="token2Img"
-          :rightTitle="`${token2Symbol} ${token2Amount}`"
-          :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
-          rightSubtitle=""
-        >
-          <template v-slot:footer>
-            <b-col cols="12" class="text-center">
-              <h6 v-if="!success && !error">
-                Please proceed with your wallet to confirm this Transaction.
-              </h6>
-              <h6 v-else-if="error && !success" class="text-danger">
-                Error: {{ error }}
-                <!-- <span class="cursor text-muted"> - Try again</span> -->
-              </h6>
-              <h6 v-else-if="!error && success">
-                <a :href="explorerLink" target="_blank" class="text-success">
-                  SUCCESS: View {{ success.substring(0, 6) }} TX on
-                  {{ explorerName }}
-                </a>
-                <span @click="txModal = false" class="cursor text-muted"
-                  >- Close</span
-                >
-              </h6>
-            </b-col>
-          </template>
-        </token-swap>
+        <div>
+          <stepper
+            v-if="sections.length > 1"
+            :selectedStep="stepIndex"
+            :steps="sections"
+            :label="sections[stepIndex].description"
+            :numbered="true"
+          />
+
+          <token-swap
+            :error="error"
+            :success="success"
+            :leftHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
+            :leftImg="token1Img"
+            :leftTitle="`${token1Symbol} ${token1Amount}`"
+            leftSubtitle=""
+            :rightImg="token2Img"
+            :rightTitle="`${token2Symbol} ${token2Amount}`"
+            :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
+            rightSubtitle=""
+          >
+            <template v-slot:footer>
+              <b-col cols="12" class="text-center">
+                <h6 v-if="!success && !error">
+                  Please proceed with your wallet to confirm this Transaction.
+                </h6>
+                <h6 v-else-if="error && !success" class="text-danger">
+                  Error: {{ error }}
+                  <!-- <span class="cursor text-muted"> - Try again</span> -->
+                </h6>
+                <h6 v-else-if="!error && success">
+                  <a :href="explorerLink" target="_blank" class="text-success">
+                    SUCCESS: View {{ success.substring(0, 6) }} TX on
+                    {{ explorerName }}
+                  </a>
+                  <span @click="txModal = false" class="cursor text-muted"
+                    >- Close</span
+                  >
+                </h6>
+              </b-col>
+            </template>
+          </token-swap>
+        </div>
       </modal-tx>
     </two-token-hero>
   </hero-wrapper>
@@ -107,13 +117,15 @@ import {
   ViewToken,
   ViewRelay,
   LiquidityModule,
-  TradingModule
+  TradingModule,
+  Step
 } from "../../../types/bancor";
 import { State, Getter, Action, namespace } from "vuex-class";
 import ModalTx from "@/components/modals/ModalTx.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
 import DynamicDropdown from "@/components/common/DynamicDropdown.vue";
 import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
+import Stepper from "@/components/modals/Stepper.vue";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
@@ -127,7 +139,8 @@ const wallet = namespace("wallet");
     HeroWrapper,
     TwoTokenHero,
     ModalTx,
-    TokenSwap
+    TokenSwap,
+    Stepper
   }
 })
 export default class HeroRelay extends Vue {
@@ -152,6 +165,9 @@ export default class HeroRelay extends Vue {
 
   feeAmount = 0;
   newOwner = "";
+
+  sections: Step[] = [];
+  stepIndex = 0;
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter relay!: LiquidityModule["relay"];
@@ -394,9 +410,14 @@ export default class HeroRelay extends Vue {
     this.txBusy = false;
   }
 
+  onUpdate(stepIndex: number, steps: Step[]) {
+    this.stepIndex = stepIndex;
+    this.sections = steps;
+  }
+
   async add() {
+    this.sections = [];
     this.txModal = true;
-    console.log("tx modal should be true");
 
     try {
       this.txBusy = true;
@@ -406,7 +427,8 @@ export default class HeroRelay extends Vue {
         token1Amount: this.token1Amount,
         token1Symbol: this.token1Symbol,
         token2Amount: this.token2Amount,
-        token2Symbol: this.token2Symbol
+        token2Symbol: this.token2Symbol,
+        onUpdate: this.onUpdate
       });
       this.fetchBalances();
       this.success = txResult;

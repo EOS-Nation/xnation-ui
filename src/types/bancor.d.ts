@@ -49,6 +49,7 @@ export interface LiquidityParams {
   token1Symbol?: string;
   token2Symbol?: string;
   token2Amount?: string;
+  onUpdate?: (index: number, sections: Section[]) => void;
 }
 
 export interface OpposingLiquidParams {
