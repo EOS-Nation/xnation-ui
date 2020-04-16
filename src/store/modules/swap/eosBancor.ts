@@ -22,7 +22,7 @@ import {
   CreatePoolParams,
   PromiseSequence
 } from "@/types/bancor";
-import { bancorApi } from "@/api/bancor";
+import { bancorApi, ethBancorApi } from "@/api/bancor";
 import { fetchRelays, getBalance, fetchTokenStats } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -761,21 +761,17 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async init() {
-    const [
-      usdValueOfEth,
-      tokens,
-      relays,
-      usdPriceOfBnt,
-      tokenMeta
-    ] = await Promise.all([
-      bancorApi.getTokenTicker("ETH"),
+    const [ethTokens, tokens, relays, tokenMeta] = await Promise.all([
+      ethBancorApi.getTokens(),
       bancorApi.getTokens(),
       fetchRelays(),
-      bancorApi.getRate("BNT", "USD"),
       getTokenMeta()
     ]);
+    const usdPriceOfBnt = ethTokens.find(token => token.code == "BNT")!.price;
+    const usdValueOfEth = ethTokens.find(token => token.code == "ETH")!.price;
+
     await this.refreshBalances();
-    this.setUsdPrice(Number(usdValueOfEth.price));
+    this.setUsdPrice(Number(usdValueOfEth));
     this.setBntPrice(Number(usdPriceOfBnt));
     this.setRelays(relays);
     this.setTokens(tokens);
