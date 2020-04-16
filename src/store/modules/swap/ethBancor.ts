@@ -15,7 +15,7 @@ import {
   ViewRelay,
   TokenPrice
 } from "@/types/bancor";
-import { ethBancorApi } from "@/api/bancor";
+import { ethBancorApi, bancorApi } from "@/api/bancor";
 import {
   getEthRelays,
   web3,
@@ -1080,10 +1080,7 @@ export class EthBancorModule extends VuexModule
       smartTokenAddress
     );
 
-    const tokenContract = new web3.eth.Contract(
-      ABISmartToken,
-      tokenAddress
-    );
+    const tokenContract = new web3.eth.Contract(ABISmartToken, tokenAddress);
 
     const bancorTokenContract = new web3.eth.Contract(
       ABISmartToken,
@@ -1259,7 +1256,6 @@ export class EthBancorModule extends VuexModule
     return final;
   }
 
-
   @action async possibleRelayFeedsFromBancorApi(
     smartTokenAddresses: string[]
   ): Promise<RelayFeed[]> {
@@ -1308,7 +1304,10 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async buildRelayFeeds(relays: Relay[]): Promise<RelayFeed[]> {
-    const usdPriceOfBnt = Number(await ethBancorApi.getRate("BNT", "USD"));
+    const tokens = await bancorApi.getTokens();
+    const usdPriceOfBnt = Number(
+      tokens.find(token => token.code == "BNT")!.price
+    );
     return Promise.all(
       relays.map(
         async (relay): Promise<RelayFeed> => {
