@@ -73,6 +73,14 @@
       :busy="txBusy"
       @input="closeTxModal"
     >
+    <div>
+      <stepper
+        v-if="sections.length > 1"
+        :selectedStep="stepIndex"
+        :steps="sections"
+        :label="sections[stepIndex].description"
+        :numbered="true"
+      />
       <token-swap
         :error="error"
         :success="success"
@@ -111,6 +119,7 @@
           </b-col>
         </template>
       </token-swap>
+    </div>
     </modal-tx>
   </hero-wrapper>
 </template>
@@ -122,11 +131,12 @@ import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import TokenField from "@/components/convert/TokenField.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
+import Stepper from "@/components/modals/Stepper.vue";
 import wait from "waait";
 import { Route } from "vue-router";
 import TwoTokenHero from "./TwoTokenHero.vue";
 import { State, Getter, Action, Mutation, namespace } from "vuex-class";
-import { LiquidityModule, TradingModule } from "../../../types/bancor";
+import { LiquidityModule, TradingModule, Step } from "../../../types/bancor";
 import numeral from "numeral";
 import { vxm } from "@/store";
 
@@ -176,7 +186,8 @@ const bancor = namespace("bancor");
     ModalTx,
     TokenField,
     TokenSwap,
-    TwoTokenHero
+    TwoTokenHero,
+    Stepper
   }
 })
 export default class HeroConvert extends Vue {
@@ -194,6 +205,9 @@ export default class HeroConvert extends Vue {
   fromTokenError = "";
   toTokenError = "";
   slippage: number | null = null;
+
+  sections: Step[] = [];
+  stepIndex = 0;
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter tokens!: TradingModule["tokens"];
@@ -317,8 +331,14 @@ export default class HeroConvert extends Vue {
     setTimeout(() => (this.flipping = false), 500);
   }
 
+  onUpdate(stepIndex: number, steps: any[]) {
+    this.stepIndex = stepIndex;
+    this.sections = steps;
+  }
+
   async initConvert() {
     try {
+      this.sections = [];
       this.txModal = true;
       this.txBusy = true;
 
@@ -326,7 +346,8 @@ export default class HeroConvert extends Vue {
         fromSymbol: this.fromTokenSymbol,
         toSymbol: this.toTokenSymbol,
         fromAmount: Number(this.fromTokenAmount),
-        toAmount: Number(this.toTokenAmount)
+        toAmount: Number(this.toTokenAmount),
+        onUpdate: this.onUpdate
       });
 
       this.success = result;
@@ -387,7 +408,7 @@ export default class HeroConvert extends Vue {
       this.fromTokenError = "";
       this.toTokenError = "";
     } catch (e) {
-      this.toTokenError = ""
+      this.toTokenError = "";
       this.fromTokenError = e.message;
     }
     this.loadingConversion = false;
@@ -428,7 +449,6 @@ export default class HeroConvert extends Vue {
     this.updatePriceReturn(this.fromTokenAmount);
     this.focusSymbol(symbol);
   }
-
 
   async loadSimpleReward() {
     this.loading = true;

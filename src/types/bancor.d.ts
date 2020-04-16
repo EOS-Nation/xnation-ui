@@ -62,11 +62,17 @@ export interface OpposingLiquid {
   smartTokenAmount: string;
 }
 
+export interface Section {
+  name: string;
+  description: string;
+}
+
 export interface ProposedConvertTransaction {
   fromSymbol: string;
   toSymbol: string;
   fromAmount: FloatAmount;
   toAmount: FloatAmount;
+  onUpdate?: (index: number, sections: Section[]) => void;
 }
 
 export interface TokenDetail {

@@ -13,7 +13,8 @@ import {
   ModalChoice,
   ViewToken,
   ViewRelay,
-  TokenPrice
+  TokenPrice,
+  Section
 } from "@/types/bancor";
 import { ethBancorApi, bancorApi } from "@/api/bancor";
 import {
@@ -1613,8 +1614,34 @@ export class EthBancorModule extends VuexModule
     fromSymbol,
     toSymbol,
     fromAmount,
-    toAmount
+    toAmount,
+    onUpdate
   }: ProposedConvertTransaction) {
+    const steps: Section[] = [
+      {
+        name: "Pathing",
+        description: "Finding path..."
+      },
+      {
+        name: "SetApprovalAmount",
+        description: "Setting approval amount..."
+      },
+      {
+        name: "ConvertProcessing",
+        description: "Processing conversion..."
+      },
+      {
+        name: "WaitingTxConf",
+        description: "Awaiting block confirmation..."
+      },
+      {
+        name: "Done",
+        description: "Done!"
+      }
+    ];
+
+    onUpdate!(0, steps);
+
     const fromToken = this.tokens.find(x => x.symbol == fromSymbol)!;
     const toToken = this.tokens.find(x => x.symbol == toSymbol)!;
 
@@ -1647,6 +1674,8 @@ export class EthBancorModule extends VuexModule
     );
 
     const path = generateEthPath(fromSymbol, dryRelays);
+    onUpdate!(1, steps);
+
 
     await this.triggerApprovalIfRequired({
       owner: this.isAuthenticated,
@@ -1655,12 +1684,15 @@ export class EthBancorModule extends VuexModule
       tokenAddress: fromTokenContract
     });
 
+    onUpdate!(2, steps);
+
+
     const networkContract = new web3.eth.Contract(
       ABINetworkContract,
       this.contracts.BancorNetwork
     );
 
-    return this.resolveTxOnConfirmation({
+    const confirmedHash = await this.resolveTxOnConfirmation({
       tx: networkContract.methods.claimAndConvert2(
         path,
         expandToken(fromAmount, fromTokenDecimals),
@@ -1668,8 +1700,11 @@ export class EthBancorModule extends VuexModule
         "0x0000000000000000000000000000000000000000",
         0
       ),
-      gas: 550000
+      gas: 550000,
+      onHash: () => onUpdate!(3, steps)
     });
+    onUpdate!(4, steps);
+    return confirmedHash;
   }
 
   @action async triggerApprovalIfRequired({
