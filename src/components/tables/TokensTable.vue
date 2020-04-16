@@ -45,11 +45,17 @@
           <template v-slot:cell(change24h)="data">
             <span
               :class="
-                data.item.change24h > 0
+                data.item.change24h == null
+                  ? 'text'
+                  : data.item.change24h > 0
                   ? `text-success font-w700`
                   : 'text-danger font-w700'
               "
-              >{{ numeral(data.item.change24h).format("0.00") + "%" }}</span
+              >{{
+                data.item.change24h == null
+                  ? "N/A"
+                  : numeral(data.item.change24h).format("0.00") + "%"
+              }}</span
             >
           </template>
           <template v-slot:cell(price)="data">
@@ -189,7 +195,9 @@ export default class TokensTable extends Vue {
       label: "24H Volume",
       class: ["text-center"],
       formatter: (value: any, key: any, item: any) =>
-        numeral(value).format("$0,0.00")
+        value == null || value == undefined
+          ? "N/A"
+          : numeral(value).format("$0,0.00")
     },
     {
       key: "liqDepth",

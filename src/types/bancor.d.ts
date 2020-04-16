@@ -140,13 +140,14 @@ export interface ConvertReturn {
 }
 
 export interface ViewToken {
+  id?: string;
   symbol: string;
   name: string;
   price: number;
   liqDepth: number;
   logo: string;
-  change24h: number;
-  volume24h: number;
+  change24h?: number;
+  volume24h?: number;
   balance?: number;
 }
 
@@ -154,11 +155,20 @@ interface TokenWithLogo extends AgnosticToken {
   logo: string[];
 }
 
+export interface ViewReserve {
+  swap: string;
+  smartTokenSymbol: string;
+  logo: string[];
+  symbol: string;
+  contract: string;
+  balance?: number;
+}
+
 export interface ViewRelay {
   symbol: string;
   smartTokenSymbol: string;
   liqDepth: number;
-  reserves: TokenWithLogo[];
+  reserves: ViewReserve[];
   fee: number;
   owner: string;
   swap: string;
@@ -239,7 +249,6 @@ export interface BaseToken {
   contract: string;
   symbol: string;
 }
-
 
 export interface PromiseEvent {
   name: string;
