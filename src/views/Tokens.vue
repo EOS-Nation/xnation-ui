@@ -25,7 +25,6 @@ import { SimpleToken } from "@/types/bancor";
   }
 })
 export default class Token extends Vue {
-
   get tokens() {
     return vxm.bancor.tokens;
   }
@@ -39,6 +38,17 @@ export default class Token extends Vue {
   }
 
   onConvert(symbolName: string) {
+    console.log(
+      "focusing",
+      this.tokens.find((x: any) => x.symbol == symbolName)
+    );
+    console.log(
+      "relays",
+      vxm.bancor.relays.filter((relay: any) =>
+        relay.reserves.some((reserve: any) => reserve.symbol == symbolName)
+      )
+    );
+
     const { query, params } = this.$route;
     const { base, quote } = query;
     this.$router.push({
