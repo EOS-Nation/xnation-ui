@@ -729,8 +729,8 @@ export class EthBancorModule extends VuexModule
           compareString(feed.smartTokenContract, relay.smartToken.contract)
         )
       )
-      .map(relay => {
-        return relay.reserves.map(reserve => {
+      .map(relay =>
+        relay.reserves.map(reserve => {
           const { name, image } = this.tokenMetaObj(reserve.contract);
           const relayFeed = this.relayFeed.find(feed =>
             compareString(feed.smartTokenContract, relay.smartToken.contract)
@@ -747,14 +747,20 @@ export class EthBancorModule extends VuexModule
             ...(relayFeed.volume24H && { volume24h: relayFeed.volume24H }),
             ...(balance && { balance: balance.balance })
           };
-        });
-      })
+        })
+      )
       .flat(1)
       .sort((a, b) => b.liqDepth - a.liqDepth)
-      .filter(
-        (token, index, arr) =>
-          arr.findIndex(t => compareString(t.id, token.id)) == index
-      );
+      .reduce<ViewToken[]>((acc, item) => {
+        const existingToken = acc.find(token => token.id == item.id);
+        return existingToken
+          ? acc.map(token =>
+              token.id == item.id
+                ? { ...token, liqDepth: token.liqDepth + item.liqDepth }
+                : token
+            )
+          : [...acc, item];
+      }, []);
   }
 
   get tokenMetaObj() {
@@ -772,9 +778,8 @@ export class EthBancorModule extends VuexModule
   }
 
   get tokenBalance() {
-    return (tokenId: string) => {
-      return this.tokenBalances.find(token => token.id == tokenId);
-    };
+    return (tokenId: string) =>
+      this.tokenBalances.find(token => token.id == tokenId);
   }
 
   get token(): (arg0: string) => any {
@@ -1394,55 +1399,18 @@ export class EthBancorModule extends VuexModule
           );
           const [
             [networkReserve, networkReserveAmount],
-            [tokenReserve]
+            [tokenReserve, tokenAmount]
           ] = reservesBalances.sort(a =>
             a[0].symbol == "BNT" ? -2 : a[0].symbol == "USDB" ? -1 : 1
           );
 
           const networkReserveIsUsd = networkReserve.symbol == "USDB";
 
-          // const wei = await this.fetchReturn({
-          //   reserves: reservesBalances.map(([balance]) => balance),
-          //   converterAddress: relay.contract,
-          //   from: tokenReserve.symbol,
-          //   wei: expandToken(1, tokenReserve.decimals)
-          // });
-
-          if (relay.contract == "0x2801cd0e845874085597865f5B5773f3e44dcDF0") {
-            console.log(
-              "Hitting up...",
-              tokenReserve.decimals,
-              "are the decimals",
-              {
-                to: tokenReserve.symbol,
-                wei: expandToken(1, tokenReserve.decimals),
-                reserves: reservesBalances.map(([balance]) => balance),
-                converterAddress: relay.contract
-              }
-            );
-          }
-
-          const wei = await this.fetchCost({
-            to: tokenReserve.symbol,
-            wei: expandToken(1, tokenReserve.decimals),
-            reserves: reservesBalances.map(([balance]) => balance),
-            converterAddress: relay.contract
-          });
-          if (relay.contract == "0x2801cd0e845874085597865f5B5773f3e44dcDF0")
-            console.log(wei, "was wei return");
-
-          if (!wei) {
-            return;
-          }
-          const shrunkReturn = Number(
-            shrinkToken(wei, networkReserve.decimals)
-          );
+          const dec = networkReserveAmount / tokenAmount;
 
           return {
             smartTokenContract: relay.smartToken.contract,
-            costByNetworkUsd: networkReserveIsUsd
-              ? shrunkReturn
-              : shrunkReturn * usdPriceOfBnt,
+            costByNetworkUsd: networkReserveIsUsd ? dec : dec * usdPriceOfBnt,
             liqDepth:
               (networkReserveIsUsd
                 ? networkReserveAmount
@@ -1487,12 +1455,6 @@ export class EthBancorModule extends VuexModule
 
     const nonHardCodedRelays = await this.buildRelaysFromSmartTokenAddresses(
       nonHardCodedSmartTokenAddresses
-    );
-    console.log(
-      nonHardCodedRelays.find(relay =>
-        relay.reserves.some(reserve => reserve.symbol == "WBTC")
-      ),
-      "IS THE RELAY!!!"
     );
 
     this.updateRelays(relaysWithTokenMeta(nonHardCodedRelays, tokenMeta));
@@ -1783,15 +1745,15 @@ export class EthBancorModule extends VuexModule
       fromSymbol,
       toSymbol,
       this.relaysList.map(
-        (x): DryRelay => ({
-          contract: x.contract,
-          reserves: x.reserves.map(
+        (relay): DryRelay => ({
+          contract: relay.contract,
+          reserves: relay.reserves.map(
             (reserve): TokenSymbol => ({
               contract: reserve.contract,
               symbol: reserve.symbol
             })
           ),
-          smartToken: x.smartToken
+          smartToken: relay.smartToken
         })
       )
     );
