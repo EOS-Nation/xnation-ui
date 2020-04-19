@@ -222,7 +222,6 @@ export class EthBancorModule extends VuexModule
     BancorX: "",
     BancorConverterFactory: ""
   };
-  convertibleTokens: string[] = [];
 
   get newNetworkTokenChoices(): ModalChoice[] {
     const bntTokenMeta = this.tokenMeta.find(token => token.symbol == "BNT")!;
@@ -1608,22 +1607,6 @@ export class EthBancorModule extends VuexModule
       .getSmartTokens()
       .call();
     return smartTokenAddresses;
-  }
-
-  @action async fetchConvertibleTokens(converterRegistryAddress: string) {
-    const registryContract = new web3.eth.Contract(
-      ABIConverterRegistry,
-      converterRegistryAddress
-    );
-    const convertibleTokens: string[] = await registryContract.methods
-      .getConvertibleTokens()
-      .call();
-
-    this.setConvertibleTokens(convertibleTokens);
-  }
-
-  @mutation setConvertibleTokens(convertibleTokens: string[]) {
-    this.convertibleTokens = convertibleTokens;
   }
 
   @mutation updateRelays(relays: Relay[]) {
