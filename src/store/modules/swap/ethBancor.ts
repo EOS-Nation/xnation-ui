@@ -58,10 +58,12 @@ const shrinkToken = (amount: string | number, precision: number) =>
   String(Number(amount) / Math.pow(10, precision));
 
 const tokenPriceToFeed = (
+  tokenAddress: string,
   smartTokenAddress: string,
   tokenPrice: TokenPrice,
   usdPriceOfEth: number
 ): RelayFeed => ({
+  tokenId: tokenAddress,
   smartTokenContract: smartTokenAddress,
   costByNetworkUsd: tokenPrice.price,
   liqDepth: tokenPrice.liquidityDepth * usdPriceOfEth * 2,
@@ -196,6 +198,7 @@ const compareRelayBySmartTokenAddress = (a: Relay, b: Relay) =>
 
 interface RelayFeed {
   smartTokenContract: string;
+  tokenId: string;
   liqDepth: number;
   costByNetworkUsd: number;
   change24H?: number;
@@ -732,9 +735,19 @@ export class EthBancorModule extends VuexModule
       .map(relay =>
         relay.reserves.map(reserve => {
           const { name, image } = this.tokenMetaObj(reserve.contract);
-          const relayFeed = this.relayFeed.find(feed =>
-            compareString(feed.smartTokenContract, relay.smartToken.contract)
+          const relayFeed = this.relayFeed.find(
+            feed =>
+              compareString(
+                feed.smartTokenContract,
+                relay.smartToken.contract
+              ) && compareString(feed.tokenId, reserve.contract)
           )!;
+
+          if (!relayFeed) {
+            return;
+          } else {
+            console.count('Relay Feed!')
+          }
           const balance = this.tokenBalance(reserve.contract);
           return {
             id: reserve.contract,
@@ -749,13 +762,17 @@ export class EthBancorModule extends VuexModule
           };
         })
       )
+      .filter(x => x.id && x.price)
       .flat(1)
       .sort((a, b) => b.liqDepth - a.liqDepth)
       .reduce<ViewToken[]>((acc, item) => {
-        const existingToken = acc.find(token => token.id == item.id);
+        console.log('reducing', item.name)
+        const existingToken = acc.find(token =>
+          compareString(token.id, item.id)
+        );
         return existingToken
           ? acc.map(token =>
-              token.id == item.id
+              compareString(token.id, item.id)
                 ? { ...token, liqDepth: token.liqDepth + item.liqDepth }
                 : token
             )
@@ -1284,6 +1301,7 @@ export class EthBancorModule extends VuexModule
 
     return catalogedAddresses.map(catalog =>
       tokenPriceToFeed(
+        catalog.tokenAddress,
         catalog.smartTokenAddress,
         tokens.find(token => compareString(token.id, catalog.tokenId))!,
         ethUsdPrice
@@ -1405,10 +1423,10 @@ export class EthBancorModule extends VuexModule
           );
 
           const networkReserveIsUsd = networkReserve.symbol == "USDB";
-
           const dec = networkReserveAmount / tokenAmount;
 
           return {
+            tokenId: tokenReserve.contract,
             smartTokenContract: relay.smartToken.contract,
             costByNetworkUsd: networkReserveIsUsd ? dec : dec * usdPriceOfBnt,
             liqDepth:
