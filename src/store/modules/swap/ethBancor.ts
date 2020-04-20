@@ -227,36 +227,23 @@ export class EthBancorModule extends VuexModule
   get newNetworkTokenChoices(): ModalChoice[] {
     const bntTokenMeta = this.tokenMeta.find(token => token.symbol == "BNT")!;
     const usdBTokenMeta = this.tokenMeta.find(token => token.symbol == "USDB")!;
+
+    console.log({ bntTokenMeta });
+
+    const x = this.tokenBalance(bntTokenMeta.contract);
+    console.log(x, "is BNT balance", bntTokenMeta.contract, "address was used");
     return [
       {
         contract: bntTokenMeta.contract,
         symbol: bntTokenMeta.symbol,
         img: bntTokenMeta.image,
-        balance:
-          (this.tokenBalances.find(balance =>
-            compareString(balance.id, bntTokenMeta.contract)
-          ) &&
-            Number(
-              this.tokenBalances.find(balance =>
-                compareString(balance.id, bntTokenMeta.contract)
-              )!.balance
-            )) ||
-          0
+        balance: x && x.balance
       },
       {
         contract: usdBTokenMeta.contract,
         symbol: usdBTokenMeta.symbol,
         img: usdBTokenMeta.image,
-        balance:
-          (this.tokenBalances.find(balance =>
-            compareString(balance.id, usdBTokenMeta.contract)
-          ) &&
-            Number(
-              this.tokenBalances.find(balance =>
-                compareString(balance.id, usdBTokenMeta.contract)
-              )!.balance
-            )) ||
-          0
+        balance: 555
       }
     ];
   }
@@ -269,15 +256,8 @@ export class EthBancorModule extends VuexModule
           symbol: meta.symbol,
           img: meta.image,
           balance:
-            (this.tokenBalances.find(balance =>
-              compareString(balance.id, meta.contract)
-            ) &&
-              Number(
-                this.tokenBalances.find(balance =>
-                  compareString(balance.id, meta.contract)
-                )!.balance
-              )) ||
-            0
+            this.tokenBalance(meta.contract) &&
+            this.tokenBalance(meta.contract)!.balance
         }))
         .filter(meta =>
           this.newNetworkTokenChoices.some(
@@ -761,15 +741,13 @@ export class EthBancorModule extends VuexModule
                 relay.smartToken.contract
               ) && compareString(feed.tokenId, reserve.contract)
           )!;
-
-          if (!relayFeed) {
-            throw new Error(
-              `Failed to find relay feed for,
-              ${relay.smartToken.contract},
-              ${reserve.contract}`
-            );
-          }
           const balance = this.tokenBalance(reserve.contract);
+          if (name == "Bancor") {
+            console.log(reserve.contract, "returned a balance of", balance);
+          }
+          if (balance && balance.balance) {
+            console.log("is the balance for", name);
+          }
           return {
             id: reserve.contract,
             symbol: reserve.symbol,
@@ -817,7 +795,7 @@ export class EthBancorModule extends VuexModule
 
   get tokenBalance() {
     return (tokenId: string) =>
-      this.tokenBalances.find(token => token.id == tokenId);
+      this.tokenBalances.find(token => compareString(token.id, tokenId));
   }
 
   get token(): (arg0: string) => any {
@@ -977,10 +955,12 @@ export class EthBancorModule extends VuexModule
 
   @action async getUserBalance(tokenContractAddress: string) {
     console.log("getUserBalance", tokenContractAddress);
-    return vxm.ethWallet.getBalance({
+    const balance = await vxm.ethWallet.getBalance({
       accountHolder: vxm.wallet.isAuthenticated,
       tokenContractAddress
     });
+    this.updateBalance([tokenContractAddress, balance]);
+    return balance;
   }
 
   // @ts-ignore
@@ -1731,16 +1711,27 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async focusSymbol(symbolName: string) {
+    console.log('focus symbol called for', symbolName)
     if (!this.isAuthenticated) return;
-    const token = this.token(
-      this.tokens.find(token => compareString(symbolName, token.symbol))!.id!
+    const tokens = this.tokens.filter(token =>
+      compareString(token.symbol, symbolName)
     );
-    console.log(token, "was discovered token");
-    const balance = await vxm.ethWallet.getBalance({
-      accountHolder: this.isAuthenticated,
-      tokenContractAddress: token.id!
-    });
-    this.updateBalance([token.id, balance]);
+    const balances = await Promise.all(
+      tokens.map(async token => {
+        const balance = await vxm.ethWallet.getBalance({
+          accountHolder: this.isAuthenticated,
+          tokenContractAddress: token.id!
+        });
+        return {
+          ...token,
+          balance
+        };
+      })
+    );
+    console.log(balances, 'were balances fetched')
+    balances.forEach(balance =>
+      this.updateBalance([balance.id!, balance.balance])
+    );
   }
 
   @mutation updateBalance([id, balance]: [string, number]) {

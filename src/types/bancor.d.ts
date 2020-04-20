@@ -218,7 +218,7 @@ export interface EosMultiRelay {
 export interface ModalChoice {
   symbol: string;
   contract: string;
-  balance: number;
+  balance?: number;
   img: string;
 }
 

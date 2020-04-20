@@ -4,6 +4,7 @@
       v-if="loaded"
       :tokenOneSymbol.sync="token1Symbol"
       @update:tokenOneSymbol="networkTokenChange"
+      @update:tokenTwoSymbol="tokenChange"
       :tokenOneAmount.sync="token1Amount"
       :tokenOneBalance="displayedToken1Balance"
       :tokenOneImg="selectedNetworkToken.img"
@@ -167,6 +168,10 @@ export default class HeroConvert extends Vue {
     }
   }
 
+  tokenChange(symbolName: string) {
+    this.focusSymbol(symbolName)
+  }
+
   cleanUpAfterTx() {
     if (this.success) {
       this.$router.push({ name: "Relays" });
@@ -184,15 +189,13 @@ export default class HeroConvert extends Vue {
   }
 
   get networkTokenReward() {
-    return `1 ${this.token1Symbol} = ${
-      Number(this.token2Amount) / Number(this.token1Amount)
-    } ${this.token2Symbol}`;
+    return `1 ${this.token1Symbol} = ${Number(this.token2Amount) /
+      Number(this.token1Amount)} ${this.token2Symbol}`;
   }
 
   get tokenReward() {
-    return `1 ${this.token2Symbol} = ${
-      Number(this.token1Amount) / Number(this.token2Amount)
-    } ${this.token1Symbol}`;
+    return `1 ${this.token2Symbol} = ${Number(this.token1Amount) /
+      Number(this.token2Amount)} ${this.token1Symbol}`;
   }
 
   get calculationsAvailable() {
@@ -249,23 +252,18 @@ export default class HeroConvert extends Vue {
   }
 
   get tokenChoices() {
-    console.log(this.token1Symbol, "looking for that shit.. ");
-    const choices = vxm.bancor.newPoolTokenChoices(this.token1Symbol);
-    console.log(
-      choices[0].symbol,
-      "was first to come through on token choices"
-    );
-    return choices;
+    return vxm.bancor.newPoolTokenChoices(this.token1Symbol);
   }
 
   get displayedToken1Balance() {
-    console.log(this.selectedNetworkToken, "selected network token");
-    return this.selectedNetworkToken.balance || 0;
+    if (this.selectedNetworkToken.balance) {
+      return this.selectedNetworkToken.balance;
+    } else return 0;
   }
 
   get displayedToken2Balance() {
-    console.log(this.selectedToken, "selected token");
-    return this.selectedToken.balance || 0;
+    if (this.selectedToken.balance) return this.selectedToken.balance;
+    else return 0;
   }
 
   get isAuthenticated() {
@@ -312,7 +310,6 @@ export default class HeroConvert extends Vue {
   created() {
     const networkTokenSymbol = vxm.bancor.newNetworkTokenChoices[0].symbol;
     const listingTokenSymbol = this.tokenChoices[0].symbol;
-    console.log({ networkTokenSymbol, listingTokenSymbol });
     this.token1Symbol = networkTokenSymbol;
     this.token2Symbol = listingTokenSymbol;
     this.focusSymbol(networkTokenSymbol);
