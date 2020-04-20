@@ -1230,9 +1230,14 @@ export class EthBancorModule extends VuexModule
     const bytesKeys = Object.keys(hardCodedBytes);
     const bytesList = Object.values(hardCodedBytes);
 
-    const contractAddresses = await Promise.all(
-      bytesList.map(bytes => registryContract.methods.addressOf(bytes).call())
-    );
+    const contractAddresses = await Promise.race([
+      Promise.all(
+        bytesList.map(bytes => registryContract.methods.addressOf(bytes).call())
+      ),
+      wait(10000).then(() => {
+        throw new Error("Failed to resolve in time");
+      })
+    ]);
 
     const zipped = _.zip(bytesKeys, contractAddresses) as [string, string][];
 
@@ -1246,6 +1251,7 @@ export class EthBancorModule extends VuexModule
 
     console.log(object, "changed");
     this.setContractAddresses(object);
+    console.log("fetch resolving");
     return object;
   }
 
@@ -1256,6 +1262,7 @@ export class EthBancorModule extends VuexModule
   @action async possibleRelayFeedsFromBancorApi(
     relays: Relay[]
   ): Promise<RelayFeed[]> {
+    return [];
     try {
       const tokens = await ethBancorApi.getTokens();
       const ethUsdPrice = tokens.find(token => token.code == "ETH")!.price;
@@ -1459,11 +1466,14 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async init() {
-    const [hardCodedRelays, tokenMeta, contractAddresses] = await Promise.all([
-      getEthRelays(),
+    console.log("main starting");
+    const [tokenMeta, contractAddresses] = await Promise.all([
       getTokenMeta(),
       this.fetchContractAddresses()
     ]);
+    console.log("main resolved");
+
+    const hardCodedRelays = getEthRelays();
 
     this.setTokenMeta(tokenMeta);
 
@@ -1499,7 +1509,7 @@ export class EthBancorModule extends VuexModule
       relaysWithTokenMeta(nonHardCodedRelays, tokenMeta)
     );
 
-    console.log(contractAddresses, 'are contract addresses')
+    console.log(contractAddresses, "are contract addresses");
     // wait(3000).then(x =>  this.addPoolToRegistry('0x7D7Df9750118FFC53a5aEF5F141De7C367fcfc7B')
     // )
   }

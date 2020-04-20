@@ -781,6 +781,7 @@ export class EosBancorModule extends VuexModule
     this.setRelays(relays);
     this.setTokens(tokens);
     this.setTokenMeta(tokenMeta);
+    console.log('init eos resolved')
   }
 
   @action async refreshBalances(tokens: BaseToken[] = []) {

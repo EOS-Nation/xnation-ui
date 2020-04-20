@@ -123,7 +123,7 @@ export const getTokenBalances = async (
   return res.data;
 };
 
-export const getEthRelays = async (): Promise<Relay[]> => {
+export const getEthRelays = (): Relay[] => {
   const relays = [
     {
       tokenAddress: "0x83cee9e086A77e492eE0bB93C2B0437aD6fdECCc",
