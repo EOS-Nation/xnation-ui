@@ -51,6 +51,7 @@ import {
   generateEthPath
 } from "@/api/ethBancorCalc";
 import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
+import { relays } from "./staticRelays";
 
 const expandToken = (amount: string | number, precision: number) =>
   String((Number(amount) * Math.pow(10, precision)).toFixed(0));
@@ -60,8 +61,8 @@ const shrinkToken = (amount: string | number, precision: number) =>
 const tokenPriceToFeed = (
   tokenAddress: string,
   smartTokenAddress: string,
-  tokenPrice: TokenPrice,
-  usdPriceOfEth: number
+  usdPriceOfEth: number,
+  tokenPrice: TokenPrice
 ): RelayFeed => ({
   tokenId: tokenAddress,
   smartTokenContract: smartTokenAddress,
@@ -200,7 +201,7 @@ interface RelayFeed {
   smartTokenContract: string;
   tokenId: string;
   liqDepth: number;
-  costByNetworkUsd: number;
+  costByNetworkUsd?: number;
   change24H?: number;
   volume24H?: number;
 }
@@ -724,11 +725,41 @@ export class EthBancorModule extends VuexModule
     return "eth";
   }
 
+  get failedTokens() {
+    return this.relaysList
+      .filter(
+        relay =>
+          !relay.reserves.every(reserve =>
+            this.relayFeed.some(
+              relayFeed =>
+                compareString(relayFeed.tokenId, reserve.contract) &&
+                compareString(
+                  relayFeed.smartTokenContract,
+                  relay.smartToken.contract
+                )
+            )
+          )
+      )
+      .map(relay => relay.reserves)
+      .flat(1)
+      .filter(
+        (x, index, arr) => arr.findIndex(t => t.contract == x.contract) == index
+      )
+      .map(x => x.symbol);
+  }
+
   get tokens(): ViewToken[] {
     return this.relaysList
       .filter(relay =>
-        this.relayFeed.some(feed =>
-          compareString(feed.smartTokenContract, relay.smartToken.contract)
+        relay.reserves.every(reserve =>
+          this.relayFeed.some(
+            relayFeed =>
+              compareString(relayFeed.tokenId, reserve.contract) &&
+              compareString(
+                relayFeed.smartTokenContract,
+                relay.smartToken.contract
+              )
+          )
         )
       )
       .map(relay =>
@@ -743,16 +774,20 @@ export class EthBancorModule extends VuexModule
           )!;
 
           if (!relayFeed) {
-            return;
-          } else {
-            console.count('Relay Feed!')
+            throw new Error(
+              `Failed to find relay feed for,
+              ${relay.smartToken.contract},
+              ${reserve.contract}`
+            );
           }
           const balance = this.tokenBalance(reserve.contract);
           return {
             id: reserve.contract,
             symbol: reserve.symbol,
             name,
-            price: relayFeed.costByNetworkUsd,
+            ...(relayFeed.costByNetworkUsd && {
+              price: relayFeed.costByNetworkUsd
+            }),
             liqDepth: relayFeed.liqDepth,
             logo: image,
             ...(relayFeed.change24H && { change24h: relayFeed.change24H }),
@@ -761,11 +796,9 @@ export class EthBancorModule extends VuexModule
           };
         })
       )
-      .filter(x => x.id && x.price)
       .flat(1)
       .sort((a, b) => b.liqDepth - a.liqDepth)
       .reduce<ViewToken[]>((acc, item) => {
-        console.log('reducing', item.name)
         const existingToken = acc.find(token =>
           compareString(token.id, item.id)
         );
@@ -1282,36 +1315,62 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async possibleRelayFeedsFromBancorApi(
-    smartTokenAddresses: string[]
+    relays: Relay[]
   ): Promise<RelayFeed[]> {
     const tokens = await ethBancorApi.getTokens();
-    console.log(tokens, "was tokens res");
-    const catalogedAddresses = bancorApiSmartTokens
-      .filter(catalog =>
-        smartTokenAddresses.some(address =>
-          compareString(address, catalog.smartTokenAddress)
-        )
-      )
-      .filter(catalog =>
-        tokens.some(token => compareString(token.id, catalog.tokenId))
-      );
-
     const ethUsdPrice = tokens.find(token => token.code == "ETH")!.price;
 
-    return catalogedAddresses.map(catalog =>
-      tokenPriceToFeed(
-        catalog.tokenAddress,
-        catalog.smartTokenAddress,
-        tokens.find(token => compareString(token.id, catalog.tokenId))!,
-        ethUsdPrice
+    return relays
+      .filter(relay =>
+        bancorApiSmartTokens.some(catalog =>
+          compareString(relay.smartToken.contract, catalog.smartTokenAddress)
+        )
       )
-    );
+      .map(relay => {
+        return relay.reserves.map(reserve => {
+          const foundDictionaries = bancorApiSmartTokens.filter(catalog =>
+            compareString(catalog.smartTokenAddress, relay.smartToken.contract)
+          );
+
+          const bancorIdRelayDictionary =
+            foundDictionaries.length == 1
+              ? foundDictionaries[0]
+              : foundDictionaries.find(dictionary =>
+                  compareString(reserve.contract, dictionary.tokenAddress)
+                )!;
+          const tokenPrice = tokens.find(token =>
+            compareString(token.id, bancorIdRelayDictionary.tokenId)
+          )!;
+
+          const relayFeed = tokenPriceToFeed(
+            reserve.contract,
+            relay.smartToken.contract,
+            ethUsdPrice,
+            tokenPrice
+          );
+
+          if (
+            compareString(
+              bancorIdRelayDictionary.tokenAddress,
+              reserve.contract
+            )
+          ) {
+            return relayFeed;
+          } else {
+            return {
+              ...relayFeed,
+              costByNetworkUsd: undefined,
+              change24H: undefined,
+              volume24H: undefined
+            };
+          }
+        });
+      })
+      .flat(1);
   }
 
   @action async fetchAndUpdateRelayFeeds(relays: Relay[]) {
-    const bancorApiFeeds = await this.possibleRelayFeedsFromBancorApi(
-      relays.map(relay => relay.smartToken.contract)
-    );
+    const bancorApiFeeds = await this.possibleRelayFeedsFromBancorApi(relays);
     const remainingRelays = _.differenceWith(
       relays,
       bancorApiFeeds,
@@ -1327,8 +1386,11 @@ export class EthBancorModule extends VuexModule
 
   @mutation updateRelayFeeds(feeds: RelayFeed[]) {
     const allFeeds = [...feeds, ...this.relayFeed];
-    this.relayFeed = _.uniqWith(allFeeds, (a, b) =>
-      compareString(a.smartTokenContract, b.smartTokenContract)
+    this.relayFeed = _.uniqWith(
+      allFeeds,
+      (a, b) =>
+        compareString(a.smartTokenContract, b.smartTokenContract) &&
+        compareString(a.tokenId, b.tokenId)
     );
   }
 
@@ -1403,9 +1465,9 @@ export class EthBancorModule extends VuexModule
     const usdPriceOfBnt = Number(
       tokens.find(token => token.code == "BNT")!.price
     );
-    return Promise.all(
+    const relayFeeds = await Promise.all(
       relays.map(
-        async (relay): Promise<RelayFeed> => {
+        async (relay): Promise<RelayFeed[]> => {
           const reservesBalances = await Promise.all(
             relay.reserves.map(reserve =>
               this.fetchReserveBalance({
@@ -1424,18 +1486,28 @@ export class EthBancorModule extends VuexModule
           const networkReserveIsUsd = networkReserve.symbol == "USDB";
           const dec = networkReserveAmount / tokenAmount;
 
-          return {
-            tokenId: tokenReserve.contract,
-            smartTokenContract: relay.smartToken.contract,
-            costByNetworkUsd: networkReserveIsUsd ? dec : dec * usdPriceOfBnt,
-            liqDepth:
-              (networkReserveIsUsd
-                ? networkReserveAmount
-                : networkReserveAmount * usdPriceOfBnt) * 2
-          };
+          const liqDepth =
+            (networkReserveIsUsd
+              ? networkReserveAmount
+              : networkReserveAmount * usdPriceOfBnt) * 2;
+
+          return [
+            {
+              tokenId: tokenReserve.contract,
+              smartTokenContract: relay.smartToken.contract,
+              costByNetworkUsd: networkReserveIsUsd ? dec : dec * usdPriceOfBnt,
+              liqDepth
+            },
+            {
+              tokenId: networkReserve.contract,
+              smartTokenContract: relay.smartToken.contract,
+              liqDepth
+            }
+          ];
         }
       )
     );
+    return relayFeeds.flat(1);
   }
 
   @action async init() {
