@@ -211,7 +211,6 @@ interface RelayFeed {
 export class EthBancorModule extends VuexModule
   implements TradingModule, LiquidityModule, CreatePoolModule {
   tokensList: any[] = [];
-  bancorTokens: TokenPrice[] = [];
   relayFeed: RelayFeed[] = [];
   relaysList: Relay[] = [];
   tokenBalances: { id: string; balance: number }[] = [];
@@ -1500,6 +1499,7 @@ export class EthBancorModule extends VuexModule
       relaysWithTokenMeta(nonHardCodedRelays, tokenMeta)
     );
 
+    console.log(contractAddresses, 'are contract addresses')
     // wait(3000).then(x =>  this.addPoolToRegistry('0x7D7Df9750118FFC53a5aEF5F141De7C367fcfc7B')
     // )
   }
