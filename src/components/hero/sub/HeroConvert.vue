@@ -214,7 +214,6 @@ export default class HeroConvert extends Vue {
   @bancor.Action convert!: TradingModule["convert"];
   @bancor.Action init!: TradingModule["init"];
   @bancor.Action focusSymbol!: TradingModule["focusSymbol"];
-  @bancor.Action refreshBalances!: TradingModule["refreshBalances"];
   @bancor.Action getReturn!: TradingModule["getReturn"];
   @bancor.Action getCost!: TradingModule["getCost"];
   @bancor.Getter relay!: LiquidityModule["relay"];

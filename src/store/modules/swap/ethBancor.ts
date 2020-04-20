@@ -228,22 +228,20 @@ export class EthBancorModule extends VuexModule
     const bntTokenMeta = this.tokenMeta.find(token => token.symbol == "BNT")!;
     const usdBTokenMeta = this.tokenMeta.find(token => token.symbol == "USDB")!;
 
-    console.log({ bntTokenMeta });
-
-    const x = this.tokenBalance(bntTokenMeta.contract);
-    console.log(x, "is BNT balance", bntTokenMeta.contract, "address was used");
+    const bntBalance = this.tokenBalance(bntTokenMeta.contract);
+    const usdBalance = this.tokenBalance(usdBTokenMeta.contract);
     return [
       {
         contract: bntTokenMeta.contract,
         symbol: bntTokenMeta.symbol,
         img: bntTokenMeta.image,
-        balance: x && x.balance
+        balance: bntBalance && bntBalance.balance
       },
       {
         contract: usdBTokenMeta.contract,
         symbol: usdBTokenMeta.symbol,
         img: usdBTokenMeta.image,
-        balance: 555
+        balance: usdBalance && usdBalance.balance
       }
     ];
   }
@@ -1711,7 +1709,6 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async focusSymbol(symbolName: string) {
-    console.log('focus symbol called for', symbolName)
     if (!this.isAuthenticated) return;
     const tokens = this.tokens.filter(token =>
       compareString(token.symbol, symbolName)
@@ -1728,7 +1725,6 @@ export class EthBancorModule extends VuexModule
         };
       })
     );
-    console.log(balances, 'were balances fetched')
     balances.forEach(balance =>
       this.updateBalance([balance.id!, balance.balance])
     );
