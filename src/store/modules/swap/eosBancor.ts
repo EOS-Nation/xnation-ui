@@ -341,6 +341,7 @@ export class EosBancorModule extends VuexModule
         ]
       ];
       return features
+      // @ts-ignore
         .filter(([name, test]) => test(relay, isAuthenticated))
         .map(([name]) => name);
     };
@@ -689,6 +690,7 @@ export class EosBancorModule extends VuexModule
   }
 
   get relays(): ViewRelay[] {
+    // @ts-ignore
     return this.relaysList
       .filter(
         relayIncludesBothTokens(
@@ -782,7 +784,7 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async refreshBalances(tokens: BaseToken[] = []) {
-    console.log('refresh balances received', tokens);
+    console.log("refresh balances received", tokens);
     if (!this.isAuthenticated) return;
     if (tokens.length > 0) {
       await vxm.eosNetwork.getBalances({ tokens });
@@ -865,6 +867,7 @@ export class EosBancorModule extends VuexModule
       { symbol: token2Symbol, amount: token2Amount }
     ];
     const tokenAmounts = deposits.map(deposit => {
+      // @ts-ignore
       const { precision, contract, symbol } = relay.reserves.find(
         reserve => reserve.symbol == deposit.symbol
       )!;
@@ -1022,12 +1025,15 @@ export class EosBancorModule extends VuexModule
             symbol: relay.reserves[1].symbol
           },
           {
+            // @ts-ignore
             contract: relay.smartToken.contract,
+            // @ts-ignore
             symbol: relay.smartToken.symbol
           }
         ]
       }),
       tableApi.getReservesMulti(symbolName),
+      // @ts-ignore
       fetchTokenStats(relay.smartToken.contract, symbolName)
     ]);
 
@@ -1055,6 +1061,7 @@ export class EosBancorModule extends VuexModule
     const [tokenReserves, supply] = await Promise.all([
       tableApi.getReservesMulti(suggestedDeposit.smartTokenSymbol),
       fetchTokenStats(
+        // @ts-ignore
         relay.smartToken.contract,
         suggestedDeposit.smartTokenSymbol
       )
@@ -1119,9 +1126,11 @@ export class EosBancorModule extends VuexModule
     const [tokenReserves, supply, smartUserBalanceString] = await Promise.all([
       tableApi.getReservesMulti(suggestWithdraw.smartTokenSymbol),
       fetchTokenStats(
+        // @ts-ignore
         relay.smartToken.contract,
         suggestWithdraw.smartTokenSymbol
       ),
+      // @ts-ignore
       getBalance(relay.smartToken.contract, relay.smartToken.symbol) as Promise<
         string
       >
