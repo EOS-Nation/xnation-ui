@@ -279,21 +279,10 @@ export class EthBancorModule extends VuexModule
               )) ||
             0
         }))
-        .filter(
-          meta =>
-            !this.newNetworkTokenChoices.some(
-              choice => choice.symbol == meta.symbol
-            )
-        )
-        .filter(
-          tokenChoice =>
-            !this.relays.some(relay =>
-              relay.reserves.every(
-                reserve =>
-                  reserve.symbol == tokenChoice.symbol ||
-                  reserve.symbol == symbolName
-              )
-            )
+        .filter(meta =>
+          this.newNetworkTokenChoices.some(
+            networkChoice => networkChoice.symbol !== meta.symbol
+          )
         )
         .filter(tokenChoice => tokenChoice.symbol !== symbolName)
         .sort((a, b) => Number(b.balance) - Number(a.balance));
@@ -892,9 +881,11 @@ export class EthBancorModule extends VuexModule
         )!;
 
         return {
+          id: relay.smartToken.contract,
           reserves: relay.reserves.map(reserve => {
             const meta = this.tokenMetaObj(reserve.contract);
             return {
+              reserveId: relay.smartToken.contract + reserve.contract,
               logo: [meta.image],
               symbol: reserve.symbol,
               contract: reserve.contract,
@@ -928,18 +919,12 @@ export class EthBancorModule extends VuexModule
     return this.$store.dispatch("ethWallet/tx", actions, { root: true });
   }
 
-  @action async fetchRelayBalances(smartTokenSymbol: string) {
-    const {
-      converterAddress,
-      tokenAddress,
-      smartTokenAddress,
-      version
-    } = this.relay(smartTokenSymbol)!;
+  @action async fetchRelayBalances(smartTokenAddress: string) {
+    const { reserves, version, contract } = this.relaysList.find(relay =>
+      compareString(relay.smartToken.contract, smartTokenAddress)
+    )!;
 
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      converterAddress
-    );
+    const converterContract = new web3.eth.Contract(ABIConverter, contract);
 
     const smartTokenContract = new web3.eth.Contract(
       ABISmartToken,
@@ -951,8 +936,9 @@ export class EthBancorModule extends VuexModule
       bntReserveBalance,
       totalSupply
     ] = await Promise.all([
-      fetchReserveBalance(converterContract, tokenAddress, version),
-      fetchReserveBalance(converterContract, BntTokenContract, version),
+      ...reserves.map(reserve =>
+        fetchReserveBalance(converterContract, reserve.contract, version)
+      ),
       smartTokenContract.methods.totalSupply().call()
     ]);
     return { tokenReserveBalance, bntReserveBalance, totalSupply };
@@ -990,6 +976,7 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async getUserBalance(tokenContractAddress: string) {
+    console.log("getUserBalance", tokenContractAddress);
     return vxm.ethWallet.getBalance({
       accountHolder: vxm.wallet.isAuthenticated,
       tokenContractAddress
@@ -998,25 +985,29 @@ export class EthBancorModule extends VuexModule
 
   // @ts-ignore
   @action async getUserBalances(symbolName: string) {
+    console.log("getUserBalances", symbolName);
     if (!vxm.wallet.isAuthenticated)
       throw new Error("Cannot find users .isAuthenticated");
-    const { smartTokenAddress, tokenAddress } = this.relay(symbolName)!;
+    const relay = this.relaysList.find(relay =>
+      compareString(relay.smartToken.symbol, symbolName)
+    )!;
 
     const [
       bntUserBalance,
       tokenUserBalance,
       smartTokenUserBalance
     ] = await Promise.all([
-      this.getUserBalance(BntTokenContract),
-      this.getUserBalance(tokenAddress),
-      this.getUserBalance(smartTokenAddress)
+      ...relay.reserves.map(reserve => this.getUserBalance(reserve.contract)),
+      this.getUserBalance(relay.smartToken.contract)
     ]);
+
+    console.log({ bntUserBalance, tokenUserBalance, smartTokenUserBalance });
 
     const {
       totalSupply,
       bntReserveBalance,
       tokenReserveBalance
-    } = await this.fetchRelayBalances(symbolName);
+    } = await this.fetchRelayBalances(relay.smartToken.contract);
 
     const percent = new Decimal(smartTokenUserBalance).div(
       fromWei(totalSupply)
@@ -1501,7 +1492,8 @@ export class EthBancorModule extends VuexModule
             {
               tokenId: networkReserve.contract,
               smartTokenContract: relay.smartToken.contract,
-              liqDepth
+              liqDepth,
+              costByNetworkUsd: 55
             }
           ];
         }
@@ -1740,10 +1732,13 @@ export class EthBancorModule extends VuexModule
 
   @action async focusSymbol(symbolName: string) {
     if (!this.isAuthenticated) return;
-    const token = this.token(symbolName);
+    const token = this.token(
+      this.tokens.find(token => compareString(symbolName, token.symbol))!.id!
+    );
+    console.log(token, "was discovered token");
     const balance = await vxm.ethWallet.getBalance({
       accountHolder: this.isAuthenticated,
-      tokenContractAddress: token.id
+      tokenContractAddress: token.id!
     });
     this.updateBalance([token.id, balance]);
   }

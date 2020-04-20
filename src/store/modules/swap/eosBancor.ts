@@ -701,6 +701,7 @@ export class EosBancorModule extends VuexModule
       )
       .map(relay => ({
         ...relay,
+        id: relay.smartToken.symbol,
         swap: "eos",
         symbol: relay.reserves.find(reserve => reserve.symbol !== "BNT")!
           .symbol,
@@ -714,6 +715,7 @@ export class EosBancorModule extends VuexModule
         reserves: relay.reserves
           .map((reserve: AgnosticToken) => ({
             ...reserve,
+            reserveId: relay.smartToken.symbol + reserve.symbol,
             logo: [this.token(reserve.symbol).logo],
             ...(reserve.amount && { balance: reserve.amount })
           }))

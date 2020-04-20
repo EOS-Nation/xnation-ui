@@ -23,7 +23,7 @@
             :items="tokens"
             :fields="fields"
             :filter="filter"
-            primary-key="smartTokenSymbol"
+            primary-key="id"
             :tbody-transition-props="transProps"
             :tbody-transition-handlers="transHandler"
           >
@@ -34,12 +34,9 @@
             </template>
             <template v-slot:cell(symbol)="data">
               <img
-                :id="
-                  `tooltip-target-${data.item.smartTokenSymbol +
-                    reserve.symbol}`
-                "
+                :id="`tooltip-target-${data.item.reserveId}`"
+                :key="reserve.reserveId"
                 v-for="reserve in data.item.reserves"
-                :key="data.item.swap + data.item.smartTokenSymbol + reserve.symbol"
                 class="img-avatar img-avatar-thumb img-avatar32 mr-3"
                 :src="reserve.logo[0]"
                 v-fallback="reserve.logo.slice(1)"
@@ -47,16 +44,13 @@
               />
               <b-popover
                 v-for="reserve in data.item.reserves"
-                :key="`${data.item.swap}${data.item.smartTokenSymbol}${reserve.symbol}-tooltip`"
-                :target="
-                  `tooltip-target-${data.item.smartTokenSymbol +
-                    reserve.symbol}`
-                "
+                :key="`${reserve.reserveId}-tooltip`"
+                :target="`tooltip-target-${data.item.reserveId}`"
                 triggers="hover"
               >
-                <p>Contract: {{ reserve.contract }}</p> 
+                <p>Contract: {{ reserve.contract }}</p>
                 <p>Symbol: {{ reserve.symbol }}</p>
-                <p>{{ reserve.balance && `Balance: ${reserve.balance}`}}</p>
+                <p>{{ reserve.balance && `Balance: ${reserve.balance}` }}</p>
               </b-popover>
               {{ data.item.symbol }}
             </template>

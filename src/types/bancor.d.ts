@@ -163,6 +163,7 @@ interface TokenWithLogo extends AgnosticToken {
 }
 
 export interface ViewReserve {
+  reserveId: string;
   swap: string;
   smartTokenSymbol: string;
   logo: string[];
@@ -172,6 +173,7 @@ export interface ViewReserve {
 }
 
 export interface ViewRelay {
+  id: string;
   symbol: string;
   smartTokenSymbol: string;
   liqDepth: number;
