@@ -1254,89 +1254,67 @@ export class EthBancorModule extends VuexModule
     this.contracts = contracts;
   }
 
-  @action async choppedRelaysToAddresses({
-    path,
-    source,
-    destination
-  }: {
-    path: ChoppedRelay[];
-    source: string;
-    destination: string;
-  }) {
-    console.log(path, destination, "was shit");
-    const rebuilt = _.uniqWith(
-      path,
-      (one, two) => one.contract == two.contract
-    );
-    console.log(rebuilt, "was rebuilt");
-
-    const tokensList = path.map(x => x.reserves).flat(1);
-    const symbolPath = rebuilt
-      .map(x => x.reserves.map(y => y.symbol))
-      .flat(1)
-      .concat(destination);
-
-    console.log(symbolPath, tokensList, "mcree");
-    const final = symbolPath.map(
-      symbol => tokensList.find(x => x.symbol == symbol)!.contract
-    );
-
-    return final;
-  }
-
   @action async possibleRelayFeedsFromBancorApi(
     relays: Relay[]
   ): Promise<RelayFeed[]> {
-    const tokens = await ethBancorApi.getTokens();
-    const ethUsdPrice = tokens.find(token => token.code == "ETH")!.price;
+    try {
+      const tokens = await ethBancorApi.getTokens();
+      const ethUsdPrice = tokens.find(token => token.code == "ETH")!.price;
 
-    return relays
-      .filter(relay =>
-        bancorApiSmartTokens.some(catalog =>
-          compareString(relay.smartToken.contract, catalog.smartTokenAddress)
+      return relays
+        .filter(relay =>
+          bancorApiSmartTokens.some(catalog =>
+            compareString(relay.smartToken.contract, catalog.smartTokenAddress)
+          )
         )
-      )
-      .map(relay => {
-        return relay.reserves.map(reserve => {
-          const foundDictionaries = bancorApiSmartTokens.filter(catalog =>
-            compareString(catalog.smartTokenAddress, relay.smartToken.contract)
-          );
+        .map(relay => {
+          return relay.reserves.map(reserve => {
+            const foundDictionaries = bancorApiSmartTokens.filter(catalog =>
+              compareString(
+                catalog.smartTokenAddress,
+                relay.smartToken.contract
+              )
+            );
 
-          const bancorIdRelayDictionary =
-            foundDictionaries.length == 1
-              ? foundDictionaries[0]
-              : foundDictionaries.find(dictionary =>
-                  compareString(reserve.contract, dictionary.tokenAddress)
-                )!;
-          const tokenPrice = tokens.find(token =>
-            compareString(token.id, bancorIdRelayDictionary.tokenId)
-          )!;
+            const bancorIdRelayDictionary =
+              foundDictionaries.length == 1
+                ? foundDictionaries[0]
+                : foundDictionaries.find(dictionary =>
+                    compareString(reserve.contract, dictionary.tokenAddress)
+                  )!;
+            const tokenPrice = tokens.find(token =>
+              compareString(token.id, bancorIdRelayDictionary.tokenId)
+            )!;
 
-          const relayFeed = tokenPriceToFeed(
-            reserve.contract,
-            relay.smartToken.contract,
-            ethUsdPrice,
-            tokenPrice
-          );
+            const relayFeed = tokenPriceToFeed(
+              reserve.contract,
+              relay.smartToken.contract,
+              ethUsdPrice,
+              tokenPrice
+            );
 
-          if (
-            compareString(
-              bancorIdRelayDictionary.tokenAddress,
-              reserve.contract
-            )
-          ) {
-            return relayFeed;
-          } else {
-            return {
-              ...relayFeed,
-              costByNetworkUsd: undefined,
-              change24H: undefined,
-              volume24H: undefined
-            };
-          }
-        });
-      })
-      .flat(1);
+            if (
+              compareString(
+                bancorIdRelayDictionary.tokenAddress,
+                reserve.contract
+              )
+            ) {
+              return relayFeed;
+            } else {
+              return {
+                ...relayFeed,
+                costByNetworkUsd: undefined,
+                change24H: undefined,
+                volume24H: undefined
+              };
+            }
+          });
+        })
+        .flat(1);
+    } catch (e) {
+      console.warn(`Failed utilising Bancor API: ${e.message}`);
+      return [];
+    }
   }
 
   @action async fetchAndUpdateRelayFeeds(relays: Relay[]) {
