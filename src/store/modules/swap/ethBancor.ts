@@ -14,7 +14,8 @@ import {
   ViewToken,
   ViewRelay,
   TokenPrice,
-  Section
+  Section,
+  Step
 } from "@/types/bancor";
 import { ethBancorApi, bancorApi } from "@/api/bancor";
 import {
@@ -53,9 +54,9 @@ import {
 import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
 import { relays } from "./staticRelays";
 
-const expandToken = (amount: string | number, precision: number) =>
+export const expandToken = (amount: string | number, precision: number) =>
   String((Number(amount) * Math.pow(10, precision)).toFixed(0));
-const shrinkToken = (amount: string | number, precision: number) =>
+export const shrinkToken = (amount: string | number, precision: number) =>
   String(Number(amount) / Math.pow(10, precision));
 
 const tokenPriceToFeed = (
@@ -280,14 +281,21 @@ export class EthBancorModule extends VuexModule
     smartTokenSymbol: string;
     precision: number;
   }): Promise<string> {
-    // @ts-ignore
-    const contract = new web3.eth.Contract(ABISmartToken, null);
-    contract.deploy({
-      data: smartTokenByteCode,
-      arguments: [smartTokenName, smartTokenSymbol, precision]
+    const contract = new web3.eth.Contract(ABISmartToken);
+    console.log({
+      smartTokenName,
+      smartTokenSymbol,
+      precision,
+      smartTokenByteCode
     });
 
-    return this.resolveTxOnConfirmation({ tx: contract, gas: 1200000 });
+      return this.resolveTxOnConfirmation({
+        tx: contract.deploy({
+          data: smartTokenByteCode,
+          arguments: [smartTokenName, smartTokenSymbol, precision]
+        }),
+        gas: 1200000
+      });
   }
 
   @action async fetchNewConverterAddressFromHash(
@@ -645,6 +653,7 @@ export class EthBancorModule extends VuexModule
     resolveImmediately?: boolean;
     onHash?: (hash: string) => void;
   }): Promise<string> {
+    console.log("received", tx);
     return new Promise((resolve, reject) => {
       let txHash: string;
       tx.send({
@@ -923,17 +932,23 @@ export class EthBancorModule extends VuexModule
   @action async calculateOpposingDeposit(
     opposingDeposit: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
-    return;
     console.log("calculateOpposingDeposit called", opposingDeposit);
     const { smartTokenSymbol, tokenAmount, tokenSymbol } = opposingDeposit;
+    const smartTokenAddress = this.relaysList.find(relay =>
+      compareString(relay.smartToken.symbol, smartTokenSymbol)
+    )!.smartToken.contract;
+
     const {
       tokenReserveBalance,
       bntReserveBalance,
       totalSupply
-    } = await this.fetchRelayBalances(smartTokenSymbol);
-    const tokenId = this.tokensList.find(token => token.code == tokenSymbol).id;
-    const decimals = await this.getDecimals(tokenId);
-    const tokenAmountWei = String(Number(tokenAmount) * Math.pow(10, decimals));
+    } = await this.fetchRelayBalances(smartTokenAddress);
+
+    const decimals = this.relaysList
+      .map(relay => relay.reserves)
+      .flat(1)
+      .find(token => compareString(token.symbol, tokenSymbol))!.decimals;
+    const tokenAmountWei = expandToken(tokenAmount, decimals);
     const opposingAmount = calculateOppositeFundRequirement(
       tokenAmountWei,
       tokenReserveBalance,
@@ -952,7 +967,6 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async getUserBalance(tokenContractAddress: string) {
-    console.log("getUserBalance", tokenContractAddress);
     const balance = await vxm.ethWallet.getBalance({
       accountHolder: vxm.wallet.isAuthenticated,
       tokenContractAddress
@@ -963,7 +977,6 @@ export class EthBancorModule extends VuexModule
 
   // @ts-ignore
   @action async getUserBalances(symbolName: string) {
-    console.log("getUserBalances", symbolName);
     if (!vxm.wallet.isAuthenticated)
       throw new Error("Cannot find users .isAuthenticated");
     const relay = this.relaysList.find(relay =>
@@ -1007,15 +1020,22 @@ export class EthBancorModule extends VuexModule
     opposingWithdraw: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
     const { smartTokenSymbol, tokenAmount, tokenSymbol } = opposingWithdraw;
+    const smartTokenAddress = this.relaysList.find(relay =>
+      compareString(relay.smartToken.symbol, smartTokenSymbol)
+    )!.smartToken.contract;
+
     const {
       tokenReserveBalance,
       bntReserveBalance,
       totalSupply
-    } = await this.fetchRelayBalances(smartTokenSymbol);
-    const tokenId = this.tokensList.find(token => token.code == tokenSymbol).id;
-    const decimals = await this.getDecimals(tokenId);
+    } = await this.fetchRelayBalances(smartTokenAddress);
 
-    const token1Wei = String(Number(tokenAmount) * Math.pow(10, decimals));
+    const token = this.relaysList
+      .map(relay => relay.reserves)
+      .flat(1)
+      .find(token => compareString(token.symbol, tokenSymbol))!;
+
+    const token1Wei = expandToken(tokenAmount, token.decimals);
     const token2Value = calculateOppositeLiquidateRequirement(
       token1Wei,
       tokenReserveBalance,
@@ -1027,21 +1047,19 @@ export class EthBancorModule extends VuexModule
       totalSupply
     );
 
-    const { smartTokenAddress } = this.relay(smartTokenSymbol)!;
-
     const smartUserBalance = await vxm.ethWallet.getBalance({
       accountHolder: vxm.wallet.isAuthenticated,
-      tokenContractAddress: smartTokenAddress
+      tokenContractAddress: smartTokenAddress,
+      keepWei: true
     });
 
     const percentDifferenceBetweenSmartBalance = percentDifference(
       liquidateCost,
-      String(Number(smartUserBalance) * Math.pow(10, 18))
+      String(smartUserBalance)
     );
     let smartTokenAmount: string;
     if (percentDifferenceBetweenSmartBalance > 0.99) {
-      const userSmartTokenBalance = toWei(String(smartUserBalance));
-      smartTokenAmount = userSmartTokenBalance;
+      smartTokenAmount = String(smartUserBalance);
     } else {
       smartTokenAmount = liquidateCost;
     }
@@ -1055,34 +1073,58 @@ export class EthBancorModule extends VuexModule
     fundAmount,
     smartTokenSymbol
   }: LiquidityParams) {
-    const { converterAddress } = this.relay(smartTokenSymbol)!;
+    const converterAddress = this.relaysList.find(relay =>
+      compareString(relay.smartToken.symbol, smartTokenSymbol)
+    )!.contract;
 
+    console.log({ fundAmount, smartTokenSymbol });
     const converterContract = new web3.eth.Contract(
       ABIConverter,
       converterAddress
     );
 
-    const batch = new web3.BatchRequest();
+    return this.resolveTxOnConfirmation({
+      tx: converterContract.methods.liquidate(fundAmount)
+    });
+  }
 
-    const liquidateData = converterContract.methods
-      .liquidate(fundAmount)
-      .encodeABI({ from: vxm.wallet.isAuthenticated });
+  @action async mintEthErc(ethDec: string) {
+    return new Promise((resolve, reject) => {
+      let txHash: string;
+      web3.eth
+        .sendTransaction({
+          from: this.isAuthenticated,
+          to: "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315",
+          value: web3.utils.toHex(toWei(ethDec))
+        })
+        .on("transactionHash", (hash: string) => {
+          txHash = hash;
+        })
+        .on("confirmation", (confirmationNumber: number) => {
+          resolve(txHash);
+        })
+        .on("error", (error: any) => reject(error));
+    });
+  }
 
-    const liquidate = {
-      from: vxm.wallet.isAuthenticated,
-      to: converterAddress,
-      value: "0x0",
-      data: liquidateData,
-      gas: toHex(950000)
-    };
-
-    batch.add(
-      // @ts-ignore
-      web3.eth.sendTransaction.request(liquidate, () => console.log("Pool"))
+  @action async fundRelay({
+    converterAddress,
+    fundAmount,
+    onHash
+  }: {
+    converterAddress: string;
+    fundAmount: string;
+    onHash?: (hash: string) => void;
+  }) {
+    const converterContract = new web3.eth.Contract(
+      ABIConverter,
+      converterAddress
     );
-    console.log(batch, "is batch");
-    await batch.execute();
-    return "Done";
+    return this.resolveTxOnConfirmation({
+      tx: converterContract.methods.fund(fundAmount),
+      gas: 950000,
+      ...(onHash && { onHash })
+    });
   }
 
   @action async addLiquidity({
@@ -1091,125 +1133,80 @@ export class EthBancorModule extends VuexModule
     token1Amount,
     token1Symbol,
     token2Amount,
-    token2Symbol
+    token2Symbol,
+    onUpdate
   }: LiquidityParams) {
-    const { converterAddress, smartTokenAddress, tokenAddress } = this.relay(
-      smartTokenSymbol
+    const relay = this.relaysList.find(relay =>
+      compareString(relay.smartToken.symbol, smartTokenSymbol)
     )!;
 
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      converterAddress
-    );
+    const amounts = [
+      [token1Symbol, token1Amount],
+      [token2Symbol, token2Amount]
+    ];
 
-    const smartTokenContract = new web3.eth.Contract(
-      ABISmartToken,
-      smartTokenAddress
-    );
+    const matchedBalances = relay.reserves.map(reserve => ({
+      ...reserve,
+      amount: amounts.find(([symbol]) =>
+        compareString(symbol!, reserve.symbol)
+      )![1]
+    }));
 
-    const tokenContract = new web3.eth.Contract(ABISmartToken, tokenAddress);
-
-    const bancorTokenContract = new web3.eth.Contract(
-      ABISmartToken,
-      BntTokenContract
-    );
-
-    const bancorApproved = await bancorTokenContract.methods
-      .allowance(vxm.wallet.isAuthenticated, converterAddress)
-      .call();
-
-    const tokenApproved = await tokenContract.methods
-      .allowance(vxm.wallet.isAuthenticated, converterAddress)
-      .call();
-
-    let transactions: any = [
+    const steps: Step[] = [
       {
-        to: converterAddress,
-        data: converterContract.methods.fund(fundAmount),
-        gas: toHex(950000)
+        name: "CheckBalance",
+        description: "Updating balance approvals..."
+      },
+      {
+        name: "Funding",
+        description: "Now funding..."
+      },
+      {
+        name: "HashConfirmation",
+        description: "Awaiting block confirmation..."
+      },
+      {
+        name: "Done",
+        description: "Done!"
       }
     ];
 
-    if (Number(fromWei(bancorApproved)) < Number(token2Amount)) {
-      transactions = [
-        fromWei(bancorApproved) !== "0" && {
-          to: BntTokenContract,
-          data: bancorTokenContract.methods.approve(
-            converterAddress,
-            toWei("0")
-          ),
-          gas: toHex(84999)
-        },
-        {
-          to: BntTokenContract,
-          data: bancorTokenContract.methods.approve(
-            converterAddress,
-            toWei(token2Amount!)
-          ),
-          gas: toHex(85000)
-        },
-        ...transactions
-      ];
-    }
+    onUpdate!(0, steps);
 
-    if (Number(fromWei(tokenApproved)) < Number(token1Amount!)) {
-      transactions = [
-        fromWei(tokenApproved) !== "0" && {
-          to: tokenAddress,
-          data: tokenContract.methods.approve(converterAddress, toWei("0")),
-          gas: toHex(84999)
-        },
-        {
-          to: tokenAddress,
-          data: tokenContract.methods.approve(
-            converterAddress,
-            toWei(token1Amount!)
-          ),
-          gas: toHex(85000)
-        },
-        ...transactions
-      ];
-    }
+    const converterAddress = relay.contract;
 
-    if (tokenAddress == "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315") {
-      transactions = [
-        {
-          to: "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315",
-          value: web3.utils.toHex(toWei(token1Amount!))
-        },
-        ...transactions
-      ];
-    }
+    await Promise.all(
+      matchedBalances.map(async balance => {
+        if (
+          compareString(
+            balance.contract,
+            "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315"
+          )
+        ) {
+          await this.mintEthErc(balance.amount!);
+        }
+        return this.triggerApprovalIfRequired({
+          owner: this.isAuthenticated,
+          amount: expandToken(balance.amount!, balance.decimals),
+          spender: converterAddress,
+          tokenAddress: balance.contract
+        });
+      })
+    );
 
-    const fillOuter = (outer: any) => ({
-      from: outer.from || vxm.wallet.isAuthenticated,
-      to: outer.to,
-      value: outer.value || "0x0",
-      ...(outer.data && { data: outer.data }),
-      ...(outer.gas && { gas: outer.gas }),
-      ...(outer.gasPrice && { gasPrice: outer.gasPrice })
+    onUpdate!(1, steps);
+
+    const txHash = await this.fundRelay({
+      converterAddress,
+      fundAmount,
+      onHash: () => onUpdate!(2, steps)
     });
 
-    const batch = new web3.BatchRequest();
-
-    transactions
-      .filter(Boolean)
-      .map((tx: any) => ({
-        ...tx,
-        ...(tx.data && {
-          data: tx.data.encodeABI({ from: vxm.wallet.isAuthenticated })
-        })
-      }))
-      .forEach((transaction: any) => {
-        batch.add(
-          // @ts-ignore
-          web3.eth.sendTransaction.request(fillOuter(transaction))
-        );
-      });
-
-    console.log(batch, "is batch");
-    await batch.execute();
-    return "Done";
+    onUpdate!(3, steps);
+    wait(3000).then(() =>
+      matchedBalances.forEach(balance => this.getUserBalance(balance.contract))
+    );
+    return txHash;
   }
 
   @action async fetchContractAddresses() {
@@ -1245,6 +1242,7 @@ export class EthBancorModule extends VuexModule
       {}
     ) as RegisteredContracts;
 
+    console.log(object, 'changed')
     this.setContractAddresses(object);
     return object;
   }
@@ -1520,6 +1518,10 @@ export class EthBancorModule extends VuexModule
     await this.fetchAndUpdateRelayFeeds(
       relaysWithTokenMeta(nonHardCodedRelays, tokenMeta)
     );
+
+    // wait(3000).then(x =>  this.addPoolToRegistry('0x7D7Df9750118FFC53a5aEF5F141De7C367fcfc7B')
+    // )
+
   }
 
   @action async buildRelaysFromSmartTokenAddresses(
