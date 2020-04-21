@@ -1223,13 +1223,10 @@ export class EthBancorModule extends VuexModule
 
   @action async fetchContractAddresses() {
     const hardCodedBytes: RegisteredContracts = {
-      BancorNetwork: "0x42616e636f724e6574776f726b",
-      BancorConverterRegistry:
-        "0x42616e636f72436f6e7665727465725265676973747279",
-      BancorX:
-        "0x42616e636f725800000000000000000000000000000000000000000000000000",
-      BancorConverterFactory:
-        "0x42616e636f72436f6e766572746572466163746f727900000000000000000000"
+      BancorNetwork: web3.utils.asciiToHex("BancorNetwork"),
+      BancorConverterRegistry: web3.utils.asciiToHex("BancorConverterRegistry"),
+      BancorX: web3.utils.asciiToHex("BancorX"),
+      BancorConverterFactory: web3.utils.asciiToHex("BancorConverterFactory")
     };
 
     const registryContract = new web3.eth.Contract(
