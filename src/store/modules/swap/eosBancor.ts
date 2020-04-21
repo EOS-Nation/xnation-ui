@@ -561,11 +561,6 @@ export class EosBancorModule extends VuexModule
     // }
   }
 
-  get networkTokenUsdValue() {
-    return (symbolName: string) =>
-      symbolName == "BNT" ? this.usdPriceOfBnt : 1;
-  }
-
   get bancorApiTokens(): ViewToken[] {
     // @ts-ignore
     return (
