@@ -1249,9 +1249,7 @@ export class EthBancorModule extends VuexModule
       {}
     ) as RegisteredContracts;
 
-    console.log(object, "changed");
     this.setContractAddresses(object);
-    console.log("fetch resolving");
     return object;
   }
 
@@ -1262,7 +1260,6 @@ export class EthBancorModule extends VuexModule
   @action async possibleRelayFeedsFromBancorApi(
     relays: Relay[]
   ): Promise<RelayFeed[]> {
-    return [];
     try {
       const tokens = await ethBancorApi.getTokens();
       const ethUsdPrice = tokens.find(token => token.code == "ETH")!.price;
@@ -1414,11 +1411,16 @@ export class EthBancorModule extends VuexModule
     }
   }
 
-  @action async buildRelayFeeds(relays: Relay[]): Promise<RelayFeed[]> {
+  @action async fetchUsdPriceOfBnt() {
     const tokens = await bancorApi.getTokens();
     const usdPriceOfBnt = Number(
       tokens.find(token => token.code == "BNT")!.price
     );
+    return usdPriceOfBnt;
+  }
+
+  @action async buildRelayFeeds(relays: Relay[]): Promise<RelayFeed[]> {
+    const usdPriceOfBnt = await this.fetchUsdPriceOfBnt();
     const relayFeeds = await Promise.all(
       relays.map(
         async (relay): Promise<RelayFeed[]> => {
@@ -1439,6 +1441,8 @@ export class EthBancorModule extends VuexModule
 
           const networkReserveIsUsd = networkReserve.symbol == "USDB";
           const dec = networkReserveAmount / tokenAmount;
+          const reverse = tokenAmount / networkReserveAmount;
+          const main = networkReserveIsUsd ? dec : dec * usdPriceOfBnt;
 
           const liqDepth =
             (networkReserveIsUsd
@@ -1449,14 +1453,14 @@ export class EthBancorModule extends VuexModule
             {
               tokenId: tokenReserve.contract,
               smartTokenContract: relay.smartToken.contract,
-              costByNetworkUsd: networkReserveIsUsd ? dec : dec * usdPriceOfBnt,
+              costByNetworkUsd: main,
               liqDepth
             },
             {
               tokenId: networkReserve.contract,
               smartTokenContract: relay.smartToken.contract,
               liqDepth,
-              costByNetworkUsd: 55
+              costByNetworkUsd: reverse * main
             }
           ];
         }
