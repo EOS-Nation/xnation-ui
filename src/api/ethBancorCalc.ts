@@ -38,7 +38,6 @@ export const chopRelays = (relays: DryRelay[]) => {
 };
 
 const removeChoppedRelay = (relays: ChoppedRelay[], relay: ChoppedRelay) => {
-  console.log("Removing relay", relay);
   return relays.filter(r => !_.isEqual(r, relay));
 };
 
