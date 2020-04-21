@@ -72,6 +72,11 @@
       />
       <h4 class="error">
         <b-badge variant="danger">{{ error }}</b-badge>
+        <div class="errorList">
+          <b-badge :key="error" v-for="error in errors" variant="danger">{{
+            error
+          }}</b-badge>
+        </div>
       </h4>
     </div>
   </div>
@@ -109,6 +114,7 @@ export default class TokenAmountInput extends Vue {
   @Prop(Boolean) small?: boolean;
   @Prop(String) label?: string;
   @Prop(String) error?: string;
+  @Prop(Array) errors?: string[];
 
   updatePercent(percentage: string) {
     const newAmount =
@@ -133,4 +139,11 @@ export default class TokenAmountInput extends Vue {
 }
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.error-list {
+  display: flex;
+  :first-child {
+    margin-right: 3px;
+  }
+}
+</style>

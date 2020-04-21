@@ -15,6 +15,7 @@
         @dropdown="clicked"
         @click="clicked"
         :error="error"
+        :errors="errors"
       />
     </transition>
     <modal-select
@@ -56,6 +57,7 @@ export default class TokenField extends Vue {
   @Prop({ default: false }) readonly clickable?: boolean;
   @Prop(Array) readonly choices?: any[];
   @Prop(String) error?: string;
+  @Prop(Array) errors?: string[];
 
   modal = false;
 
