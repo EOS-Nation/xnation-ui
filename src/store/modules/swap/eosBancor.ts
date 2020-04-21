@@ -761,10 +761,6 @@ export class EosBancorModule extends VuexModule
       );
   }
 
-  @action async fetchUsdPrice() {
-    this.setUsdPrice(Number(await bancorApi.getRate("BNT", "USD")));
-  }
-
   @action async init() {
     const [ethTokens, tokens, relays, tokenMeta] = await Promise.all([
       ethBancorApi.getTokens(),

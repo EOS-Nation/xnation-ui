@@ -23,7 +23,8 @@ import {
   web3,
   Relay,
   Token,
-  fetchReserveBalance
+  fetchReserveBalance,
+  fetchBinanceUsdPriceOfBnt
 } from "@/api/helpers";
 import {
   ABISmartToken,
@@ -53,6 +54,7 @@ import {
 } from "@/api/ethBancorCalc";
 import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
 import { relays } from "./staticRelays";
+import { network } from "../network";
 
 export const expandToken = (amount: string | number, precision: number) =>
   String((Number(amount) * Math.pow(10, precision)).toFixed(0));
@@ -247,7 +249,7 @@ export class EthBancorModule extends VuexModule
   }
 
   get newPoolTokenChoices() {
-    return (symbolName: string): ModalChoice[] => {
+    return (networkToken: string): ModalChoice[] => {
       return this.tokenMeta
         .map(meta => ({
           contract: meta.contract,
@@ -262,7 +264,15 @@ export class EthBancorModule extends VuexModule
             networkChoice => networkChoice.symbol !== meta.symbol
           )
         )
-        .filter(tokenChoice => tokenChoice.symbol !== symbolName)
+        .filter(tokenChoice => tokenChoice.symbol !== networkToken)
+        .filter(meta => {
+          if (!(meta.symbol && networkToken)) return true;
+          return !this.relaysList.some(relay => {
+            const reserves = relay.reserves.map(reserve => reserve.symbol);
+            const suggested = [meta.symbol, networkToken];
+            return _.isEqual(_.sortBy(reserves), _.sortBy(suggested));
+          });
+        })
         .sort((a, b) => Number(b.balance) - Number(a.balance));
     };
   }
@@ -1235,7 +1245,9 @@ export class EthBancorModule extends VuexModule
         bytesList.map(bytes => registryContract.methods.addressOf(bytes).call())
       ),
       wait(10000).then(() => {
-        throw new Error("Failed to resolve in time");
+        throw new Error(
+          "Failed to resolve the Ethereum Bancor Contracts, BancorNetwork, BancorConverterRegistry, BancorX and BancorConverterFactory."
+        );
       })
     ]);
 
@@ -1411,12 +1423,20 @@ export class EthBancorModule extends VuexModule
     }
   }
 
-  @action async fetchUsdPriceOfBnt() {
+  @action async fetchBancorUsdPriceOfBnt() {
     const tokens = await bancorApi.getTokens();
     const usdPriceOfBnt = Number(
       tokens.find(token => token.code == "BNT")!.price
     );
+
     return usdPriceOfBnt;
+  }
+
+  @action async fetchUsdPriceOfBnt() {
+    return Promise.race([
+      fetchBinanceUsdPriceOfBnt(),
+      this.fetchBancorUsdPriceOfBnt()
+    ]);
   }
 
   @action async buildRelayFeeds(relays: Relay[]): Promise<RelayFeed[]> {
@@ -1470,12 +1490,10 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async init() {
-    console.log("main starting");
     const [tokenMeta, contractAddresses] = await Promise.all([
       getTokenMeta(),
       this.fetchContractAddresses()
     ]);
-    console.log("main resolved");
 
     const hardCodedRelays = getEthRelays();
 
