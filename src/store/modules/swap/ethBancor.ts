@@ -29,7 +29,6 @@ import {
 import {
   ABISmartToken,
   ABIConverter,
-  BntTokenContract,
   smartTokenByteCode,
   FactoryAbi,
   bancorRegistry,
@@ -48,18 +47,19 @@ import _ from "lodash";
 import {
   createPath,
   DryRelay,
-  ChoppedRelay,
   TokenSymbol,
   generateEthPath
 } from "@/api/ethBancorCalc";
 import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
-import { relays } from "./staticRelays";
-import { network } from "../network";
+import BigNumber from "bignumber.js";
 
 export const expandToken = (amount: string | number, precision: number) =>
-  String((Number(amount) * Math.pow(10, precision)).toFixed(0));
+  new BigNumber(amount).times(new BigNumber(10).pow(precision)).toFixed(0);
+
 export const shrinkToken = (amount: string | number, precision: number) =>
-  String(Number(amount) / Math.pow(10, precision));
+  new BigNumber(amount)
+    .div(new BigNumber(10).pow(precision))
+    .toFixed(precision);
 
 const tokenPriceToFeed = (
   tokenAddress: string,
@@ -1367,6 +1367,7 @@ export class EthBancorModule extends VuexModule
     const fromAddress = reserves.find(token => token.symbol == from)!.contract;
     const toAddress = reserves.find(token => token.symbol !== from)!.contract;
 
+    console.log(wei, from, "being sent");
     try {
       const res = await converterContract.methods
         .getReturn(fromAddress, toAddress, wei)
@@ -1927,6 +1928,8 @@ export class EthBancorModule extends VuexModule
       this.contracts.BancorNetwork
     );
 
+    console.log(amount, path, "being sent");
+
     const res = await contract.methods.getReturnByPath(path, amount).call();
     return res["0"];
   }
@@ -1981,6 +1984,7 @@ export class EthBancorModule extends VuexModule
 
     const path = generateEthPath(fromSymbol, dryRelays);
 
+    console.log("expanding", amount, "with decimals", fromTokenDecimals);
     const wei = await this.getReturnByPath({
       path,
       amount: expandToken(amount, fromTokenDecimals)
