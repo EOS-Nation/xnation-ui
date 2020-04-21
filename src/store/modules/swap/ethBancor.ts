@@ -759,12 +759,6 @@ export class EthBancorModule extends VuexModule
                 ) && compareString(feed.tokenId, reserve.contract)
             )!;
             const balance = this.tokenBalance(reserve.contract);
-            if (name == "Bancor") {
-              console.log(reserve.contract, "returned a balance of", balance);
-            }
-            if (balance && balance.balance) {
-              console.log("is the balance for", name);
-            }
             return {
               id: reserve.contract,
               symbol: reserve.symbol,
@@ -1257,7 +1251,6 @@ export class EthBancorModule extends VuexModule
       }),
       {}
     ) as RegisteredContracts;
-
     this.setContractAddresses(object);
     return object;
   }
