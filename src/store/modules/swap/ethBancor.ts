@@ -75,18 +75,6 @@ const tokenPriceToFeed = (
   volume24H: tokenPrice.volume24h.USD
 });
 
-const sortNetworkToken = (tokenCount: [Token, number][]) => {
-  return (a: Token, b: Token) => {
-    const aCount = tokenCount.find(
-      ([token]) => token.contract == a.contract
-    )![1];
-    const bCount = tokenCount.find(
-      ([token]) => token.contract == b.contract
-    )![1];
-    return bCount - aCount;
-  };
-};
-
 interface RegisteredContracts {
   BancorNetwork: string;
   BancorConverterRegistry: string;
