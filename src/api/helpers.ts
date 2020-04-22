@@ -1,16 +1,13 @@
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
 import { Asset } from "eos-common";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
-import { TokenBalances, EthplorerBalance, EosMultiRelay } from "@/types/bancor";
+import { TokenBalances, EosMultiRelay } from "@/types/bancor";
 import Web3 from "web3";
 import { ABIBancorGasPriceLimit, BancorGasLimit } from "./ethConfig";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
-
-const tokenMetaDataEndpoint =
-  "https://raw.githubusercontent.com/eoscafe/eos-airdrops/master/tokens.json";
 
 const eosRpc: JsonRpc = rpc;
 
