@@ -85,7 +85,17 @@ interface RegisteredContracts {
 
 const removeLeadingZeros = (hexString: string) => {
   const withoutOx = hexString.startsWith("0x") ? hexString.slice(2) : hexString;
-  return "0x" + withoutOx.slice(withoutOx.split("").findIndex(x => x !== "0"));
+  const initialAttempt =
+    "0x" + withoutOx.slice(withoutOx.split("").findIndex(x => x !== "0"));
+  if (web3.utils.isAddress(initialAttempt)) return initialAttempt;
+  const secondAttempt = [
+    "0",
+    "x",
+    "0",
+    ...initialAttempt.split("").slice(2)
+  ].join('')
+  if (web3.utils.isAddress(secondAttempt)) return secondAttempt
+  else throw new Error(`Failed parsing hex ${hexString}`);
 };
 
 const relaysWithTokenMeta = (relays: Relay[], tokenMeta: TokenMeta[]) => {
