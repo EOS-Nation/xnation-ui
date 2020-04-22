@@ -26,6 +26,7 @@ import {
   fetchReserveBalance,
   fetchBinanceUsdPriceOfBnt
 } from "@/api/helpers";
+import { Contract, ContractSendMethod } from "web3-eth-contract";
 import {
   ABISmartToken,
   ABIConverter,
@@ -196,6 +197,36 @@ interface RelayFeed {
   change24H?: number;
   volume24H?: number;
 }
+
+interface ContractMethods<T> extends Contract {
+  methods: T;
+}
+
+interface CallReturn {
+  call: () => Promise<any>;
+}
+
+const buildConverterContract = (
+  contractAddress: string
+): ContractMethods<{
+  acceptTokenOwnership: () => ContractSendMethod;
+  acceptOwnership: () => ContractSendMethod;
+  fund: (fundAmount: string) => ContractSendMethod;
+  liquidate: (fundAmount: string) => ContractSendMethod;
+  setConversionFee: (ppm: number) => ContractSendMethod;
+  addReserve: (
+    reserveAddress: string,
+    connectorWeight: number
+  ) => ContractSendMethod;
+  getSaleReturn: (toAddress: string, wei: string) => CallReturn;
+  owner: () => CallReturn;
+  version: () => CallReturn;
+  connectorTokenCount: () => CallReturn;
+  connectorTokens: (index: number) => CallReturn;
+  conversionFee: () => CallReturn;
+}> => {
+  return new web3.eth.Contract(ABIConverter, contractAddress);
+};
 
 @Module({ namespacedPath: "ethBancor/" })
 export class EthBancorModule extends VuexModule
@@ -538,10 +569,7 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async acceptTokenContractOwnership(converterAddress: string) {
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      converterAddress
-    );
+    const converterContract = buildConverterContract(converterAddress);
     return this.resolveTxOnConfirmation({
       tx: converterContract.methods.acceptTokenOwnership()
     });
@@ -611,12 +639,10 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async claimOwnership(converterAddress: string) {
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      converterAddress
-    );
+    const converter = buildConverterContract(converterAddress);
+
     return this.resolveTxOnConfirmation({
-      tx: converterContract.methods.acceptOwnership()
+      tx: converter.methods.acceptOwnership()
     });
   }
 
@@ -627,10 +653,7 @@ export class EthBancorModule extends VuexModule
     converterAddress: string;
     decFee: number;
   }) {
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      converterAddress
-    );
+    const converterContract = buildConverterContract(converterAddress);
 
     const ppm = decFee * 1000000;
     return this.resolveTxOnConfirmation({
@@ -645,7 +668,7 @@ export class EthBancorModule extends VuexModule
     resolveImmediately = false,
     onHash
   }: {
-    tx: any;
+    tx: ContractSendMethod;
     gas?: number;
     resolveImmediately?: boolean;
     onHash?: (hash: string) => void;
@@ -678,13 +701,10 @@ export class EthBancorModule extends VuexModule
     converterAddress: string;
     reserveTokenAddress: string;
   }) {
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      converterAddress
-    );
+    const converter = buildConverterContract(converterAddress);
 
     return this.resolveTxOnConfirmation({
-      tx: converterContract.methods.addReserve(reserveTokenAddress, 500000)
+      tx: converter.methods.addReserve(reserveTokenAddress, 500000)
     });
   }
 
@@ -893,7 +913,7 @@ export class EthBancorModule extends VuexModule
       smartTokenAddress
     );
 
-    const converterContract = new web3.eth.Contract(ABIConverter, contract);
+    const converterContract = buildConverterContract(contract);
 
     const smartTokenContract = new web3.eth.Contract(
       ABISmartToken,
@@ -1054,10 +1074,7 @@ export class EthBancorModule extends VuexModule
   }: LiquidityParams) {
     const relay = this.relayBySmartSymbol(smartTokenSymbol);
 
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      relay.contract
-    );
+    const converterContract = buildConverterContract(relay.contract);
 
     const hash = await this.resolveTxOnConfirmation({
       tx: converterContract.methods.liquidate(fundAmount)
@@ -1099,10 +1116,7 @@ export class EthBancorModule extends VuexModule
     fundAmount: string;
     onHash?: (hash: string) => void;
   }) {
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      converterAddress
-    );
+    const converterContract = buildConverterContract(converterAddress);
     return this.resolveTxOnConfirmation({
       tx: converterContract.methods.fund(fundAmount),
       gas: 950000,
@@ -1336,10 +1350,7 @@ export class EthBancorModule extends VuexModule
     wei: string;
   }): Promise<string | null> {
     console.log({ converterAddress });
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      converterAddress
-    );
+    const converterContract = buildConverterContract(converterAddress);
 
     const fromAddress = reserves.find(token => token.symbol !== to)!.contract;
     const toAddress = reserves.find(token => token.symbol == to)!.contract;
@@ -1499,8 +1510,7 @@ export class EthBancorModule extends VuexModule
     smartTokenAddress: string;
     converterAddress: string;
   }): Promise<Relay> {
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
+    const converterContract = buildConverterContract(
       relayAddresses.converterAddress
     );
 
@@ -1512,12 +1522,12 @@ export class EthBancorModule extends VuexModule
       reserve2Address,
       fee
     ] = await Promise.all([
-      converterContract.methods.owner().call() as string,
-      converterContract.methods.version().call() as string,
-      converterContract.methods.connectorTokenCount().call() as string,
-      converterContract.methods.connectorTokens(0).call() as string,
-      converterContract.methods.connectorTokens(1).call() as string,
-      converterContract.methods.conversionFee().call() as string
+      converterContract.methods.owner().call() as Promise<string>,
+      converterContract.methods.version().call() as Promise<string>,
+      converterContract.methods.connectorTokenCount().call() as Promise<string>,
+      converterContract.methods.connectorTokens(0).call() as Promise<string>,
+      converterContract.methods.connectorTokens(1).call() as Promise<string>,
+      converterContract.methods.conversionFee().call() as Promise<string>
     ]);
 
     if (connectorCount !== "2")
@@ -1639,10 +1649,7 @@ export class EthBancorModule extends VuexModule
       reserve => reserve.contract == reserveContract
     );
     if (!reserveInRelay) throw new Error("Reserve is not in this relay!");
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      relay.contract
-    );
+    const converterContract = buildConverterContract(relay.contract);
 
     const reserveBalance = await fetchReserveBalance(
       converterContract,
@@ -1873,8 +1880,6 @@ export class EthBancorModule extends VuexModule
       ABINetworkContract,
       this.contracts.BancorNetwork
     );
-
-    console.log(amount, path, "being sent");
 
     const res = await contract.methods.getReturnByPath(path, amount).call();
     return res["0"];
