@@ -698,29 +698,6 @@ export class EthBancorModule extends VuexModule
     return "eth";
   }
 
-  get failedTokens() {
-    return this.relaysList
-      .filter(
-        relay =>
-          !relay.reserves.every(reserve =>
-            this.relayFeed.some(
-              relayFeed =>
-                compareString(relayFeed.tokenId, reserve.contract) &&
-                compareString(
-                  relayFeed.smartTokenContract,
-                  relay.smartToken.contract
-                )
-            )
-          )
-      )
-      .map(relay => relay.reserves)
-      .flat(1)
-      .filter(
-        (x, index, arr) => arr.findIndex(t => t.contract == x.contract) == index
-      )
-      .map(x => x.symbol);
-  }
-
   get tokens(): ViewToken[] {
     return (
       this.relaysList
@@ -818,6 +795,27 @@ export class EthBancorModule extends VuexModule
     };
   }
 
+  get relayBySmartSymbol() {
+    return (smartTokenSymbol: string) => {
+      const relay = this.relaysList.find(relay =>
+        compareString(relay.smartToken.symbol, smartTokenSymbol)
+      );
+      if (!relay) throw new Error("Failed to find Relay by Smart Token Symbol");
+      return relay;
+    };
+  }
+
+  get relayBySmartTokenAddress() {
+    return (smartTokenAddress: string) => {
+      const relay = this.relaysList.find(relay =>
+        compareString(relay.smartToken.contract, smartTokenAddress)
+      );
+      if (!relay)
+        throw new Error("Failed to find Relay by Smart Token Address");
+      return relay;
+    };
+  }
+
   get tokenCount() {
     const tokens = this.relaysList.map(relay => relay.reserves).flat(1);
 
@@ -891,9 +889,9 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async fetchRelayBalances(smartTokenAddress: string) {
-    const { reserves, version, contract } = this.relaysList.find(relay =>
-      compareString(relay.smartToken.contract, smartTokenAddress)
-    )!;
+    const { reserves, version, contract } = this.relayBySmartTokenAddress(
+      smartTokenAddress
+    );
 
     const converterContract = new web3.eth.Contract(ABIConverter, contract);
 
@@ -918,11 +916,9 @@ export class EthBancorModule extends VuexModule
   @action async calculateOpposingDeposit(
     opposingDeposit: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
-    console.log("calculateOpposingDeposit called", opposingDeposit);
     const { smartTokenSymbol, tokenAmount, tokenSymbol } = opposingDeposit;
-    const smartTokenAddress = this.relaysList.find(relay =>
-      compareString(relay.smartToken.symbol, smartTokenSymbol)
-    )!.smartToken.contract;
+    const smartTokenAddress = this.relayBySmartSymbol(smartTokenSymbol)
+      .smartToken.contract;
 
     const {
       tokenReserveBalance,
@@ -965,9 +961,7 @@ export class EthBancorModule extends VuexModule
   @action async getUserBalances(symbolName: string) {
     if (!vxm.wallet.isAuthenticated)
       throw new Error("Cannot find users .isAuthenticated");
-    const relay = this.relaysList.find(relay =>
-      compareString(relay.smartToken.symbol, symbolName)
-    )!;
+    const relay = this.relayBySmartSymbol(symbolName);
 
     const [
       bntUserBalance,
@@ -1006,9 +1000,8 @@ export class EthBancorModule extends VuexModule
     opposingWithdraw: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
     const { smartTokenSymbol, tokenAmount, tokenSymbol } = opposingWithdraw;
-    const smartTokenAddress = this.relaysList.find(relay =>
-      compareString(relay.smartToken.symbol, smartTokenSymbol)
-    )!.smartToken.contract;
+    const smartTokenAddress = this.relayBySmartSymbol(smartTokenSymbol)
+      .smartToken.contract;
 
     const {
       tokenReserveBalance,
@@ -1059,9 +1052,7 @@ export class EthBancorModule extends VuexModule
     fundAmount,
     smartTokenSymbol
   }: LiquidityParams) {
-    const relay = this.relaysList.find(relay =>
-      compareString(relay.smartToken.symbol, smartTokenSymbol)
-    )!;
+    const relay = this.relayBySmartSymbol(smartTokenSymbol);
 
     const converterContract = new web3.eth.Contract(
       ABIConverter,
