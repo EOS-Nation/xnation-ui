@@ -881,14 +881,6 @@ export class EthBancorModule extends VuexModule
       });
   }
 
-  get networkTokenSort() {
-    return (a: Token, b: Token) => {
-      const aScore = this.count(a.contract)!;
-      const bScore = this.count(b.contract)!;
-      return bScore - aScore;
-    };
-  }
-
   @mutation setTokenMeta(tokenMeta: TokenMeta[]) {
     this.tokenMeta = tokenMeta;
   }
@@ -1341,40 +1333,6 @@ export class EthBancorModule extends VuexModule
     );
   }
 
-  @action async fetchReturn({
-    reserves,
-    from,
-    wei,
-    converterAddress
-  }: {
-    converterAddress: string;
-    reserves: Token[];
-    from: string;
-    wei: string;
-  }): Promise<string | null> {
-    console.log({ converterAddress });
-    const converterContract = new web3.eth.Contract(
-      ABIConverter,
-      converterAddress
-    );
-
-    const fromAddress = reserves.find(token => token.symbol == from)!.contract;
-    const toAddress = reserves.find(token => token.symbol !== from)!.contract;
-
-    console.log(wei, from, "being sent");
-    try {
-      const res = await converterContract.methods
-        .getReturn(fromAddress, toAddress, wei)
-        .call();
-      return res["0"];
-    } catch (e) {
-      console.error(
-        `Failed fetching price at relay: ${converterAddress}, buying with ${from}, wei: ${wei}, from: ${fromAddress}, to: ${toAddress}`
-      );
-      return null;
-    }
-  }
-
   @action async fetchCost({
     reserves,
     to,
@@ -1517,8 +1475,6 @@ export class EthBancorModule extends VuexModule
     );
 
     console.log(contractAddresses, "are contract addresses");
-    // wait(3000).then(x =>  this.addPoolToRegistry('0x7D7Df9750118FFC53a5aEF5F141De7C367fcfc7B')
-    // )
   }
 
   @action async buildRelaysFromSmartTokenAddresses(
