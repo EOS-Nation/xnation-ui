@@ -33,7 +33,7 @@
           </span>
         </div>
         <relay-fee-adjuster :fee.sync="fee" />
-        <div class="create">
+        <div class="create d-flex justify-content-center">
           <b-btn
             @click="createRelay"
             variant="success"
@@ -169,7 +169,7 @@ export default class HeroConvert extends Vue {
   }
 
   tokenChange(symbolName: string) {
-    this.focusSymbol(symbolName)
+    this.focusSymbol(symbolName);
   }
 
   cleanUpAfterTx() {
@@ -189,13 +189,15 @@ export default class HeroConvert extends Vue {
   }
 
   get networkTokenReward() {
-    return `1 ${this.token1Symbol} = ${Number(this.token2Amount) /
-      Number(this.token1Amount)} ${this.token2Symbol}`;
+    return `1 ${this.token1Symbol} = ${(
+      Number(this.token2Amount) / Number(this.token1Amount)
+    ).toFixed(8)} ${this.token2Symbol}`;
   }
 
   get tokenReward() {
-    return `1 ${this.token2Symbol} = ${Number(this.token1Amount) /
-      Number(this.token2Amount)} ${this.token1Symbol}`;
+    return `1 ${this.token2Symbol} = ${(
+      Number(this.token1Amount) / Number(this.token2Amount)
+    ).toFixed(8)} ${this.token1Symbol}`;
   }
 
   get calculationsAvailable() {
