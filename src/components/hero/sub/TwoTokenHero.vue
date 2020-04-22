@@ -13,6 +13,7 @@
           :label="label"
           :error="tokenOneError"
           :errors="tokenOneErrors"
+          :warnBalance="warnBalance"
         />
       </b-col>
       <b-col
@@ -34,6 +35,7 @@
           :label="label"
           :error="tokenTwoError"
           :errors="tokenTwoErrors"
+          :warnBalance="warnBalance"
         />
       </b-col>
     </b-row>
@@ -74,6 +76,8 @@ export default class HeroConvert extends Vue {
   @Prop(Array) choices?: any[];
   @Prop(Array) tokenOneChoices?: any[];
   @Prop(Array) tokenTwoChoices?: any[];
+  @Prop({ default: false }) warnBalance?: boolean;
+
   modal = false;
 
   @Emit()

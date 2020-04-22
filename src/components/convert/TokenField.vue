@@ -14,6 +14,7 @@
         :label="label"
         @dropdown="clicked"
         @click="clicked"
+        :warnBalance="warnBalance"
         :error="error"
         :errors="errors"
       />
@@ -58,6 +59,8 @@ export default class TokenField extends Vue {
   @Prop(Array) readonly choices?: any[];
   @Prop(String) error?: string;
   @Prop(Array) errors?: string[];
+  @Prop({ default: false }) warnBalance?: boolean;
+
 
   modal = false;
 

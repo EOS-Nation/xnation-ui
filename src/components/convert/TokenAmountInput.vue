@@ -73,7 +73,7 @@
       <h4 class="error">
         <b-badge variant="danger">{{ error }}</b-badge>
         <div class="errorList">
-          <b-badge :key="error" v-for="error in errors" variant="danger">{{
+          <b-badge :key="error" v-for="error in errorsList" variant="danger">{{
             error
           }}</b-badge>
         </div>
@@ -115,6 +115,20 @@ export default class TokenAmountInput extends Vue {
   @Prop(String) label?: string;
   @Prop(String) error?: string;
   @Prop(Array) errors?: string[];
+  @Prop({ default: false }) warnBalance?: boolean;
+
+  get errorsList() {
+    return [
+      ...(this.errors && this.errors.length ? [this.errors] : []),
+      ...(this.warnBalance && this.insufficientBalance
+        ? ["Insufficient Balance"]
+        : [])
+    ];
+  }
+
+  get insufficientBalance() {
+    return Number(this.tokenAmount) > this.balance;
+  }
 
   updatePercent(percentage: string) {
     const newAmount =

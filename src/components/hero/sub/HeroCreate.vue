@@ -14,6 +14,7 @@
       :tokenTwoImg="selectedToken.img"
       :tokenOneChoices="networkChoices"
       :tokenTwoChoices="tokenChoices"
+      :warnBalance="true"
     >
       <div>
         <div v-if="calculationsAvailable" class="mb-3 mt-3">
@@ -185,7 +186,23 @@ export default class HeroConvert extends Vue {
   }
 
   get createPoolReady() {
-    return this.isAuthenticated && this.calculationsAvailable;
+    return (
+      this.isAuthenticated &&
+      this.calculationsAvailable &&
+      this.sufficientBalance
+    );
+  }
+
+  get sufficientBalance() {
+    return this.tokenOneSufficient && this.tokenTwoSufficient;
+  }
+
+  get tokenOneSufficient() {
+    return Number(this.token1Amount) <= this.displayedToken1Balance;
+  }
+
+  get tokenTwoSufficient() {
+    return Number(this.token2Amount) <= this.displayedToken2Balance;
   }
 
   get networkTokenReward() {
