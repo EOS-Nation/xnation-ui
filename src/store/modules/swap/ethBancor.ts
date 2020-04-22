@@ -258,6 +258,7 @@ export class EthBancorModule extends VuexModule
   relayFeed: RelayFeed[] = [];
   relaysList: Relay[] = [];
   tokenBalances: { id: string; balance: number }[] = [];
+  bntUsdPrice: number = 0;
   tokenMeta: TokenMeta[] = [];
   bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
   bancorNetworkPathFinder = "0x6F0cD8C4f6F06eAB664C7E3031909452b4B72861";
@@ -279,12 +280,14 @@ export class EthBancorModule extends VuexModule
         contract: bntTokenMeta.contract,
         symbol: bntTokenMeta.symbol,
         img: bntTokenMeta.image,
+        usdValue: this.bntUsdPrice,
         balance: bntBalance && bntBalance.balance
       },
       {
         contract: usdBTokenMeta.contract,
         symbol: usdBTokenMeta.symbol,
         img: usdBTokenMeta.image,
+        usdValue: 1,
         balance: usdBalance && usdBalance.balance
       }
     ];
@@ -1378,10 +1381,16 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async fetchUsdPriceOfBnt() {
-    return Promise.race([
+    const price = await Promise.race([
       fetchBinanceUsdPriceOfBnt(),
       this.fetchBancorUsdPriceOfBnt()
     ]);
+    this.setBntUsdPrice(price);
+    return price;
+  }
+
+  @mutation setBntUsdPrice(usdPrice: number) {
+    this.bntUsdPrice = usdPrice;
   }
 
   @action async buildRelayFeeds(relays: Relay[]): Promise<RelayFeed[]> {

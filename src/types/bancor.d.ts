@@ -220,6 +220,7 @@ export interface ModalChoice {
   contract: string;
   balance?: number;
   img: string;
+  usdValue?: number
 }
 
 export interface NetworkChoice extends ModalChoice {
