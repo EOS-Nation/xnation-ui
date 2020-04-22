@@ -1067,19 +1067,25 @@ export class EthBancorModule extends VuexModule
     fundAmount,
     smartTokenSymbol
   }: LiquidityParams) {
-    const converterAddress = this.relaysList.find(relay =>
+    const relay = this.relaysList.find(relay =>
       compareString(relay.smartToken.symbol, smartTokenSymbol)
-    )!.contract;
+    )!;
 
-    console.log({ fundAmount, smartTokenSymbol });
     const converterContract = new web3.eth.Contract(
       ABIConverter,
-      converterAddress
+      relay.contract
     );
 
-    return this.resolveTxOnConfirmation({
+    const hash = await this.resolveTxOnConfirmation({
       tx: converterContract.methods.liquidate(fundAmount)
     });
+
+    wait(2000).then(() =>
+      relay.reserves
+        .map(reserve => reserve.contract)
+        .forEach(contract => this.getUserBalance(contract))
+    );
+    return hash;
   }
 
   @action async mintEthErc(ethDec: string) {
@@ -1835,6 +1841,11 @@ export class EthBancorModule extends VuexModule
       onHash: () => onUpdate!(3, steps)
     });
     onUpdate!(4, steps);
+    wait(2000).then(() =>
+      [fromTokenContract, toTokenContract].forEach(contract =>
+        this.getUserBalance(contract)
+      )
+    );
     return confirmedHash;
   }
 
