@@ -202,8 +202,8 @@ interface ContractMethods<T> extends Contract {
   methods: T;
 }
 
-interface CallReturn {
-  call: () => Promise<any>;
+interface CallReturn<T = any> {
+  call: () => Promise<T>;
 }
 
 const buildConverterContract = (
@@ -218,14 +218,37 @@ const buildConverterContract = (
     reserveAddress: string,
     connectorWeight: number
   ) => ContractSendMethod;
-  getSaleReturn: (toAddress: string, wei: string) => CallReturn;
-  owner: () => CallReturn;
-  version: () => CallReturn;
-  connectorTokenCount: () => CallReturn;
-  connectorTokens: (index: number) => CallReturn;
-  conversionFee: () => CallReturn;
+  getSaleReturn: (
+    toAddress: string,
+    wei: string
+  ) => CallReturn<{ "0": string; "1": string }>;
+  owner: () => CallReturn<string>;
+  version: () => CallReturn<string>;
+  connectorTokenCount: () => CallReturn<string>;
+  connectorTokens: (index: number) => CallReturn<string>;
+  conversionFee: () => CallReturn<string>;
 }> => {
   return new web3.eth.Contract(ABIConverter, contractAddress);
+};
+
+const buildTokenContract = (
+  contractAddress?: string
+): ContractMethods<{
+  symbol: () => CallReturn<string>;
+  decimals: () => CallReturn<string>;
+  totalSupply: () => CallReturn<string>;
+  allowance: (owner: string, spender: string) => CallReturn<string>;
+  transferOwnership: (converterAddress: string) => ContractSendMethod;
+  issue: (address: string, wei: string) => ContractSendMethod;
+  transfer: (to: string, weiAmount: string) => ContractSendMethod;
+  approve: (
+    approvedAddress: string,
+    approvedAmount: string
+  ) => ContractSendMethod;
+}> => {
+  return contractAddress
+    ? new web3.eth.Contract(ABISmartToken, contractAddress)
+    : new web3.eth.Contract(ABISmartToken);
 };
 
 @Module({ namespacedPath: "ethBancor/" })
@@ -309,13 +332,7 @@ export class EthBancorModule extends VuexModule
     smartTokenSymbol: string;
     precision: number;
   }): Promise<string> {
-    const contract = new web3.eth.Contract(ABISmartToken);
-    console.log({
-      smartTokenName,
-      smartTokenSymbol,
-      precision,
-      smartTokenByteCode
-    });
+    const contract = buildTokenContract();
 
     return this.resolveTxOnConfirmation({
       tx: contract.deploy({
@@ -559,10 +576,7 @@ export class EthBancorModule extends VuexModule
     smartTokenAddress,
     converterAddress
   ]: string[]) {
-    const tokenContract = new web3.eth.Contract(
-      ABISmartToken,
-      smartTokenAddress
-    );
+    const tokenContract = buildTokenContract(smartTokenAddress);
     return this.resolveTxOnConfirmation({
       tx: tokenContract.methods.transferOwnership(converterAddress)
     });
@@ -580,10 +594,7 @@ export class EthBancorModule extends VuexModule
   }: {
     smartTokenAddress: string;
   }) {
-    const tokenContract = new web3.eth.Contract(
-      ABISmartToken,
-      smartTokenAddress
-    );
+    const tokenContract = buildTokenContract(smartTokenAddress);
 
     return this.resolveTxOnConfirmation({
       tx: tokenContract.methods.issue(this.isAuthenticated, toWei("1000"))
@@ -595,18 +606,13 @@ export class EthBancorModule extends VuexModule
   ) {
     return Promise.all(
       tokens.map(async token => {
-        const tokenContract = new web3.eth.Contract(
-          ABISmartToken,
-          token.tokenContract
-        );
+        const tokenContract = buildTokenContract(token.tokenContract);
         const decimals = await tokenContract.methods.decimals().call();
 
         return this.resolveTxOnConfirmation({
           tx: tokenContract.methods.transfer(
             token.toAddress,
-            web3.utils.toHex(
-              String(Number(token.amount) * Math.pow(10, decimals))
-            )
+            web3.utils.toHex(expandToken(token.amount, Number(decimals)))
           )
         });
       })
@@ -622,10 +628,7 @@ export class EthBancorModule extends VuexModule
   ) {
     return Promise.all(
       approvals.map(approval => {
-        const tokenContract = new web3.eth.Contract(
-          ABISmartToken,
-          approval.tokenAddress
-        );
+        const tokenContract = buildTokenContract(approval.tokenAddress);
 
         return this.resolveTxOnConfirmation({
           tx: tokenContract.methods.approve(
@@ -915,10 +918,7 @@ export class EthBancorModule extends VuexModule
 
     const converterContract = buildConverterContract(contract);
 
-    const smartTokenContract = new web3.eth.Contract(
-      ABISmartToken,
-      smartTokenAddress
-    );
+    const smartTokenContract = buildTokenContract(smartTokenAddress);
 
     const [
       tokenReserveBalance,
@@ -1522,12 +1522,12 @@ export class EthBancorModule extends VuexModule
       reserve2Address,
       fee
     ] = await Promise.all([
-      converterContract.methods.owner().call() as Promise<string>,
-      converterContract.methods.version().call() as Promise<string>,
-      converterContract.methods.connectorTokenCount().call() as Promise<string>,
-      converterContract.methods.connectorTokens(0).call() as Promise<string>,
-      converterContract.methods.connectorTokens(1).call() as Promise<string>,
-      converterContract.methods.conversionFee().call() as Promise<string>
+      converterContract.methods.owner().call(),
+      converterContract.methods.version().call(),
+      converterContract.methods.connectorTokenCount().call(),
+      converterContract.methods.connectorTokens(0).call(),
+      converterContract.methods.connectorTokens(1).call(),
+      converterContract.methods.conversionFee().call()
     ]);
 
     if (connectorCount !== "2")
@@ -1558,7 +1558,7 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async buildTokenByTokenAddress(address: string): Promise<Token> {
-    const tokenContract = new web3.eth.Contract(ABISmartToken, address);
+    const tokenContract = buildTokenContract(address);
 
     const existingTokens = this.relaysList
       .map(relay => [...relay.reserves, relay.smartToken])
@@ -1571,8 +1571,8 @@ export class EthBancorModule extends VuexModule
     if (existingToken) return existingToken;
 
     const [symbol, decimals] = await Promise.all([
-      tokenContract.methods.symbol().call() as string,
-      tokenContract.methods.decimals().call() as string
+      tokenContract.methods.symbol().call(),
+      tokenContract.methods.decimals().call()
     ]);
 
     return {
@@ -1843,7 +1843,7 @@ export class EthBancorModule extends VuexModule
     owner: string;
     spender: string;
   }) {
-    const tokenContract = new web3.eth.Contract(ABISmartToken, tokenAddress);
+    const tokenContract = buildTokenContract(tokenAddress);
 
     const approvedFromTokenBalance = await tokenContract.methods
       .allowance(owner, spender)
