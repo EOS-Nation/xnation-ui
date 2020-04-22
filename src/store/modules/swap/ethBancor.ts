@@ -1663,17 +1663,17 @@ export class EthBancorModule extends VuexModule
 
   @action async focusSymbol(symbolName: string) {
     if (!this.isAuthenticated) return;
-    const tokens = this.tokens.filter(token =>
-      compareString(token.symbol, symbolName)
-    );
+    const tokenContracts = this.tokenMeta
+      .filter(meta => compareString(meta.symbol, symbolName))
+      .map(meta => meta.contract);
     const balances = await Promise.all(
-      tokens.map(async token => {
+      tokenContracts.map(async token => {
         const balance = await vxm.ethWallet.getBalance({
           accountHolder: this.isAuthenticated,
-          tokenContractAddress: token.id!
+          tokenContractAddress: token!
         });
         return {
-          ...token,
+          id: token,
           balance
         };
       })
