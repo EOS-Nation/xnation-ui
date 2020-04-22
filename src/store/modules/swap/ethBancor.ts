@@ -93,8 +93,8 @@ const removeLeadingZeros = (hexString: string) => {
     "x",
     "0",
     ...initialAttempt.split("").slice(2)
-  ].join('')
-  if (web3.utils.isAddress(secondAttempt)) return secondAttempt
+  ].join("");
+  if (web3.utils.isAddress(secondAttempt)) return secondAttempt;
   else throw new Error(`Failed parsing hex ${hexString}`);
 };
 
