@@ -248,6 +248,7 @@ const buildTokenContract = (
   decimals: () => CallReturn<string>;
   totalSupply: () => CallReturn<string>;
   allowance: (owner: string, spender: string) => CallReturn<string>;
+  balanceOf: (owner: string) => CallReturn<string>;
   transferOwnership: (converterAddress: string) => ContractSendMethod;
   issue: (address: string, wei: string) => ContractSendMethod;
   transfer: (to: string, weiAmount: string) => ContractSendMethod;
@@ -620,12 +621,22 @@ export class EthBancorModule extends VuexModule
     return Promise.all(
       tokens.map(async token => {
         const tokenContract = buildTokenContract(token.tokenContract);
-        const decimals = await tokenContract.methods.decimals().call();
+
+        const [decimals, currentBalance] = await Promise.all([
+          tokenContract.methods.decimals().call(),
+          tokenContract.methods.balanceOf(this.isAuthenticated).call()
+        ]);
+        let weiAmount = expandToken(token.amount, Number(decimals));
+        if (
+          new BigNumber(weiAmount).isGreaterThan(new BigNumber(currentBalance))
+        ) {
+          weiAmount = currentBalance;
+        }
 
         return this.resolveTxOnConfirmation({
           tx: tokenContract.methods.transfer(
             token.toAddress,
-            web3.utils.toHex(expandToken(token.amount, Number(decimals)))
+            web3.utils.toHex(weiAmount)
           )
         });
       })
