@@ -1,6 +1,6 @@
 {
   "name": "bancor-ui",
-  "version": "0.9.99",
+  "version": "1.0.00",
   "private": false,
   "scripts": {
     "start": "npm run serve",
