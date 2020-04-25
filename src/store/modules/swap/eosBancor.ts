@@ -501,6 +501,22 @@ export class EosBancorModule extends VuexModule
       )
     );
 
+    const networkAsset = [token1Asset, token2Asset].find(asset => {
+      const symbolName = asset.symbol.code().to_string();
+      return (
+        compareString(symbolName, "BNT") || compareString(symbolName, "USDB")
+      );
+    });
+    if (!networkAsset) {
+      throw new Error(
+        "Failed to find network asset, therefore cannot determine initial liquidity."
+      );
+    }
+    const networkSymbol = networkAsset.symbol.code().to_string();
+    const initialLiquidity = compareString(networkSymbol, "USDB")
+      ? 0.5
+      : 1 * asset_to_number(networkAsset);
+
     const actions = await multiContract.kickStartRelay(
       smartTokenSymbol,
       [
@@ -513,59 +529,12 @@ export class EosBancorModule extends VuexModule
           amount: token2Asset
         }
       ],
-      1000,
+      Number(initialLiquidity.toFixed(0)),
       poolParams.fee
     );
 
-    const [
-      createRelay,
-      setFirstReserve,
-      setSecondReserve,
-      addFirstLiquidity,
-      addSecondLiquidty,
-      setFee
-    ] = actions;
-
-    const baseSteps = [
-      { name: "Create Relay", description: "Creating Relay..." },
-      { name: "Setting Reserves", description: "Setting Reserves..." },
-      { name: "Adding Liquidity", description: "Adding Liquidity..." },
-      { name: "Setting Fee", description: "Setting Fee..." }
-    ];
-
-    // poolParams.onUpdate(Number(0), baseSteps);
     let res = await this.triggerTx(actions!);
     return res.transaction_id;
-
-    // const batches = [
-    //   [createRelay],
-    //   [setFirstReserve, setSecondReserve],
-    //   [addFirstLiquidity, addSecondLiquidty],
-    //   [setFee]
-    // ];
-
-    // const zipped = _.zip(baseSteps, batches)!
-    //   .map(([obj, actions]) => ({
-    //     name: obj!.name,
-    //     description: obj!.description,
-    //     actions
-    //   }))
-    //   .filter(x => (x.name == "Setting Fee" ? setFee : true));
-
-    // const steps = zipped.map(x => ({
-    //   name: x.name,
-    //   description: x.description
-    // }));
-
-    // for (const zip in zipped) {
-    //   let { actions } = zipped[zip];
-    //   poolParams.onUpdate(Number(zip), steps);
-    //   let res = await this.triggerTx(actions!);
-    //   if (Number(zip) + 1 == zipped.length) {
-    //     wait(2000).then(() => this.expectNewRelay(smartTokenSymbol));
-    //     return res.transaction_id;
-    //   }
-    // }
   }
 
   get bancorApiTokens(): ViewToken[] {
