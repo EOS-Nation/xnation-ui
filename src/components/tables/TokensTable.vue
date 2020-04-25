@@ -209,7 +209,8 @@ export default class TokensTable extends Vue {
     },
     {
       key: "actions",
-      label: "Actions"
+      label: "Actions",
+      class: ["text-right"]
     }
   ];
 
@@ -225,13 +226,20 @@ export default class TokensTable extends Vue {
   }
 
   get filteredFields() {
-    return this.small
+    const small = this.small
       ? this.fields.filter(field =>
           ["key", "volume24h", "index", "name"].every(
             fieldName => fieldName !== field.key
           )
         )
       : this.fields;
+    const hasKeys = small.filter(field => {
+      if (field.key == "index" || field.key == "actions") return true;
+      return this.tokens.some(token =>
+        new Object(token).hasOwnProperty(field.key)
+      );
+    });
+    return hasKeys;
   }
 
   handleResize() {
