@@ -53,6 +53,7 @@ import {
 } from "@/api/bancorCalc";
 import { hardCodedTokens } from "./tokenDic";
 import _ from "lodash";
+import { compareString } from "./ethBancor";
 import wait from "waait";
 
 enum ConvertType {
@@ -340,10 +341,12 @@ export class EosBancorModule extends VuexModule
           relay => relay.reserves.every(reserve => reserve.amount == 0)
         ]
       ];
-      return features
-      // @ts-ignore
-        .filter(([name, test]) => test(relay, isAuthenticated))
-        .map(([name]) => name);
+      return (
+        features
+          // @ts-ignore
+          .filter(([name, test]) => test(relay, isAuthenticated))
+          .map(([name]) => name)
+      );
     };
   }
 
@@ -772,7 +775,7 @@ export class EosBancorModule extends VuexModule
     this.setRelays(relays);
     this.setTokens(tokens);
     this.setTokenMeta(tokenMeta);
-    console.log('init eos resolved')
+    console.log("init eos resolved");
   }
 
   @action async refreshBalances(tokens: BaseToken[] = []) {
@@ -1163,7 +1166,15 @@ export class EosBancorModule extends VuexModule
   // Focus Symbol is called when the UI focuses on a Symbol
   // Should have token balances
   // Could be an oppurtunity to get precision
-  @action async focusSymbol(symbolName: string) {}
+  @action async focusSymbol(symbolName: string) {
+    console.log(symbolName, "focus symbol called on EOS");
+    const tokens = this.tokenMeta.filter(token =>
+      compareString(token.symbol, symbolName)
+    );
+    await vxm.eosNetwork.getBalances({
+      tokens: tokens.map(token => ({ ...token, contract: token.account }))
+    });
+  }
 
   @action async hasExistingBalance({
     contract,

@@ -193,7 +193,7 @@ const getTokenMeta = async () => {
   return res.data;
 };
 
-const compareString = (stringOne: string, stringTwo: string) =>
+export const compareString = (stringOne: string, stringTwo: string) =>
   stringOne.toLowerCase() == stringTwo.toLowerCase();
 
 const compareRelayBySmartTokenAddress = (a: Relay, b: Relay) =>
