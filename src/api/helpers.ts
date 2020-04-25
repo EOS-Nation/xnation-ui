@@ -25,6 +25,9 @@ interface TraditionalStat {
   max_supply: Asset;
 }
 
+export const compareString = (stringOne: string, stringTwo: string) =>
+  stringOne.toLowerCase() == stringTwo.toLowerCase();
+
 export const fetchBinanceUsdPriceOfBnt = async (): Promise<number> => {
   const res = await axios.get<{ mins: number; price: string }>(
     "https://api.binance.com/api/v3/avgPrice?symbol=BNTUSDT"

@@ -24,7 +24,8 @@ import {
   Relay,
   Token,
   fetchReserveBalance,
-  fetchBinanceUsdPriceOfBnt
+  fetchBinanceUsdPriceOfBnt,
+  compareString
 } from "@/api/helpers";
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import {
@@ -193,8 +194,7 @@ const getTokenMeta = async () => {
   return res.data;
 };
 
-export const compareString = (stringOne: string, stringTwo: string) =>
-  stringOne.toLowerCase() == stringTwo.toLowerCase();
+
 
 const compareRelayBySmartTokenAddress = (a: Relay, b: Relay) =>
   compareString(a.smartToken.contract, b.smartToken.contract);

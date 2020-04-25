@@ -24,7 +24,12 @@ import {
   Step
 } from "@/types/bancor";
 import { bancorApi, ethBancorApi } from "@/api/bancor";
-import { fetchRelays, getBalance, fetchTokenStats } from "@/api/helpers";
+import {
+  fetchRelays,
+  getBalance,
+  fetchTokenStats,
+  compareString
+} from "@/api/helpers";
 import {
   Sym as Symbol,
   Asset,
@@ -53,7 +58,6 @@ import {
 } from "@/api/bancorCalc";
 import { hardCodedTokens } from "./tokenDic";
 import _ from "lodash";
-import { compareString } from "./ethBancor";
 import wait from "waait";
 
 enum ConvertType {
