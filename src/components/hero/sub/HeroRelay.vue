@@ -147,8 +147,6 @@ export default class HeroRelay extends Vue {
   rateLoading = false;
   token1Amount = "";
   token2Amount = "";
-  token1UserBalance = 0;
-  token2UserBalance = 0;
   smartUserBalance = "";
   fundReward = "";
   liquidateCost = "";
@@ -172,6 +170,7 @@ export default class HeroRelay extends Vue {
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter relay!: LiquidityModule["relay"];
   @bancor.Getter relays!: LiquidityModule["relays"];
+  @bancor.Action focusSymbol!: TradingModule["focusSymbol"];
   @bancor.Getter currentNetwork!: string;
   @bancor.Getter supportedFeatures!: LiquidityModule["supportedFeatures"];
   @bancor.Action getUserBalances!: LiquidityModule["getUserBalances"];
@@ -276,6 +275,14 @@ export default class HeroRelay extends Vue {
       default:
         return `Bloks.io`;
     }
+  }
+
+  get token1UserBalance() {
+    return this.token1.balance;
+  }
+
+  get token2UserBalance() {
+    return this.token2.balance;
   }
 
   get displayedToken1Balance() {
@@ -471,20 +478,22 @@ export default class HeroRelay extends Vue {
     this.withdrawLiquidity = to.params.mode == "liquidate";
   }
 
+  @Watch("token1Symbol")
+  @Watch("token2Symbol")
+  reserveChange(symbol: string) {
+    this.focusSymbol(symbol);
+  }
+
   async fetchBalances() {
     if (!this.isAuthenticated) return;
     const {
       token1MaxWithdraw,
       token2MaxWithdraw,
-      token1Balance,
-      token2Balance,
       smartTokenBalance
     } = await this.getUserBalances(this.focusedSymbol);
 
     this.token1MaxWithdraw = Number(token1MaxWithdraw);
     this.token2MaxWithdraw = Number(token2MaxWithdraw);
-    this.token1UserBalance = Number(token1Balance);
-    this.token2UserBalance = Number(token2Balance);
     this.smartUserBalance = smartTokenBalance;
   }
 
