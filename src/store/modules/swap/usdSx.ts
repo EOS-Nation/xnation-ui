@@ -13,14 +13,17 @@ import {
   get_settings,
   get_volume,
   get_rate,
-  get_inverse_rate
+  get_price,
+  get_inverse_rate,
+  Pools
 } from "sxjs";
 import { rpc } from "@/api/rpc";
 import { asset_to_number, number_to_asset, symbol } from "eos-common";
+import { compareString } from "@/api/helpers";
 
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
-  tokensList: ModulePools | undefined = undefined;
+  newTokens: any[] = [];
   initiated: boolean = false;
 
   get wallet() {
@@ -31,45 +34,31 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     if (!this.initiated) {
       return [];
     }
-    const tokens = Object.keys(this.tokensList!);
-    return tokens.map(token => {
-      let name, logo, balance;
-      let {
-        id: { sym, contract }
-      } = this.tokensList![token];
-
-      const tokenBalance = vxm.eosNetwork.balance({
-        contract,
-        symbol: sym.code().to_string()
-      });
-      balance = (tokenBalance && Number(tokenBalance.balance)) || 0;
+    return this.newTokens.map(token => {
+      let name, logo: string;
 
       try {
         const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(
-          tokenMeta => tokenMeta.symbol == token
+          tokenMeta => tokenMeta.symbol == token.symbol
         )!;
         if (!eosModuleBorrowed) throw new Error("Failed to find token");
         name = eosModuleBorrowed.name;
         logo = eosModuleBorrowed.logo;
       } catch (e) {
-        name = token;
+        console.warn("Failed to find name", token.symbol);
+        name = token.symbol;
         logo =
           "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f39c32b0-cfae-11e9-9f7d-af4705d95e66.jpeg";
       }
+      const tokenBalance = vxm.eosNetwork.balance({
+        contract: token.contract,
+        symbol: token.symbol
+      });
       return {
-        symbol: token,
+        ...token,
         name,
-        // @ts-ignore
-        price: asset_to_number(this.tokensList![token].pegged),
-        liqDepth:
-          // @ts-ignore
-          asset_to_number(this.tokensList![token].depth) *
-          // @ts-ignore
-          asset_to_number(this.tokensList![token].pegged),
         logo,
-        change24h: 0,
-        volume24h: this.tokensList![token].volume24h,
-        balance
+        balance: tokenBalance && tokenBalance.balance
       };
     });
   }
@@ -80,10 +69,6 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       if (!token) throw new Error("Cannot find token");
       return token;
     };
-  }
-
-  @mutation setTokensList(pools: ModulePools) {
-    this.tokensList = pools;
   }
 
   @mutation moduleInitiated() {
@@ -106,26 +91,77 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           Number(volume[0]["volume"][pool])
       };
     }
-    // @ts-ignore
-    this.setTokensList(pools);
+    await this.buildTokens(pools);
     this.moduleInitiated();
   }
 
-  @action async focusSymbol(symbolName: string) {}
+  @action async buildTokens(pools: Pools) {
+    const tokens = Object.keys(pools);
+    const newTokens = await Promise.all(
+      tokens.map(async token => {
+        let {
+          id: { sym, contract },
+          depth,
+          pegged
+        } = pools![token];
+
+        const symbolName = sym.code().to_string();
+        const precision = sym.precision();
+
+        return {
+          symbol: token,
+          precision,
+          contract,
+          price:
+            symbolName == "USDT"
+              ? 1
+              : Number(
+                  asset_to_number(
+                    await get_price("1.0000 USDT", symbolName, pools)
+                  ).toFixed(4)
+                ),
+          liqDepth: asset_to_number(depth) * asset_to_number(pegged)
+        };
+      })
+    );
+    vxm.eosNetwork.getBalances({
+      tokens: newTokens.map(token => ({
+        contract: token.contract,
+        symbol: token.symbol
+      }))
+    });
+    this.setNewTokens(newTokens);
+  }
+
+  @mutation setNewTokens(tokens: any[]) {
+    this.newTokens = tokens;
+  }
+
+  @action async focusSymbol(symbolName: string) {
+    const tokens = this.newTokens.filter(token =>
+      compareString(token.symbol, symbolName)
+    );
+    vxm.eosNetwork.getBalances({
+      tokens: tokens.map(token => ({
+        contract: token.contract,
+        symbol: token.symbol
+      }))
+    });
+  }
+
   @action async refreshBalances(symbols: BaseToken[] = []) {}
 
   @action async convert(propose: ProposedConvertTransaction) {
-    console.log(propose, "one of the cases");
-    console.log(this.tokensList);
-
     // @ts-ignore
     const accountName = this.$store.rootState.eosWallet.walletState.auth
       .accountName;
 
-    const fromToken = this.tokensList![propose.fromSymbol];
+    const fromToken = this.newTokens.find(token =>
+      compareString(token.symbol, propose.fromSymbol)
+    );
 
-    const tokenContract = fromToken.id.contract;
-    const precision = fromToken.id.sym.precision();
+    const tokenContract = fromToken.contract;
+    const precision = fromToken.precision;
     const amountAsset = number_to_asset(
       propose.fromAmount,
       symbol(propose.fromSymbol, precision)
@@ -176,7 +212,6 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       pools,
       settings
     );
-
 
     return {
       amount: String(asset_to_number(out)),
