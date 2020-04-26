@@ -34,33 +34,35 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     if (!this.initiated) {
       return [];
     }
-    return this.newTokens.map(token => {
-      let name, logo: string;
+    return this.newTokens
+      .map(token => {
+        let name, logo: string;
 
-      try {
-        const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(
-          tokenMeta => tokenMeta.symbol == token.symbol
-        )!;
-        if (!eosModuleBorrowed) throw new Error("Failed to find token");
-        name = eosModuleBorrowed.name;
-        logo = eosModuleBorrowed.logo;
-      } catch (e) {
-        console.warn("Failed to find name", token.symbol);
-        name = token.symbol;
-        logo =
-          "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f39c32b0-cfae-11e9-9f7d-af4705d95e66.jpeg";
-      }
-      const tokenBalance = vxm.eosNetwork.balance({
-        contract: token.contract,
-        symbol: token.symbol
-      });
-      return {
-        ...token,
-        name,
-        logo,
-        balance: tokenBalance && tokenBalance.balance
-      };
-    });
+        try {
+          const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(
+            tokenMeta => tokenMeta.symbol == token.symbol
+          )!;
+          if (!eosModuleBorrowed) throw new Error("Failed to find token");
+          name = eosModuleBorrowed.name;
+          logo = eosModuleBorrowed.logo;
+        } catch (e) {
+          console.warn("Failed to find name", token.symbol);
+          name = token.symbol;
+          logo =
+            "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f39c32b0-cfae-11e9-9f7d-af4705d95e66.jpeg";
+        }
+        const tokenBalance = vxm.eosNetwork.balance({
+          contract: token.contract,
+          symbol: token.symbol
+        });
+        return {
+          ...token,
+          name,
+          logo,
+          balance: tokenBalance && tokenBalance.balance
+        };
+      })
+      .sort((a, b) => b.liqDepth - a.liqDepth);
   }
 
   get token() {
