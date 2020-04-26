@@ -49,6 +49,7 @@ import MyFooter from "@/components/common/MyFooter.vue";
 import { vxm } from "@/store/";
 import { WalletProvider } from "eos-transit";
 import { detect } from "detect-browser";
+import wait from 'waait'
 
 const browser = detect();
 
@@ -68,8 +69,13 @@ export default class App extends Vue {
       await vxm.bancor.init();
       this.loading = false;
     } catch (e) {
-      this.loading = false;
-      this.error = e.message;
+      await wait(1000);
+      try {
+        await vxm.bancor.init();
+      } catch (e) {
+        this.loading = false;
+        this.error = e.message;
+      }
     }
   }
 
