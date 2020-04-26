@@ -108,18 +108,18 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         const symbolName = sym.code().to_string();
         const precision = sym.precision();
 
+        const price =
+          symbolName == "USDT"
+            ? 1
+            : asset_to_number(
+                await get_price("1.0000 USDT", symbolName, pools)
+              );
+
         return {
           symbol: token,
           precision,
           contract,
-          price:
-            symbolName == "USDT"
-              ? 1
-              : Number(
-                  asset_to_number(
-                    await get_price("1.0000 USDT", symbolName, pools)
-                  ).toFixed(4)
-                ),
+          price,
           liqDepth: asset_to_number(depth) * asset_to_number(pegged)
         };
       })
