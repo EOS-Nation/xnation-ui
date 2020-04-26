@@ -102,7 +102,9 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         let {
           id: { sym, contract },
           depth,
-          pegged
+          pegged,
+          // @ts-ignore
+          volume24h
         } = pools![token];
 
         const symbolName = sym.code().to_string();
@@ -119,6 +121,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           symbol: token,
           precision,
           contract,
+          volume24h: volume24h || 0,
           price,
           liqDepth: asset_to_number(depth) * asset_to_number(pegged)
         };
