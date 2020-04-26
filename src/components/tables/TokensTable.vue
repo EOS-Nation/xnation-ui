@@ -60,8 +60,8 @@
           </template>
           <template v-slot:cell(price)="data">
             <span class="text-center font-w700">
-              <span v-if="data.item.price < 1">{{
-                numeral(data.item.price).format("$0,0.000000")
+              <span v-if="data.item.price < 100">{{
+                numeral(data.item.price).format("$0,0.0000")
               }}</span>
               <span v-else>{{
                 numeral(data.item.price).format("$0,0.00")
@@ -187,7 +187,7 @@ export default class TokensTable extends Vue {
       label: "Price USD",
       class: ["text-center"],
       formatter: (value: any, key: any, item: any) =>
-        numeral(value).format("$0,0.00")
+        numeral(value).format("$0,0.0000")
     },
     {
       key: "volume24h",
