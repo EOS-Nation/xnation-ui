@@ -25,8 +25,13 @@ interface TraditionalStat {
   max_supply: Asset;
 }
 
-export const compareString = (stringOne: string, stringTwo: string) =>
-  stringOne.toLowerCase() == stringTwo.toLowerCase();
+export const compareString = (stringOne: string, stringTwo: string) => {
+  if (![stringOne, stringTwo].every(Boolean))
+    throw new Error(
+      `String one: ${stringOne} String two: ${stringTwo} one of them are falsy.`
+    );
+  return stringOne.toLowerCase() == stringTwo.toLowerCase();
+};
 
 export const fetchBinanceUsdPriceOfBnt = async (): Promise<number> => {
   const res = await axios.get<{ mins: number; price: string }>(
