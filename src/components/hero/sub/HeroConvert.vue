@@ -367,6 +367,8 @@ export default class HeroConvert extends Vue {
       this.sections = [];
       this.txModal = true;
       this.txBusy = true;
+      this.success = '';
+      this.error = '';
 
       const result = await this.convert({
         fromSymbol: this.fromTokenSymbol,
@@ -402,15 +404,6 @@ export default class HeroConvert extends Vue {
     }
     this.success = "";
     this.error = "";
-  }
-
-  navTransfer() {
-    // this.$router.push({
-    //   name: "Transfer",
-    //   params: {
-    //     symbolName: this.selectedSymbolOrDefaultTo
-    //   }
-    // });
   }
 
   async updatePriceReturn(amountString: string) {

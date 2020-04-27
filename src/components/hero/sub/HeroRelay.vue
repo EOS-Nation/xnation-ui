@@ -397,7 +397,10 @@ export default class HeroRelay extends Vue {
   }
 
   async remove() {
+    this.sections = [];
     this.txModal = true;
+    this.error = "";
+    this.success = "";
 
     try {
       this.txBusy = true;
@@ -425,6 +428,8 @@ export default class HeroRelay extends Vue {
   async add() {
     this.sections = [];
     this.txModal = true;
+    this.error = "";
+    this.success = "";
 
     try {
       this.txBusy = true;

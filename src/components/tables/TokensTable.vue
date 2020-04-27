@@ -135,7 +135,6 @@ export default class TokensTable extends Vue {
   small = false;
 
   filter = "";
-  // data
   numeral = numeral;
 
   transProps = {
