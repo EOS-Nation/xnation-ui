@@ -60,7 +60,6 @@ export function firstPathFound(
   path: ChoppedRelay[] = [],
   attempt: string = from
 ): ChoppedRelay[] {
-  console.log("find path hit");
   const finalRelay = relays.find(relayHasBothSymbols(to, attempt));
   if (finalRelay) return [...path, finalRelay];
   if (attemptNumber >= 3000)
@@ -100,7 +99,6 @@ const highestRecurringString = (list: string[]): string => {
 const unChopRelays = (relays: ChoppedRelay[]): DryRelay[] => {
   const contractAddresses = relays.map(relay => relay.contract);
   const uniqueAddresses = _.uniq(contractAddresses);
-  console.log({ uniqueAddresses });
 
   const matches = uniqueAddresses.map(address =>
     relays.filter(relay => relay.contract == address)

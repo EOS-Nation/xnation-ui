@@ -239,9 +239,7 @@ const buildConverterContract = (
   connectorTokenCount: () => CallReturn<string>;
   connectorTokens: (index: number) => CallReturn<string>;
   conversionFee: () => CallReturn<string>;
-}> => {
-  return new web3.eth.Contract(ABIConverter, contractAddress);
-};
+}> => new web3.eth.Contract(ABIConverter, contractAddress);
 
 const buildTokenContract = (
   contractAddress?: string
@@ -748,62 +746,63 @@ export class EthBancorModule extends VuexModule
   }
 
   get tokens(): ViewToken[] {
-    return (
-      this.relaysList
-        .filter(relay =>
-          relay.reserves.every(reserve =>
-            this.relayFeed.some(
-              relayFeed =>
-                compareString(relayFeed.tokenId, reserve.contract) &&
-                compareString(
-                  relayFeed.smartTokenContract,
-                  relay.smartToken.contract
-                )
-            )
+    return this.relaysList
+      .filter(relay =>
+        relay.reserves.every(reserve =>
+          this.relayFeed.some(
+            relayFeed =>
+              compareString(relayFeed.tokenId, reserve.contract) &&
+              compareString(
+                relayFeed.smartTokenContract,
+                relay.smartToken.contract
+              )
           )
         )
-        .map(relay =>
-          relay.reserves.map(reserve => {
-            const { name, image } = this.tokenMetaObj(reserve.contract);
-            const relayFeed = this.relayFeed.find(
-              feed =>
-                compareString(
-                  feed.smartTokenContract,
-                  relay.smartToken.contract
-                ) && compareString(feed.tokenId, reserve.contract)
-            )!;
-            const balance = this.tokenBalance(reserve.contract);
-            return {
-              id: reserve.contract,
-              symbol: reserve.symbol,
-              name,
-              ...(relayFeed.costByNetworkUsd && {
-                price: relayFeed.costByNetworkUsd
-              }),
-              liqDepth: relayFeed.liqDepth,
-              logo: image,
-              ...(relayFeed.change24H && { change24h: relayFeed.change24H }),
-              ...(relayFeed.volume24H && { volume24h: relayFeed.volume24H }),
-              ...(balance && { balance: balance.balance })
-            };
-          })
-        )
-        .flat(1)
-        .sort((a, b) => b.liqDepth - a.liqDepth)
-        // @ts-ignore
-        .reduce<ViewToken[]>((acc, item) => {
-          const existingToken = acc.find(token =>
-            compareString(token.id!, item.id)
-          );
-          return existingToken
-            ? acc.map(token =>
-                compareString(token.id!, item.id)
-                  ? { ...token, liqDepth: token.liqDepth + item.liqDepth }
-                  : token
-              )
-            : [...acc, item];
-        }, [])
-    );
+      )
+      .map(relay =>
+        relay.reserves.map(reserve => {
+          const { name, image } = this.tokenMetaObj(reserve.contract);
+          const relayFeed = this.relayFeed.find(
+            feed =>
+              compareString(
+                feed.smartTokenContract,
+                relay.smartToken.contract
+              ) && compareString(feed.tokenId, reserve.contract)
+          )!;
+          const balance = this.tokenBalance(reserve.contract);
+          return {
+            id: reserve.contract,
+            symbol: reserve.symbol,
+            name,
+            ...(relayFeed.costByNetworkUsd && {
+              price: relayFeed.costByNetworkUsd
+            }),
+            liqDepth: relayFeed.liqDepth,
+            logo: image,
+            ...(relayFeed.change24H && { change24h: relayFeed.change24H }),
+            ...(relayFeed.volume24H && { volume24h: relayFeed.volume24H }),
+            ...(balance && { balance: balance.balance })
+          };
+        })
+      )
+      .flat(1)
+      .sort((a, b) => b.liqDepth - a.liqDepth)
+      .reduce<ViewToken[]>((acc, item) => {
+        const existingToken = acc.find(token =>
+          compareString(token.id!, item.id)
+        );
+        return (existingToken
+          ? acc.map(token =>
+              compareString(token.id!, item.id)
+                ? { ...token, liqDepth: token.liqDepth + item.liqDepth }
+                : token
+            )
+          : [...acc, item]) as ViewToken[];
+      }, [])
+      .filter(
+        (token, index, arr) =>
+          arr.findIndex(t => compareString(t.symbol, token.symbol)) == index
+      );
   }
 
   get tokenMetaObj() {

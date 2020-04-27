@@ -142,7 +142,7 @@ export default class TokenAmountInput extends Vue {
   get formattedBalance() {
     const big = new Big(this.balance);
     const formattedNumber =
-      big.decimalPlaces() < 8 ? big.toString() : big.toFixed(8);
+      big.decimalPlaces() < 8 ? big.toString() : Number(big.toFixed(8));
     return `${formattedNumber} ${this.symbol}`;
   }
 
