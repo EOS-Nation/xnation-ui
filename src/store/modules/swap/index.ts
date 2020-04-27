@@ -77,15 +77,22 @@ export class BancorModule extends VuexModule {
 
   @action async init(initialChain?: string) {
     if (initialChain) {
-      await this.$store.dispatch(`${initialChain}Bancor/init`, null, {
-        root: true
+      return new Promise((resolve, reject) => {
+        this.$store
+          .dispatch(`${initialChain}Bancor/init`, null, {
+            root: true
+          })
+          .then(() => resolve())
+          .catch(e => reject(e));
+        const remainingChains = this.chains.filter(
+          chain => !compareString(chain, initialChain)
+        );
+        remainingChains.forEach(chain =>
+          this.$store
+            .dispatch(`${chain}Bancor/init`, null, { root: true })
+            .catch(e => reject(e))
+        );
       });
-      const remainingChains = this.chains.filter(
-        chain => !compareString(chain, initialChain)
-      );
-      remainingChains.forEach(chain =>
-        this.$store.dispatch(`${chain}Bancor/init`, null, { root: true })
-      );
     } else {
       return Promise.all(
         this.chains.map(chain =>
