@@ -28,7 +28,9 @@ import {
   fetchRelays,
   getBalance,
   fetchTokenStats,
-  compareString
+  compareString,
+  SettingTableRow,
+  ReserveTableRow
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -59,6 +61,7 @@ import {
 import { hardCodedTokens } from "./tokenDic";
 import _ from "lodash";
 import wait from "waait";
+import { MultiStateResponse } from "@dfuse/client";
 
 enum ConvertType {
   API,
@@ -272,35 +275,20 @@ const getTokenMeta = async (): Promise<TokenMeta[]> => {
   );
 };
 
-const parseDfuseTable = (
-  data: any
-): {
-  smartToken: string;
-  reserves: { balance: string; ratio: number; contract: string }[];
-}[] => {
-  return data.tables.map((table: any) => ({
+const parseDfuseTable = (data: MultiStateResponse<ReserveTableRow>) =>
+  data.tables.map(table => ({
     smartToken: table.scope,
-    reserves: table.rows.map((row: any) => row.json)
+    reserves: table.rows.map(row => row.json)
   }));
-};
 
-const parseDfuseSettingTable = (
-  data: any
-): {
-  smartToken: string;
-  fee: number;
-  stake_enabled: boolean;
-  owner: string;
-  currency: string;
-}[] => {
-  return data.tables.map((table: any) => ({
+const parseDfuseSettingTable = (data: MultiStateResponse<SettingTableRow>) =>
+  data.tables.map(table => ({
     smartToken: table.scope,
     ...table.rows[0].json
   }));
-};
 
-const eosMultiToDryRelays = (relays: EosMultiRelay[]): DryRelay[] => {
-  return relays.map(relay => ({
+const eosMultiToDryRelays = (relays: EosMultiRelay[]): DryRelay[] =>
+  relays.map(relay => ({
     reserves: relay.reserves.map(reserve => ({
       contract: reserve.contract,
       symbol: new Symbol(reserve.symbol, reserve.precision)
@@ -312,7 +300,6 @@ const eosMultiToDryRelays = (relays: EosMultiRelay[]): DryRelay[] => {
     },
     isMultiContract: true
   }));
-};
 
 type FeatureEnabled = (relay: EosMultiRelay, loggedInUser: string) => boolean;
 type Feature = [string, FeatureEnabled];
@@ -331,7 +318,9 @@ export class EosBancorModule extends VuexModule
   get supportedFeatures() {
     return (symbolName: string) => {
       const isAuthenticated = this.isAuthenticated;
-      const relay = this.relay(symbolName);
+      const relay = this.relaysList.find(relay =>
+        compareString(relay.smartToken.symbol, symbolName)
+      )!;
       const features: Feature[] = [
         ["addLiquidity", () => true],
         [
@@ -345,12 +334,9 @@ export class EosBancorModule extends VuexModule
           relay => relay.reserves.every(reserve => reserve.amount == 0)
         ]
       ];
-      return (
-        features
-          // @ts-ignore
-          .filter(([name, test]) => test(relay, isAuthenticated))
-          .map(([name]) => name)
-      );
+      return features
+        .filter(([name, test]) => test(relay, isAuthenticated))
+        .map(([name]) => name);
     };
   }
 
@@ -416,30 +402,24 @@ export class EosBancorModule extends VuexModule
   }
 
   get newNetworkTokenChoices(): NetworkChoice[] {
-    const bntBalance = this.balance({
-      symbol: "BNT",
-      contract: "bntbntbntbnt"
-    });
-    const usdBalance = this.balance({
-      symbol: "USDB",
-      contract: "usdbusdbusdb"
-    });
     return [
       {
         symbol: "BNT",
-        balance: bntBalance && bntBalance.amount,
-        img: this.tokenMetaObj("BNT").logo,
-        usdValue: this.usdPriceOfBnt,
-        contract: "bntbntbntbnt"
+        contract: "bntbntbntbnt",
+        usdValue: this.usdPriceOfBnt
       },
       {
         symbol: "USDB",
-        balance: usdBalance && usdBalance.amount,
-        img: this.tokenMetaObj("USDB").logo,
-        usdValue: 1,
-        contract: "usdbusdbusdb"
+        contract: "usdbusdbusdb",
+        usdValue: 1
       }
-    ];
+    ].map(choice => ({
+      ...choice,
+      balance: this.balance(choice) && this.balance(choice)!.amount,
+      img:
+        this.tokenMetaObj(choice.symbol) &&
+        this.tokenMetaObj(choice.symbol)!.logo
+    }));
   }
 
   @action async updateFee({ fee, smartTokenSymbol }: FeeParams) {
@@ -1470,21 +1450,12 @@ export class EosBancorModule extends VuexModule
 
   @action async hydrateRelays(relays: DryRelay[]): Promise<HydratedRelay[]> {
     const [reservesRes, settingsRes] = await Promise.all([
-      client.stateTablesForScopes<{
-        contract: string;
-        ratio: number;
-        balance: string;
-      }>(
+      client.stateTablesForScopes<ReserveTableRow>(
         process.env.VUE_APP_MULTICONTRACT!,
         relays.map(relay => relay.smartToken.symbol.code().to_string()),
         "reserves"
       ),
-      client.stateTablesForScopes<{
-        currency: string;
-        owner: string;
-        stake_enabled: boolean;
-        fee: number;
-      }>(
+      client.stateTablesForScopes<SettingTableRow>(
         process.env.VUE_APP_MULTICONTRACT!,
         relays.map(relay => relay.smartToken.symbol.code().to_string()),
         "converters"

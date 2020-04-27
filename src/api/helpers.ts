@@ -3495,21 +3495,33 @@ export const services: Service[] = [
   { namespace: "usds", features: [Feature.Trade] }
 ];
 
+export interface ReserveTableRow {
+  contract: string;
+  ratio: number;
+  balance: string;
+}
+
+export interface SettingTableRow {
+  currency: string;
+  owner: string;
+  stake_enabled: boolean;
+  fee: number;
+}
+
 export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
   const { scopes } = await client.stateTableScopes(contractName, "converters");
-  const rawConverters = await client.stateTablesForScopes<{
-    currency: string;
-    owner: string;
-    stake_enabled: boolean;
-    fee: number;
-  }>(contractName, scopes, "converters");
+  const rawConverters = await client.stateTablesForScopes<SettingTableRow>(
+    contractName,
+    scopes,
+    "converters"
+  );
   const polishedConverters = rawConverters.tables;
-  const rawReserves = await client.stateTablesForScopes<{
-    contract: string;
-    ratio: number;
-    balance: string;
-  }>(contractName, scopes, "reserves");
+  const rawReserves = await client.stateTablesForScopes<ReserveTableRow>(
+    contractName,
+    scopes,
+    "reserves"
+  );
   const polishedReserves = rawReserves.tables;
 
   const flatRelays = polishedReserves
