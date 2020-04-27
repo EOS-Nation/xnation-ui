@@ -61,7 +61,6 @@ export default class TokenField extends Vue {
   @Prop(Array) errors?: string[];
   @Prop({ default: false }) warnBalance?: boolean;
 
-
   modal = false;
 
   @Emit()
