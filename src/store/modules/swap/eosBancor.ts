@@ -63,6 +63,10 @@ import _ from "lodash";
 import wait from "waait";
 import { MultiStateResponse } from "@dfuse/client";
 
+interface TokenPriceDecimal extends TokenPrice {
+  decimals: number;
+}
+
 enum ConvertType {
   API,
   Multi,
@@ -1169,18 +1173,41 @@ export class EosBancorModule extends VuexModule
       this.getEosTokenWithDecimals(toSymbol)
     ]);
 
-    const res = await bancorApi.convert({
-      fromCurrencyId: fromObj.id,
-      toCurrencyId: toObj.id,
-      amount: String((fromAmount * Math.pow(10, fromObj.decimals)).toFixed(0)),
-      minimumReturn: String(
-        (toAmount * 0.98 * Math.pow(10, toObj.decimals)).toFixed(0)
-      ),
-      ownerAddress: accountName
-    });
+    const [res, fromTokenBancor, toTokenBancor] = await Promise.all([
+      bancorApi.convert({
+        fromCurrencyId: fromObj.id,
+        toCurrencyId: toObj.id,
+        amount: String(
+          (fromAmount * Math.pow(10, fromObj.decimals)).toFixed(0)
+        ),
+        minimumReturn: String(
+          (toAmount * 0.98 * Math.pow(10, toObj.decimals)).toFixed(0)
+        ),
+        ownerAddress: accountName
+      }),
+      bancorApi.getToken(fromObj.id),
+      bancorApi.getToken(toObj.id)
+    ]);
 
+    const tokenContractsAndSymbols = [fromTokenBancor, toTokenBancor].map(
+      bancor => ({
+        contract:
+          bancor.currency.details[0].blockchainId ==
+          "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c"
+            ? "bntbntbntbnt"
+            : bancor.currency.details[0].blockchainId,
+        symbol: bancor.currency.code
+      })
+    );
     const { actions } = res.data[0];
-    const txRes = await this.triggerTx(actions);
+    const [txRes, originalBalances] = await Promise.all([
+      this.triggerTx(actions),
+      vxm.eosNetwork.getBalances({
+        tokens: tokenContractsAndSymbols
+      })
+    ]);
+    console.log(txRes, "was tx res");
+    vxm.eosNetwork.pingTillChange({ originalBalances });
     return txRes.transaction_id;
   }
 
@@ -1216,26 +1243,26 @@ export class EosBancorModule extends VuexModule
       memo
     );
 
-    const contract = relaysPath[relaysPath.length - 1].reserves.find(
+    const toContract = relaysPath[relaysPath.length - 1].reserves.find(
       reserve => reserve.symbol.code().to_string() == toSymbol
     )!.contract;
 
     const existingBalance = await this.hasExistingBalance({
-      contract,
+      contract: toContract,
       symbol: toSymbol
     });
 
     if (!existingBalance) {
-      const abiConf = await client.stateAbi(contract);
+      const abiConf = await client.stateAbi(toContract);
       const openSupported = abiConf.abi.actions.some(
         action => action.name == "open"
       );
       if (!openSupported)
         throw new Error(
-          `You do not have an existing balance of ${toSymbol} and it's token contract ${contract} does not support 'open' functionality.`
+          `You do not have an existing balance of ${toSymbol} and it's token contract ${toContract} does not support 'open' functionality.`
         );
       const openActions = await multiContract.openActions(
-        contract,
+        toContract,
         // @ts-ignore
         `${toToken.precision},${toSymbol}`,
         this.isAuthenticated
@@ -1243,7 +1270,19 @@ export class EosBancorModule extends VuexModule
       convertActions = [...openActions, ...convertActions];
     }
 
-    const txRes = await this.triggerTx(convertActions);
+    const tokenContractsAndSymbols = [
+      { contract: toContract, symbol: toSymbol },
+      { contract: fromTokenContract, symbol: fromToken.symbol }
+    ];
+
+    const [txRes, originalBalances] = await Promise.all([
+      this.triggerTx(convertActions),
+      vxm.eosNetwork.getBalances({
+        tokens: tokenContractsAndSymbols
+      })
+    ]);
+    vxm.eosNetwork.pingTillChange({ originalBalances });
+
     return txRes.transaction_id;
   }
 
@@ -1406,11 +1445,13 @@ export class EosBancorModule extends VuexModule
     }
   }
 
-  @action async getEosTokenWithDecimals(symbolName: string): Promise<any> {
+  @action async getEosTokenWithDecimals(
+    symbolName: string
+  ): Promise<TokenPriceDecimal> {
     const token = this.backgroundToken(symbolName);
     // @ts-ignore
     if (token.decimals) {
-      return token;
+      return token as TokenPriceDecimal;
     } else {
       const detailApiInstance = await bancorApi.getTokenTicker(symbolName);
       this.setTokens(

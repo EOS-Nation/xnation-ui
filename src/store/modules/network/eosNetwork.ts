@@ -9,10 +9,15 @@ import {
   NetworkModule,
   TokenBalanceReturn,
   GetBalanceParam,
-  TokenBalanceParam
+  TokenBalanceParam,
+  TransferParam
 } from "@/types/bancor";
-import { getBalance, getTokenBalances } from "@/api/helpers";
+import { getBalance, getTokenBalances, compareString } from "@/api/helpers";
+import { vxm } from "@/store";
+
 import _ from "lodash";
+import { multiContract } from "@/api/multiContractTx";
+import wait from "waait";
 
 const tokenProps = ["contract", "symbol"];
 
@@ -50,6 +55,73 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
     return "eosio";
   }
 
+  @action async pingTillChange({
+    originalBalances,
+    maxPings = 20,
+    interval = 1000
+  }: {
+    originalBalances: TokenBalanceReturn[];
+    maxPings?: number;
+    interval?: number;
+  }) {
+    return Promise.all(
+      originalBalances.map(
+        async originalBalance =>
+          new Promise(async (resolve, reject) => {
+            for (var i = 0; i < maxPings; i++) {
+              let newBalanceArray = await this.getBalances({
+                tokens: [originalBalance]
+              });
+              let newBalance = newBalanceArray.find(balance =>
+                compareString(balance.symbol, originalBalance.symbol)
+              )!;
+              if (newBalance.balance !== originalBalance.balance) {
+                console.log(
+                  newBalance.symbol,
+                  "balance has changed!",
+                  newBalance.balance,
+                  originalBalance.balance
+                );
+                break;
+              } else {
+                console.log(
+                  newBalance.symbol,
+                  "has not changed, trying again in",
+                  interval,
+                  "milliseconds"
+                );
+                await wait(interval);
+              }
+            }
+            resolve();
+          })
+      )
+    );
+  }
+
+  @action async transfer({ to, amount, id, memo }: TransferParam) {
+    const symbol = id;
+    const dirtyReserve = vxm.eosBancor.relaysList
+      .map(relay => relay.reserves)
+      .flat(1)
+      .find(reserve => compareString(reserve.symbol, symbol));
+    if (!dirtyReserve) throw new Error("Failed finding dirty reserve");
+
+    const { contract, precision } = dirtyReserve;
+
+    const actions = await multiContract.tokenTransfer(contract, {
+      to,
+      quantity: `${String(Number(amount).toFixed(precision))} ${symbol}`,
+      memo
+    });
+
+    const originalBalances = await this.getBalances({
+      tokens: [{ contract, symbol }]
+    });
+    await vxm.eosWallet.tx(actions);
+    this.pingTillChange({ originalBalances });
+  }
+
   @action async fetchBulkBalances(
     tokens: GetBalanceParam["tokens"]
   ): Promise<TokenBalanceReturn[]> {
@@ -70,47 +142,32 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
       );
       return equalisedBalances;
     }
-    if (params.cachedOk) {
-      const haveAllBalances = params.tokens.every(token =>
-        this.balances.find(balance => tokenIsEqual(token, balance))
-      );
-      if (haveAllBalances) {
-        const res = params.tokens.map(
-          token => this.balances.find(balance => tokenIsEqual(token, balance))!
-        );
-        return res;
-      }
-    }
-    const tokenBalances = await getTokenBalances(this.isAuthenticated);
-    const equalisedBalances: TokenBalanceReturn[] = tokenBalances.tokens.map(
+
+    const [directTokens, bonusTokens] = await Promise.all([
+      this.fetchBulkBalances(params.tokens),
+      getTokenBalances(this.isAuthenticated)
+    ]);
+
+    const equalisedBalances: TokenBalanceReturn[] = bonusTokens.tokens.map(
       token => ({ ...token, balance: token.amount })
     );
-    const missedTokens = _.differenceWith(
-      params.tokens,
-      equalisedBalances,
-      tokenIsEqual
+    const merged = _.uniqWith(
+      [...directTokens, ...equalisedBalances],
+      (a, b) =>
+        compareString(a.contract, b.contract) &&
+        compareString(b.symbol, b.symbol)
     );
-    if (missedTokens.length > 0) {
-      const missedBalances = await this.fetchBulkBalances(missedTokens);
-      const merged = [...equalisedBalances, ...missedBalances];
-      this.setTokenBalances(merged);
-      return params.tokens.map(
-        token => merged.find(balance => tokenIsEqual(token, balance))!
-      );
-    } else {
-      this.setTokenBalances(equalisedBalances);
-      return params.tokens.map(
-        token =>
-          equalisedBalances.find(balance => tokenIsEqual(token, balance))!
-      );
-    }
+    this.updateTokenBalances(merged);
+    return directTokens;
   }
 
-  @mutation setTokenBalances(tokens: TokenBalanceReturn[]) {
+  @mutation updateTokenBalances(tokens: TokenBalanceReturn[]) {
     const balancesNotBeingUpdated = _.differenceWith(
       this.tokenBalances,
       tokens,
-      (a, b) => a.symbol == b.symbol && a.contract == b.contract
+      (a, b) =>
+        compareString(a.symbol, b.symbol) &&
+        compareString(a.contract, b.contract)
     );
     this.tokenBalances = [...balancesNotBeingUpdated, ...tokens];
   }

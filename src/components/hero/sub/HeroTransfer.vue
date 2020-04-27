@@ -152,30 +152,16 @@ export default class HeroTransfer extends Vue {
   }
 
   async initTransfer() {
-    const symbol = this.focusedToken.symbol;
-    const dirtyReserve = vxm.eosBancor.relaysList
-      .map(relay => relay.reserves)
-      .flat(1)
-      .find(reserve => compareString(reserve.symbol, symbol));
-    if (!dirtyReserve) throw new Error("Failed finding dirty reserve");
-
-    const precision = dirtyReserve.precision;
-    const contract = dirtyReserve.contract;
-
-    const actions = await multiContract.tokenTransfer(contract, {
+    await vxm.eosNetwork.transfer({
       to: this.recipient,
-      quantity: `${String(Number(this.amount).toFixed(precision))} ${symbol}`,
-      memo: this.memo
+      memo: this.memo,
+      id: this.focusedToken.symbol,
+      amount: Number(this.amount)
     });
 
-    await vxm.eosWallet.tx(actions);
     this.recipient = "";
     this.amount = "";
     this.memo = "";
-    for (var i = 0; i < 8; i++) {
-      await vxm.eosNetwork.getBalances({ tokens: [{ contract, symbol }] });
-      await wait(1000);
-    }
   }
 
   get selectedSymbolOrDefault() {

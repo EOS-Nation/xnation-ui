@@ -187,6 +187,10 @@ export interface TokenPriceExtended extends TokenPrice {
   balance: number;
 }
 
+export interface TokenPriceDecimal extends TokenPrice {
+  decimals: number;
+}
+
 export interface TradingModule {
   init: () => Promise<void>;
   readonly token: (arg0: string) => ViewToken;
@@ -300,7 +304,6 @@ export interface LiquidityModule {
 
 interface GetBalanceParam {
   tokens: TokenBalanceParam[];
-  cachedOk?: boolean;
 }
 
 interface TokenBalanceParam {
@@ -309,8 +312,19 @@ interface TokenBalanceParam {
   precision?: number;
 }
 
+interface TransferParam {
+  to: string;
+  id: string;
+  amount: number;
+  memo?: string;
+}
+
 interface TokenBalanceReturn extends TokenBalanceParam {
   balance: number;
+}
+
+interface TokenQueries extends TokenBalanceParam {
+  balance?: number;
 }
 
 export interface NetworkModule {
