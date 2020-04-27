@@ -278,13 +278,13 @@ const getTokenMeta = async (): Promise<TokenMeta[]> => {
 const parseDfuseTable = (data: MultiStateResponse<ReserveTableRow>) =>
   data.tables.map(table => ({
     smartToken: table.scope,
-    reserves: table.rows.map(row => row.json)
+    reserves: table.rows.map(row => row.json) as ReserveTableRow[]
   }));
 
 const parseDfuseSettingTable = (data: MultiStateResponse<SettingTableRow>) =>
   data.tables.map(table => ({
     smartToken: table.scope,
-    ...table.rows[0].json
+    ...table.rows[0].json!
   }));
 
 const eosMultiToDryRelays = (relays: EosMultiRelay[]): DryRelay[] =>
