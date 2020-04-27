@@ -66,7 +66,7 @@ export default class App extends Vue {
 
   async loadBancor() {
     try {
-      await vxm.bancor.init();
+      await vxm.bancor.init(this.$route.params.service);
       this.loading = false;
     } catch (e) {
       await wait(1000);
