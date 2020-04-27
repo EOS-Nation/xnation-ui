@@ -95,6 +95,7 @@ import { vxm } from "@/store";
 import debounce from "lodash.debounce";
 import Percentages from "./Percentages.vue";
 import BalanceLabel from "./BalanceLabel.vue";
+import Big from "bignumber.js";
 
 @Component({
   components: {
@@ -139,7 +140,10 @@ export default class TokenAmountInput extends Vue {
   }
 
   get formattedBalance() {
-    return `${this.balance} ${this.symbol}`;
+    const big = new Big(this.balance);
+    const formattedNumber =
+      big.decimalPlaces() < 8 ? big.toString() : big.toFixed(8);
+    return `${formattedNumber} ${this.symbol}`;
   }
 
   @Emit("toggle")
