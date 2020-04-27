@@ -55,6 +55,8 @@ import {
 import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
 import BigNumber from "bignumber.js";
 
+const ethErc20WrapperContract = "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315";
+
 export const expandToken = (amount: string | number, precision: number) =>
   new BigNumber(amount).times(new BigNumber(10).pow(precision)).toFixed(0);
 
@@ -191,10 +193,10 @@ const getTokenMeta = async () => {
   const res: AxiosResponse<TokenMeta[]> = await axios.get(
     tokenMetaDataEndpoint
   );
-  return res.data;
+  return res.data.filter(({ symbol, contract, image }) =>
+    [symbol, contract, image].every(Boolean)
+  );
 };
-
-
 
 const compareRelayBySmartTokenAddress = (a: Relay, b: Relay) =>
   compareString(a.smartToken.contract, b.smartToken.contract);
@@ -1118,7 +1120,7 @@ export class EthBancorModule extends VuexModule
       web3.eth
         .sendTransaction({
           from: this.isAuthenticated,
-          to: "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315",
+          to: ethErc20WrapperContract,
           value: web3.utils.toHex(toWei(ethDec))
         })
         .on("transactionHash", (hash: string) => {
@@ -1198,12 +1200,7 @@ export class EthBancorModule extends VuexModule
 
     await Promise.all(
       matchedBalances.map(async balance => {
-        if (
-          compareString(
-            balance.contract,
-            "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315"
-          )
-        ) {
+        if (compareString(balance.contract, ethErc20WrapperContract)) {
           await this.mintEthErc(balance.amount!);
         }
         return this.triggerApprovalIfRequired({
@@ -1693,6 +1690,12 @@ export class EthBancorModule extends VuexModule
 
   @action async focusSymbol(symbolName: string) {
     if (!this.isAuthenticated) return;
+    console.log(
+      symbolName,
+      "was passed to focusSymbol",
+      this.tokenMeta.filter(meta => !meta.symbol),
+      "is token meta"
+    );
     const tokenContracts = this.tokenMeta
       .filter(meta => compareString(meta.symbol, symbolName))
       .map(meta => meta.contract);
@@ -1733,6 +1736,21 @@ export class EthBancorModule extends VuexModule
     }
   }
 
+  @action async mintEthErcIfRequired(decString: string) {
+    const contract = buildTokenContract(ethErc20WrapperContract);
+    const currentBalance = await contract.methods
+      .balanceOf(this.isAuthenticated)
+      .call();
+
+    const currentBalanceDec = Number(shrinkToken(currentBalance, 18));
+    const numberBalance = Number(decString);
+
+    const mintingRequired = numberBalance > currentBalanceDec;
+    if (mintingRequired) {
+      return this.mintEthErc(decString);
+    }
+  }
+
   @action async convert({
     fromSymbol,
     toSymbol,
@@ -1740,11 +1758,16 @@ export class EthBancorModule extends VuexModule
     toAmount,
     onUpdate
   }: ProposedConvertTransaction) {
+    const fromIsEth = compareString(fromSymbol, "eth");
+
     const steps: Section[] = [
       {
         name: "Pathing",
         description: "Finding path..."
       },
+      ...(fromIsEth
+        ? [{ name: "MintETH", description: "Minting ETH ERC20..." }]
+        : []),
       {
         name: "SetApprovalAmount",
         description: "Setting approval amount..."
@@ -1796,8 +1819,13 @@ export class EthBancorModule extends VuexModule
       )
     );
 
+    if (fromIsEth) {
+      onUpdate!(1, steps);
+      await this.mintEthErcIfRequired(String(fromAmount));
+    }
+
     const path = generateEthPath(fromSymbol, dryRelays);
-    onUpdate!(1, steps);
+    onUpdate!(2, steps);
 
     await this.triggerApprovalIfRequired({
       owner: this.isAuthenticated,
@@ -1806,7 +1834,7 @@ export class EthBancorModule extends VuexModule
       tokenAddress: fromTokenContract
     });
 
-    onUpdate!(2, steps);
+    onUpdate!(3, steps);
 
     const networkContract = new web3.eth.Contract(
       ABINetworkContract,
@@ -1822,9 +1850,9 @@ export class EthBancorModule extends VuexModule
         0
       ),
       gas: 550000,
-      onHash: () => onUpdate!(3, steps)
+      onHash: () => onUpdate!(4, steps)
     });
-    onUpdate!(4, steps);
+    onUpdate!(5, steps);
     wait(2000).then(() =>
       [fromTokenContract, toTokenContract].forEach(contract =>
         this.getUserBalance(contract)
