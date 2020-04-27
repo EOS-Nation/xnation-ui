@@ -71,7 +71,7 @@ export default class App extends Vue {
     } catch (e) {
       await wait(1000);
       try {
-        await vxm.bancor.init();
+        await vxm.bancor.init(this.$route.params.service);
       } catch (e) {
         this.loading = false;
         this.error = e.message;
