@@ -1,5 +1,5 @@
 <template>
-  <div class="block" style="min-height: 1000px;">
+  <div class="block">
     <div class="block-header">
       <h3 class="block-title">
         All Tokens <small> - {{ name }}</small>
