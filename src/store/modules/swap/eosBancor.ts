@@ -546,8 +546,6 @@ export class EosBancorModule extends VuexModule
             source: "api"
           };
         })
-        // @ts-ignore
-        .filter(x => x.symbol !== "EMT")
     );
   }
 
