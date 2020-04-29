@@ -10,7 +10,8 @@ import {
   TokenBalanceReturn,
   GetBalanceParam,
   TokenBalanceParam,
-  TransferParam
+  TransferParam,
+  TokenBalance
 } from "@/types/bancor";
 import { getBalance, getTokenBalances, compareString } from "@/api/helpers";
 import { vxm } from "@/store";
@@ -19,12 +20,14 @@ import _ from "lodash";
 import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
 
-const tokenProps = ["contract", "symbol"];
-
-const tokenIsEqual = (
+const compareToken = (
   a: TokenBalanceParam | TokenBalanceReturn,
   b: TokenBalanceParam | TokenBalanceReturn
-) => _.isEqual(_.pick(a, tokenProps), _.pick(b, tokenProps));
+) => compareString(a.contract, b.contract) && compareString(a.symbol, b.symbol);
+
+const tokenBalanceToTokenBalanceReturn = (
+  token: TokenBalance
+): TokenBalanceReturn => ({ ...token, balance: token.amount });
 
 @Module({ namespacedPath: "eosNetwork/" })
 export class EosNetworkModule extends VuexModule implements NetworkModule {
@@ -138,24 +141,43 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
     if (!params) {
       const tokenBalances = await getTokenBalances(this.isAuthenticated);
       const equalisedBalances: TokenBalanceReturn[] = tokenBalances.tokens.map(
-        token => ({ ...token, balance: token.amount })
+        tokenBalanceToTokenBalanceReturn
       );
+      this.updateTokenBalances(equalisedBalances);
       return equalisedBalances;
     }
 
+    const tokens = _.uniqWith(params.tokens, compareToken);
+
+    if (params.slow) {
+      const bulkTokens = await getTokenBalances(this.isAuthenticated);
+      const equalisedBalances = bulkTokens.tokens.map(
+        tokenBalanceToTokenBalanceReturn
+      );
+      this.updateTokenBalances(equalisedBalances);
+      const missedTokens = _.differenceWith(
+        tokens,
+        equalisedBalances,
+        compareToken
+      );
+      const remainingBalances = await this.fetchBulkBalances(missedTokens);
+      this.updateTokenBalances(remainingBalances);
+      return [...equalisedBalances, ...remainingBalances].filter(balance =>
+        tokens.some(token => compareToken(balance, token))
+      );
+    }
+
     const [directTokens, bonusTokens] = await Promise.all([
-      this.fetchBulkBalances(params.tokens),
+      this.fetchBulkBalances(tokens),
       getTokenBalances(this.isAuthenticated)
     ]);
 
     const equalisedBalances: TokenBalanceReturn[] = bonusTokens.tokens.map(
-      token => ({ ...token, balance: token.amount })
+      tokenBalanceToTokenBalanceReturn
     );
     const merged = _.uniqWith(
       [...directTokens, ...equalisedBalances],
-      (a, b) =>
-        compareString(a.contract, b.contract) &&
-        compareString(b.symbol, b.symbol)
+      compareToken
     );
     this.updateTokenBalances(merged);
     return directTokens;
@@ -165,9 +187,7 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
     const balancesNotBeingUpdated = _.differenceWith(
       this.tokenBalances,
       tokens,
-      (a, b) =>
-        compareString(a.symbol, b.symbol) &&
-        compareString(a.contract, b.contract)
+      compareToken
     );
     this.tokenBalances = [...balancesNotBeingUpdated, ...tokens];
   }

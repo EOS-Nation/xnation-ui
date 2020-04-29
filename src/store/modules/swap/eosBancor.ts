@@ -724,17 +724,15 @@ export class EosBancorModule extends VuexModule
     const usdPriceOfBnt = ethTokens.find(token => token.code == "BNT")!.price;
     const usdValueOfEth = ethTokens.find(token => token.code == "ETH")!.price;
 
-    await this.refreshBalances();
     this.setUsdPrice(Number(usdValueOfEth));
     this.setBntPrice(Number(usdPriceOfBnt));
     this.setRelays(relays);
     this.setTokens(tokens);
     this.setTokenMeta(tokenMeta);
-    console.log("init eos resolved");
+    this.refreshBalances();
   }
 
   @action async refreshBalances(tokens: BaseToken[] = []) {
-    console.log("refresh balances received", tokens);
     if (!this.isAuthenticated) return;
     if (tokens.length > 0) {
       await vxm.eosNetwork.getBalances({ tokens });
@@ -772,7 +770,7 @@ export class EosBancorModule extends VuexModule
       }));
 
     const allTokens = [...relayTokens, ...bancorTokens];
-    await vxm.eosNetwork.getBalances({ tokens: allTokens });
+    await vxm.eosNetwork.getBalances({ tokens: allTokens, slow: true });
   }
 
   @action async addLiquidity({
