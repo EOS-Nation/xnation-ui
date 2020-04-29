@@ -55,6 +55,21 @@ import {
 import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
 import BigNumber from "bignumber.js";
 
+const findOrThrow = <T>(
+  arr: T[],
+  iteratee: (obj: T, index: number, arr: T[]) => unknown,
+  message?: string
+) => {
+  const res = arr.find(iteratee);
+  if (!res)
+    throw new Error(message || "Failed to find object in find or throw");
+  return res;
+};
+
+const compareRelayFeed = (a: RelayFeed, b: RelayFeed) =>
+  compareString(a.smartTokenContract, b.smartTokenContract) &&
+  compareString(a.tokenId, b.tokenId);
+
 const ethErc20WrapperContract = "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315";
 
 export const expandToken = (amount: string | number, precision: number) =>
@@ -1275,16 +1290,26 @@ export class EthBancorModule extends VuexModule
   ): Promise<RelayFeed[]> {
     try {
       const tokens = await ethBancorApi.getTokens();
-      const ethUsdPrice = tokens.find(token => token.code == "ETH")!.price;
+      if (!tokens || tokens.length == 0) {
+        throw new Error("Bad response from bancorAPI");
+      }
+      const ethUsdPrice = findOrThrow(
+        tokens,
+        token => token.code == "ETH",
+        "failed finding price of ETH from tokens request"
+      ).price;
 
       return relays
-        .filter(relay =>
-          bancorApiSmartTokens.some(catalog =>
+        .filter(relay => {
+          const dictionaryItems = bancorApiSmartTokens.filter(catalog =>
             compareString(relay.smartToken.contract, catalog.smartTokenAddress)
-          )
-        )
-        .map(relay => {
-          return relay.reserves.map(reserve => {
+          );
+          return tokens.some(token =>
+            dictionaryItems.some(dic => compareString(dic.tokenId, token.id))
+          );
+        })
+        .map(relay =>
+          relay.reserves.map(reserve => {
             const foundDictionaries = bancorApiSmartTokens.filter(catalog =>
               compareString(
                 catalog.smartTokenAddress,
@@ -1324,8 +1349,8 @@ export class EthBancorModule extends VuexModule
                 volume24H: undefined
               };
             }
-          });
-        })
+          })
+        )
         .flat(1);
     } catch (e) {
       console.warn(`Failed utilising Bancor API: ${e.message}`);
@@ -1350,12 +1375,7 @@ export class EthBancorModule extends VuexModule
 
   @mutation updateRelayFeeds(feeds: RelayFeed[]) {
     const allFeeds = [...feeds, ...this.relayFeed];
-    this.relayFeed = _.uniqWith(
-      allFeeds,
-      (a, b) =>
-        compareString(a.smartTokenContract, b.smartTokenContract) &&
-        compareString(a.tokenId, b.tokenId)
-    );
+    this.relayFeed = _.uniqWith(allFeeds, compareRelayFeed);
   }
 
   @action async fetchCost({
@@ -1369,11 +1389,13 @@ export class EthBancorModule extends VuexModule
     to: string;
     wei: string;
   }): Promise<string | null> {
-    console.log({ converterAddress });
     const converterContract = buildConverterContract(converterAddress);
 
-    const fromAddress = reserves.find(token => token.symbol !== to)!.contract;
-    const toAddress = reserves.find(token => token.symbol == to)!.contract;
+    const toAddress = findOrThrow(
+      reserves,
+      token => compareString(token.symbol, to),
+      `passed to symbol ${to} does not exist in reserves passed`
+    ).contract;
 
     try {
       const res = await converterContract.methods
@@ -1382,7 +1404,7 @@ export class EthBancorModule extends VuexModule
       return res["0"];
     } catch (e) {
       console.error(
-        `Failed fetching price at relay: ${converterAddress}, wei: ${wei}, from: ${fromAddress}, to: ${toAddress}`
+        `Failed fetching price at relay: ${converterAddress}, wei: ${wei}, from:, to: ${toAddress}`
       );
       return null;
     }
@@ -1390,10 +1412,8 @@ export class EthBancorModule extends VuexModule
 
   @action async fetchBancorUsdPriceOfBnt() {
     const tokens = await bancorApi.getTokens();
-    const usdPriceOfBnt = Number(
-      tokens.find(token => token.code == "BNT")!.price
-    );
-
+    const usdPriceOfBnt = findOrThrow(tokens, token => token.code == "BNT")
+      .price;
     return usdPriceOfBnt;
   }
 
@@ -1501,8 +1521,6 @@ export class EthBancorModule extends VuexModule
     await this.fetchAndUpdateRelayFeeds(
       relaysWithTokenMeta(nonHardCodedRelays, tokenMeta)
     );
-
-    console.log(contractAddresses, "are contract addresses");
   }
 
   @action async buildRelaysFromSmartTokenAddresses(
@@ -1671,10 +1689,11 @@ export class EthBancorModule extends VuexModule
     relay: Relay;
     reserveContract: string;
   }): Promise<[Token, number]> {
-    const reserveInRelay = relay.reserves.find(
-      reserve => reserve.contract == reserveContract
+    const reserveInRelay = findOrThrow(
+      relay.reserves,
+      reserve => compareString(reserve.contract, reserveContract),
+      "Reserve is not in this relay!"
     );
-    if (!reserveInRelay) throw new Error("Reserve is not in this relay!");
     const converterContract = buildConverterContract(relay.contract);
 
     const reserveBalance = await fetchReserveBalance(
@@ -1682,9 +1701,11 @@ export class EthBancorModule extends VuexModule
       reserveContract,
       relay.version
     );
-    const numberReserveBalance =
-      Number(reserveBalance) / Math.pow(10, reserveInRelay.decimals);
-    return [reserveInRelay, numberReserveBalance];
+    const numberReserveBalance = shrinkToken(
+      reserveBalance,
+      reserveInRelay.decimals
+    );
+    return [reserveInRelay, Number(numberReserveBalance)];
   }
 
   @action async focusSymbol(symbolName: string) {
