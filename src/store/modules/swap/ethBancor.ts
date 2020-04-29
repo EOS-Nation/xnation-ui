@@ -1785,9 +1785,7 @@ export class EthBancorModule extends VuexModule
         name: "Pathing",
         description: "Finding path..."
       },
-      ...(fromIsEth
-        ? [{ name: "MintETH", description: "Minting ETH ERC20..." }]
-        : []),
+      { name: "MintETH", description: "Minting ETH ERC20..." },
       {
         name: "SetApprovalAmount",
         description: "Setting approval amount..."
@@ -1907,7 +1905,7 @@ export class EthBancorModule extends VuexModule
       ]);
     }
 
-    await this.approveTokenWithdrawals([
+    return this.approveTokenWithdrawals([
       { approvedAddress: spender, amount, tokenAddress }
     ]);
   }
