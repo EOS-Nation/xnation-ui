@@ -1359,33 +1359,46 @@ export class EosBancorModule extends VuexModule
           memo
         );
 
-        const contract = relaysPath[relaysPath.length - 1].reserves.find(
+        const toContract = relaysPath[relaysPath.length - 1].reserves.find(
           reserve => reserve.symbol.code().to_string() == toSymbol
         )!.contract;
 
         const existingBalance = await this.hasExistingBalance({
-          contract,
+          contract: toContract,
           symbol: toSymbol
         });
 
         if (!existingBalance) {
-          const abiConf = await client.stateAbi(contract);
+          const abiConf = await client.stateAbi(toContract);
           const openSupported = abiConf.abi.actions.some(
             action => action.name == "open"
           );
           if (!openSupported)
             throw new Error(
-              `You do not have an existing balance of ${toSymbol} and it's token contract ${contract} does not support 'open' functionality.`
+              `You do not have an existing balance of ${toSymbol} and it's token contract ${toContract} does not support 'open' functionality.`
             );
           const openActions = await multiContract.openActions(
-            contract,
+            toContract,
             // @ts-ignore
             `${toToken.precision},${toSymbol}`,
             this.isAuthenticated
           );
           convertActions = [...openActions, ...convertActions];
         }
-        const txRes = await this.triggerTx(convertActions);
+
+        const tokenContractsAndSymbols = [
+          { contract: toContract, symbol: toSymbol },
+          { contract: fromTokenContract, symbol: "BNT" }
+        ];
+
+        const [txRes, originalBalances] = await Promise.all([
+          this.triggerTx(convertActions),
+          vxm.eosNetwork.getBalances({
+            tokens: tokenContractsAndSymbols
+          })
+        ]);
+
+        vxm.eosNetwork.pingTillChange({ originalBalances });
         return txRes.transaction_id;
       }
       case ConvertType.MultiToApi: {
@@ -1435,7 +1448,19 @@ export class EosBancorModule extends VuexModule
           assetAmount,
           memo
         );
-        const txRes = await this.triggerTx(convertActions);
+
+        const tokenContractsAndSymbols = [
+          { contract: fromTokenContract, symbol: fromToken.symbol }
+        ];
+
+        const [txRes, originalBalances] = await Promise.all([
+          this.triggerTx(convertActions),
+          vxm.eosNetwork.getBalances({
+            tokens: tokenContractsAndSymbols
+          })
+        ]);
+
+        vxm.eosNetwork.pingTillChange({ originalBalances });
         return txRes.transaction_id;
       }
       default:
