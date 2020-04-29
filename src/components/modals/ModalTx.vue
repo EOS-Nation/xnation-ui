@@ -44,6 +44,7 @@ export default class ModalConvertToken extends Vue {
     if (this.busy) {
       event.preventDefault();
     }
+    this.$emit("input", false);
   }
 }
 </script>
