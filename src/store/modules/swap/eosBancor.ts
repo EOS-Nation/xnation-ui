@@ -845,6 +845,22 @@ export class EosBancorModule extends VuexModule
 
     const actions = [...addLiquidityActions, fundAction];
     let txRes: any;
+
+    const tokenContractsAndSymbols = [
+      {
+        contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
+        symbol: smartTokenSymbol
+      },
+      ...tokenAmounts.map(tokenAmount => ({
+        contract: tokenAmount.contract,
+        symbol: tokenAmount.amount.symbol.code().to_string()
+      }))
+    ];
+
+    const originalBalances = await vxm.eosNetwork.getBalances({
+      tokens: tokenContractsAndSymbols
+    })
+
     try {
       txRes = await this.triggerTx(actions);
     } catch (e) {
@@ -885,12 +901,7 @@ export class EosBancorModule extends VuexModule
       await this.triggerTx(withdrawActions);
     }
     onUpdate!(5, steps);
-    this.refreshBalances(
-      tokenAmounts.map(tokenAmount => ({
-        contract: tokenAmount.contract,
-        symbol: tokenAmount.amount.symbol.code().to_string()
-      }))
-    );
+    vxm.eosNetwork.pingTillChange({ originalBalances });
     return txRes.transaction_id as string;
   }
 
@@ -923,8 +934,31 @@ export class EosBancorModule extends VuexModule
     );
 
     const action = multiContract.removeLiquidityAction(liquidityAsset);
-    const txRes = await this.triggerTx([action]);
-    this.waitAndUpdate();
+
+    const tokenContractsAndSymbols = [
+      {
+        contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
+        symbol: smartTokenSymbol
+      },
+      ...this.convertableRelays
+        .find(relay =>
+          compareString(relay.smartToken.symbol, smartTokenSymbol)
+        )!
+        .reserves.map(reserve => ({
+          contract: reserve.contract,
+          symbol: reserve.symbol
+        }))
+    ];
+
+    const [txRes, originalBalances] = await Promise.all([
+      this.triggerTx([action]),
+      vxm.eosNetwork.getBalances({
+        tokens: tokenContractsAndSymbols
+      })
+    ]);
+    vxm.eosNetwork.pingTillChange({ originalBalances });
+    this.waitAndUpdate(6000);
+
     return txRes.transaction_id as string;
   }
 

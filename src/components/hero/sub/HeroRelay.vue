@@ -126,6 +126,7 @@ import TokenSwap from "@/components/common/TokenSwap.vue";
 import DynamicDropdown from "@/components/common/DynamicDropdown.vue";
 import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
 import Stepper from "@/components/modals/Stepper.vue";
+import wait from 'waait';
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
@@ -413,6 +414,7 @@ export default class HeroRelay extends Vue {
         token2Symbol: this.token2Symbol
       });
       this.fetchBalances();
+      wait(7000).then(() => this.fetchBalances());
       this.success = txResult;
     } catch (e) {
       this.error = e.message;
@@ -443,6 +445,7 @@ export default class HeroRelay extends Vue {
         onUpdate: this.onUpdate
       });
       this.fetchBalances();
+      wait(7000).then(() => this.fetchBalances());
       this.success = txResult;
       // @ts-ignore
       this.$analytics.logEvent("Fund", { txId: txResult });
