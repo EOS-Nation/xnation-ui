@@ -298,10 +298,6 @@ export default class HeroRelay extends Vue {
       : this.token2UserBalance;
   }
 
-  get isAdmin() {
-    return this.owner == this.isAuthenticated;
-  }
-
   selectedToken(account: string) {
     this.modal = false;
     this.$router.push({
