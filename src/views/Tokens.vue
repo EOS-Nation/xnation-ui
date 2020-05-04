@@ -25,7 +25,6 @@ import { SimpleToken } from "@/types/bancor";
   }
 })
 export default class Token extends Vue {
-
   get tokens() {
     return vxm.bancor.tokens;
   }

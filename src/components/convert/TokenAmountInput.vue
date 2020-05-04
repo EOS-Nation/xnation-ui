@@ -72,6 +72,11 @@
       />
       <h4 class="error">
         <b-badge variant="danger">{{ error }}</b-badge>
+        <div class="errorList">
+          <b-badge :key="error" v-for="error in errorsList" variant="danger">{{
+            error
+          }}</b-badge>
+        </div>
       </h4>
     </div>
   </div>
@@ -90,6 +95,7 @@ import { vxm } from "@/store";
 import debounce from "lodash.debounce";
 import Percentages from "./Percentages.vue";
 import BalanceLabel from "./BalanceLabel.vue";
+import Big from "bignumber.js";
 
 @Component({
   components: {
@@ -109,6 +115,21 @@ export default class TokenAmountInput extends Vue {
   @Prop(Boolean) small?: boolean;
   @Prop(String) label?: string;
   @Prop(String) error?: string;
+  @Prop(Array) errors?: string[];
+  @Prop({ default: false }) warnBalance?: boolean;
+
+  get errorsList() {
+    return [
+      ...(this.errors && this.errors.length ? [this.errors] : []),
+      ...(this.warnBalance && this.insufficientBalance
+        ? ["Insufficient Balance"]
+        : [])
+    ];
+  }
+
+  get insufficientBalance() {
+    return Number(this.tokenAmount) > this.balance;
+  }
 
   updatePercent(percentage: string) {
     const newAmount =
@@ -119,7 +140,10 @@ export default class TokenAmountInput extends Vue {
   }
 
   get formattedBalance() {
-    return `${this.balance} ${this.symbol}`;
+    const big = new Big(this.balance);
+    const formattedNumber =
+      big.decimalPlaces() < 8 ? big.toString() : Number(big.toFixed(8));
+    return `${formattedNumber} ${this.symbol}`;
   }
 
   @Emit("toggle")
@@ -133,4 +157,11 @@ export default class TokenAmountInput extends Vue {
 }
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.error-list {
+  display: flex;
+  :first-child {
+    margin-right: 3px;
+  }
+}
+</style>

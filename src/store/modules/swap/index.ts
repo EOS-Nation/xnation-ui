@@ -12,6 +12,7 @@ import {
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
+import { compareString } from "@/api/helpers";
 
 @Module({ namespacedPath: "bancor/" })
 export class BancorModule extends VuexModule {
@@ -74,12 +75,31 @@ export class BancorModule extends VuexModule {
     return vxm[`${this.currentNetwork}Bancor`]["wallet"];
   }
 
-  @action async init() {
-    return Promise.all(
-      this.chains.map(chain =>
-        this.$store.dispatch(`${chain}Bancor/init`, null, { root: true })
-      )
-    );
+  @action async init(initialChain?: string) {
+    if (initialChain) {
+      return new Promise((resolve, reject) => {
+        this.$store
+          .dispatch(`${initialChain}Bancor/init`, null, {
+            root: true
+          })
+          .then(() => resolve())
+          .catch(e => reject(e));
+        const remainingChains = this.chains.filter(
+          chain => !compareString(chain, initialChain)
+        );
+        remainingChains.forEach(chain =>
+          this.$store
+            .dispatch(`${chain}Bancor/init`, null, { root: true })
+            .catch(e => reject(e))
+        );
+      });
+    } else {
+      return Promise.all(
+        this.chains.map(chain =>
+          this.$store.dispatch(`${chain}Bancor/init`, null, { root: true })
+        )
+      );
+    }
   }
 
   @action async convert(tx: ProposedConvertTransaction) {

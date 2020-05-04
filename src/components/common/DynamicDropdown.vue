@@ -2,6 +2,7 @@
   <div>
     <b-dropdown
       button
+      :disabled="disabled"
       @click="clicked"
       variant="success"
       split
@@ -31,6 +32,7 @@ import { Prop, Component, Vue, PropSync, Emit } from "vue-property-decorator";
 export default class DynamicDropdown extends Vue {
   @Prop(Array) menus!: [string, string, string][];
   @PropSync("selectedMenu", { type: String }) menu!: string;
+  @Prop({ default: false }) disabled?: boolean;
 
   get sortedMenus() {
     return this.menus.filter(([name, label, icon]) => name !== this.menu);

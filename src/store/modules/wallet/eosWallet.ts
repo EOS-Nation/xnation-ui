@@ -80,7 +80,6 @@ export class EosTransitModule extends VuexModule {
   }
 
   @action async tx(actions: EosWalletAction[]) {
-    console.log('TX HIT:', actions)
     const authIncluded = actions.every(
       (action: EosWalletAction) => action.authorization
     );

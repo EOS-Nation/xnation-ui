@@ -1,5 +1,5 @@
 <template>
-  <div class="block" style="min-height: 1000px;">
+  <div class="block">
     <div class="block-header">
       <h3 class="block-title">
         All Tokens <small> - {{ name }}</small>
@@ -45,17 +45,23 @@
           <template v-slot:cell(change24h)="data">
             <span
               :class="
-                data.item.change24h > 0
+                data.item.change24h == null
+                  ? 'text'
+                  : data.item.change24h > 0
                   ? `text-success font-w700`
                   : 'text-danger font-w700'
               "
-              >{{ numeral(data.item.change24h).format("0.00") + "%" }}</span
+              >{{
+                data.item.change24h == null
+                  ? "N/A"
+                  : numeral(data.item.change24h).format("0.00") + "%"
+              }}</span
             >
           </template>
           <template v-slot:cell(price)="data">
             <span class="text-center font-w700">
-              <span v-if="data.item.price < 1">{{
-                numeral(data.item.price).format("$0,0.000000")
+              <span v-if="data.item.price < 100">{{
+                numeral(data.item.price).format("$0,0.0000")
               }}</span>
               <span v-else>{{
                 numeral(data.item.price).format("$0,0.00")
@@ -129,7 +135,6 @@ export default class TokensTable extends Vue {
   small = false;
 
   filter = "";
-  // data
   numeral = numeral;
 
   transProps = {
@@ -181,7 +186,7 @@ export default class TokensTable extends Vue {
       label: "Price USD",
       class: ["text-center"],
       formatter: (value: any, key: any, item: any) =>
-        numeral(value).format("$0,0.00")
+        numeral(value).format("$0,0.0000")
     },
     {
       key: "volume24h",
@@ -189,7 +194,9 @@ export default class TokensTable extends Vue {
       label: "24H Volume",
       class: ["text-center"],
       formatter: (value: any, key: any, item: any) =>
-        numeral(value).format("$0,0.00")
+        value == null || value == undefined
+          ? "N/A"
+          : numeral(value).format("$0,0.00")
     },
     {
       key: "liqDepth",
@@ -201,7 +208,8 @@ export default class TokensTable extends Vue {
     },
     {
       key: "actions",
-      label: "Actions"
+      label: "Actions",
+      class: ["text-right"]
     }
   ];
 
@@ -217,13 +225,20 @@ export default class TokensTable extends Vue {
   }
 
   get filteredFields() {
-    return this.small
+    const small = this.small
       ? this.fields.filter(field =>
           ["key", "volume24h", "index", "name"].every(
             fieldName => fieldName !== field.key
           )
         )
       : this.fields;
+    const hasKeys = small.filter(field => {
+      if (field.key == "index" || field.key == "actions") return true;
+      return this.tokens.some(token =>
+        new Object(token).hasOwnProperty(field.key)
+      );
+    });
+    return hasKeys;
   }
 
   handleResize() {

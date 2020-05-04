@@ -3,7 +3,7 @@
     <two-token-hero
       :tokenOneSymbol.sync="fromTokenSymbol"
       :tokenOneAmount.sync="fromTokenAmount"
-      :tokenOneError="fromTokenError"
+      :tokenOneErrors="fromTokenErrors"
       @update:tokenOneAmount="updatePriceReturn"
       @update:tokenTwoAmount="updatePriceCost"
       :tokenOneBalance="fromToken.balance"
@@ -12,7 +12,7 @@
       :tokenTwoAmount.sync="toTokenAmount"
       :tokenTwoBalance="toToken.balance"
       :tokenTwoImg="toToken.logo"
-      :tokenTwoError="toTokenError"
+      :tokenTwoErrors="toTokenErrors"
       :choices="choices"
     >
       <div>
@@ -73,44 +73,53 @@
       :busy="txBusy"
       @input="closeTxModal"
     >
-      <token-swap
-        :error="error"
-        :success="success"
-        :leftImg="fromToken.logo"
-        :leftTitle="`${fromTokenAmount} ${fromTokenSymbol}`"
-        :leftSubtitle="
-          `${fromToken.name} ($${(
-            token(fromTokenSymbol).price * Number(fromTokenAmount)
-          ).toFixed(2)} USD)`
-        "
-        :rightImg="toToken.logo"
-        :rightTitle="`${toTokenAmount} ${toTokenSymbol}`"
-        :rightSubtitle="toToken.name"
-      >
-        <template v-slot:footer>
-          <b-col cols="12" class="text-center">
-            <div v-if="!success && !error">
-              <h6>
-                Please proceed with your wallet to confirm this Transaction.
+      <div>
+        <stepper
+          v-if="sections.length > 1"
+          :selectedStep="stepIndex"
+          :steps="sections"
+          :label="sections[stepIndex].description"
+          :numbered="true"
+        />
+        <token-swap
+          :error="error"
+          :success="success"
+          :leftImg="fromToken.logo"
+          :leftTitle="`${fromTokenAmount} ${fromTokenSymbol}`"
+          :leftSubtitle="
+            `${fromToken.name} ($${(
+              token(fromTokenSymbol).price * Number(fromTokenAmount)
+            ).toFixed(2)} USD)`
+          "
+          :rightImg="toToken.logo"
+          :rightTitle="`${toTokenAmount} ${toTokenSymbol}`"
+          :rightSubtitle="toToken.name"
+        >
+          <template v-slot:footer>
+            <b-col cols="12" class="text-center">
+              <div v-if="!success && !error">
+                <h6>
+                  Please proceed with your wallet to confirm this Transaction.
+                </h6>
+                <!-- <p>BNT trades include a 1% affiliate fee.</p> -->
+              </div>
+              <h6 v-else-if="error && !success" class="text-danger">
+                Error: {{ error }}
+                <!-- <span class="cursor text-muted"> - Try again</span> -->
               </h6>
-              <!-- <p>BNT trades include a 1% affiliate fee.</p> -->
-            </div>
-            <h6 v-else-if="error && !success" class="text-danger">
-              Error: {{ error }}
-              <!-- <span class="cursor text-muted"> - Try again</span> -->
-            </h6>
-            <h6 v-else-if="!error && success">
-              <a :href="explorerLink" target="_blank" class="text-success">
-                SUCCESS: View {{ success.substring(0, 6) }} TX on
-                {{ explorerName }}
-              </a>
-              <span @click="txModal = false" class="cursor text-muted"
-                >- Close</span
-              >
-            </h6>
-          </b-col>
-        </template>
-      </token-swap>
+              <h6 v-else-if="!error && success">
+                <a :href="explorerLink" target="_blank" class="text-success">
+                  SUCCESS: View {{ success.substring(0, 6) }} TX on
+                  {{ explorerName }}
+                </a>
+                <span @click="txModal = false" class="cursor text-muted"
+                  >- Close</span
+                >
+              </h6>
+            </b-col>
+          </template>
+        </token-swap>
+      </div>
     </modal-tx>
   </hero-wrapper>
 </template>
@@ -122,11 +131,12 @@ import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import TokenField from "@/components/convert/TokenField.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
+import Stepper from "@/components/modals/Stepper.vue";
 import wait from "waait";
 import { Route } from "vue-router";
 import TwoTokenHero from "./TwoTokenHero.vue";
 import { State, Getter, Action, Mutation, namespace } from "vuex-class";
-import { LiquidityModule, TradingModule } from "../../../types/bancor";
+import { LiquidityModule, TradingModule, Step } from "../../../types/bancor";
 import numeral from "numeral";
 import { vxm } from "@/store";
 
@@ -176,7 +186,8 @@ const bancor = namespace("bancor");
     ModalTx,
     TokenField,
     TokenSwap,
-    TwoTokenHero
+    TwoTokenHero,
+    Stepper
   }
 })
 export default class HeroConvert extends Vue {
@@ -195,18 +206,47 @@ export default class HeroConvert extends Vue {
   toTokenError = "";
   slippage: number | null = null;
 
+  sections: Step[] = [];
+  stepIndex = 0;
+
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter tokens!: TradingModule["tokens"];
   @bancor.Action convert!: TradingModule["convert"];
   @bancor.Action init!: TradingModule["init"];
   @bancor.Action focusSymbol!: TradingModule["focusSymbol"];
-  @bancor.Action refreshBalances!: TradingModule["refreshBalances"];
   @bancor.Action getReturn!: TradingModule["getReturn"];
   @bancor.Action getCost!: TradingModule["getCost"];
   @bancor.Getter relay!: LiquidityModule["relay"];
   @wallet.Getter isAuthenticated!: string | boolean;
   @bancor.Action
   calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
+
+  get fromTokenErrors() {
+    return [
+      ...(this.fromTokenError ? [this.fromTokenError] : []),
+      ...(this.fromTokenBalanceInsuffient ? ["Insufficient Balance"] : [])
+    ];
+  }
+
+  get toTokenErrors() {
+    return [
+      ...(this.toTokenError ? [this.toTokenError] : []),
+      ...(this.toTokenBalanceInsufficient ? ["Insufficient Balance"] : [])
+    ];
+  }
+
+  get fromTokenBalanceInsuffient() {
+    return (
+      this.fromTokenBalance &&
+      Number(this.fromTokenAmount) > this.fromTokenBalance
+    );
+  }
+
+  get toTokenBalanceInsufficient() {
+    return (
+      this.toTokenBalance && Number(this.toTokenBalance) > this.toTokenBalance
+    );
+  }
 
   get currentNetwork() {
     return this.$route.params.service;
@@ -301,7 +341,7 @@ export default class HeroConvert extends Vue {
       !this.isAuthenticated ||
       this.loadingConversion ||
       this.fromTokenAmount == "" ||
-      this.toTokenAmount == ""
+      this.toTokenAmount == "" || (this.fromTokenErrors.length + this.toTokenErrors.length > 0)
     );
   }
 
@@ -317,16 +357,25 @@ export default class HeroConvert extends Vue {
     setTimeout(() => (this.flipping = false), 500);
   }
 
+  onUpdate(stepIndex: number, steps: Step[]) {
+    this.stepIndex = stepIndex;
+    this.sections = steps;
+  }
+
   async initConvert() {
     try {
+      this.sections = [];
       this.txModal = true;
       this.txBusy = true;
+      this.success = '';
+      this.error = '';
 
       const result = await this.convert({
         fromSymbol: this.fromTokenSymbol,
         toSymbol: this.toTokenSymbol,
         fromAmount: Number(this.fromTokenAmount),
-        toAmount: Number(this.toTokenAmount)
+        toAmount: Number(this.toTokenAmount),
+        onUpdate: this.onUpdate
       });
 
       this.success = result;
@@ -357,15 +406,6 @@ export default class HeroConvert extends Vue {
     this.error = "";
   }
 
-  navTransfer() {
-    // this.$router.push({
-    //   name: "Transfer",
-    //   params: {
-    //     symbolName: this.selectedSymbolOrDefaultTo
-    //   }
-    // });
-  }
-
   async updatePriceReturn(amountString: string) {
     const amount = Number(amountString);
     this.slippage = null;
@@ -387,7 +427,7 @@ export default class HeroConvert extends Vue {
       this.fromTokenError = "";
       this.toTokenError = "";
     } catch (e) {
-      this.toTokenError = ""
+      this.toTokenError = "";
       this.fromTokenError = e.message;
     }
     this.loadingConversion = false;
@@ -429,7 +469,6 @@ export default class HeroConvert extends Vue {
     this.focusSymbol(symbol);
   }
 
-
   async loadSimpleReward() {
     this.loading = true;
     const reward = await this.getReturn({
@@ -444,8 +483,8 @@ export default class HeroConvert extends Vue {
 
   async created() {
     this.loadSimpleReward();
-    // @ts-ignore
-    this.$analytics.logEvent("hero_component_created");
+    this.focusSymbol(this.fromTokenSymbol);
+    this.focusSymbol(this.toTokenSymbol);
   }
 }
 </script>

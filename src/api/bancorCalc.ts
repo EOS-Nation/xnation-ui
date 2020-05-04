@@ -202,7 +202,10 @@ export function removeChoppedRelay(
   relays: ChoppedRelay[],
   departingRelay: ChoppedRelay
 ): ChoppedRelay[] {
-  return relays.filter(relay => !relaysAreSame(relay, departingRelay));
+  const res = relays.filter(relay => !relaysAreSame(relay, departingRelay));
+  if (res.length + 1 !== relays.length)
+    throw new Error("Failed to remove chopped relay");
+  return res;
 }
 
 export const chopRelay = (item: DryRelay): ChoppedRelay[] => {

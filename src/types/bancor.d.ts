@@ -25,15 +25,18 @@ export interface PriceHistory {
 
 export type FloatAmount = number;
 
+
+export interface TokenBalance {
+  symbol: string;
+  precision: number;
+  amount: number;
+  contract: string;
+}
+
 export interface TokenBalances {
   query_time: number;
   account: string;
-  tokens: {
-    symbol: string;
-    precision: number;
-    amount: number;
-    contract: string;
-  }[];
+  tokens: TokenBalance[];
 }
 
 export interface ProposedTransaction {
@@ -49,6 +52,7 @@ export interface LiquidityParams {
   token1Symbol?: string;
   token2Symbol?: string;
   token2Amount?: string;
+  onUpdate?: (index: number, sections: Section[]) => void;
 }
 
 export interface OpposingLiquidParams {
@@ -62,11 +66,17 @@ export interface OpposingLiquid {
   smartTokenAmount: string;
 }
 
+export interface Section {
+  name: string;
+  description: string;
+}
+
 export interface ProposedConvertTransaction {
   fromSymbol: string;
   toSymbol: string;
   fromAmount: FloatAmount;
   toAmount: FloatAmount;
+  onUpdate?: (index: number, sections: Section[]) => void;
 }
 
 export interface TokenDetail {
@@ -140,13 +150,14 @@ export interface ConvertReturn {
 }
 
 export interface ViewToken {
+  id?: string;
   symbol: string;
   name: string;
   price: number;
   liqDepth: number;
   logo: string;
-  change24h: number;
-  volume24h: number;
+  change24h?: number;
+  volume24h?: number;
   balance?: number;
 }
 
@@ -154,11 +165,22 @@ interface TokenWithLogo extends AgnosticToken {
   logo: string[];
 }
 
+export interface ViewReserve {
+  reserveId: string;
+  swap: string;
+  smartTokenSymbol: string;
+  logo: string[];
+  symbol: string;
+  contract: string;
+  balance?: number;
+}
+
 export interface ViewRelay {
+  id: string;
   symbol: string;
   smartTokenSymbol: string;
   liqDepth: number;
-  reserves: TokenWithLogo[];
+  reserves: ViewReserve[];
   fee: number;
   owner: string;
   swap: string;
@@ -166,6 +188,10 @@ export interface ViewRelay {
 
 export interface TokenPriceExtended extends TokenPrice {
   balance: number;
+}
+
+export interface TokenPriceDecimal extends TokenPrice {
+  decimals: number;
 }
 
 export interface TradingModule {
@@ -199,8 +225,9 @@ export interface EosMultiRelay {
 export interface ModalChoice {
   symbol: string;
   contract: string;
-  balance: number;
+  balance?: number;
   img: string;
+  usdValue?: number
 }
 
 export interface NetworkChoice extends ModalChoice {
@@ -239,7 +266,6 @@ export interface BaseToken {
   contract: string;
   symbol: string;
 }
-
 
 export interface PromiseEvent {
   name: string;
@@ -281,7 +307,7 @@ export interface LiquidityModule {
 
 interface GetBalanceParam {
   tokens: TokenBalanceParam[];
-  cachedOk?: boolean;
+  slow?: boolean;
 }
 
 interface TokenBalanceParam {
@@ -290,8 +316,19 @@ interface TokenBalanceParam {
   precision?: number;
 }
 
+interface TransferParam {
+  to: string;
+  id: string;
+  amount: number;
+  memo?: string;
+}
+
 interface TokenBalanceReturn extends TokenBalanceParam {
   balance: number;
+}
+
+interface TokenQueries extends TokenBalanceParam {
+  balance?: number;
 }
 
 export interface NetworkModule {

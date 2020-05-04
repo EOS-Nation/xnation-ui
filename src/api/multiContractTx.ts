@@ -236,7 +236,7 @@ class MultiContractTx {
 
     const action = multiContractAction.withdraw(
       owner,
-      amount.toString(),
+      amount.to_string(),
       symbolCode
     ) as SemiAction;
     console.log(action, "was the action");

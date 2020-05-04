@@ -89,6 +89,7 @@ import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
+import { compareString } from "../../../api/helpers";
 
 @Component({
   components: {
@@ -150,43 +151,17 @@ export default class HeroTransfer extends Vue {
     );
   }
 
-
   async initTransfer() {
-    const token = await vxm.eosBancor.getEosTokenWithDecimals(this.focusedToken.symbol);
-    const precision = token.decimals;
-    if (!this.focusedToken.contract) throw new Error("I cannot find the contract for focused token")
-    const actions = await multiContract.tokenTransfer(
-      this.focusedToken.contract,
-      {
-        to: this.recipient,
-        quantity: `${String(Number(this.amount).toFixed(precision))} ${
-          this.focusedToken.symbol
-        }`,
-        memo: this.memo
-      }
-    );
-    await vxm.eosWallet.tx(actions);
-    await wait(700);
-    await vxm.eosBancor.refreshBalances();
+    await vxm.eosNetwork.transfer({
+      to: this.recipient,
+      memo: this.memo,
+      id: this.focusedToken.symbol,
+      amount: Number(this.amount)
+    });
 
-    // if (!this.isAuthenticated) this.$bvModal.show("modal-login");
-    // else {
-    //   this.$bvModal.show("modal-transfer-token");
-    //   let transferHistory = localStorage.getItem("transferHistory");
-    //   const tx = {
-    //     from: this.isAuthenticated,
-    //     to: this.recipient,
-    //     amount: Number(this.amount).toFixed(this.focusedToken.precision),
-    //     symbol: this.focusedToken.symbol,
-    //     memo: this.memo
-    //   };
-    //   if (transferHistory) {
-    //     let history = JSON.parse(transferHistory);
-    //     history = history.concat([tx]);
-    //     localStorage.setItem("transferHistory", JSON.stringify(history));
-    //   } else localStorage.setItem("transferHistory", JSON.stringify([tx]));
-    //   this.loadHistory();
-    // }
+    this.recipient = "";
+    this.amount = "";
+    this.memo = "";
   }
 
   get selectedSymbolOrDefault() {

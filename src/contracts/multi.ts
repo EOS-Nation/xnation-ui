@@ -52,13 +52,13 @@ class MultiContractAction {
 
   withdraw(sender: string, quantity: string, converter_currency_code: string) {
     return this.addAccountProperty({
-      name: 'withdraw',
+      name: "withdraw",
       data: {
         sender,
         quantity,
         converter_currency_code
       }
-    })
+    });
   }
 
   updateowner(currency: string, owner: string): BareAction | SemiAction {
@@ -75,7 +75,7 @@ class MultiContractAction {
     return this.addAccountProperty({
       name: "delconverter",
       data: { converter_currency_code }
-    })
+    });
   }
 
   fund(sender: string, quantity: string): BareAction | SemiAction {
@@ -100,12 +100,12 @@ class MultiContractAction {
 
   updatefee(currency: string, fee: number) {
     return this.addAccountProperty({
-      name: 'updatefee',
+      name: "updatefee",
       data: {
         currency,
         fee
       }
-    })
+    });
   }
 
   create(
@@ -124,4 +124,6 @@ class MultiContractAction {
   }
 }
 
-export const multiContractAction = new MultiContractAction(process.env.VUE_APP_MULTICONTRACT!);
+export const multiContractAction = new MultiContractAction(
+  process.env.VUE_APP_MULTICONTRACT!
+);

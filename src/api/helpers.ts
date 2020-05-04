@@ -1,16 +1,13 @@
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
 import { Asset } from "eos-common";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
-import { TokenBalances, EthplorerBalance, EosMultiRelay } from "@/types/bancor";
+import { TokenBalances, EosMultiRelay } from "@/types/bancor";
 import Web3 from "web3";
 import { ABIBancorGasPriceLimit, BancorGasLimit } from "./ethConfig";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
-
-const tokenMetaDataEndpoint =
-  "https://raw.githubusercontent.com/eoscafe/eos-airdrops/master/tokens.json";
 
 const eosRpc: JsonRpc = rpc;
 
@@ -28,11 +25,27 @@ interface TraditionalStat {
   max_supply: Asset;
 }
 
+export const compareString = (stringOne: string, stringTwo: string) => {
+  if (![stringOne, stringTwo].every(Boolean))
+    throw new Error(
+      `String one: ${stringOne} String two: ${stringTwo} one of them are falsy.`
+    );
+  return stringOne.toLowerCase() == stringTwo.toLowerCase();
+};
+
+export const fetchBinanceUsdPriceOfBnt = async (): Promise<number> => {
+  const res = await axios.get<{ mins: number; price: string }>(
+    "https://api.binance.com/api/v3/avgPrice?symbol=BNTUSDT"
+  );
+  return Number(res.data.price);
+};
+
 export type Wei = string | number;
 export type Ether = string | number;
 
 export const web3 = new Web3(
-  Web3.givenProvider || "https://mainnet.infura.io/v3/da059c364a2f4e6eb89bfd89600bce07"
+  Web3.givenProvider ||
+    "https://mainnet.infura.io/v3/da059c364a2f4e6eb89bfd89600bce07"
 );
 
 export const fetchReserveBalance = async (
@@ -123,7 +136,7 @@ export const getTokenBalances = async (
   return res.data;
 };
 
-export const getEthRelays = async (): Promise<Relay[]> => {
+export const getEthRelays = (): Relay[] => {
   const relays = [
     {
       tokenAddress: "0x83cee9e086A77e492eE0bB93C2B0437aD6fdECCc",
@@ -3424,6 +3437,7 @@ export interface Relay {
   isMultiContract: boolean;
   fee: number;
   liqDepth?: string;
+  singleUnitCostByNetworkToken?: number;
   network: string;
   version: string;
   owner: string;
@@ -3481,21 +3495,33 @@ export const services: Service[] = [
   { namespace: "usds", features: [Feature.Trade] }
 ];
 
+export interface ReserveTableRow {
+  contract: string;
+  ratio: number;
+  balance: string;
+}
+
+export interface SettingTableRow {
+  currency: string;
+  owner: string;
+  stake_enabled: boolean;
+  fee: number;
+}
+
 export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
   const { scopes } = await client.stateTableScopes(contractName, "converters");
-  const rawConverters = await client.stateTablesForScopes<{
-    currency: string;
-    owner: string;
-    stake_enabled: boolean;
-    fee: number;
-  }>(contractName, scopes, "converters");
+  const rawConverters = await client.stateTablesForScopes<SettingTableRow>(
+    contractName,
+    scopes,
+    "converters"
+  );
   const polishedConverters = rawConverters.tables;
-  const rawReserves = await client.stateTablesForScopes<{
-    contract: string;
-    ratio: number;
-    balance: string;
-  }>(contractName, scopes, "reserves");
+  const rawReserves = await client.stateTablesForScopes<ReserveTableRow>(
+    contractName,
+    scopes,
+    "reserves"
+  );
   const polishedReserves = rawReserves.tables;
 
   const flatRelays = polishedReserves

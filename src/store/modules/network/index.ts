@@ -1,6 +1,8 @@
 import { VuexModule, action, Module } from "vuex-class-component";
 import {
-  GetBalanceParam, TokenBalanceReturn
+  GetBalanceParam,
+  TokenBalanceReturn,
+  TransferParam
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -31,7 +33,6 @@ export class NetworkModule extends VuexModule {
     return vxm[`${this.currentNetwork}Network`]["balances"];
   }
 
-
   get balance() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Network`]["balance"];
@@ -47,7 +48,13 @@ export class NetworkModule extends VuexModule {
     return vxm[`${this.currentNetwork}Network`]["protocol"];
   }
 
-  @action async getBalances(params: GetBalanceParam): Promise<TokenBalanceReturn[]> {
+  @action async transfer(params: TransferParam): Promise<void> {
+    return this.dispatcher(["transfer", params]);
+  }
+
+  @action async getBalances(
+    params: GetBalanceParam
+  ): Promise<TokenBalanceReturn[]> {
     return this.dispatcher(["getBalances", params]);
   }
 
