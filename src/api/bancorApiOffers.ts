@@ -1,4 +1,4 @@
-export const bancorApiSmartTokens = [
+export const ethBancorApiDictionary = [
   {
     smartTokenAddress: "0x7f8c53072d9b809a108b1a9d677bcc3b7b3f844e",
     tokenId: "5e70d03c6ea615ea174b74a8",
