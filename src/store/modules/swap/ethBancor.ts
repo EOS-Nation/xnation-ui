@@ -52,7 +52,7 @@ import {
   TokenSymbol,
   generateEthPath
 } from "@/api/ethBancorCalc";
-import { bancorApiSmartTokens } from "@/api/bancorApiOffers";
+import { ethBancorApiDictionary } from "@/api/bancorApiOffers";
 import BigNumber from "bignumber.js";
 
 const findOrThrow = <T>(
@@ -1301,7 +1301,7 @@ export class EthBancorModule extends VuexModule
 
       return relays
         .filter(relay => {
-          const dictionaryItems = bancorApiSmartTokens.filter(catalog =>
+          const dictionaryItems = ethBancorApiDictionary.filter(catalog =>
             compareString(relay.smartToken.contract, catalog.smartTokenAddress)
           );
           return tokens.some(token =>
@@ -1310,7 +1310,7 @@ export class EthBancorModule extends VuexModule
         })
         .map(relay =>
           relay.reserves.map(reserve => {
-            const foundDictionaries = bancorApiSmartTokens.filter(catalog =>
+            const foundDictionaries = ethBancorApiDictionary.filter(catalog =>
               compareString(
                 catalog.smartTokenAddress,
                 relay.smartToken.contract
@@ -2058,7 +2058,7 @@ export class EthBancorModule extends VuexModule
       relay => relay.smartToken.contract
     );
     const allCoveredUnderBancorApi = smartTokenAddresses.every(address =>
-      bancorApiSmartTokens.some(dic =>
+      ethBancorApiDictionary.some(dic =>
         compareString(address, dic.smartTokenAddress)
       )
     );
