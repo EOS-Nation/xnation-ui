@@ -274,9 +274,7 @@ const getTokenMeta = async (): Promise<TokenMeta[]> => {
       chain: string;
     }[]
   > = await axios.get(tokenMetaDataEndpoint);
-  return res.data.filter(
-    token => token.chain.toLowerCase() == "eos" && token.symbol !== "KARMA"
-  );
+  return res.data.filter(token => compareString(token.chain, "eos"));
 };
 
 const parseDfuseTable = (data: MultiStateResponse<ReserveTableRow>) =>
@@ -586,7 +584,9 @@ export class EosBancorModule extends VuexModule
       .map(token => {
         const { symbol, contract } = token;
         const tokenMeta = this.tokenMeta.find(
-          token => token.symbol == symbol && token.account == contract
+          token =>
+            compareString(token.symbol, symbol) &&
+            compareString(token.account, contract)
         );
         const tokenBalance = vxm.eosNetwork.balance({
           symbol,
@@ -859,7 +859,7 @@ export class EosBancorModule extends VuexModule
 
     const originalBalances = await vxm.eosNetwork.getBalances({
       tokens: tokenContractsAndSymbols
-    })
+    });
 
     try {
       txRes = await this.triggerTx(actions);
@@ -972,8 +972,8 @@ export class EosBancorModule extends VuexModule
     const waitPeriod = 1000;
     for (var i = 0; i < attempts; i++) {
       const relays = await fetchRelays();
-      const includesRelay = relays.find(
-        relay => relay.smartToken.symbol == smartToken
+      const includesRelay = relays.find(relay =>
+        compareString(relay.smartToken.symbol, smartToken)
       );
       if (includesRelay) {
         this.setRelays(relays);
