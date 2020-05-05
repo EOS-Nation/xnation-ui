@@ -3508,7 +3508,7 @@ export interface SettingTableRow {
   fee: number;
 }
 
-export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
+export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
   const { scopes } = await client.stateTableScopes(contractName, "converters");
   const rawConverters = await client.stateTablesForScopes<SettingTableRow>(

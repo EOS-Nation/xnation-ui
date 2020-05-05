@@ -25,7 +25,7 @@ import {
 } from "@/types/bancor";
 import { bancorApi, ethBancorApi } from "@/api/bancor";
 import {
-  fetchRelays,
+  fetchMultiRelays,
   getBalance,
   fetchTokenStats,
   compareString,
@@ -714,10 +714,10 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async init() {
-    const [ethTokens, tokens, relays, tokenMeta] = await Promise.all([
+    const [ethTokens, tokens, multiRelays, tokenMeta] = await Promise.all([
       ethBancorApi.getTokens(),
       bancorApi.getTokens(),
-      fetchRelays(),
+      fetchMultiRelays(),
       getTokenMeta()
     ]);
     const usdPriceOfBnt = ethTokens.find(token => token.code == "BNT")!.price;
@@ -725,7 +725,7 @@ export class EosBancorModule extends VuexModule
 
     this.setUsdPrice(Number(usdValueOfEth));
     this.setBntPrice(Number(usdPriceOfBnt));
-    this.setRelays(relays);
+    this.setMultiRelays(multiRelays);
     this.setTokens(tokens);
     this.setTokenMeta(tokenMeta);
     this.refreshBalances();
@@ -970,12 +970,12 @@ export class EosBancorModule extends VuexModule
     const attempts = 10;
     const waitPeriod = 1000;
     for (var i = 0; i < attempts; i++) {
-      const relays = await fetchRelays();
+      const relays = await fetchMultiRelays();
       const includesRelay = relays.find(relay =>
         compareString(relay.smartToken.symbol, smartToken)
       );
       if (includesRelay) {
-        this.setRelays(relays);
+        this.setMultiRelays(relays);
         this.refreshBalances(
           includesRelay.reserves.map(reserve => ({
             contract: reserve.contract,
@@ -1760,7 +1760,7 @@ export class EosBancorModule extends VuexModule
     return this.$store.dispatch("eosWallet/tx", actions, { root: true });
   }
 
-  @mutation setRelays(relays: EosMultiRelay[]) {
+  @mutation setMultiRelays(relays: EosMultiRelay[]) {
     this.relaysList = relays;
   }
 
