@@ -175,11 +175,10 @@ const relayToToken = ({
   };
 };
 
-const relayToTokens = (relay: EosMultiRelay, bntPrice: number) => {
-  return relay.reserves.map(reserve =>
+const relayToTokens = (relay: EosMultiRelay, bntPrice: number) =>
+  relay.reserves.map(reserve =>
     relayToToken({ relay, tokenSymbol: reserve.symbol, bntPrice })
   );
-};
 
 const arraysContainBoth = (searchString: string, arr: string[][]) =>
   arr.every(array => array.includes(searchString));
