@@ -25,10 +25,22 @@ interface TraditionalStat {
   max_supply: Asset;
 }
 
+export const findOrThrow = <T>(
+  arr: T[],
+  iteratee: (obj: T, index: number, arr: T[]) => unknown,
+  message?: string
+) => {
+  const res = arr.find(iteratee);
+  if (!res)
+    throw new Error(message || "Failed to find object in find or throw");
+  return res;
+};
+
 export const compareString = (stringOne: string, stringTwo: string) => {
-  if (![stringOne, stringTwo].every(Boolean))
-    throw new Error(
-      `String one: ${stringOne} String two: ${stringTwo} one of them are falsy.`
+  const strings = [stringOne, stringTwo]
+  if (!strings.every(str => typeof str == 'string'))
+  throw new Error(
+    `String one: ${stringOne} String two: ${stringTwo} one of them are falsy or not a string`
     );
   return stringOne.toLowerCase() == stringTwo.toLowerCase();
 };

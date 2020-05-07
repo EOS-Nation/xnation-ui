@@ -159,6 +159,7 @@ export interface ViewToken {
   change24h?: number;
   volume24h?: number;
   balance?: number;
+  precision?: number;
 }
 
 interface TokenWithLogo extends AgnosticToken {

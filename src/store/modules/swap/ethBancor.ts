@@ -25,7 +25,8 @@ import {
   Token,
   fetchReserveBalance,
   fetchBinanceUsdPriceOfBnt,
-  compareString
+  compareString,
+  findOrThrow
 } from "@/api/helpers";
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import {
@@ -55,16 +56,6 @@ import {
 import { ethBancorApiDictionary } from "@/api/bancorApiOffers";
 import BigNumber from "bignumber.js";
 
-const findOrThrow = <T>(
-  arr: T[],
-  iteratee: (obj: T, index: number, arr: T[]) => unknown,
-  message?: string
-) => {
-  const res = arr.find(iteratee);
-  if (!res)
-    throw new Error(message || "Failed to find object in find or throw");
-  return res;
-};
 
 const compareRelayFeed = (a: RelayFeed, b: RelayFeed) =>
   compareString(a.smartTokenContract, b.smartTokenContract) &&
@@ -1298,6 +1289,7 @@ export class EthBancorModule extends VuexModule
         token => token.code == "ETH",
         "failed finding price of ETH from tokens request"
       ).price;
+      console.log(ethUsdPrice, 'is the eth USD price');
 
       return relays
         .filter(relay => {
