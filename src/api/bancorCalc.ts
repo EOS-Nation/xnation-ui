@@ -18,6 +18,10 @@ export interface DryRelay extends BaseRelay {
   reserves: TokenSymbol[];
 }
 
+export interface v1Relay extends DryRelay {
+  isMultiContract: false;
+}
+
 export interface HydratedRelay extends BaseRelay {
   reserves: TokenAmount[];
   fee: number;

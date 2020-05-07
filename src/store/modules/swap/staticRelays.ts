@@ -399,7 +399,7 @@ const oldRelays = [
   }
 ];
 
-const getHardCodedRelays = (): DryRelay[] =>
+export const getHardCodedRelays = (): DryRelay[] =>
   oldRelays.map(relay => ({
     ...relay,
     smartToken: {
