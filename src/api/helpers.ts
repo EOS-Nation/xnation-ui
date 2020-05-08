@@ -1,29 +1,38 @@
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
 import { Asset } from "eos-common";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
-import { TokenBalances, EosMultiRelay } from "@/types/bancor";
+import { TokenBalances, EosMultiRelay, TokenMeta } from "@/types/bancor";
 import Web3 from "web3";
 import { ABIBancorGasPriceLimit, BancorGasLimit } from "./ethConfig";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
 
 const eosRpc: JsonRpc = rpc;
 
-interface TokenMeta {
-  name: string;
-  logo: string;
-  logo_lg: string;
-  symbol: string;
-  account: string;
-  chain: string;
-}
-
 interface TraditionalStat {
   supply: Asset;
   max_supply: Asset;
 }
+
+const tokenMetaDataEndpoint =
+  "https://raw.githubusercontent.com/eoscafe/eos-airdrops/master/tokens.json";
+
+export const getTokenMeta = async (): Promise<TokenMeta[]> => {
+  const res: AxiosResponse<
+    {
+      name: string;
+      logo: string;
+      logo_lg: string;
+      symbol: string;
+      account: string;
+      chain: string;
+    }[]
+  > = await axios.get(tokenMetaDataEndpoint);
+  return res.data.filter(token => compareString(token.chain, "eos"));
+};
+
 
 export const findOrThrow = <T>(
   arr: T[],
@@ -82,15 +91,6 @@ export const fetchReserveBalance = async (
       throw new Error("Failed getting reserve balance" + e);
     }
   }
-};
-
-export const getBancorGasPriceLimit = async (): Promise<string> => {
-  const contract = new web3.eth.Contract(
-    // @ts-ignore
-    ABIBancorGasPriceLimit,
-    BancorGasLimit
-  );
-  return contract.methods.gasPrice().call();
 };
 
 export const getBalance = async (

@@ -206,6 +206,15 @@ export interface TradingModule {
   getCost: (propose: ProposedTransaction) => Promise<ConvertReturn>;
 }
 
+export interface TokenMeta {
+  name: string;
+  logo: string;
+  logo_lg: string;
+  symbol: string;
+  account: string;
+  chain: string;
+}
+
 export interface AgnosticToken {
   contract: string;
   precision: number;

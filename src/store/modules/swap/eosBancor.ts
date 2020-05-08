@@ -21,7 +21,7 @@ import {
   CreatePoolParams,
   ViewRelay,
   Step,
-  Token
+  TokenMeta
 } from "@/types/bancor";
 import { bancorApi } from "@/api/bancor";
 import {
@@ -32,7 +32,8 @@ import {
   SettingTableRow,
   ReserveTableRow,
   fetchBinanceUsdPriceOfBnt,
-  findOrThrow
+  findOrThrow,
+  getTokenMeta,
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -45,11 +46,9 @@ import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
 import { multiContractAction } from "@/contracts/multi";
 import { vxm } from "@/store";
-import axios, { AxiosResponse } from "axios";
 import { rpc } from "@/api/rpc";
 import { client } from "@/api/dFuse";
 import {
-  calculateReturn,
   findCost,
   relaysToConvertPaths,
   composeMemo,
@@ -202,59 +201,6 @@ export interface ViewTokenMinusLogo {
   balance?: number;
 }
 
-const relayToToken = ({
-  relay,
-  tokenSymbol,
-  bntPrice
-}: {
-  relay: EosMultiRelay;
-  tokenSymbol: string;
-  bntPrice: number;
-}): ViewTokenMinusLogo => {
-  const networkTokenIndex = relay.reserves.findIndex(
-    reserve => reserve.symbol == "BNT" || reserve.symbol == "USDB"
-  )!;
-  const tokenIndex = relay.reserves.findIndex(
-    reserve => reserve.symbol == tokenSymbol
-  );
-  const networkTokenIsBnt = relay.reserves[networkTokenIndex].symbol == "BNT";
-  const { symbol, precision, contract } = relay.reserves[tokenIndex];
-  const liqDepth =
-    relay.reserves[networkTokenIndex].amount *
-    (networkTokenIsBnt ? bntPrice : 1);
-
-  const networkToken = relay.reserves[networkTokenIndex];
-  const token = relay.reserves[tokenIndex];
-  const tokenSymbolInit = new Symbol(token.symbol, token.precision);
-
-  let price;
-  try {
-    const { reward } = calculateReturn(
-      number_to_asset(token.amount, tokenSymbolInit),
-      number_to_asset(
-        networkToken.amount,
-        new Symbol(networkToken.symbol, networkToken.precision)
-      ),
-      number_to_asset(1, tokenSymbolInit)
-    );
-    price = asset_to_number(reward) * (networkTokenIsBnt ? bntPrice : 1);
-  } catch (e) {
-    price = 0;
-  }
-
-  return {
-    symbol,
-    name: symbol,
-    price,
-    liqDepth,
-    change24h: 0,
-    volume24h: 0,
-    balance: 0,
-    source: "multi",
-    precision,
-    contract
-  };
-};
 
 const agnosticToAsset = (agnostic: AgnosticToken): Asset =>
   number_to_asset(
@@ -276,31 +222,6 @@ interface KnownPrice {
   symbol: string;
   unitPrice: number;
 }
-
-// const networkReserveIsUsd = networkReserve.symbol == "USDB";
-// const dec = networkReserveAmount / tokenAmount;
-// const reverse = tokenAmount / networkReserveAmount;
-// const main = networkReserveIsUsd ? dec : dec * usdPriceOfBnt;
-
-// const liqDepth =
-//   (networkReserveIsUsd
-//     ? networkReserveAmount
-//     : networkReserveAmount * usdPriceOfBnt) * 2;
-
-// return [
-//   {
-//     tokenId: tokenReserve.contract,
-//     smartTokenContract: relay.smartToken.contract,
-//     costByNetworkUsd: main,
-//     liqDepth
-//   },
-//   {
-//     tokenId: networkReserve.contract,
-//     smartTokenContract: relay.smartToken.contract,
-//     liqDepth,
-//     costByNetworkUsd: reverse * main
-//   }
-// ];
 
 const compareAssetPrice = (asset: Asset, knownPrice: KnownPrice) =>
   compareString(asset.symbol.code().to_string(), knownPrice.symbol);
@@ -441,32 +362,6 @@ const generateSmartTokenSymbol = async (
     }
   }
   throw new Error("Failed to find a new SmartTokenSymbol!");
-};
-
-const tokenMetaDataEndpoint =
-  "https://raw.githubusercontent.com/eoscafe/eos-airdrops/master/tokens.json";
-
-interface TokenMeta {
-  name: string;
-  logo: string;
-  logo_lg: string;
-  symbol: string;
-  account: string;
-  chain: string;
-}
-
-const getTokenMeta = async (): Promise<TokenMeta[]> => {
-  const res: AxiosResponse<
-    {
-      name: string;
-      logo: string;
-      logo_lg: string;
-      symbol: string;
-      account: string;
-      chain: string;
-    }[]
-  > = await axios.get(tokenMetaDataEndpoint);
-  return res.data.filter(token => compareString(token.chain, "eos"));
 };
 
 const parseDfuseTable = (data: MultiStateResponse<ReserveTableRow>) =>
