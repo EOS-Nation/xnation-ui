@@ -23,7 +23,7 @@ import {
   Step,
   TokenMeta
 } from "@/types/bancor";
-import { bancorApi } from "@/api/bancor";
+import { bancorApi, ethBancorApi } from "@/api/bancor";
 import {
   fetchMultiRelays,
   getBalance,
@@ -33,7 +33,7 @@ import {
   ReserveTableRow,
   fetchBinanceUsdPriceOfBnt,
   findOrThrow,
-  getTokenMeta,
+  getTokenMeta
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -63,6 +63,12 @@ import _ from "lodash";
 import wait from "waait";
 import { MultiStateResponse } from "@dfuse/client";
 import { getHardCodedRelays } from "./staticRelays";
+
+const updateArray = <T>(
+  arr: T[],
+  finder: (element: T) => boolean,
+  updater: (element: T) => T
+) => arr.map(element => (finder(element) ? updater(element) : element));
 
 const relayHasReserveBalances = (relay: EosMultiRelay) =>
   relay.reserves.every(reserve => reserve.amount > 0);
@@ -114,7 +120,6 @@ const fetchBalanceAssets = async (
       const foundAsset = assets.find(
         asset => asset.symbol.code().to_string() == token.symbol
       );
-      if (!foundAsset) undefined;
       return foundAsset;
     })
   );
@@ -200,7 +205,6 @@ export interface ViewTokenMinusLogo {
   contract: string;
   balance?: number;
 }
-
 
 const agnosticToAsset = (agnostic: AgnosticToken): Asset =>
   number_to_asset(
@@ -540,9 +544,7 @@ export class EosBancorModule extends VuexModule
     ].map(choice => ({
       ...choice,
       balance: this.balance(choice) && this.balance(choice)!.amount,
-      img:
-        this.tokenMetaObj(choice.symbol) &&
-        this.tokenMetaObj(choice.symbol)!.logo
+      img: this.tokenMetaObj(choice.symbol).logo
     }));
   }
 
@@ -706,14 +708,19 @@ export class EosBancorModule extends VuexModule
             symbol: reserve.symbol
           });
 
+          const x = (feed: RelayFeed) =>
+            compareString(feed.smartTokenId, relayId) &&
+            compareString(feed.tokenId, reserveId);
           const feed = findOrThrow(
             this.relayFeed,
-            feed =>
-              compareString(feed.smartTokenId, relayId) &&
-              compareString(feed.tokenId, reserveId),
+            x,
             `failed finding relay feed for ${relayId} ${reserveId}`
           );
           return {
+            id: buildTokenId({
+              contract: reserve.contract,
+              symbol: reserve.symbol
+            }),
             symbol: reserve.symbol,
             price: feed.costByNetworkUsd,
             change24h: feed.change24H,
@@ -726,16 +733,24 @@ export class EosBancorModule extends VuexModule
       )
       .flat(1)
       .sort((a, b) => b.liqDepth - a.liqDepth)
-      .filter(
-        (token, index, arr) =>
-          arr.findIndex(t => t.symbol == token.symbol) == index
-      )
+      .reduce<any[]>((acc, item) => {
+        const existingToken = acc.find(token => token.id == item.id);
+        return existingToken
+          ? updateArray(
+              acc,
+              token => compareString(token.id, existingToken.id),
+              token => ({
+                ...token,
+                liqDepth: token.liqDepth + item.liqDepth,
+                ...(item.change24h && !token.change24h && { change24h: item.change24h }),
+                ...(item.volume24h && !token.volume24h && { volume24h: item.volume24h })
+              })
+            )
+          : [...acc, item];
+      }, [])
       .map(token => {
         const { symbol, contract } = token;
-        console.assert(
-          symbol && contract,
-          `${JSON.stringify(token)} has failed to provide`
-        );
+
         const tokenMeta = findOrThrow(
           this.tokenMeta,
           token =>
@@ -748,10 +763,9 @@ export class EosBancorModule extends VuexModule
         });
         return {
           ...token,
-          name: tokenMeta!.name,
+          name: tokenMeta.name,
           balance: tokenBalance && Number(tokenBalance.balance),
-          logo:
-            (tokenMeta && tokenMeta.logo) || "https://via.placeholder.com/50"
+          logo: tokenMeta.logo
         };
       });
   }
@@ -852,10 +866,6 @@ export class EosBancorModule extends VuexModule
       );
   }
 
-  @mutation setRelayFeeds(relayFeeds: RelayFeed[]) {
-    this.relayFeed = relayFeeds;
-  }
-
   @action async init() {
     const [usdPriceOfBnt, v2Relays, tokenMeta] = await Promise.all([
       fetchBinanceUsdPriceOfBnt(),
@@ -865,7 +875,6 @@ export class EosBancorModule extends VuexModule
     this.setBntPrice(usdPriceOfBnt);
 
     const v1Relays = getHardCodedRelays();
-
     const passedV1Relays = v1Relays.filter(
       noBlackListedReservesDry(blackListedTokens)
     );
@@ -884,7 +893,9 @@ export class EosBancorModule extends VuexModule
         .filter(reservesIncludeTokenMeta(tokenMeta))
     });
 
+    console.time('v1')
     const hydratedRelays = await this.hydrateOldRelays(passedV1Relays);
+    console.timeEnd('v1');
 
     this.setMultiRelays([...passedV2Relays, ...hydratedRelays]);
     this.setTokenMeta(tokenMeta);
@@ -923,7 +934,15 @@ export class EosBancorModule extends VuexModule
     relays: DryRelay[];
   }) {
     try {
-      const tokenPrices = await bancorApi.getTokens();
+      const [tokenPrices, ethTokens] = await Promise.all([
+        bancorApi.getTokens(),
+        ethBancorApi.getTokens()
+      ]);
+      const ethUsdPrice = findOrThrow(
+        ethTokens,
+        token => token.code == "ETH",
+        "failed finding price of ETH from tokens request"
+      ).price;
 
       const zipped: [DryRelay, TokenPrice][] = relays.map(relay => {
         const token = tokenPrices
@@ -942,7 +961,7 @@ export class EosBancorModule extends VuexModule
           relay.reserves.map(reserve => ({
             change24H: token.change24h,
             costByNetworkUsd: token.price,
-            liqDepth: token.liquidityDepth,
+            liqDepth: token.liquidityDepth * ethUsdPrice,
             tokenId: buildTokenId({
               contract: reserve.contract,
               symbol: reserve.symbol.code().to_string()
@@ -955,7 +974,7 @@ export class EosBancorModule extends VuexModule
           }))
         )
         .flat(1);
-      console.log(relayFeeds.map(x => [x.tokenId, x.smartTokenId]), 'were my relay feeds', tokenPrices)
+      console.log(relayFeeds, "were my relay feeds", tokenPrices);
       this.updateRelayFeed(relayFeeds);
     } catch (e) {
       console.error(e);

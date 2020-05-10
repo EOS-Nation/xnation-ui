@@ -30,6 +30,14 @@ export const getTokenMeta = async (): Promise<TokenMeta[]> => {
       chain: string;
     }[]
   > = await axios.get(tokenMetaDataEndpoint);
+  res.data.unshift({
+    name: 'EOS',
+    logo: 'https://storage.googleapis.com/bancor-prod-file-store/images/communities/359b8290-0767-11e8-8744-97748b632eaf.png',
+    logo_lg: 'https://storage.googleapis.com/bancor-prod-file-store/images/communities/359b8290-0767-11e8-8744-97748b632eaf.png',
+    symbol: 'EOS',
+    account: 'eosio.token',
+    chain: 'eos'
+  });
   return res.data.filter(token => compareString(token.chain, "eos"));
 };
 
