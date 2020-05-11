@@ -65,6 +65,16 @@ import wait from "waait";
 import { MultiStateResponse } from "@dfuse/client";
 import { getHardCodedRelays } from "./staticRelays";
 
+const updateArray = <T>(
+  arr: T[],
+  conditioner: (element: T) => boolean,
+  updater: (element: T) => T
+) => {
+  return arr.map(element =>
+    conditioner(element) ? updater(element) : element
+  );
+};
+
 const relayHasReserveBalances = (relay: EosMultiRelay) =>
   relay.reserves.every(reserve => reserve.amount > 0);
 
@@ -475,7 +485,7 @@ const getTokenMeta = async (): Promise<TokenMeta[]> => {
     symbol: "EOS",
     account: "eosio.token",
     chain: "eos"
-  })
+  });
   return res.data.filter(token => compareString(token.chain, "eos"));
 };
 
@@ -810,7 +820,7 @@ export class EosBancorModule extends VuexModule
 
   get tokens(): ViewToken[] {
     return this.relaysWithFeeds
-      .map(relay =>
+      .flatMap(relay =>
         relay.reserves.map(reserve => {
           const relayId = buildTokenId({
             contract: relay.smartToken.contract,
@@ -829,6 +839,10 @@ export class EosBancorModule extends VuexModule
             `failed finding relay feed for ${relayId} ${reserveId}`
           );
           return {
+            id: buildTokenId({
+              contract: reserve.contract,
+              symbol: reserve.symbol
+            }),
             symbol: reserve.symbol,
             price: feed.costByNetworkUsd,
             change24h: feed.change24H,
@@ -839,12 +853,28 @@ export class EosBancorModule extends VuexModule
           };
         })
       )
-      .flat(1)
       .sort((a, b) => b.liqDepth - a.liqDepth)
-      .filter(
-        (token, index, arr) =>
-          arr.findIndex(t => t.symbol == token.symbol) == index
-      )
+      .reduce<any[]>((acc, item) => {
+        console.log(acc, item, "was acc");
+        const existingToken = acc.find(token =>
+          compareString(token.id, item.id)
+        );
+
+        return existingToken
+          ? updateArray(
+              acc,
+              token => compareString(token.id, item.id),
+              token => ({
+                ...token,
+                liqDepth: existingToken.liqDepth + item.liqDepth,
+                ...(!existingToken.change24h &&
+                  item.change24h && { change24h: item.change24h }),
+                ...(!existingToken.volume24h &&
+                  item.volume24h && { volume24h: item.volume24h })
+              })
+            )
+          : [...acc, item];
+      }, [])
       .map(token => {
         const { symbol, contract } = token;
         console.assert(
@@ -1053,7 +1083,7 @@ export class EosBancorModule extends VuexModule
 
       const relayFeeds: RelayFeed[] = zipped
         .filter(arr => arr.every(Boolean))
-        .map(([relay, token]) =>
+        .flatMap(([relay, token]) =>
           relay.reserves.map(reserve => ({
             change24H: token.change24h,
             costByNetworkUsd: token.price,
@@ -1068,9 +1098,7 @@ export class EosBancorModule extends VuexModule
             }),
             volume24H: token.volume24h.USD
           }))
-        )
-        .flat(1);
-      console.log(relayFeeds.map(x => [x.tokenId, x.smartTokenId]), 'were my relay feeds', tokenPrices)
+        );
       this.updateRelayFeed(relayFeeds);
     } catch (e) {
       console.error(e);
