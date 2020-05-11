@@ -1049,7 +1049,7 @@ export class EosBancorModule extends VuexModule
   }: {
     relays: EosMultiRelay[];
   }) {
-    console.log('building with the usd price of', this.usdPriceOfBnt)
+    console.log("building with the usd price of", this.usdPriceOfBnt);
     const feeds = relays.flatMap(relay =>
       buildTwoFeedsFromRelay(relay, [
         { symbol: "USDB", unitPrice: 1 },

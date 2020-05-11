@@ -56,7 +56,6 @@ import {
 import { ethBancorApiDictionary } from "@/api/bancorApiOffers";
 import BigNumber from "bignumber.js";
 
-
 const compareRelayFeed = (a: RelayFeed, b: RelayFeed) =>
   compareString(a.smartTokenContract, b.smartTokenContract) &&
   compareString(a.tokenId, b.tokenId);
@@ -120,8 +119,7 @@ const relaysWithTokenMeta = (relays: Relay[], tokenMeta: TokenMeta[]) => {
   );
   console.warn(
     missedRelays
-      .map(x => x.reserves)
-      .flat(1)
+      .flatMap(x => x.reserves)
       .filter(x => x.symbol !== "BNT" && x.symbol !== "USDB"),
     "are being ditched due to not being included in token meta. "
   );
@@ -1286,7 +1284,7 @@ export class EthBancorModule extends VuexModule
         token => token.code == "ETH",
         "failed finding price of ETH from tokens request"
       ).price;
-      console.log(ethUsdPrice, 'is the eth USD price');
+      console.log(ethUsdPrice, "is the eth USD price");
 
       return relays
         .filter(relay => {
@@ -1297,7 +1295,7 @@ export class EthBancorModule extends VuexModule
             dictionaryItems.some(dic => compareString(dic.tokenId, token.id))
           );
         })
-        .map(relay =>
+        .flatMap(relay =>
           relay.reserves.map(reserve => {
             const foundDictionaries = ethBancorApiDictionary.filter(catalog =>
               compareString(
@@ -1339,8 +1337,7 @@ export class EthBancorModule extends VuexModule
               };
             }
           })
-        )
-        .flat(1);
+        );
     } catch (e) {
       console.warn(`Failed utilising Bancor API: ${e.message}`);
       return [];
@@ -1593,9 +1590,10 @@ export class EthBancorModule extends VuexModule
   @action async buildTokenByTokenAddress(address: string): Promise<Token> {
     const tokenContract = buildTokenContract(address);
 
-    const existingTokens = this.relaysList
-      .map(relay => [...relay.reserves, relay.smartToken])
-      .flat(1);
+    const existingTokens = this.relaysList.flatMap(relay => [
+      ...relay.reserves,
+      relay.smartToken
+    ]);
 
     const existingToken = existingTokens.find(token =>
       compareString(token.contract, address)
@@ -1643,8 +1641,7 @@ export class EthBancorModule extends VuexModule
   @mutation updateRelays(relays: Relay[]) {
     const allReserves = this.relaysList
       .concat(relays)
-      .map(relay => relay.reserves)
-      .flat(1);
+      .flatMap(relay => relay.reserves);
     const uniqueTokens = _.uniqWith(allReserves, (a, b) =>
       compareString(a.contract, b.contract)
     );
@@ -1952,8 +1949,7 @@ export class EthBancorModule extends VuexModule
 
   @action async getDecimalsByTokenAddress(tokenAddress: string) {
     const reserve = this.relaysList
-      .map(relay => relay.reserves)
-      .flat(1)
+      .flatMap(relay => relay.reserves)
       .find(reserve => compareString(reserve.contract, tokenAddress));
     if (!reserve)
       throw new Error(
