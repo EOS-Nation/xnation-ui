@@ -105,8 +105,7 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
   @action async transfer({ to, amount, id, memo }: TransferParam) {
     const symbol = id;
     const dirtyReserve = vxm.eosBancor.relaysList
-      .map(relay => relay.reserves)
-      .flat(1)
+      .flatMap(relay => relay.reserves)
       .find(reserve => compareString(reserve.symbol, symbol));
     if (!dirtyReserve) throw new Error("Failed finding dirty reserve");
 

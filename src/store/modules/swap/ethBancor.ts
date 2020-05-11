@@ -765,7 +765,7 @@ export class EthBancorModule extends VuexModule
           )
         )
       )
-      .map(relay =>
+      .flatMap(relay =>
         relay.reserves.map(reserve => {
           const { name, image } = this.tokenMetaObj(reserve.contract);
           const relayFeed = this.relayFeed.find(
@@ -791,7 +791,6 @@ export class EthBancorModule extends VuexModule
           };
         })
       )
-      .flat(1)
       .sort((a, b) => b.liqDepth - a.liqDepth)
       .reduce<ViewToken[]>((acc, item) => {
         const existingToken = acc.find(token =>
@@ -871,7 +870,7 @@ export class EthBancorModule extends VuexModule
   }
 
   get tokenCount() {
-    const tokens = this.relaysList.map(relay => relay.reserves).flat(1);
+    const tokens = this.relaysList.flatMap(relay => relay.reserves);
 
     const uniqueTokens = tokens.filter(
       (token, index, arr) =>
@@ -978,8 +977,7 @@ export class EthBancorModule extends VuexModule
     } = await this.fetchRelayBalances(smartTokenAddress);
 
     const decimals = this.relaysList
-      .map(relay => relay.reserves)
-      .flat(1)
+      .flatMap(relay => relay.reserves)
       .find(token => compareString(token.symbol, tokenSymbol))!.decimals;
     const tokenAmountWei = expandToken(tokenAmount, decimals);
     const opposingAmount = calculateOppositeFundRequirement(
@@ -1061,8 +1059,7 @@ export class EthBancorModule extends VuexModule
     } = await this.fetchRelayBalances(smartTokenAddress);
 
     const token = this.relaysList
-      .map(relay => relay.reserves)
-      .flat(1)
+      .flatMap(relay => relay.reserves)
       .find(token => compareString(token.symbol, tokenSymbol))!;
 
     const token1Wei = expandToken(tokenAmount, token.decimals);

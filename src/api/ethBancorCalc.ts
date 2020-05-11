@@ -142,7 +142,7 @@ export function createPath(
   // To do
   // Count the amount of duplicate conversions, eliminate the relays between them as they are redundant
   // then either just return straight up, or run again
-  const allReserves = dryRelays.map(relay => relay.reserves).flat(1);
+  const allReserves = dryRelays.flatMap(relay => relay.reserves);
   const uniqueReserves = _.uniqWith(
     allReserves,
     (a, b) => a.contract.toLowerCase() == b.contract.toLowerCase()

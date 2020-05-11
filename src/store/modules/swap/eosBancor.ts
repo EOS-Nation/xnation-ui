@@ -855,7 +855,6 @@ export class EosBancorModule extends VuexModule
       )
       .sort((a, b) => b.liqDepth - a.liqDepth)
       .reduce<any[]>((acc, item) => {
-        console.log(acc, item, "was acc");
         const existingToken = acc.find(token =>
           compareString(token.id, item.id)
         );
@@ -1050,14 +1049,13 @@ export class EosBancorModule extends VuexModule
   }: {
     relays: EosMultiRelay[];
   }) {
-    const feeds = relays
-      .map(relay =>
-        buildTwoFeedsFromRelay(relay, [
-          { symbol: "USDB", unitPrice: 1 },
-          { symbol: "BNT", unitPrice: this.usdPriceOfBnt }
-        ])
-      )
-      .flat(1);
+    console.log('building with the usd price of', this.usdPriceOfBnt)
+    const feeds = relays.flatMap(relay =>
+      buildTwoFeedsFromRelay(relay, [
+        { symbol: "USDB", unitPrice: 1 },
+        { symbol: "BNT", unitPrice: this.usdPriceOfBnt }
+      ])
+    );
     console.log(feeds, "are the feeds");
     this.updateRelayFeed(feeds);
   }
