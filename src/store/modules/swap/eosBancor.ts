@@ -1143,8 +1143,6 @@ export class EosBancorModule extends VuexModule
         ethBancorApi.getTokens()
       ]);
 
-      console.log("token prices", tokenPrices);
-
       const bntToken = findOrThrow(tokenPrices, token =>
         compareString(token.code, "BNT")
       );
@@ -1333,7 +1331,6 @@ export class EosBancorModule extends VuexModule
       { symbol: token2Symbol, amount: token2Amount }
     ];
     const tokenAmounts = deposits.map(deposit => {
-      // @ts-ignore
       const { precision, contract, symbol } = relay.reserves.find(
         reserve => reserve.symbol == deposit.symbol
       )!;
@@ -1350,7 +1347,6 @@ export class EosBancorModule extends VuexModule
 
     const addLiquidityActions = multiContract.addLiquidityActions(
       smartTokenSymbol,
-      // @ts-ignore
       tokenAmounts
     );
     const fundAction = multiContractAction.fund(
@@ -1858,7 +1854,6 @@ export class EosBancorModule extends VuexModule
 
     const allRelays = eosMultiToDryRelays(this.convertableRelays);
     const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
-    console.log(path, "is the path");
     const hydratedRelays = await this.hydrateRelays(path);
     const calculatedReturn = findReturn(assetAmount, hydratedRelays);
 
@@ -1872,9 +1867,7 @@ export class EosBancorModule extends VuexModule
     const fromToken = this.tokens.find(x => x.symbol == fromSymbol)!;
     const toToken = this.tokens.find(x => x.symbol == toSymbol)!;
 
-    // @ts-ignore
     const fromSymbolInit = new Symbol(fromToken.symbol, fromToken.precision);
-    // @ts-ignore
     const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
     const assetAmount = number_to_asset(Number(amount), toSymbolInit);
 
@@ -1899,7 +1892,6 @@ export class EosBancorModule extends VuexModule
   }
 
   @mutation setBntPrice(price: number) {
-    console.log("setting price", price);
     this.usdPriceOfBnt = price;
   }
 
