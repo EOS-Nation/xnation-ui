@@ -127,19 +127,6 @@ export const fetchTokenStats = async (
   };
 };
 
-let tokenMeta: TokenMeta[] = [
-  {
-    name: "EOS",
-    logo:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/359b8290-0767-11e8-8744-97748b632eaf.png",
-    logo_lg:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/359b8290-0767-11e8-8744-97748b632eaf.png",
-    symbol: "EOS",
-    account: "eosio.token",
-    chain: "eos"
-  }
-];
-
 export const retry = async <T>(
   promise: () => Promise<T>,
   maxAttempts = 10,
