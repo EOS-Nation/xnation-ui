@@ -76,9 +76,9 @@ export class BancorApi implements BancorWrapper {
     const endpoint = "currencies/" + symbol;
     const res = await this.request(endpoint, {});
     return {
-      ...res.data,
+      ...res.data.currency,
       primaryCommunityImageName:
-        this.photoBaseUrl + res.data.primaryCommunityImageName
+        this.photoBaseUrl + res.data.currency.primaryCommunityImageName
     };
   }
 
