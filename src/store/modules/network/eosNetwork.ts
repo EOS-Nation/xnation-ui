@@ -84,10 +84,7 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
             "balance has changed!",
             originalBalances.map(x => [x.balance, x.symbol].join(" "))
           );
-          this.updateTokenBalances({
-            tokens: newBalanceArray,
-            from: "pillTillChange"
-          });
+          this.updateTokenBalances(newBalanceArray);
           break;
         } else {
           console.log(
@@ -145,7 +142,7 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
       const equalisedBalances: TokenBalanceReturn[] = tokenBalances.tokens.map(
         tokenBalanceToTokenBalanceReturn
       );
-      this.updateTokenBalances({ tokens: equalisedBalances, from: "!params" });
+      this.updateTokenBalances(equalisedBalances);
       return equalisedBalances;
     }
 
@@ -157,20 +154,14 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
         tokenBalanceToTokenBalanceReturn
       );
       console.log("slow is hitting this");
-      this.updateTokenBalances({
-        tokens: equalisedBalances,
-        from: "params.slow1"
-      });
+      this.updateTokenBalances(equalisedBalances);
       const missedTokens = _.differenceWith(
         tokens,
         equalisedBalances,
         compareToken
       );
       const remainingBalances = await this.fetchBulkBalances(missedTokens);
-      this.updateTokenBalances({
-        tokens: remainingBalances,
-        from: "params.slow2"
-      });
+      this.updateTokenBalances(remainingBalances);
       return [...equalisedBalances, ...remainingBalances].filter(balance =>
         tokens.some(token => compareToken(balance, token))
       );
@@ -189,19 +180,12 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
       compareToken
     );
     if (!params.disableSetting) {
-      this.updateTokenBalances({ tokens: merged, from: "!disableSetting" });
+      this.updateTokenBalances(merged);
     }
     return directTokens;
   }
 
-  @mutation updateTokenBalances({
-    tokens,
-    from
-  }: {
-    tokens: TokenBalanceReturn[];
-    from: string;
-  }) {
-    console.log("coming from", from);
+  @mutation updateTokenBalances(tokens: TokenBalanceReturn[]) {
     console.log(
       "tokens provided",
       tokens.filter(token => compareString(token.symbol, "bnt"))
