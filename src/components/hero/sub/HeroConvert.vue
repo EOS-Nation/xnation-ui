@@ -212,7 +212,6 @@ export default class HeroConvert extends Vue {
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter tokens!: TradingModule["tokens"];
   @bancor.Action convert!: TradingModule["convert"];
-  @bancor.Action init!: TradingModule["init"];
   @bancor.Action focusSymbol!: TradingModule["focusSymbol"];
   @bancor.Action getReturn!: TradingModule["getReturn"];
   @bancor.Action getCost!: TradingModule["getCost"];
@@ -383,8 +382,6 @@ export default class HeroConvert extends Vue {
       this.$analytics.logEvent("Conversion", { txId: result });
 
       this.error = "";
-
-      this.init();
     } catch (e) {
       this.error = e.message;
       // @ts-ignore
