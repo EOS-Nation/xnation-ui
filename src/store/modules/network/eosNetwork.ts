@@ -67,39 +67,41 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
     maxPings?: number;
     interval?: number;
   }) {
-    return Promise.all(
-      originalBalances.map(
-        async originalBalance =>
-          new Promise(async (resolve, reject) => {
-            for (var i = 0; i < maxPings; i++) {
-              let newBalanceArray = await this.getBalances({
-                tokens: [originalBalance]
-              });
-              let newBalance = newBalanceArray.find(balance =>
-                compareString(balance.symbol, originalBalance.symbol)
-              )!;
-              if (newBalance.balance !== originalBalance.balance) {
-                console.log(
-                  newBalance.symbol,
-                  "balance has changed!",
-                  newBalance.balance,
-                  originalBalance.balance
-                );
-                break;
-              } else {
-                console.log(
-                  newBalance.symbol,
-                  "has not changed, trying again in",
-                  interval,
-                  "milliseconds"
-                );
-                await wait(interval);
-              }
-            }
-            resolve();
-          })
-      )
-    );
+    return new Promise(async (resolve, reject) => {
+      for (var i = 0; i < maxPings; i++) {
+        let newBalanceArray = await this.getBalances({
+          tokens: originalBalances,
+          disableSetting: true
+        });
+        const allBalancesDifferent = originalBalances.every(
+          balance =>
+            newBalanceArray.find(b => compareString(b.symbol, balance.symbol))!
+              .balance !== balance.balance
+        );
+        if (allBalancesDifferent) {
+          console.log(
+            newBalanceArray.map(x => [x.balance, x.symbol].join(" ")),
+            "balance has changed!",
+            originalBalances.map(x => [x.balance, x.symbol].join(" "))
+          );
+          this.updateTokenBalances({
+            tokens: newBalanceArray,
+            from: "pillTillChange"
+          });
+          break;
+        } else {
+          console.log(
+            "Balance has not updated yet, trying again in",
+            interval,
+            "milliseconds",
+            "as attempt #",
+            i
+          );
+          await wait(interval);
+        }
+      }
+      resolve();
+    });
   }
 
   @action async transfer({ to, amount, id, memo }: TransferParam) {
@@ -137,12 +139,13 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
   }
 
   @action public async getBalances(params?: GetBalanceParam) {
+    if (!this.isAuthenticated) return [];
     if (!params) {
       const tokenBalances = await getTokenBalances(this.isAuthenticated);
       const equalisedBalances: TokenBalanceReturn[] = tokenBalances.tokens.map(
         tokenBalanceToTokenBalanceReturn
       );
-      this.updateTokenBalances(equalisedBalances);
+      this.updateTokenBalances({ tokens: equalisedBalances, from: "!params" });
       return equalisedBalances;
     }
 
@@ -153,14 +156,21 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
       const equalisedBalances = bulkTokens.tokens.map(
         tokenBalanceToTokenBalanceReturn
       );
-      this.updateTokenBalances(equalisedBalances);
+      console.log("slow is hitting this");
+      this.updateTokenBalances({
+        tokens: equalisedBalances,
+        from: "params.slow1"
+      });
       const missedTokens = _.differenceWith(
         tokens,
         equalisedBalances,
         compareToken
       );
       const remainingBalances = await this.fetchBulkBalances(missedTokens);
-      this.updateTokenBalances(remainingBalances);
+      this.updateTokenBalances({
+        tokens: remainingBalances,
+        from: "params.slow2"
+      });
       return [...equalisedBalances, ...remainingBalances].filter(balance =>
         tokens.some(token => compareToken(balance, token))
       );
@@ -178,17 +188,28 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
       [...directTokens, ...equalisedBalances],
       compareToken
     );
-    this.updateTokenBalances(merged);
+    if (!params.disableSetting) {
+      this.updateTokenBalances({ tokens: merged, from: "!disableSetting" });
+    }
     return directTokens;
   }
 
-  @mutation updateTokenBalances(tokens: TokenBalanceReturn[]) {
-    const balancesNotBeingUpdated = _.differenceWith(
-      this.tokenBalances,
-      tokens,
+  @mutation updateTokenBalances({
+    tokens,
+    from
+  }: {
+    tokens: TokenBalanceReturn[];
+    from: string;
+  }) {
+    console.log("coming from", from);
+    console.log(
+      "tokens provided",
+      tokens.filter(token => compareString(token.symbol, "bnt"))
+    );
+    this.tokenBalances = _.uniqWith(
+      [...tokens, ...this.tokenBalances],
       compareToken
     );
-    this.tokenBalances = [...balancesNotBeingUpdated, ...tokens];
   }
 }
 

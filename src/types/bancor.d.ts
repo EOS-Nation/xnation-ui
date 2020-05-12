@@ -25,7 +25,6 @@ export interface PriceHistory {
 
 export type FloatAmount = number;
 
-
 export interface TokenBalance {
   symbol: string;
   precision: number;
@@ -153,8 +152,8 @@ export interface ViewToken {
   id?: string;
   symbol: string;
   name: string;
-  price: number;
-  liqDepth: number;
+  price?: number;
+  liqDepth?: number;
   logo: string;
   change24h?: number;
   volume24h?: number;
@@ -228,7 +227,7 @@ export interface ModalChoice {
   contract: string;
   balance?: number;
   img: string;
-  usdValue?: number
+  usdValue?: number;
 }
 
 export interface NetworkChoice extends ModalChoice {
@@ -309,6 +308,7 @@ export interface LiquidityModule {
 interface GetBalanceParam {
   tokens: TokenBalanceParam[];
   slow?: boolean;
+  disableSetting?: boolean;
 }
 
 interface TokenBalanceParam {

@@ -1404,10 +1404,7 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async fetchUsdPriceOfBnt() {
-    const price = await Promise.race([
-      fetchBinanceUsdPriceOfBnt(),
-      this.fetchBancorUsdPriceOfBnt()
-    ]);
+    const price = await fetchBinanceUsdPriceOfBnt();
     this.setBntUsdPrice(price);
     return price;
   }
@@ -1467,46 +1464,50 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async init() {
-    const [tokenMeta, contractAddresses] = await Promise.all([
-      getTokenMeta(),
-      this.fetchContractAddresses()
-    ]);
+    try {
+      const [tokenMeta, contractAddresses] = await Promise.all([
+        getTokenMeta(),
+        this.fetchContractAddresses()
+      ]);
 
-    const hardCodedRelays = getEthRelays();
+      const hardCodedRelays = getEthRelays();
 
-    this.setTokenMeta(tokenMeta);
+      this.setTokenMeta(tokenMeta);
 
-    const registeredSmartTokenAddresses = await this.fetchSmartTokenAddresses(
-      contractAddresses.BancorConverterRegistry
-    );
+      const registeredSmartTokenAddresses = await this.fetchSmartTokenAddresses(
+        contractAddresses.BancorConverterRegistry
+      );
 
-    const hardCodedRelaysInRegistry = relaysWithTokenMeta(
-      hardCodedRelays.filter(relay =>
-        registeredSmartTokenAddresses.includes(relay.smartToken.contract)
-      ),
-      tokenMeta
-    );
+      const hardCodedRelaysInRegistry = relaysWithTokenMeta(
+        hardCodedRelays.filter(relay =>
+          registeredSmartTokenAddresses.includes(relay.smartToken.contract)
+        ),
+        tokenMeta
+      );
 
-    this.updateRelays(hardCodedRelaysInRegistry);
-    await this.fetchAndUpdateRelayFeeds(hardCodedRelaysInRegistry);
+      this.updateRelays(hardCodedRelaysInRegistry);
+      await this.fetchAndUpdateRelayFeeds(hardCodedRelaysInRegistry);
 
-    const hardCodedSmartTokenAddresses = hardCodedRelaysInRegistry.map(
-      relay => relay.smartToken.contract
-    );
+      const hardCodedSmartTokenAddresses = hardCodedRelaysInRegistry.map(
+        relay => relay.smartToken.contract
+      );
 
-    const nonHardCodedSmartTokenAddresses = registeredSmartTokenAddresses.filter(
-      smartTokenAddress =>
-        !hardCodedSmartTokenAddresses.includes(smartTokenAddress)
-    );
+      const nonHardCodedSmartTokenAddresses = registeredSmartTokenAddresses.filter(
+        smartTokenAddress =>
+          !hardCodedSmartTokenAddresses.includes(smartTokenAddress)
+      );
 
-    const nonHardCodedRelays = await this.buildRelaysFromSmartTokenAddresses(
-      nonHardCodedSmartTokenAddresses
-    );
+      const nonHardCodedRelays = await this.buildRelaysFromSmartTokenAddresses(
+        nonHardCodedSmartTokenAddresses
+      );
 
-    this.updateRelays(relaysWithTokenMeta(nonHardCodedRelays, tokenMeta));
-    await this.fetchAndUpdateRelayFeeds(
-      relaysWithTokenMeta(nonHardCodedRelays, tokenMeta)
-    );
+      this.updateRelays(relaysWithTokenMeta(nonHardCodedRelays, tokenMeta));
+      await this.fetchAndUpdateRelayFeeds(
+        relaysWithTokenMeta(nonHardCodedRelays, tokenMeta)
+      );
+    } catch (e) {
+      throw new Error(`Threw inside ethBancor ${e.message}`);
+    }
   }
 
   @action async buildRelaysFromSmartTokenAddresses(

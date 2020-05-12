@@ -19,7 +19,7 @@ import {
 } from "sxjs";
 import { rpc } from "@/api/rpc";
 import { asset_to_number, number_to_asset, symbol } from "eos-common";
-import { compareString } from "@/api/helpers";
+import { compareString, retry } from "@/api/helpers";
 
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
@@ -79,10 +79,8 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
   @action async init() {
     const [pools, volume] = await Promise.all([
-      // @ts-ignore
-      get_pools(rpc),
-      // @ts-ignore
-      get_volume(rpc, 1)
+      retry(() => get_pools(rpc), 4, 500),
+      retry(() => get_volume(rpc, { days: 1 }), 4, 500)
     ]);
     for (const pool in pools) {
       pools[pool] = {
