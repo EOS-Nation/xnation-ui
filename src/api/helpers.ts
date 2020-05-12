@@ -8,6 +8,7 @@ import { TokenBalances, EosMultiRelay } from "@/types/bancor";
 import Web3 from "web3";
 import { ABIBancorGasPriceLimit, BancorGasLimit } from "./ethConfig";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
+import wait from "waait";
 
 const eosRpc: JsonRpc = rpc;
 
@@ -37,10 +38,10 @@ export const findOrThrow = <T>(
 };
 
 export const compareString = (stringOne: string, stringTwo: string) => {
-  const strings = [stringOne, stringTwo]
-  if (!strings.every(str => typeof str == 'string'))
-  throw new Error(
-    `String one: ${stringOne} String two: ${stringTwo} one of them are falsy or not a string`
+  const strings = [stringOne, stringTwo];
+  if (!strings.every(str => typeof str == "string"))
+    throw new Error(
+      `String one: ${stringOne} String two: ${stringTwo} one of them are falsy or not a string`
     );
   return stringOne.toLowerCase() == stringTwo.toLowerCase();
 };
@@ -138,6 +139,23 @@ let tokenMeta: TokenMeta[] = [
     chain: "eos"
   }
 ];
+
+export const retry = async <T>(
+  promise: () => Promise<T>,
+  maxAttempts = 10,
+  interval = 1000
+): Promise<T> => {
+  return new Promise(async (resolve, reject) => {
+    for (var i = 0; i < maxAttempts; i++) {
+      try {
+        return resolve(await promise());
+      } catch (e) {
+        await wait(interval);
+        if (i == maxAttempts) reject(e);
+      }
+    }
+  });
+};
 
 export const getTokenBalances = async (
   accountName: string
@@ -3448,8 +3466,6 @@ export interface Relay {
   contract: ContractAccount;
   isMultiContract: boolean;
   fee: number;
-  liqDepth?: string;
-  singleUnitCostByNetworkToken?: number;
   network: string;
   version: string;
   owner: string;
