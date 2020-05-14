@@ -1326,6 +1326,7 @@ export class EosBancorModule extends VuexModule
       { symbol: token2Symbol, amount: token2Amount }
     ];
     const tokenAmounts = deposits.map(deposit => {
+      // @ts-ignore
       const { precision, contract, symbol } = relay.reserves.find(
         reserve => reserve.symbol == deposit.symbol
       )!;
