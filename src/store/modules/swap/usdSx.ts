@@ -113,7 +113,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         const price =
           symbolName == "USDT"
             ? 1
-            : asset_to_number(
+            : 1 / asset_to_number(
                 await get_price("1.0000 USDT", symbolName, pools)
               );
 
