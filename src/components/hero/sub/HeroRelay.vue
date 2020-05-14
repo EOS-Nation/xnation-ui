@@ -456,7 +456,7 @@ export default class HeroRelay extends Vue {
   }
 
   get defaultFocusedSymbol() {
-    return this.relays[0].smartTokenSymbol;
+    return this.relays.find(relay => relay.addRemoveLiquiditySupported)!.smartTokenSymbol;
   }
 
   get focusedSymbol() {

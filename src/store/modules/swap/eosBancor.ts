@@ -978,7 +978,6 @@ export class EosBancorModule extends VuexModule
   get relays(): ViewRelay[] {
     // @ts-ignore
     return this.relaysList
-      .filter(relay => relay.isMultiContract)
       .filter(
         relayIncludesBothTokens(
           mandatoryNetworkTokens,
@@ -1008,6 +1007,7 @@ export class EosBancorModule extends VuexModule
             .symbol,
           smartTokenSymbol: relay.smartToken.symbol,
           liqDepth: relayFeed && relayFeed.liqDepth,
+          addRemoveLiquiditySupported: relay.isMultiContract,
           reserves: relay.reserves
             .map((reserve: AgnosticToken) => ({
               ...reserve,
@@ -1888,6 +1888,7 @@ export class EosBancorModule extends VuexModule
   }
 
   @mutation setMultiRelays(relays: EosMultiRelay[]) {
+    console.log('setting muilti relays...', relays)
     this.relaysList = relays;
   }
 

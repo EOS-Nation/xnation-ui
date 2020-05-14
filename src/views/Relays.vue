@@ -64,6 +64,7 @@
               <div>
                 <b-btn
                   @click="goToRelay(data.item.smartTokenSymbol, 'liquidate')"
+                  :disabled="!data.item.addRemoveLiquiditySupported"
                   size="sm"
                   variant="success"
                   class="mr-1"
@@ -72,6 +73,7 @@
                 </b-btn>
                 <b-btn
                   @click="goToRelay(data.item.smartTokenSymbol)"
+                  :disabled="!data.item.addRemoveLiquiditySupported"
                   size="sm"
                   variant="info"
                 >

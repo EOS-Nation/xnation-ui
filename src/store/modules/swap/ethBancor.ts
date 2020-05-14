@@ -925,7 +925,8 @@ export class EthBancorModule extends VuexModule
           liqDepth: relayFeed.liqDepth,
           owner: relay.owner,
           swap: "eth",
-          symbol: lowestReserve.symbol
+          symbol: lowestReserve.symbol,
+          addRemoveLiquiditySupported: true
         } as ViewRelay;
       });
   }

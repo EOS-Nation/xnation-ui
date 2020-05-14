@@ -184,6 +184,7 @@ export interface ViewRelay {
   fee: number;
   owner: string;
   swap: string;
+  addRemoveLiquiditySupported: boolean;
 }
 
 export interface TokenPriceExtended extends TokenPrice {
