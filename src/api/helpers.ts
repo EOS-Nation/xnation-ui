@@ -53,6 +53,12 @@ export const fetchBinanceUsdPriceOfBnt = async (): Promise<number> => {
   return Number(res.data.price);
 };
 
+export const updateArray = <T>(
+  arr: T[],
+  conditioner: (element: T) => boolean,
+  updater: (element: T) => T
+) => arr.map(element => (conditioner(element) ? updater(element) : element));
+
 export type Wei = string | number;
 export type Ether = string | number;
 

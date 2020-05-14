@@ -26,7 +26,8 @@ import {
   fetchReserveBalance,
   fetchBinanceUsdPriceOfBnt,
   compareString,
-  findOrThrow
+  findOrThrow,
+  updateArray
 } from "@/api/helpers";
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import {
@@ -794,13 +795,13 @@ export class EthBancorModule extends VuexModule
         const existingToken = acc.find(token =>
           compareString(token.id!, item.id)
         );
-        return (existingToken
-          ? acc.map(token =>
-              compareString(token.id!, item.id)
-                ? { ...token, liqDepth: token.liqDepth + item.liqDepth }
-                : token
+        return existingToken
+          ? updateArray(
+              acc,
+              token => compareString(token.id!, item.id),
+              token => ({ ...token, liqDepth: token.liqDepth! + item.liqDepth })
             )
-          : [...acc, item]) as ViewToken[];
+          : [...acc, item];
       }, [])
       .filter(
         (token, index, arr) =>

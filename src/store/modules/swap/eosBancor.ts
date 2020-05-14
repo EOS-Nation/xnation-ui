@@ -32,7 +32,8 @@ import {
   SettingTableRow,
   ReserveTableRow,
   fetchBinanceUsdPriceOfBnt,
-  findOrThrow
+  findOrThrow,
+  updateArray
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -75,12 +76,6 @@ const sortReserves = (tokenSymbols: TokenSymbol[]) =>
     const aSymbol = getSymbolName(a);
     return aSymbol == "BNT" ? 2 : aSymbol == "USDB" ? 1 : -1;
   });
-
-const updateArray = <T>(
-  arr: T[],
-  conditioner: (element: T) => boolean,
-  updater: (element: T) => T
-) => arr.map(element => (conditioner(element) ? updater(element) : element));
 
 const relayHasReserveBalances = (relay: EosMultiRelay) =>
   relay.reserves.every(reserve => reserve.amount > 0);
