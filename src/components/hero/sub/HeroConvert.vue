@@ -29,13 +29,11 @@
             <font-awesome-icon icon="circle-notch" class="text-white" spin />
           </span>
           <span v-else class="text-white font-size-sm">
-            {{ oneUnitReward }}
+            {{ unitReward }}
           </span>
           <div class="text-white font-size-sm">
             {{
-              `1 ${fromTokenSymbol} = $${token(fromTokenSymbol).price.toFixed(
-                2
-              )} USD`
+              `1 ${fromTokenSymbol} = $${(this.toToken.price * this.reward).toFixed(2)} USD`
             }}
           </div>
           <div
@@ -101,11 +99,9 @@
                 <h6>
                   Please proceed with your wallet to confirm this Transaction.
                 </h6>
-                <!-- <p>BNT trades include a 1% affiliate fee.</p> -->
               </div>
               <h6 v-else-if="error && !success" class="text-danger">
                 Error: {{ error }}
-                <!-- <span class="cursor text-muted"> - Try again</span> -->
               </h6>
               <h6 v-else-if="!error && success">
                 <a :href="explorerLink" target="_blank" class="text-success">
@@ -200,7 +196,7 @@ export default class HeroConvert extends Vue {
   success = "";
   fromTokenAmount = "";
   toTokenAmount = "";
-  oneUnitReward = "";
+  oneUnitReward = 0;
   loadingConversion = false;
   fromTokenError = "";
   toTokenError = "";
@@ -340,7 +336,8 @@ export default class HeroConvert extends Vue {
       !this.isAuthenticated ||
       this.loadingConversion ||
       this.fromTokenAmount == "" ||
-      this.toTokenAmount == "" || (this.fromTokenErrors.length + this.toTokenErrors.length > 0)
+      this.toTokenAmount == "" ||
+      this.fromTokenErrors.length + this.toTokenErrors.length > 0
     );
   }
 
@@ -366,8 +363,8 @@ export default class HeroConvert extends Vue {
       this.sections = [];
       this.txModal = true;
       this.txBusy = true;
-      this.success = '';
-      this.error = '';
+      this.success = "";
+      this.error = "";
 
       const result = await this.convert({
         fromSymbol: this.fromTokenSymbol,
@@ -466,6 +463,22 @@ export default class HeroConvert extends Vue {
     this.focusSymbol(symbol);
   }
 
+  get reward() {
+    if (this.fromTokenAmount && this.toTokenAmount) {
+      const fromAmount = Number(this.fromTokenAmount);
+      const toAmount = Number(this.toTokenAmount);
+      return toAmount / fromAmount;
+    } else {
+      return this.oneUnitReward;
+    }
+  }
+
+  get unitReward() {
+    return `1 ${this.fromTokenSymbol} = ${this.reward.toFixed(
+      this.toToken.precision! > 6 ? 6 : this.toToken.precision
+    )} ${this.toTokenSymbol}`;
+  }
+
   async loadSimpleReward() {
     this.loading = true;
     const reward = await this.getReturn({
@@ -473,7 +486,7 @@ export default class HeroConvert extends Vue {
       amount: 1,
       toSymbol: this.toTokenSymbol
     });
-    this.oneUnitReward = `1 ${this.fromTokenSymbol} = ${reward.amount} ${this.toTokenSymbol}`;
+    this.oneUnitReward = Number(reward.amount);
 
     this.loading = false;
   }
