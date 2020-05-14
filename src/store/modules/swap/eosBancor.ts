@@ -961,8 +961,8 @@ export class EosBancorModule extends VuexModule
 
   get relay() {
     return (symbolName: string) => {
-      const relay = this.relaysList.find(relay =>
-        compareString(relay.smartToken.symbol, symbolName)
+      const relay = this.relays.find(relay =>
+        compareString(relay.smartTokenSymbol, symbolName)
       );
       if (!relay)
         throw new Error(`Failed to find relay with ID of ${symbolName}`);
