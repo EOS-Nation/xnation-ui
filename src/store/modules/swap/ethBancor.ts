@@ -777,6 +777,7 @@ export class EthBancorModule extends VuexModule
           const balance = this.tokenBalance(reserve.contract);
           return {
             id: reserve.contract,
+            precision: reserve.decimals,
             symbol: reserve.symbol,
             name,
             ...(relayFeed.costByNetworkUsd && {
