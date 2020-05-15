@@ -148,7 +148,7 @@ export const fetchTokenStats = async (
   };
 };
 
-export const retry = async <T>(
+export const retryPromise = async <T>(
   promise: () => Promise<T>,
   maxAttempts = 10,
   interval = 1000
