@@ -9,6 +9,7 @@ import Web3 from "web3";
 import { ABIBancorGasPriceLimit, BancorGasLimit } from "./ethConfig";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
 import wait from "waait";
+import { buildConverterContract, shrinkToken } from "./ethBancorCalc";
 
 const eosRpc: JsonRpc = rpc;
 
@@ -53,27 +54,18 @@ export const fetchBinanceUsdPriceOfBnt = async (): Promise<number> => {
   return Number(res.data.price);
 };
 
-export const fetchOkexUsdPriceOfBnt = async (): Promise<number> => {
-  const res = await axios.get<{
-    best_ask: string;
-    best_bid: string;
-    instrument_id: string;
-    product_id: string;
-    last: string;
-    last_qty: string;
-    ask: string;
-    best_ask_size: string;
-    bid: string;
-    best_bid_size: string;
-    open_24h: string;
-    high_24h: string;
-    low_24h: string;
-    base_volume_24h: string;
-    timestamp: string;
-    quote_volume_24h: string;
-  }>("https://aws.okex.com/api/spot/v3/instruments/BNT-USDT/ticker");
-  console.log(res, 'was res')
-  return Number(res.data.last);
+export const fetchUsdPriceOfBntViaRelay = async (
+  relayContractAddress = "0xE03374cAcf4600F56BDDbDC82c07b375f318fc5C"
+): Promise<number> => {
+  const contract = buildConverterContract(relayContractAddress);
+  const res = await contract.methods
+    .getReturn(
+      "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
+      "0x309627af60F0926daa6041B8279484312f2bf060",
+      "1000000000000000000"
+    )
+    .call();
+  return Number(shrinkToken(res["0"], 18));
 };
 
 export const updateArray = <T>(

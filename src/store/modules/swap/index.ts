@@ -11,8 +11,9 @@ import {
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
-import { compareString, fetchOkexUsdPriceOfBnt } from "@/api/helpers";
+import { compareString, fetchUsdPriceOfBntViaRelay } from "@/api/helpers";
 import { fetchBinanceUsdPriceOfBnt } from "@/api/helpers";
+import wait from "waait";
 
 interface BntPrice {
   price: null | number;
@@ -112,20 +113,30 @@ export class BancorModule extends VuexModule {
   }
 
   @action async getUsdPrice() {
-    const res = await Promise.all([
-      fetchBinanceUsdPriceOfBnt().catch(() => {}),
-      fetchOkexUsdPriceOfBnt().catch(() => {})
-    ]);
-    console.log(res, 'was the res..');
-    const usdPrices = res.filter(Boolean) as number[];
-    if (usdPrices.length == 0)
-      throw new Error("Failed to find USD Price of BNT from external APIs.");
-    const usdPrice = usdPrices[0];
-    this.setUsdPriceOfBnt({
-      price: usdPrice,
-      lastChecked: new Date().getTime()
-    });
-    return usdPrice;
+    try {
+      const reverse = (promise: any) =>
+        new Promise((resolve, reject) =>
+          Promise.resolve(promise).then(reject, resolve)
+        );
+      const any = (arr: any[]) => reverse(Promise.all(arr.map(reverse)));
+      const res = await any([
+        fetchBinanceUsdPriceOfBnt(),
+        new Promise(resolve => {
+          wait(500).then(() => resolve(fetchUsdPriceOfBntViaRelay()));
+        })
+      ]);
+      console.log(res, "was res!");
+      const usdPrice = res as number;
+      this.setUsdPriceOfBnt({
+        price: usdPrice,
+        lastChecked: new Date().getTime()
+      });
+      return usdPrice;
+    } catch (e) {
+      throw new Error(
+        `Failed to find USD Price of BNT from External API & Relay ${e.message}`
+      );
+    }
   }
 
   @action async fetchUsdPriceOfBnt() {

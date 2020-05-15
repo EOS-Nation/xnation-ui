@@ -1055,7 +1055,7 @@ export class EosBancorModule extends VuexModule
         fetchMultiRelays(),
         getTokenMeta()
       ]);
-      console.log('eos init received', usdPriceOfBnt);
+      console.log("eos init received", usdPriceOfBnt);
       this.setBntPrice(usdPriceOfBnt);
 
       const v1Relays = getHardCodedRelays();
@@ -1885,7 +1885,7 @@ export class EosBancorModule extends VuexModule
   }
 
   @mutation setMultiRelays(relays: EosMultiRelay[]) {
-    console.log('setting muilti relays...', relays)
+    console.log("setting muilti relays...", relays);
     this.relaysList = relays;
   }
 

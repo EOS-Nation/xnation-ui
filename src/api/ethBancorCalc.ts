@@ -7,7 +7,7 @@ import BigNumber from "bignumber.js";
 
 export const expandToken = (amount: string | number, precision: number) =>
   new BigNumber(amount).times(new BigNumber(10).pow(precision)).toFixed(0);
-  
+
 export const shrinkToken = (amount: string | number, precision: number) =>
   new BigNumber(amount)
     .div(new BigNumber(10).pow(precision))
@@ -239,6 +239,11 @@ export const buildConverterContract = (
   ) => ContractSendMethod;
   getSaleReturn: (
     toAddress: string,
+    wei: string
+  ) => CallReturn<{ "0": string; "1": string }>;
+  getReturn: (
+    fromTokenAddress: string,
+    toTokenAddress: string,
     wei: string
   ) => CallReturn<{ "0": string; "1": string }>;
   owner: () => CallReturn<string>;
