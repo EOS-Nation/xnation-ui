@@ -1790,48 +1790,21 @@ export class EosBancorModule extends VuexModule
   @action async hydrateV2Relays(relays: DryRelay[]): Promise<HydratedRelay[]> {
     if (relays.length == 0) return [];
 
-    const [reservesRes, settingsRes] = await Promise.all([
-      client.stateTablesForScopes<ReserveTableRow>(
-        process.env.VUE_APP_MULTICONTRACT!,
-        relays.map(relay => relay.smartToken.symbol.code().to_string()),
-        "reserves"
-      ),
-      client.stateTablesForScopes<SettingTableRow>(
-        process.env.VUE_APP_MULTICONTRACT!,
-        relays.map(relay => relay.smartToken.symbol.code().to_string()),
-        "converters"
+    const freshRelays = await fetchMultiRelays();
+    const hydratedRelays = eosMultiToHydratedRelays(freshRelays);
+
+    const result = hydratedRelays.filter(relay =>
+      relays.some(
+        r =>
+          compareString(relay.smartToken.contract, r.smartToken.contract) &&
+          relay.smartToken.symbol.isEqual(r.smartToken.symbol)
       )
-    ]);
-
-    const simpleSettings = parseDfuseSettingTable(settingsRes);
-    const simpleReserves = parseDfuseTable(reservesRes);
-
-    const joined = simpleReserves.map(relayWithReserves => ({
-      ...relayWithReserves,
-      ...simpleSettings.find(
-        setting => setting.smartToken == relayWithReserves.smartToken
-      )!
-    }));
-
-    return relays.map(relay => {
-      const textRelay = joined.find(
-        text => text.smartToken == relay.smartToken.symbol.code().to_string()
-      )!;
-      return {
-        ...relay,
-        reserves: relay.reserves.map(reserve => ({
-          contract: reserve.contract,
-          amount: new Asset(
-            textRelay.reserves.find(
-              textReserve =>
-                textReserve.balance.split(" ")[1] ==
-                reserve.symbol.code().to_string()
-            )!.balance
-          )
-        })),
-        fee: textRelay.fee / 1000000
-      };
-    });
+    );
+    if (relays.length !== result.length)
+      throw new Error(
+        "Failed to hydrate all relays requested in hydrateV2Relays"
+      );
+    return result;
   }
 
   @action async getReturn({

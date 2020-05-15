@@ -1,10 +1,10 @@
 import axios from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
-import { Asset } from "eos-common";
+import { Asset, asset_to_number, Sym } from "eos-common";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
-import { TokenBalances, EosMultiRelay } from "@/types/bancor";
+import { TokenBalances, EosMultiRelay, Converter } from "@/types/bancor";
 import Web3 from "web3";
 import { ABIBancorGasPriceLimit, BancorGasLimit } from "./ethConfig";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
@@ -3544,57 +3544,77 @@ export interface SettingTableRow {
   fee: number;
 }
 
+export interface ConverterV2Row {
+  currency: string;
+  fee: number;
+  metadata_json: string[];
+  owner: string;
+  protocol_features: string[];
+  reserve_balances: {
+    key: string;
+    value: {
+      asset: string;
+      Contract: string;
+    };
+  }[];
+  reserve_weights: {
+    key: string;
+    value: number;
+  }[];
+}
+
+interface BaseSymbol {
+  symbol: string;
+  precision: number;
+}
+
+const symToBaseSymbol = (symbol: Sym): BaseSymbol => ({
+  symbol: symbol.code().to_string(),
+  precision: symbol.precision()
+});
+
+const assetStringtoBaseSymbol = (assetString: string): BaseSymbol => {
+  const asset = new Asset(assetString);
+  return symToBaseSymbol(asset.symbol);
+};
+
 export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
-  const { scopes } = await client.stateTableScopes(contractName, "converters");
-  const rawConverters = await client.stateTablesForScopes<SettingTableRow>(
-    contractName,
-    scopes,
-    "converters"
-  );
-  const polishedConverters = rawConverters.tables;
-  const rawReserves = await client.stateTablesForScopes<ReserveTableRow>(
-    contractName,
-    scopes,
-    "reserves"
-  );
-  const polishedReserves = rawReserves.tables;
 
-  const flatRelays = polishedReserves
-    .filter(reserveTable => reserveTable.rows.length == 2)
-    .map(reserveTable => {
-      const { json } = polishedConverters.find(
-        converter => converter.scope == reserveTable.scope
-      )!.rows[0];
-      return {
-        settings: json!,
-        reserves: reserveTable.rows.map(reserve => reserve.json!)
-      };
-    });
+  const rawRelays = await client.stateTable<ConverterV2Row>(
+    process.env.VUE_APP_MULTICONTRACT!,
+    process.env.VUE_APP_MULTICONTRACT!,
+    "converter.v2"
+  );
+  const parsedRelays = rawRelays.rows.map(relay => relay.json!);
+  const passedRelays = parsedRelays
+    .filter(
+      relay =>
+        relay.reserve_weights.reduce(
+          (acc, reserve) => reserve.value + acc,
+          0
+        ) == 1000000
+    )
+    .filter(relay => relay.reserve_balances.length == 2);
 
-  const relays: EosMultiRelay[] = flatRelays.map(flatRelay => {
-    const [precision, symbolName] = flatRelay.settings.currency.split(",");
-    return {
-      reserves: flatRelay.reserves.map(({ contract, balance }) => ({
-        contract,
-        precision: Number(balance.split(" ")[0].split(".")[1].length),
-        symbol: balance.split(" ")[1],
-        network: "eos",
-        amount: Number(balance.split(" ")[0])
-      })),
-      contract: contractName,
-      owner: flatRelay.settings.owner,
-      isMultiContract: true,
-      smartToken: {
-        contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
-        symbol: symbolName,
-        precision: Number(precision),
-        amount: 0,
-        network: "eos"
-      },
-      fee: flatRelay.settings.fee / 1000000
-    };
-  });
+  const relays: EosMultiRelay[] = passedRelays.map(relay => ({
+    reserves: relay.reserve_balances.map(({ value }) => ({
+      ...assetStringtoBaseSymbol(value.asset),
+      contract: value.Contract,
+      network: "eos",
+      amount: asset_to_number(new Asset(value.asset))
+    })),
+    contract: contractName,
+    owner: relay.owner,
+    isMultiContract: true,
+    smartToken: {
+      ...symToBaseSymbol(new Sym(relay.currency)),
+      contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
+      amount: 0,
+      network: "eos"
+    },
+    fee: relay.fee / 1000000
+  }));
 
   return relays;
 };
