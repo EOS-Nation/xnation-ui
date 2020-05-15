@@ -3626,14 +3626,3 @@ export interface TickerPrice {
   sell: number;
   symbol: string;
 }
-
-interface BlockChainTickerRes {
-  [symcode: string]: TickerPrice;
-}
-
-export const getBitcoinPrice = async () => {
-  const res = await axios.get<BlockChainTickerRes>(
-    "https://blockchain.info/ticker"
-  );
-  return res.data["USD"].last;
-};
