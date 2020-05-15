@@ -1051,10 +1051,11 @@ export class EosBancorModule extends VuexModule
   @action async init() {
     try {
       const [usdPriceOfBnt, v2Relays, tokenMeta] = await Promise.all([
-        fetchBinanceUsdPriceOfBnt(),
+        vxm.bancor.fetchUsdPriceOfBnt(),
         fetchMultiRelays(),
         getTokenMeta()
       ]);
+      console.log('eos init received', usdPriceOfBnt);
       this.setBntPrice(usdPriceOfBnt);
 
       const v1Relays = getHardCodedRelays();

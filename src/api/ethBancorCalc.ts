@@ -1,4 +1,8 @@
+import { Contract, ContractSendMethod } from "web3-eth-contract";
 import _ from "lodash";
+import { CallReturn, ContractMethods } from "@/types/bancor.d.ts";
+import { ABIConverter } from "@/api/ethConfig";
+import { web3 } from '@/api/helpers';
 
 export interface TokenSymbol {
   contract: string;
@@ -190,3 +194,26 @@ export const generateEthPath = (from: string, relays: DryRelay[]) =>
       ]
     }
   ).path;
+
+export const buildConverterContract = (
+  contractAddress: string
+): ContractMethods<{
+  acceptTokenOwnership: () => ContractSendMethod;
+  acceptOwnership: () => ContractSendMethod;
+  fund: (fundAmount: string) => ContractSendMethod;
+  liquidate: (fundAmount: string) => ContractSendMethod;
+  setConversionFee: (ppm: number) => ContractSendMethod;
+  addReserve: (
+    reserveAddress: string,
+    connectorWeight: number
+  ) => ContractSendMethod;
+  getSaleReturn: (
+    toAddress: string,
+    wei: string
+  ) => CallReturn<{ "0": string; "1": string }>;
+  owner: () => CallReturn<string>;
+  version: () => CallReturn<string>;
+  connectorTokenCount: () => CallReturn<string>;
+  connectorTokens: (index: number) => CallReturn<string>;
+  conversionFee: () => CallReturn<string>;
+}> => new web3.eth.Contract(ABIConverter, contractAddress);

@@ -53,6 +53,29 @@ export const fetchBinanceUsdPriceOfBnt = async (): Promise<number> => {
   return Number(res.data.price);
 };
 
+export const fetchOkexUsdPriceOfBnt = async (): Promise<number> => {
+  const res = await axios.get<{
+    best_ask: string;
+    best_bid: string;
+    instrument_id: string;
+    product_id: string;
+    last: string;
+    last_qty: string;
+    ask: string;
+    best_ask_size: string;
+    bid: string;
+    best_bid_size: string;
+    open_24h: string;
+    high_24h: string;
+    low_24h: string;
+    base_volume_24h: string;
+    timestamp: string;
+    quote_volume_24h: string;
+  }>("https://aws.okex.com/api/spot/v3/instruments/BNT-USDT/ticker");
+  console.log(res, 'was res')
+  return Number(res.data.last);
+};
+
 export const updateArray = <T>(
   arr: T[],
   conditioner: (element: T) => boolean,

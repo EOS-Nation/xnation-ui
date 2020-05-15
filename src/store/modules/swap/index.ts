@@ -1,4 +1,4 @@
-import { VuexModule, action, Module } from "vuex-class-component";
+import { VuexModule, action, Module, mutation } from "vuex-class-component";
 import {
   ProposedTransaction,
   ProposedConvertTransaction,
@@ -7,16 +7,25 @@ import {
   ModalChoice,
   NetworkChoice,
   FeeParams,
-  NewOwnerParams,
-  PromiseSequence
+  NewOwnerParams
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
-import { compareString } from "@/api/helpers";
+import { compareString, fetchOkexUsdPriceOfBnt } from "@/api/helpers";
+import { fetchBinanceUsdPriceOfBnt } from "@/api/helpers";
+
+interface BntPrice {
+  price: null | number;
+  lastChecked: number;
+}
 
 @Module({ namespacedPath: "bancor/" })
 export class BancorModule extends VuexModule {
   chains = ["eos", "eth", "usds"];
+  usdPriceOfBnt: BntPrice = {
+    price: null,
+    lastChecked: 0
+  };
 
   get currentNetwork() {
     // @ts-ignore
@@ -100,6 +109,38 @@ export class BancorModule extends VuexModule {
         )
       );
     }
+  }
+
+  @action async getUsdPrice() {
+    const res = await Promise.all([
+      fetchBinanceUsdPriceOfBnt().catch(() => {}),
+      fetchOkexUsdPriceOfBnt().catch(() => {})
+    ]);
+    console.log(res, 'was the res..');
+    const usdPrices = res.filter(Boolean) as number[];
+    if (usdPrices.length == 0)
+      throw new Error("Failed to find USD Price of BNT from external APIs.");
+    const usdPrice = usdPrices[0];
+    this.setUsdPriceOfBnt({
+      price: usdPrice,
+      lastChecked: new Date().getTime()
+    });
+    return usdPrice;
+  }
+
+  @action async fetchUsdPriceOfBnt() {
+    const timeNow = new Date().getTime();
+    const millisecondGap = 5000;
+    const makeNetworkRequest =
+      !this.usdPriceOfBnt.lastChecked ||
+      this.usdPriceOfBnt.lastChecked + millisecondGap < timeNow;
+    return makeNetworkRequest
+      ? this.getUsdPrice()
+      : (this.usdPriceOfBnt.price as number);
+  }
+
+  @mutation setUsdPriceOfBnt(usdPriceOfBnt: BntPrice) {
+    this.usdPriceOfBnt = usdPriceOfBnt;
   }
 
   @action async convert(tx: ProposedConvertTransaction) {

@@ -15,7 +15,9 @@ import {
   ViewRelay,
   TokenPrice,
   Section,
-  Step
+  Step,
+  CallReturn,
+  ContractMethods
 } from "@/types/bancor";
 import { ethBancorApi, bancorApi } from "@/api/bancor";
 import {
@@ -24,7 +26,6 @@ import {
   Relay,
   Token,
   fetchReserveBalance,
-  fetchBinanceUsdPriceOfBnt,
   compareString,
   findOrThrow,
   updateArray
@@ -32,7 +33,6 @@ import {
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import {
   ABISmartToken,
-  ABIConverter,
   smartTokenByteCode,
   FactoryAbi,
   bancorRegistry,
@@ -44,7 +44,6 @@ import {
 import { toWei, toHex, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
 import axios, { AxiosResponse } from "axios";
-
 import { vxm } from "@/store";
 import wait from "waait";
 import _ from "lodash";
@@ -52,7 +51,8 @@ import {
   createPath,
   DryRelay,
   TokenSymbol,
-  generateEthPath
+  generateEthPath,
+  buildConverterContract
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiOffers";
 import BigNumber from "bignumber.js";
@@ -214,37 +214,6 @@ interface RelayFeed {
   change24H?: number;
   volume24H?: number;
 }
-
-interface ContractMethods<T> extends Contract {
-  methods: T;
-}
-
-interface CallReturn<T = any> {
-  call: () => Promise<T>;
-}
-
-const buildConverterContract = (
-  contractAddress: string
-): ContractMethods<{
-  acceptTokenOwnership: () => ContractSendMethod;
-  acceptOwnership: () => ContractSendMethod;
-  fund: (fundAmount: string) => ContractSendMethod;
-  liquidate: (fundAmount: string) => ContractSendMethod;
-  setConversionFee: (ppm: number) => ContractSendMethod;
-  addReserve: (
-    reserveAddress: string,
-    connectorWeight: number
-  ) => ContractSendMethod;
-  getSaleReturn: (
-    toAddress: string,
-    wei: string
-  ) => CallReturn<{ "0": string; "1": string }>;
-  owner: () => CallReturn<string>;
-  version: () => CallReturn<string>;
-  connectorTokenCount: () => CallReturn<string>;
-  connectorTokens: (index: number) => CallReturn<string>;
-  conversionFee: () => CallReturn<string>;
-}> => new web3.eth.Contract(ABIConverter, contractAddress);
 
 const buildTokenContract = (
   contractAddress?: string
@@ -1407,7 +1376,7 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async fetchUsdPriceOfBnt() {
-    const price = await fetchBinanceUsdPriceOfBnt();
+    const price = await vxm.bancor.fetchUsdPriceOfBnt();
     this.setBntUsdPrice(price);
     return price;
   }

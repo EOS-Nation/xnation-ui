@@ -1,4 +1,6 @@
 import { Pools, Pool } from "sxjs";
+import { Contract, ContractSendMethod } from "web3-eth-contract";
+
 
 export interface TokenPrice {
   id: string;
@@ -185,6 +187,15 @@ export interface ViewRelay {
   owner: string;
   swap: string;
   addRemoveLiquiditySupported: boolean;
+}
+
+
+export interface ContractMethods<T> extends Contract {
+  methods: T;
+}
+
+export interface CallReturn<T = any> {
+  call: () => Promise<T>;
 }
 
 export interface TokenPriceExtended extends TokenPrice {
