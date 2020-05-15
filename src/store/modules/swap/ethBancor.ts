@@ -15,9 +15,7 @@ import {
   ViewRelay,
   TokenPrice,
   Section,
-  Step,
-  CallReturn,
-  ContractMethods
+  Step
 } from "@/types/bancor";
 import { ethBancorApi, bancorApi } from "@/api/bancor";
 import {
@@ -32,7 +30,6 @@ import {
 } from "@/api/helpers";
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import {
-  ABISmartToken,
   smartTokenByteCode,
   FactoryAbi,
   bancorRegistry,
@@ -52,7 +49,10 @@ import {
   DryRelay,
   TokenSymbol,
   generateEthPath,
-  buildConverterContract
+  buildConverterContract,
+  buildTokenContract,
+  expandToken,
+  shrinkToken
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiOffers";
 import BigNumber from "bignumber.js";
@@ -62,14 +62,6 @@ const compareRelayFeed = (a: RelayFeed, b: RelayFeed) =>
   compareString(a.tokenId, b.tokenId);
 
 const ethErc20WrapperContract = "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315";
-
-export const expandToken = (amount: string | number, precision: number) =>
-  new BigNumber(amount).times(new BigNumber(10).pow(precision)).toFixed(0);
-
-export const shrinkToken = (amount: string | number, precision: number) =>
-  new BigNumber(amount)
-    .div(new BigNumber(10).pow(precision))
-    .toFixed(precision);
 
 const tokenPriceToFeed = (
   tokenAddress: string,
@@ -214,27 +206,6 @@ interface RelayFeed {
   change24H?: number;
   volume24H?: number;
 }
-
-const buildTokenContract = (
-  contractAddress?: string
-): ContractMethods<{
-  symbol: () => CallReturn<string>;
-  decimals: () => CallReturn<string>;
-  totalSupply: () => CallReturn<string>;
-  allowance: (owner: string, spender: string) => CallReturn<string>;
-  balanceOf: (owner: string) => CallReturn<string>;
-  transferOwnership: (converterAddress: string) => ContractSendMethod;
-  issue: (address: string, wei: string) => ContractSendMethod;
-  transfer: (to: string, weiAmount: string) => ContractSendMethod;
-  approve: (
-    approvedAddress: string,
-    approvedAmount: string
-  ) => ContractSendMethod;
-}> => {
-  return contractAddress
-    ? new web3.eth.Contract(ABISmartToken, contractAddress)
-    : new web3.eth.Contract(ABISmartToken);
-};
 
 @Module({ namespacedPath: "ethBancor/" })
 export class EthBancorModule extends VuexModule

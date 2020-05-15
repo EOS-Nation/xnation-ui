@@ -1,8 +1,17 @@
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import _ from "lodash";
 import { CallReturn, ContractMethods } from "@/types/bancor.d.ts";
-import { ABIConverter } from "@/api/ethConfig";
-import { web3 } from '@/api/helpers';
+import { ABIConverter, ABISmartToken } from "@/api/ethConfig";
+import { web3 } from "@/api/helpers";
+import BigNumber from "bignumber.js";
+
+export const expandToken = (amount: string | number, precision: number) =>
+  new BigNumber(amount).times(new BigNumber(10).pow(precision)).toFixed(0);
+  
+export const shrinkToken = (amount: string | number, precision: number) =>
+  new BigNumber(amount)
+    .div(new BigNumber(10).pow(precision))
+    .toFixed(precision);
 
 export interface TokenSymbol {
   contract: string;
@@ -194,6 +203,27 @@ export const generateEthPath = (from: string, relays: DryRelay[]) =>
       ]
     }
   ).path;
+
+export const buildTokenContract = (
+  contractAddress?: string
+): ContractMethods<{
+  symbol: () => CallReturn<string>;
+  decimals: () => CallReturn<string>;
+  totalSupply: () => CallReturn<string>;
+  allowance: (owner: string, spender: string) => CallReturn<string>;
+  balanceOf: (owner: string) => CallReturn<string>;
+  transferOwnership: (converterAddress: string) => ContractSendMethod;
+  issue: (address: string, wei: string) => ContractSendMethod;
+  transfer: (to: string, weiAmount: string) => ContractSendMethod;
+  approve: (
+    approvedAddress: string,
+    approvedAmount: string
+  ) => ContractSendMethod;
+}> => {
+  return contractAddress
+    ? new web3.eth.Contract(ABISmartToken, contractAddress)
+    : new web3.eth.Contract(ABISmartToken);
+};
 
 export const buildConverterContract = (
   contractAddress: string
