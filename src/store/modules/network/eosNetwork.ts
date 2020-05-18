@@ -67,46 +67,44 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
     maxPings?: number;
     interval?: number;
   }) {
-    return Promise.all(
-      originalBalances.map(
-        async originalBalance =>
-          new Promise(async (resolve, reject) => {
-            for (var i = 0; i < maxPings; i++) {
-              let newBalanceArray = await this.getBalances({
-                tokens: [originalBalance]
-              });
-              let newBalance = newBalanceArray.find(balance =>
-                compareString(balance.symbol, originalBalance.symbol)
-              )!;
-              if (newBalance.balance !== originalBalance.balance) {
-                console.log(
-                  newBalance.symbol,
-                  "balance has changed!",
-                  newBalance.balance,
-                  originalBalance.balance
-                );
-                break;
-              } else {
-                console.log(
-                  newBalance.symbol,
-                  "has not changed, trying again in",
-                  interval,
-                  "milliseconds"
-                );
-                await wait(interval);
-              }
-            }
-            resolve();
-          })
-      )
-    );
+    return new Promise(async (resolve, reject) => {
+      for (var i = 0; i < maxPings; i++) {
+        let newBalanceArray = await this.getBalances({
+          tokens: originalBalances,
+          disableSetting: true
+        });
+        const allBalancesDifferent = originalBalances.every(
+          balance =>
+            newBalanceArray.find(b => compareString(b.symbol, balance.symbol))!
+              .balance !== balance.balance
+        );
+        if (allBalancesDifferent) {
+          console.log(
+            newBalanceArray.map(x => [x.balance, x.symbol].join(" ")),
+            "balance has changed!",
+            originalBalances.map(x => [x.balance, x.symbol].join(" "))
+          );
+          this.updateTokenBalances(newBalanceArray);
+          break;
+        } else {
+          console.log(
+            "Balance has not updated yet, trying again in",
+            interval,
+            "milliseconds",
+            "as attempt #",
+            i
+          );
+          await wait(interval);
+        }
+      }
+      resolve();
+    });
   }
 
   @action async transfer({ to, amount, id, memo }: TransferParam) {
     const symbol = id;
     const dirtyReserve = vxm.eosBancor.relaysList
-      .map(relay => relay.reserves)
-      .flat(1)
+      .flatMap(relay => relay.reserves)
       .find(reserve => compareString(reserve.symbol, symbol));
     if (!dirtyReserve) throw new Error("Failed finding dirty reserve");
 
@@ -138,6 +136,7 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
   }
 
   @action public async getBalances(params?: GetBalanceParam) {
+    if (!this.isAuthenticated) return [];
     if (!params) {
       const tokenBalances = await getTokenBalances(this.isAuthenticated);
       const equalisedBalances: TokenBalanceReturn[] = tokenBalances.tokens.map(
@@ -154,6 +153,7 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
       const equalisedBalances = bulkTokens.tokens.map(
         tokenBalanceToTokenBalanceReturn
       );
+      console.log("slow is hitting this");
       this.updateTokenBalances(equalisedBalances);
       const missedTokens = _.differenceWith(
         tokens,
@@ -179,17 +179,21 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
       [...directTokens, ...equalisedBalances],
       compareToken
     );
-    this.updateTokenBalances(merged);
+    if (!params.disableSetting) {
+      this.updateTokenBalances(merged);
+    }
     return directTokens;
   }
 
   @mutation updateTokenBalances(tokens: TokenBalanceReturn[]) {
-    const balancesNotBeingUpdated = _.differenceWith(
-      this.tokenBalances,
-      tokens,
+    console.log(
+      "tokens provided",
+      tokens.filter(token => compareString(token.symbol, "bnt"))
+    );
+    this.tokenBalances = _.uniqWith(
+      [...tokens, ...this.tokenBalances],
       compareToken
     );
-    this.tokenBalances = [...balancesNotBeingUpdated, ...tokens];
   }
 }
 

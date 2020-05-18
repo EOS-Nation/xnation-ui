@@ -1,4 +1,17 @@
+import { Contract, ContractSendMethod } from "web3-eth-contract";
 import _ from "lodash";
+import { CallReturn, ContractMethods } from "@/types/bancor.d.ts";
+import { ABIConverter, ABISmartToken } from "@/api/ethConfig";
+import { web3 } from "@/api/helpers";
+import BigNumber from "bignumber.js";
+
+export const expandToken = (amount: string | number, precision: number) =>
+  new BigNumber(amount).times(new BigNumber(10).pow(precision)).toFixed(0);
+
+export const shrinkToken = (amount: string | number, precision: number) =>
+  new BigNumber(amount)
+    .div(new BigNumber(10).pow(precision))
+    .toFixed(precision);
 
 export interface TokenSymbol {
   contract: string;
@@ -142,7 +155,7 @@ export function createPath(
   // To do
   // Count the amount of duplicate conversions, eliminate the relays between them as they are redundant
   // then either just return straight up, or run again
-  const allReserves = dryRelays.map(relay => relay.reserves).flat(1);
+  const allReserves = dryRelays.flatMap(relay => relay.reserves);
   const uniqueReserves = _.uniqWith(
     allReserves,
     (a, b) => a.contract.toLowerCase() == b.contract.toLowerCase()
@@ -190,3 +203,52 @@ export const generateEthPath = (from: string, relays: DryRelay[]) =>
       ]
     }
   ).path;
+
+export const buildTokenContract = (
+  contractAddress?: string
+): ContractMethods<{
+  symbol: () => CallReturn<string>;
+  decimals: () => CallReturn<string>;
+  totalSupply: () => CallReturn<string>;
+  allowance: (owner: string, spender: string) => CallReturn<string>;
+  balanceOf: (owner: string) => CallReturn<string>;
+  transferOwnership: (converterAddress: string) => ContractSendMethod;
+  issue: (address: string, wei: string) => ContractSendMethod;
+  transfer: (to: string, weiAmount: string) => ContractSendMethod;
+  approve: (
+    approvedAddress: string,
+    approvedAmount: string
+  ) => ContractSendMethod;
+}> => {
+  return contractAddress
+    ? new web3.eth.Contract(ABISmartToken, contractAddress)
+    : new web3.eth.Contract(ABISmartToken);
+};
+
+export const buildConverterContract = (
+  contractAddress: string
+): ContractMethods<{
+  acceptTokenOwnership: () => ContractSendMethod;
+  acceptOwnership: () => ContractSendMethod;
+  fund: (fundAmount: string) => ContractSendMethod;
+  liquidate: (fundAmount: string) => ContractSendMethod;
+  setConversionFee: (ppm: number) => ContractSendMethod;
+  addReserve: (
+    reserveAddress: string,
+    connectorWeight: number
+  ) => ContractSendMethod;
+  getSaleReturn: (
+    toAddress: string,
+    wei: string
+  ) => CallReturn<{ "0": string; "1": string }>;
+  getReturn: (
+    fromTokenAddress: string,
+    toTokenAddress: string,
+    wei: string
+  ) => CallReturn<{ "0": string; "1": string }>;
+  owner: () => CallReturn<string>;
+  version: () => CallReturn<string>;
+  connectorTokenCount: () => CallReturn<string>;
+  connectorTokens: (index: number) => CallReturn<string>;
+  conversionFee: () => CallReturn<string>;
+}> => new web3.eth.Contract(ABIConverter, contractAddress);

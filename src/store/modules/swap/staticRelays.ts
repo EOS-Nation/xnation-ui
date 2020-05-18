@@ -1,4 +1,4 @@
-import { DryRelay } from "@/api/bancorCalc";
+import { DryRelay } from "@/api/eosBancorCalc";
 import { Sym } from "eos-common";
 
 const bntToken = {
@@ -9,7 +9,6 @@ const bntToken = {
 const oldRelays = [
   {
     contract: "bnt2eoscnvrt",
-    isMultiContract: false,
     smartToken: {
       contract: "bnt2eosrelay",
       symbol: "10,BNTEOS"
@@ -24,7 +23,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11111",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11111",
       symbol: "10,BNTBLK"
@@ -38,23 +36,7 @@ const oldRelays = [
     ]
   },
   {
-    contract: "bancorc11112",
-    isMultiContract: false,
-    smartToken: {
-      contract: "bancorr11112",
-      symbol: "10,BNTKRM"
-    },
-    reserves: [
-      bntToken,
-      {
-        contract: "therealkarma",
-        symbol: "4,KARMA"
-      }
-    ]
-  },
-  {
     contract: "bancorc11121",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11121",
       symbol: "10,BNTHRUS"
@@ -69,7 +51,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11122",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11122",
       symbol: "10,BNTMEET"
@@ -84,7 +65,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11123",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11123",
       symbol: "10,BNTIQ"
@@ -99,7 +79,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11124",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11124",
       symbol: "10,BNTEPRA"
@@ -114,7 +93,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11125",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11125",
       symbol: "10,BNTDICE"
@@ -129,7 +107,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11131",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11131",
       symbol: "10,BNTHVT"
@@ -144,7 +121,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11132",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11132",
       symbol: "10,BNTOCT"
@@ -159,7 +135,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11134",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11134",
       symbol: "10,BNTMEV"
@@ -174,7 +149,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11145",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11145",
       symbol: "10,BNTTAEL"
@@ -189,7 +163,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11151",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11151",
       symbol: "10,BNTZOS"
@@ -204,7 +177,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11152",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11152",
       symbol: "10,BNTEQA"
@@ -219,7 +191,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11153",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11153",
       symbol: "10,BNTPEOS"
@@ -234,7 +205,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11154",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11154",
       symbol: "10,BNTDAPP"
@@ -249,7 +219,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11155",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11155",
       symbol: "10,BNTCHEX"
@@ -264,7 +233,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11211",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11211",
       symbol: "10,BNTFINX"
@@ -279,7 +247,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11213",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11213",
       symbol: "10,BNTEMT"
@@ -294,7 +261,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11214",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11214",
       symbol: "10,BNTPIXE"
@@ -309,7 +275,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11215",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11215",
       symbol: "10,BNTNUT"
@@ -324,7 +289,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11222",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11222",
       symbol: "10,BNTESDT"
@@ -339,7 +303,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11223",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11223",
       symbol: "10,BNTDRGN"
@@ -354,7 +317,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11225",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11225",
       symbol: "10,BNTLUME"
@@ -369,7 +331,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11231",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11231",
       symbol: "10,BNTSENS"
@@ -384,7 +345,6 @@ const oldRelays = [
   },
   {
     contract: "bancorc11232",
-    isMultiContract: false,
     smartToken: {
       contract: "bancorr11232",
       symbol: "10,BNTUSDT"
@@ -402,6 +362,7 @@ const oldRelays = [
 export const getHardCodedRelays = (): DryRelay[] =>
   oldRelays.map(relay => ({
     ...relay,
+    isMultiContract: false,
     smartToken: {
       contract: relay.smartToken.contract,
       symbol: new Sym(relay.smartToken.symbol)

@@ -1,4 +1,4 @@
-import { VuexModule, action, Module } from "vuex-class-component";
+import { VuexModule, action, Module, mutation } from "vuex-class-component";
 import {
   ProposedTransaction,
   ProposedConvertTransaction,
@@ -7,16 +7,26 @@ import {
   ModalChoice,
   NetworkChoice,
   FeeParams,
-  NewOwnerParams,
-  PromiseSequence
+  NewOwnerParams
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
-import { compareString } from "@/api/helpers";
+import { compareString, fetchUsdPriceOfBntViaRelay } from "@/api/helpers";
+import { fetchBinanceUsdPriceOfBnt } from "@/api/helpers";
+import wait from "waait";
+
+interface BntPrice {
+  price: null | number;
+  lastChecked: number;
+}
 
 @Module({ namespacedPath: "bancor/" })
 export class BancorModule extends VuexModule {
   chains = ["eos", "eth", "usds"];
+  usdPriceOfBnt: BntPrice = {
+    price: null,
+    lastChecked: 0
+  };
 
   get currentNetwork() {
     // @ts-ignore
@@ -100,6 +110,48 @@ export class BancorModule extends VuexModule {
         )
       );
     }
+  }
+
+  @action async getUsdPrice() {
+    try {
+      const reverse = (promise: any) =>
+        new Promise((resolve, reject) =>
+          Promise.resolve(promise).then(reject, resolve)
+        );
+      const any = (arr: any[]) => reverse(Promise.all(arr.map(reverse)));
+      const res = await any([
+        fetchBinanceUsdPriceOfBnt(),
+        new Promise(resolve => {
+          wait(500).then(() => resolve(fetchUsdPriceOfBntViaRelay()));
+        })
+      ]);
+      console.log(res, "was res!");
+      const usdPrice = res as number;
+      this.setUsdPriceOfBnt({
+        price: usdPrice,
+        lastChecked: new Date().getTime()
+      });
+      return usdPrice;
+    } catch (e) {
+      throw new Error(
+        `Failed to find USD Price of BNT from External API & Relay ${e.message}`
+      );
+    }
+  }
+
+  @action async fetchUsdPriceOfBnt() {
+    const timeNow = new Date().getTime();
+    const millisecondGap = 5000;
+    const makeNetworkRequest =
+      !this.usdPriceOfBnt.lastChecked ||
+      this.usdPriceOfBnt.lastChecked + millisecondGap < timeNow;
+    return makeNetworkRequest
+      ? this.getUsdPrice()
+      : (this.usdPriceOfBnt.price as number);
+  }
+
+  @mutation setUsdPriceOfBnt(usdPriceOfBnt: BntPrice) {
+    this.usdPriceOfBnt = usdPriceOfBnt;
   }
 
   @action async convert(tx: ProposedConvertTransaction) {

@@ -112,7 +112,7 @@ export class EosTransitModule extends VuexModule {
       );
     } catch (e) {
       console.log("log rocket should be taking care of this...", LogRocket);
-      
+
       LogRocket.captureException(e, {
         extra: {
           // @ts-ignore
@@ -122,6 +122,18 @@ export class EosTransitModule extends VuexModule {
       });
       // @ts-ignore
       LogRocket.captureMessage(`FailedTx${this.wallet.auth.accountName}`);
+      if (e.message == "Unexpected end of JSON input")
+        // @ts-ignore
+        return await this.wallet.eosApi.transact(
+          {
+            actions: builtActions
+          },
+          {
+            broadcast: true,
+            blocksBehind: 3,
+            expireSeconds: 60
+          }
+        );
       throw new Error(e.message);
     }
   }

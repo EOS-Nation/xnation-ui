@@ -3,7 +3,7 @@ import { web3 } from "@/api/helpers";
 import { ABISmartToken } from "@/api/ethConfig";
 import { EthAddress } from "@/types/bancor";
 import { fromWei } from "web3-utils";
-import { shrinkToken } from '../swap/ethBancor';
+import { shrinkToken } from "@/api/ethBancorCalc";
 
 const tx = (data: any) =>
   new Promise((resolve, reject) => {
@@ -84,13 +84,14 @@ export class EthereumModule extends VuexModule {
   }: {
     accountHolder: EthAddress;
     tokenContractAddress: EthAddress;
-    keepWei?: boolean
+    keepWei?: boolean;
   }) {
     if (tokenContractAddress == "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315") {
       const weiBalance = await web3.eth.getBalance(accountHolder);
       return Number(fromWei(weiBalance));
     } else {
-      if (!tokenContractAddress) throw new Error("tokenContractAddress is falsy");
+      if (!tokenContractAddress)
+        throw new Error("tokenContractAddress is falsy");
       const tokenContract = new web3.eth.Contract(
         // @ts-ignore
         ABISmartToken,

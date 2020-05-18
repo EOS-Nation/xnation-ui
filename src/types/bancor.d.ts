@@ -1,4 +1,6 @@
 import { Pools, Pool } from "sxjs";
+import { Contract, ContractSendMethod } from "web3-eth-contract";
+
 
 export interface TokenPrice {
   id: string;
@@ -24,7 +26,6 @@ export interface PriceHistory {
 }
 
 export type FloatAmount = number;
-
 
 export interface TokenBalance {
   symbol: string;
@@ -153,8 +154,8 @@ export interface ViewToken {
   id?: string;
   symbol: string;
   name: string;
-  price: number;
-  liqDepth: number;
+  price?: number;
+  liqDepth?: number;
   logo: string;
   change24h?: number;
   volume24h?: number;
@@ -185,6 +186,16 @@ export interface ViewRelay {
   fee: number;
   owner: string;
   swap: string;
+  addRemoveLiquiditySupported: boolean;
+}
+
+
+export interface ContractMethods<T> extends Contract {
+  methods: T;
+}
+
+export interface CallReturn<T = any> {
+  call: () => Promise<T>;
 }
 
 export interface TokenPriceExtended extends TokenPrice {
@@ -237,7 +248,7 @@ export interface ModalChoice {
   contract: string;
   balance?: number;
   img: string;
-  usdValue?: number
+  usdValue?: number;
 }
 
 export interface NetworkChoice extends ModalChoice {
@@ -318,6 +329,7 @@ export interface LiquidityModule {
 interface GetBalanceParam {
   tokens: TokenBalanceParam[];
   slow?: boolean;
+  disableSetting?: boolean;
 }
 
 interface TokenBalanceParam {

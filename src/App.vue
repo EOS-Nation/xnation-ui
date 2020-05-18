@@ -48,10 +48,8 @@ import ModalTx from "@/components/modals/ModalTx.vue";
 import MyFooter from "@/components/common/MyFooter.vue";
 import { vxm } from "@/store/";
 import { WalletProvider } from "eos-transit";
-import { detect } from "detect-browser";
 import wait from 'waait'
 
-const browser = detect();
 
 @Component({
   components: {

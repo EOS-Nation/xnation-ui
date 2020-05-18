@@ -2,17 +2,17 @@
   <div>
     <b-dropdown
       button
-      :disabled="disabled"
+      :disabled="noMenus"
       @click="clicked"
-      variant="success"
+      :variant="noMenus ? 'warning' : 'success'"
       split
       class="m-2"
       size="lg"
     >
       <template v-slot:button-content>
-        <font-awesome-icon :icon="focusedMenu[2]" fixed-width class="mr-2" />
+        <font-awesome-icon :icon="icon" fixed-width class="mr-2" />
         <span class="font-w700">
-          {{ focusedMenu[1] }}
+          {{ title }}
         </span>
       </template>
       <b-dropdown-item-button
@@ -33,6 +33,18 @@ export default class DynamicDropdown extends Vue {
   @Prop(Array) menus!: [string, string, string][];
   @PropSync("selectedMenu", { type: String }) menu!: string;
   @Prop({ default: false }) disabled?: boolean;
+
+  get icon() {
+    return this.noMenus ? "question" : this.focusedMenu[2];
+  }
+
+  get title() {
+    return this.noMenus ? "No features available" : this.focusedMenu[1];
+  }
+
+  get noMenus() {
+    return this.menus.length == 0;
+  }
 
   get sortedMenus() {
     return this.menus.filter(([name, label, icon]) => name !== this.menu);
