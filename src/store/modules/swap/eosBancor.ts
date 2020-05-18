@@ -33,7 +33,8 @@ import {
   ReserveTableRow,
   fetchBinanceUsdPriceOfBnt,
   findOrThrow,
-  updateArray
+  updateArray,
+  fetchMultiRelay
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -42,7 +43,6 @@ import {
   number_to_asset,
   Sym
 } from "eos-common";
-import { tableApi } from "@/api/TableWrapper";
 import { multiContract } from "@/api/multiContractTx";
 import { multiContractAction } from "@/contracts/multi";
 import { vxm } from "@/store";
@@ -1500,6 +1500,17 @@ export class EosBancorModule extends VuexModule
     }
   }
 
+  @action async fetchRelayReservesAsAssets(smartTokenSymbol: string) {
+    const hydratedRelay = await fetchMultiRelay(smartTokenSymbol);
+    const tokenReserves = hydratedRelay.reserves.map(reserve =>
+      number_to_asset(
+        reserve.amount,
+        new Symbol(reserve.symbol, reserve.precision)
+      )
+    );
+    return tokenReserves;
+  }
+
   @action async getUserBalances(symbolName: string) {
     const relay = this.relay(symbolName);
     const [
@@ -1525,14 +1536,14 @@ export class EosBancorModule extends VuexModule
           }
         ]
       }),
-      tableApi.getReservesMulti(symbolName),
+      this.fetchRelayReservesAsAssets(symbolName),
       // @ts-ignore
       fetchTokenStats(relay.smartToken.contract, symbolName)
     ]);
 
     const smartSupply = asset_to_number(supply.supply);
-    const token1ReserveBalance = asset_to_number(token1.balance);
-    const token2ReserveBalance = asset_to_number(token2.balance);
+    const token1ReserveBalance = asset_to_number(token1);
+    const token2ReserveBalance = asset_to_number(token2);
 
     const percent = smartTokenBalance.balance / smartSupply;
     const token1MaxWithdraw = percent * token1ReserveBalance;
@@ -1551,8 +1562,8 @@ export class EosBancorModule extends VuexModule
     suggestedDeposit: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
     const relay = this.relay(suggestedDeposit.smartTokenSymbol);
-    const [tokenReserves, supply] = await Promise.all([
-      tableApi.getReservesMulti(suggestedDeposit.smartTokenSymbol),
+    const [reserves, supply] = await Promise.all([
+      this.fetchRelayReservesAsAssets(suggestedDeposit.smartTokenSymbol),
       fetchTokenStats(
         // @ts-ignore
         relay.smartToken.contract,
@@ -1560,39 +1571,36 @@ export class EosBancorModule extends VuexModule
       )
     ]);
 
-    const sameReserve = tokenReserves.find(
+    const sameReserve = reserves.find(
       reserve =>
-        reserve.balance.symbol.code().to_string() ==
-        suggestedDeposit.tokenSymbol
+        reserve.symbol.code().to_string() == suggestedDeposit.tokenSymbol
     )!;
-    const opposingReserve = tokenReserves.find(
+    const opposingReserve = reserves.find(
       reserve =>
-        reserve.balance.symbol.code().to_string() !==
-        suggestedDeposit.tokenSymbol
+        reserve.symbol.code().to_string() !== suggestedDeposit.tokenSymbol
     )!;
 
-    const reserveBalance = asset_to_number(sameReserve.balance);
+    const reserveBalance = asset_to_number(sameReserve);
     const percent = Number(suggestedDeposit.tokenAmount) / reserveBalance;
-    const opposingNumberAmount =
-      percent * asset_to_number(opposingReserve.balance);
+    const opposingNumberAmount = percent * asset_to_number(opposingReserve);
 
     const sameAsset = number_to_asset(
       Number(suggestedDeposit.tokenAmount),
-      sameReserve.balance.symbol
+      sameReserve.symbol
     );
     const opposingAsset = number_to_asset(
       opposingNumberAmount,
-      opposingReserve.balance.symbol
+      opposingReserve.symbol
     );
 
     const sameReserveFundReturn = calculateFundReturn(
       sameAsset,
-      sameReserve.balance,
+      sameReserve,
       supply.supply
     );
     const opposingReserveFundReturn = calculateFundReturn(
       opposingAsset,
-      opposingReserve.balance,
+      opposingReserve,
       supply.supply
     );
 
@@ -1616,8 +1624,8 @@ export class EosBancorModule extends VuexModule
     suggestWithdraw: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
     const relay = this.relay(suggestWithdraw.smartTokenSymbol);
-    const [tokenReserves, supply, smartUserBalanceString] = await Promise.all([
-      tableApi.getReservesMulti(suggestWithdraw.smartTokenSymbol),
+    const [reserves, supply, smartUserBalanceString] = await Promise.all([
+      this.fetchRelayReservesAsAssets(suggestWithdraw.smartTokenSymbol),
       fetchTokenStats(
         // @ts-ignore
         relay.smartToken.contract,
@@ -1628,28 +1636,27 @@ export class EosBancorModule extends VuexModule
         string
       >
     ]);
+
     const smartUserBalance = new Asset(smartUserBalanceString);
     const smartSupply = asset_to_number(supply.supply);
-    const sameReserve = tokenReserves.find(
+    const sameReserve = reserves.find(
       reserve =>
-        reserve.balance.symbol.code().to_string() == suggestWithdraw.tokenSymbol
+        reserve.symbol.code().to_string() == suggestWithdraw.tokenSymbol
     )!;
-    const opposingReserve = tokenReserves.find(
+    const opposingReserve = reserves.find(
       reserve =>
-        reserve.balance.symbol.code().to_string() !==
-        suggestWithdraw.tokenSymbol
+        reserve.symbol.code().to_string() !== suggestWithdraw.tokenSymbol
     )!;
 
-    const reserveBalance = asset_to_number(sameReserve.balance);
+    const reserveBalance = asset_to_number(sameReserve);
     const percent = Number(suggestWithdraw.tokenAmount) / reserveBalance;
 
     const smartTokenAmount = percent * smartSupply;
 
-    const opposingAmountNumber =
-      percent * asset_to_number(opposingReserve.balance);
+    const opposingAmountNumber = percent * asset_to_number(opposingReserve);
     const opposingAsset = number_to_asset(
       opposingAmountNumber,
-      opposingReserve.balance.symbol
+      opposingReserve.symbol
     );
 
     return {

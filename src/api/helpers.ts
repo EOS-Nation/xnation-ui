@@ -3619,6 +3619,23 @@ export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
   return relays;
 };
 
+export const fetchMultiRelay = async (
+  smartTokenSymbol: string
+): Promise<EosMultiRelay> => {
+  const relays = await fetchMultiRelays();
+  const relay = findOrThrow(
+    relays,
+    relay => compareString(relay.smartToken.symbol, smartTokenSymbol),
+    `failed to find multi relay with smart token symbol of ${smartTokenSymbol}`
+  );
+  return {
+    ...relay,
+    reserves: relay.reserves.sort((a: any) => {
+      return a.contract == "bntbntbntbnt" ? -1 : 1;
+    })
+  };
+};
+
 export interface TickerPrice {
   "15m": number;
   last: number;
