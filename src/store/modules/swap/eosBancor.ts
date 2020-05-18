@@ -23,7 +23,7 @@ import {
   Step,
   Token
 } from "@/types/bancor";
-import { bancorApi, ethBancorApi } from "@/api/bancor";
+import { bancorApi, ethBancorApi } from "@/api/bancorApiWrapper";
 import {
   fetchMultiRelays,
   getBalance,

@@ -17,7 +17,7 @@ import {
   Section,
   Step
 } from "@/types/bancor";
-import { ethBancorApi, bancorApi } from "@/api/bancor";
+import { ethBancorApi } from "@/api/bancorApiWrapper";
 import {
   getEthRelays,
   web3,
@@ -36,9 +36,10 @@ import {
   ABIContractRegistry,
   ABINetworkContract,
   ABIConverterRegistry,
-  ABINetworkPathFinder
+  ABINetworkPathFinder,
+  ethErc20WrapperContract
 } from "@/api/ethConfig";
-import { toWei, toHex, fromWei } from "web3-utils";
+import { toWei, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
 import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
@@ -61,7 +62,6 @@ const compareRelayFeed = (a: RelayFeed, b: RelayFeed) =>
   compareString(a.smartTokenContract, b.smartTokenContract) &&
   compareString(a.tokenId, b.tokenId);
 
-const ethErc20WrapperContract = "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315";
 
 const tokenPriceToFeed = (
   tokenAddress: string,
@@ -1340,7 +1340,7 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async fetchBancorUsdPriceOfBnt() {
-    const tokens = await bancorApi.getTokens();
+    const tokens = await ethBancorApi.getTokens();
     const usdPriceOfBnt = findOrThrow(tokens, token => token.code == "BNT")
       .price;
     return usdPriceOfBnt;
