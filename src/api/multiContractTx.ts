@@ -1,6 +1,6 @@
 import { vxm } from "@/store/";
 import { multiContractAction, SemiAction } from "../contracts/multi";
-import { TokenAmount } from "@/api/bancorCalc";
+import { TokenAmount } from "@/api/eosBancorCalc";
 import { Asset } from "eos-common";
 
 interface Action {

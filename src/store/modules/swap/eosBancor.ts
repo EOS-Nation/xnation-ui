@@ -61,7 +61,7 @@ import {
   calculateFundReturn,
   TokenAmount,
   TokenSymbol
-} from "@/api/bancorCalc";
+} from "@/api/eosBancorCalc";
 import _ from "lodash";
 import wait from "waait";
 import { MultiStateResponse } from "@dfuse/client";

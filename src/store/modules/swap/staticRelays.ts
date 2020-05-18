@@ -1,4 +1,4 @@
-import { DryRelay } from "@/api/bancorCalc";
+import { DryRelay } from "@/api/eosBancorCalc";
 import { Sym } from "eos-common";
 
 const bntToken = {
