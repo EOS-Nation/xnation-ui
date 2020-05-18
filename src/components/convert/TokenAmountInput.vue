@@ -71,7 +71,7 @@
         :label="label"
       />
       <h4 class="error">
-        <div class="errorList">
+        <div class="error-list">
           <b-badge :key="error" v-for="error in errorsList" variant="danger">{{
             error
           }}</b-badge>
@@ -159,7 +159,7 @@ export default class TokenAmountInput extends Vue {
 
 <style lang="scss" scoped>
 .error-list {
-  display: flex;
+  margin-top: 8px;
   :first-child {
     margin-right: 3px;
   }
