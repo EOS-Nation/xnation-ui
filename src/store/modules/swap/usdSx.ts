@@ -176,18 +176,37 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       symbol(propose.fromSymbol, precision)
     );
 
-    const txRes = await this.triggerTx([
+    const tokenContractsAndSymbols = [
       {
-        account: tokenContract,
-        name: "transfer",
-        data: {
-          from: accountName,
-          to: process.env.VUE_APP_USDSTABLE!,
-          memo: propose.toSymbol,
-          quantity: amountAsset.to_string()
-        }
+        contract: tokenContract,
+        symbol: propose.fromSymbol
+      },
+      {
+        contract: this.newTokens.find(token =>
+          compareString(token.symbol, propose.toSymbol)
+        )!.contract,
+        symbol: propose.toSymbol
       }
+    ];
+
+    const [txRes, originalBalances] = await Promise.all([
+      this.triggerTx([
+        {
+          account: tokenContract,
+          name: "transfer",
+          data: {
+            from: accountName,
+            to: process.env.VUE_APP_USDSTABLE!,
+            memo: propose.toSymbol,
+            quantity: amountAsset.to_string()
+          }
+        }
+      ]),
+      vxm.eosNetwork.getBalances({
+        tokens: tokenContractsAndSymbols
+      })
     ]);
+    vxm.eosNetwork.pingTillChange({ originalBalances });
 
     return txRes.transaction_id;
   }
@@ -235,9 +254,8 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     };
   }
 
-
   @mutation resetTimer() {
-    this.lastLoaded = new Date().getTime()
+    this.lastLoaded = new Date().getTime();
   }
 
   @action async updateStats() {
