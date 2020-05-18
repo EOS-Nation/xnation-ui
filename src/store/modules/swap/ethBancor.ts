@@ -55,7 +55,7 @@ import {
   expandToken,
   shrinkToken
 } from "@/api/ethBancorCalc";
-import { ethBancorApiDictionary } from "@/api/bancorApiOffers";
+import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
 import BigNumber from "bignumber.js";
 
 const compareRelayFeed = (a: RelayFeed, b: RelayFeed) =>
