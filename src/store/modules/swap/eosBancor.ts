@@ -996,7 +996,7 @@ export class EosBancorModule extends VuexModule
 
         return {
           ...relay,
-          id: relay.smartToken.symbol,
+          id: `${relay.contract}${relay.smartToken.symbol}`,
           swap: "eos",
           symbol: relay.reserves.find(reserve => reserve.symbol !== "BNT")!
             .symbol,
