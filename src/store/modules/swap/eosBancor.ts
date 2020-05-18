@@ -1789,7 +1789,15 @@ export class EosBancorModule extends VuexModule
       this.hydrateV1Relays(v1Relays),
       this.hydrateV2Relays(v2Relays)
     ]);
-    return [...v2, ...v1];
+    const flat = [...v2, ...v1];
+    return relays.map(
+      relay =>
+        flat.find(
+          r =>
+            r.smartToken.symbol.isEqual(relay.smartToken.symbol) &&
+            compareString(r.smartToken.contract, relay.smartToken.contract)
+        )!
+    );
   }
 
   @action async hydrateV2Relays(relays: DryRelay[]): Promise<HydratedRelay[]> {
@@ -1830,6 +1838,12 @@ export class EosBancorModule extends VuexModule
     const allRelays = eosMultiToDryRelays(this.convertableRelays);
     const path = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const hydratedRelays = await this.hydrateRelays(path);
+    console.log(
+      path,
+      hydratedRelays,
+      assetAmount.to_string(),
+      "should be being found"
+    );
     const calculatedReturn = findReturn(assetAmount, hydratedRelays);
 
     return {
