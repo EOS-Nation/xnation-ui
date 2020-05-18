@@ -71,7 +71,6 @@
         :label="label"
       />
       <h4 class="error">
-        <b-badge variant="danger">{{ error }}</b-badge>
         <div class="errorList">
           <b-badge :key="error" v-for="error in errorsList" variant="danger">{{
             error
@@ -120,7 +119,8 @@ export default class TokenAmountInput extends Vue {
 
   get errorsList() {
     return [
-      ...(this.errors && this.errors.length ? [this.errors] : []),
+      ...(this.error ? [this.error] : []),
+      ...(this.errors && this.errors.length > 0 ? [...this.errors] : []),
       ...(this.warnBalance && this.insufficientBalance
         ? ["Insufficient Balance"]
         : [])
