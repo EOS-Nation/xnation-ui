@@ -2,11 +2,10 @@
   <div>
     <span class="text-white font-size-sm" style="min-height: 50px">
       <div>
-        {{ label }}
         <span v-if="loading">
           <font-awesome-icon icon="circle-notch" class="text-white" spin />
         </span>
-        <span v-else>{{ balance }}</span>
+        <span v-else> {{ label }} {{ balance }}</span>
       </div>
     </span>
   </div>

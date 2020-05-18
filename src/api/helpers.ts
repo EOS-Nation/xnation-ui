@@ -1,13 +1,15 @@
 import axios from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
-import { Asset } from "eos-common";
+import { Asset, asset_to_number, Sym } from "eos-common";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
-import { TokenBalances, EosMultiRelay } from "@/types/bancor";
+import { TokenBalances, EosMultiRelay, Converter } from "@/types/bancor";
 import Web3 from "web3";
 import { ABIBancorGasPriceLimit, BancorGasLimit } from "./ethConfig";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
+import wait from "waait";
+import { buildConverterContract, shrinkToken } from "./ethBancorCalc";
 
 const eosRpc: JsonRpc = rpc;
 
@@ -25,10 +27,22 @@ interface TraditionalStat {
   max_supply: Asset;
 }
 
+export const findOrThrow = <T>(
+  arr: T[],
+  iteratee: (obj: T, index: number, arr: T[]) => unknown,
+  message?: string
+) => {
+  const res = arr.find(iteratee);
+  if (!res)
+    throw new Error(message || "Failed to find object in find or throw");
+  return res;
+};
+
 export const compareString = (stringOne: string, stringTwo: string) => {
-  if (![stringOne, stringTwo].every(Boolean))
+  const strings = [stringOne, stringTwo];
+  if (!strings.every(str => typeof str == "string"))
     throw new Error(
-      `String one: ${stringOne} String two: ${stringTwo} one of them are falsy.`
+      `String one: ${stringOne} String two: ${stringTwo} one of them are falsy or not a string`
     );
   return stringOne.toLowerCase() == stringTwo.toLowerCase();
 };
@@ -39,6 +53,26 @@ export const fetchBinanceUsdPriceOfBnt = async (): Promise<number> => {
   );
   return Number(res.data.price);
 };
+
+export const fetchUsdPriceOfBntViaRelay = async (
+  relayContractAddress = "0xE03374cAcf4600F56BDDbDC82c07b375f318fc5C"
+): Promise<number> => {
+  const contract = buildConverterContract(relayContractAddress);
+  const res = await contract.methods
+    .getReturn(
+      "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
+      "0x309627af60F0926daa6041B8279484312f2bf060",
+      "1000000000000000000"
+    )
+    .call();
+  return Number(shrinkToken(res["0"], 18));
+};
+
+export const updateArray = <T>(
+  arr: T[],
+  conditioner: (element: T) => boolean,
+  updater: (element: T) => T
+) => arr.map(element => (conditioner(element) ? updater(element) : element));
 
 export type Wei = string | number;
 export type Ether = string | number;
@@ -86,13 +120,16 @@ export const getBalance = async (
   symbolName: string
 ): Promise<string> => {
   const account = isAuthenticatedViaModule(vxm.eosWallet);
-  const tableResult = await eosRpc.get_currency_balance(
+  const res = await client.stateTable<{ balance: string }>(
     contract,
     account,
-    symbolName
+    "accounts"
   );
-  if (tableResult.length == 0) return `0.0000 ${symbolName}`;
-  return tableResult[0];
+  const balance = res.rows
+    .map(row => row.json!)
+    .find(balance => compareString(balance.balance.split(" ")[1], symbolName));
+  if (!balance) return `0.0000 ${symbolName}`;
+  return balance.balance;
 };
 
 export const fetchTokenStats = async (
@@ -114,18 +151,22 @@ export const fetchTokenStats = async (
   };
 };
 
-let tokenMeta: TokenMeta[] = [
-  {
-    name: "EOS",
-    logo:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/359b8290-0767-11e8-8744-97748b632eaf.png",
-    logo_lg:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/359b8290-0767-11e8-8744-97748b632eaf.png",
-    symbol: "EOS",
-    account: "eosio.token",
-    chain: "eos"
-  }
-];
+export const retryPromise = async <T>(
+  promise: () => Promise<T>,
+  maxAttempts = 10,
+  interval = 1000
+): Promise<T> => {
+  return new Promise(async (resolve, reject) => {
+    for (var i = 0; i < maxAttempts; i++) {
+      try {
+        return resolve(await promise());
+      } catch (e) {
+        await wait(interval);
+        if (i == maxAttempts) reject(e);
+      }
+    }
+  });
+};
 
 export const getTokenBalances = async (
   accountName: string
@@ -3436,8 +3477,6 @@ export interface Relay {
   contract: ContractAccount;
   isMultiContract: boolean;
   fee: number;
-  liqDepth?: string;
-  singleUnitCostByNetworkToken?: number;
   network: string;
   version: string;
   owner: string;
@@ -3508,59 +3547,96 @@ export interface SettingTableRow {
   fee: number;
 }
 
-export const fetchRelays = async (): Promise<EosMultiRelay[]> => {
-  const contractName = process.env.VUE_APP_MULTICONTRACT!;
-  const { scopes } = await client.stateTableScopes(contractName, "converters");
-  const rawConverters = await client.stateTablesForScopes<SettingTableRow>(
-    contractName,
-    scopes,
-    "converters"
-  );
-  const polishedConverters = rawConverters.tables;
-  const rawReserves = await client.stateTablesForScopes<ReserveTableRow>(
-    contractName,
-    scopes,
-    "reserves"
-  );
-  const polishedReserves = rawReserves.tables;
-
-  const flatRelays = polishedReserves
-    .filter(reserveTable => reserveTable.rows.length == 2)
-    .map(reserveTable => {
-      const { json } = polishedConverters.find(
-        converter => converter.scope == reserveTable.scope
-      )!.rows[0];
-      return {
-        settings: json!,
-        reserves: reserveTable.rows.map(reserve => reserve.json!)
-      };
-    });
-
-  const relays: EosMultiRelay[] = flatRelays.map(flatRelay => {
-    const [precision, symbolName] = flatRelay.settings.currency.split(",");
-    return {
-      reserves: flatRelay.reserves.map(({ contract, balance }) => ({
-        contract,
-        precision: Number(balance.split(" ")[0].split(".")[1].length),
-        symbol: balance.split(" ")[1],
-        network: "eos",
-        amount: Number(balance.split(" ")[0])
-      })),
-      contract: contractName,
-      owner: flatRelay.settings.owner,
-      isMultiContract: true,
-      smartToken: {
-        contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
-        symbol: symbolName,
-        precision: Number(precision),
-        amount: 0,
-        network: "eos"
-      },
-      fee: flatRelay.settings.fee / 1000000
+export interface ConverterV2Row {
+  currency: string;
+  fee: number;
+  metadata_json: string[];
+  owner: string;
+  protocol_features: string[];
+  reserve_balances: {
+    key: string;
+    value: {
+      asset: string;
+      Contract: string;
     };
-  });
+  }[];
+  reserve_weights: {
+    key: string;
+    value: number;
+  }[];
+}
+
+interface BaseSymbol {
+  symbol: string;
+  precision: number;
+}
+
+const symToBaseSymbol = (symbol: Sym): BaseSymbol => ({
+  symbol: symbol.code().to_string(),
+  precision: symbol.precision()
+});
+
+const assetStringtoBaseSymbol = (assetString: string): BaseSymbol => {
+  const asset = new Asset(assetString);
+  return symToBaseSymbol(asset.symbol);
+};
+
+export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
+  const contractName = process.env.VUE_APP_MULTICONTRACT!;
+
+  const rawRelays = await client.stateTable<ConverterV2Row>(
+    process.env.VUE_APP_MULTICONTRACT!,
+    process.env.VUE_APP_MULTICONTRACT!,
+    "converter.v2"
+  );
+  const parsedRelays = rawRelays.rows.map(relay => relay.json!);
+  const passedRelays = parsedRelays
+    .filter(
+      relay =>
+        relay.reserve_weights.reduce(
+          (acc, reserve) => reserve.value + acc,
+          0
+        ) == 1000000
+    )
+    .filter(relay => relay.reserve_balances.length == 2);
+
+  const relays: EosMultiRelay[] = passedRelays.map(relay => ({
+    reserves: relay.reserve_balances.map(({ value }) => ({
+      ...assetStringtoBaseSymbol(value.asset),
+      contract: value.Contract,
+      network: "eos",
+      amount: asset_to_number(new Asset(value.asset))
+    })),
+    contract: contractName,
+    owner: relay.owner,
+    isMultiContract: true,
+    smartToken: {
+      ...symToBaseSymbol(new Sym(relay.currency)),
+      contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
+      amount: 0,
+      network: "eos"
+    },
+    fee: relay.fee / 1000000
+  }));
 
   return relays;
+};
+
+export const fetchMultiRelay = async (
+  smartTokenSymbol: string
+): Promise<EosMultiRelay> => {
+  const relays = await fetchMultiRelays();
+  const relay = findOrThrow(
+    relays,
+    relay => compareString(relay.smartToken.symbol, smartTokenSymbol),
+    `failed to find multi relay with smart token symbol of ${smartTokenSymbol}`
+  );
+  return {
+    ...relay,
+    reserves: relay.reserves.sort((a: any) => {
+      return a.contract == "bntbntbntbnt" ? -1 : 1;
+    })
+  };
 };
 
 export interface TickerPrice {
@@ -3570,14 +3646,3 @@ export interface TickerPrice {
   sell: number;
   symbol: string;
 }
-
-interface BlockChainTickerRes {
-  [symcode: string]: TickerPrice;
-}
-
-export const getBitcoinPrice = async () => {
-  const res = await axios.get<BlockChainTickerRes>(
-    "https://blockchain.info/ticker"
-  );
-  return res.data["USD"].last;
-};

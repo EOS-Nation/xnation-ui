@@ -64,6 +64,7 @@
               <div>
                 <b-btn
                   @click="goToRelay(data.item.smartTokenSymbol, 'liquidate')"
+                  :disabled="!data.item.addRemoveLiquiditySupported"
                   size="sm"
                   variant="success"
                   class="mr-1"
@@ -72,6 +73,7 @@
                 </b-btn>
                 <b-btn
                   @click="goToRelay(data.item.smartTokenSymbol)"
+                  :disabled="!data.item.addRemoveLiquiditySupported"
                   size="sm"
                   variant="info"
                 >
@@ -93,7 +95,6 @@ import axios from "axios";
 import SortIcons from "@/components/common/SortIcons.vue";
 import { TokenPrice } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
-import { tableApi } from "../api/TableWrapper";
 import Velocity from "velocity-animate";
 
 const numeral = require("numeral");

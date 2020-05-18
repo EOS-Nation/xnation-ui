@@ -1,9 +1,7 @@
 import { vxm } from "@/store/";
 import { multiContractAction, SemiAction } from "../contracts/multi";
-import { TokenAmount } from "@/api/bancorCalc";
-// @ts-ignore
-import { Symbol, Asset } from "eos-common";
-import { tableApi, TableWrapper, ReserveTable } from "./TableWrapper";
+import { TokenAmount } from "@/api/eosBancorCalc";
+import { Asset } from "eos-common";
 
 interface Action {
   account: string;
@@ -27,13 +25,11 @@ class MultiContractTx {
   contractName: string;
   getAuth: GetAuth;
   triggerTx: any;
-  table: TableWrapper;
 
-  constructor(contractName: string, getAuth: GetAuth, tableApi: TableWrapper) {
+  constructor(contractName: string, getAuth: GetAuth) {
     this.contractName = contractName;
     this.getAuth = getAuth;
     this.triggerTx = () => console.log("MultiContract needs to be updated");
-    this.table = tableApi;
   }
 
   async tx(actions: SemiAction[]) {
@@ -334,6 +330,5 @@ const getAuth: GetAuth = () => {
 
 export const multiContract = new MultiContractTx(
   process.env.VUE_APP_MULTICONTRACT!,
-  getAuth,
-  tableApi
+  getAuth
 );

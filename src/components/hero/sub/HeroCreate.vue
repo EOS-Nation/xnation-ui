@@ -73,27 +73,13 @@
               :rightSubtitle="token2Amount"
             >
               <template v-slot:footer>
-                <b-col cols="12" class="text-center">
-                  <h6 v-if="!success && !error">
-                    Please proceed with your wallet to confirm this transaction.
-                  </h6>
-                  <h6 v-else-if="error && !success" class="text-danger">
-                    Error: {{ error }}
-                  </h6>
-                  <h6 v-else-if="!error && success">
-                    <a
-                      :href="explorerLink"
-                      target="_blank"
-                      class="text-success"
-                    >
-                      SUCCESS: View {{ success.substring(0, 6) }} TX on
-                      {{ explorerName }}
-                    </a>
-                    <span @click="txModal = false" class="cursor text-muted"
-                      >- Close</span
-                    >
-                  </h6>
-                </b-col>
+                <TxModalFooter
+                  :error="error"
+                  :success="success"
+                  :explorerLink="explorerLink"
+                  :explorerName="explorerName"
+                  @close="txModal = false"
+                />
               </template>
             </token-swap>
           </div>
@@ -119,6 +105,8 @@ import {
   CreatePoolModule
 } from "../../../types/bancor";
 import wait from "waait";
+import TxModalFooter from "@/components/common/TxModalFooter.vue";
+
 
 const bancor = namespace("bancor");
 
@@ -129,7 +117,8 @@ const bancor = namespace("bancor");
     TokenSwap,
     ModalMultiTx,
     RelayFeeAdjuster,
-    Stepper
+    Stepper,
+    TxModalFooter
   }
 })
 export default class HeroConvert extends Vue {

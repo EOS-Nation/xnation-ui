@@ -4,7 +4,6 @@ import {
   ProposedConvertTransaction,
   TradingModule,
   ViewToken,
-  ModulePools,
   BaseToken
 } from "@/types/bancor";
 import { vxm } from "@/store";
@@ -15,16 +14,20 @@ import {
   get_rate,
   get_price,
   get_inverse_rate,
-  Pools
+  Pools,
+  Settings
 } from "sxjs";
 import { rpc } from "@/api/rpc";
 import { asset_to_number, number_to_asset, symbol } from "eos-common";
-import { compareString } from "@/api/helpers";
+import { compareString, retryPromise } from "@/api/helpers";
 
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
   newTokens: any[] = [];
   initiated: boolean = false;
+  pools: Pools | undefined = undefined;
+  settings: Settings | undefined = undefined;
+  lastLoaded: number = 0;
 
   get wallet() {
     return "eos";
@@ -79,11 +82,10 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
   @action async init() {
     const [pools, volume] = await Promise.all([
-      // @ts-ignore
-      get_pools(rpc),
-      // @ts-ignore
-      get_volume(rpc, 1)
+      retryPromise(() => get_pools(rpc), 4, 500),
+      retryPromise(() => get_volume(rpc, { days: 1 }), 4, 500)
     ]);
+    retryPromise(() => this.updateStats(), 4, 1000);
     for (const pool in pools) {
       pools[pool] = {
         ...pools[pool],
@@ -95,6 +97,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     }
     await this.buildTokens(pools);
     this.moduleInitiated();
+    setInterval(() => this.checkRefresh(), 20000);
   }
 
   @action async buildTokens(pools: Pools) {
@@ -115,7 +118,8 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         const price =
           symbolName == "USDT"
             ? 1
-            : asset_to_number(
+            : 1 /
+              asset_to_number(
                 await get_price("1.0000 USDT", symbolName, pools)
               );
 
@@ -172,18 +176,37 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       symbol(propose.fromSymbol, precision)
     );
 
-    const txRes = await this.triggerTx([
+    const tokenContractsAndSymbols = [
       {
-        account: tokenContract,
-        name: "transfer",
-        data: {
-          from: accountName,
-          to: process.env.VUE_APP_USDSTABLE!,
-          memo: propose.toSymbol,
-          quantity: amountAsset.to_string()
-        }
+        contract: tokenContract,
+        symbol: propose.fromSymbol
+      },
+      {
+        contract: this.newTokens.find(token =>
+          compareString(token.symbol, propose.toSymbol)
+        )!.contract,
+        symbol: propose.toSymbol
       }
+    ];
+
+    const [txRes, originalBalances] = await Promise.all([
+      this.triggerTx([
+        {
+          account: tokenContract,
+          name: "transfer",
+          data: {
+            from: accountName,
+            to: process.env.VUE_APP_USDSTABLE!,
+            memo: propose.toSymbol,
+            quantity: amountAsset.to_string()
+          }
+        }
+      ]),
+      vxm.eosNetwork.getBalances({
+        tokens: tokenContractsAndSymbols
+      })
     ]);
+    vxm.eosNetwork.pingTillChange({ originalBalances });
 
     return txRes.transaction_id;
   }
@@ -193,13 +216,20 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     return this.$store.dispatch("eosWallet/tx", actions, { root: true });
   }
 
+  @action async checkRefresh() {
+    const biggestGap = 5000;
+    const timeNow = new Date().getTime();
+    if (this.lastLoaded + biggestGap < timeNow) {
+      this.updateStats();
+    }
+  }
+
   @action async getReturn(propose: ProposedTransaction) {
     const { fromSymbol, amount, toSymbol } = propose;
 
-    const [pools, settings] = await Promise.all([
-      get_pools(rpc),
-      get_settings(rpc)
-    ]);
+    this.checkRefresh();
+    const pools = this.pools!;
+    const settings = this.settings!;
 
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();
@@ -224,13 +254,37 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     };
   }
 
-  @action async getCost(propose: ProposedTransaction) {
-    const { fromSymbol, amount, toSymbol } = propose;
+  @mutation resetTimer() {
+    this.lastLoaded = new Date().getTime();
+  }
 
+  @action async updateStats() {
+    this.resetTimer();
     const [pools, settings] = await Promise.all([
       get_pools(rpc),
       get_settings(rpc)
     ]);
+    this.setStats({ pools, settings });
+    return { pools, settings };
+  }
+
+  @mutation setStats({
+    pools,
+    settings
+  }: {
+    pools: Pools;
+    settings: Settings;
+  }) {
+    this.pools = pools;
+    this.settings = settings;
+    this.lastLoaded = new Date().getTime();
+  }
+
+  @action async getCost(propose: ProposedTransaction) {
+    const { fromSymbol, amount, toSymbol } = propose;
+
+    const pools = this.pools!;
+    const settings = this.settings!;
 
     const fromPrecision = pools[fromSymbol].balance.symbol.precision();
     const toPrecision = pools[toSymbol].balance.symbol.precision();
