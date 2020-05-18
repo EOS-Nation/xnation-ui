@@ -1,4 +1,4 @@
-<template>
+<template functional>
   <div>
     <span class="text-white font-size-sm" style="min-height: 50px">
       <div>
