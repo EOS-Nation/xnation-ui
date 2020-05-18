@@ -1422,17 +1422,15 @@ export class EosBancorModule extends VuexModule
   }: {
     smartTokenSymbol: string;
     accountHolder: string;
-  }) {
-    const res: {
-      rows: { symbl: string; quantity: string }[];
-      more: boolean;
-    } = await rpc.get_table_rows({
-      json: true,
-      code: process.env.VUE_APP_MULTICONTRACT,
-      scope: accountHolder,
-      table: "accounts"
-    });
-    return res.rows.filter(row => row.symbl == smartTokenSymbol);
+  }): Promise<{ symbl: string; quantity: string }[]> {
+    const res = await client.stateTable<{ symbl: string; quantity: string }>(
+      process.env.VUE_APP_MULTICONTRACT!,
+      accountHolder,
+      "accounts"
+    );
+    return res.rows
+      .map(row => row.json!)
+      .filter(row => row.symbl == smartTokenSymbol);
   }
 
   @action async removeLiquidity({

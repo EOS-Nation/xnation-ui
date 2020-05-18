@@ -120,13 +120,16 @@ export const getBalance = async (
   symbolName: string
 ): Promise<string> => {
   const account = isAuthenticatedViaModule(vxm.eosWallet);
-  const tableResult = await eosRpc.get_currency_balance(
+  const res = await client.stateTable<{ balance: string }>(
     contract,
     account,
-    symbolName
+    "accounts"
   );
-  if (tableResult.length == 0) return `0.0000 ${symbolName}`;
-  return tableResult[0];
+  const balance = res.rows
+    .map(row => row.json!)
+    .find(balance => compareString(balance.balance.split(" ")[1], symbolName));
+  if (!balance) return `0.0000 ${symbolName}`;
+  return balance.balance;
 };
 
 export const fetchTokenStats = async (
