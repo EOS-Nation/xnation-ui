@@ -33,7 +33,9 @@
           </span>
           <div class="text-white font-size-sm">
             {{
-              `1 ${fromTokenSymbol} = $${(this.toToken.price * this.reward).toFixed(2)} USD`
+              `1 ${fromTokenSymbol} = $${(
+                this.toToken.price * this.reward
+              ).toFixed(2)} USD`
             }}
           </div>
           <div
@@ -94,25 +96,13 @@
           :rightSubtitle="toToken.name"
         >
           <template v-slot:footer>
-            <b-col cols="12" class="text-center">
-              <div v-if="!success && !error">
-                <h6>
-                  Please proceed with your wallet to confirm this Transaction.
-                </h6>
-              </div>
-              <h6 v-else-if="error && !success" class="text-danger">
-                Error: {{ error }}
-              </h6>
-              <h6 v-else-if="!error && success">
-                <a :href="explorerLink" target="_blank" class="text-success">
-                  SUCCESS: View {{ success.substring(0, 6) }} TX on
-                  {{ explorerName }}
-                </a>
-                <span @click="txModal = false" class="cursor text-muted"
-                  >- Close</span
-                >
-              </h6>
-            </b-col>
+            <TxModalFooter
+              :error="error"
+              :success="success"
+              :explorerLink="explorerLink"
+              :explorerName="explorerName"
+              @close="closeTxModal"
+            />
           </template>
         </token-swap>
       </div>
@@ -123,6 +113,7 @@
 import { Watch, Component, Vue } from "vue-property-decorator";
 import ModalTx from "@/components/modals/ModalTx.vue";
 import TokenSwap from "@/components/common/TokenSwap.vue";
+import TxModalFooter from "@/components/common/TxModalFooter.vue";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import TokenField from "@/components/convert/TokenField.vue";
@@ -183,7 +174,8 @@ const bancor = namespace("bancor");
     TokenField,
     TokenSwap,
     TwoTokenHero,
-    Stepper
+    Stepper,
+    TxModalFooter
   }
 })
 export default class HeroConvert extends Vue {
