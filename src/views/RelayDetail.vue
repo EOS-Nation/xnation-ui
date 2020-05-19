@@ -18,7 +18,10 @@
         <div class="block-content px-0 px-md-3 ">
           <h3 v-if="loading">LOADING!</h3>
           <div v-else>
-            <chart :chartdata="chartData" :options="chartOptions" />
+            <highcharts
+              :constructor-type="'stockChart'"
+              :options="chartOptions"
+            />
           </div>
         </div>
       </div>
@@ -31,23 +34,27 @@ import { Component, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store";
 import { SimpleToken, HistoryRow } from "@/types/bancor";
 import wait from "waait";
-import Chart from "./Chart.vue";
+import { Chart } from "highcharts-vue";
 import moment from "moment";
+
+import Highcharts from "highcharts";
+// import exportingInit from 'highcharts/modules/exporting'
+import stockInit from "highcharts/modules/stock";
+
+// exportingInit(Highcharts)
+
+stockInit(Highcharts);
 
 @Component({
   components: {
-    Chart
+    highcharts: Chart
   }
 })
 export default class RelayDetail extends Vue {
   loading = true;
   data: HistoryRow[] = [];
 
-  chartData = {};
-  chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false
-  };
+  chartOptions = {};
 
   get focusedSymbolName() {
     return this.$router.currentRoute.params.account;
@@ -64,23 +71,61 @@ export default class RelayDetail extends Vue {
     console.log(selectedData, "should be newest data");
 
     const chartData = {
-      labels: selectedData.map(x =>
-        moment(x.timestamp).format("MMMM Do YYYY")
-      ),
-      datasets: [
+      title: {
+        text: this.focusedSymbolName
+      },
+      subtitle: {
+        text: "ROI"
+      },
+      credits: {
+        enabled: false
+      },
+      legend: {
+        enabled: true,
+        align: "center"
+      },
+      yAxis: [
         {
-          label: "ROI",
-          backgroundColor: "pink",
-          data: selectedData.map(x => x.roi)
+          visible: false,
+          title: {
+            text: "ROI"
+          }
         },
         {
-          label: "Token Price",
-          backgroundColor: "blue",
-          data: selectedData.map(x => x.tokenPrice)
+          visible: false,
+
+          title: {
+            text: "Token Price"
+          }
+        },
+        {
+          visible: false,
+          title: {
+            text: "Trade Volume"
+          }
+        }
+      ],
+
+      series: [
+        {
+          name: "ROI",
+          yAxis: 0,
+          data: selectedData.map(x => [x.timestamp, x.roi])
+        },
+        {
+          name: "Token Price",
+          yAxis: 1,
+          data: selectedData.map(x => [x.timestamp, x.tokenPrice])
+        },
+        {
+          name: "Trade Volume",
+          yAxis: 2,
+          data: selectedData.map(x => [x.timestamp, x.tradeVolume])
         }
       ]
     };
-    this.chartData = chartData;
+
+    this.chartOptions = chartData;
     this.loading = false;
   }
 
