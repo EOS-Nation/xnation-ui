@@ -187,6 +187,7 @@ export interface ViewRelay {
   owner: string;
   swap: string;
   addRemoveLiquiditySupported: boolean;
+  focusAvailable?: boolean;
 }
 
 
