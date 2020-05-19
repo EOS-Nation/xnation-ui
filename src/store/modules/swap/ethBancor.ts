@@ -15,7 +15,8 @@ import {
   ViewRelay,
   TokenPrice,
   Section,
-  Step
+  Step,
+  HistoryModule
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -57,7 +58,11 @@ import {
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
 import BigNumber from "bignumber.js";
-import { getSmartTokenHistory, fetchSmartTokens } from "@/api/zumZoom";
+import {
+  getSmartTokenHistory,
+  fetchSmartTokens,
+  fetchSmartTokenHistory
+} from "@/api/zumZoom";
 
 const compareRelayFeed = (a: RelayFeed, b: RelayFeed) =>
   compareString(a.smartTokenContract, b.smartTokenContract) &&
@@ -209,7 +214,7 @@ interface RelayFeed {
 
 @Module({ namespacedPath: "ethBancor/" })
 export class EthBancorModule extends VuexModule
-  implements TradingModule, LiquidityModule, CreatePoolModule {
+  implements TradingModule, LiquidityModule, CreatePoolModule, HistoryModule {
   tokensList: any[] = [];
   relayFeed: RelayFeed[] = [];
   relaysList: Relay[] = [];
@@ -370,6 +375,10 @@ export class EthBancorModule extends VuexModule
         500000
       )
     });
+  }
+
+  @action async fetchHistoryData(smartTokenSymbol: string) {
+    return getSmartTokenHistory(smartTokenSymbol.toLowerCase());
   }
 
   @action async createPool(poolParams: CreatePoolParams) {

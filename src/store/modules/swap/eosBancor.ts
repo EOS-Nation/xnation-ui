@@ -846,6 +846,7 @@ export class EosBancorModule extends VuexModule
           smartTokenSymbol: relay.smartToken.symbol,
           liqDepth: relayFeed && relayFeed.liqDepth,
           addRemoveLiquiditySupported: relay.isMultiContract,
+          focusAvailable: false,
           reserves: relay.reserves
             .map((reserve: AgnosticToken) => ({
               ...reserve,

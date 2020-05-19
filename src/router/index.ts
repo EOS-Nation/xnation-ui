@@ -4,6 +4,7 @@ import Wallet from "@/views/Wallet.vue";
 import WalletAccount from "@/views/WalletAccount.vue";
 import Tokens from "@/views/Tokens.vue";
 import Relays from "@/views/Relays.vue";
+import RelayDetail from "@/views/RelayDetail.vue";
 import PageNotFound from "@/views/PageNotFound.vue";
 import HeroConvert from "@/components/hero/sub/HeroConvert.vue";
 import HeroTransfer from "@/components/hero/sub/HeroTransfer.vue";
@@ -95,6 +96,16 @@ export const router = new Router({
       meta: {
         feature: "Liquidity"
       }
+    },
+    {
+      path: "/:service/pool/:account/detail",
+      name: "RelayDetail",
+      components: {
+        Nav: Navigation,
+        default: RelayDetail,
+        Hero: HeroRelay
+      },
+      props: true
     },
     {
       path: "/:service/pool/:account",

@@ -27,6 +27,21 @@ export interface PriceHistory {
 
 export type FloatAmount = number;
 
+
+export interface RawRow {
+  timestamp: string;
+  ROI: string;
+  "Token Price": string;
+  "Trade Volume": string;
+}
+
+export interface HistoryRow {
+  timestamp: number;
+  roi: number;
+  tokenPrice: number;
+  tradeVolume: number;
+}
+
 export interface TokenBalance {
   symbol: string;
   precision: number;
@@ -272,6 +287,10 @@ export interface CreatePoolModule {
   readonly newPoolTokenChoices: (networkToken: string) => ModalChoice[];
   readonly newNetworkTokenChoices: ModalChoice[];
   createPool: (param: CreatePoolParams) => Promise<string>;
+}
+
+export interface HistoryModule {
+  fetchHistoryData: (relayId: string) => Promise<any[]>
 }
 
 export interface FeeParams {

@@ -1,21 +1,8 @@
 import axios, { AxiosResponse } from "axios";
 import parse from "csv-parse/lib/sync";
+import { RawRow, HistoryRow } from "@/types/bancor.d.ts";
 
 const baseUrl = "https://zumzoom.github.io/analytics/";
-
-interface RawRow {
-  timestamp: string;
-  ROI: string;
-  "Token Price": string;
-  "Trade Volume": string;
-}
-
-interface Row {
-  timestamp: string;
-  roi: string;
-  tokenPrice: string;
-  tradeVolume: string;
-}
 
 export const fetchSmartTokens = async () => {
   const res = await axios.get<{ results: { id: string; text: string }[] }>(
@@ -31,13 +18,13 @@ export const fetchSmartTokenHistory = async (smartToken: string) => {
   return res.data;
 };
 
-const parseSmartTokenHistory = (csvString: string): Row[] => {
+const parseSmartTokenHistory = (csvString: string): HistoryRow[] => {
   const data: RawRow[] = parse(csvString, { columns: true });
   return data.map(row => ({
-    timestamp: row.timestamp,
-    roi: row.ROI,
-    tokenPrice: row["Token Price"],
-    tradeVolume: row["Trade Volume"]
+    timestamp: Number(row.timestamp),
+    roi: Number(row.ROI),
+    tokenPrice: Number(row["Token Price"]),
+    tradeVolume: Number(row["Trade Volume"])
   }));
 };
 

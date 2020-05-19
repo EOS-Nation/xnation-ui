@@ -57,6 +57,14 @@
             <template v-slot:cell(index)="data">
               {{ data.index + 1 }}
             </template>
+            <template v-slot:cell(smartTokenSymbol)="data">
+              <b-link
+                v-if="data.item.focusAvailable"
+                @click="focusRelay(data.item.smartTokenSymbol)"
+                >{{ data.item.smartTokenSymbol }}</b-link
+              >
+              <span v-else> {{ data.item.smartTokenSymbol }}</span>
+            </template>
             <template v-slot:cell(ratio)>
               50 - 50
             </template>
@@ -187,6 +195,18 @@ export default class Relays extends Vue {
 
   get tokens() {
     return vxm.bancor.relays;
+  }
+
+  focusRelay(symbolCode: string) {
+    window.scroll({
+      top: 0,
+      left: 0,
+      behavior: "smooth"
+    });
+    this.$router.push({
+      name: "RelayDetail",
+      params: { account: symbolCode }
+    });
   }
 
   goToRelay(symbolCode: string, mode = "addLiquidity") {
