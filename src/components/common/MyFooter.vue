@@ -26,6 +26,12 @@
             :icon="['fab', 'github']"
             fixed-width
         /></a>
+        <a href="https://t.me/xnationio" target="_blank"
+          ><font-awesome-icon
+            :style="{ color: 'white' }"
+            :icon="['fab', 'telegram']"
+            fixed-width
+        /></a>
       </span>
     </div>
   </div>
