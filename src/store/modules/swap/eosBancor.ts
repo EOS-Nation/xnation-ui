@@ -29,10 +29,8 @@ import {
   getBalance,
   fetchTokenStats,
   compareString,
-  SettingTableRow,
-  ReserveTableRow,
-  fetchBinanceUsdPriceOfBnt,
   findOrThrow,
+  getTokenMeta,
   updateArray,
   fetchMultiRelay
 } from "@/api/helpers";
@@ -62,9 +60,7 @@ import {
 } from "@/api/eosBancorCalc";
 import _ from "lodash";
 import wait from "waait";
-import { MultiStateResponse } from "@dfuse/client";
 import { getHardCodedRelays } from "./staticRelays";
-import { ethBancor } from "./ethBancor";
 
 const getSymbolName = (tokenSymbol: TokenSymbol) =>
   tokenSymbol.symbol.code().to_string();
@@ -74,12 +70,6 @@ const sortReserves = (tokenSymbols: TokenSymbol[]) =>
     const aSymbol = getSymbolName(a);
     return aSymbol == "BNT" ? 2 : aSymbol == "USDB" ? 1 : -1;
   });
-
-const updateArray = <T>(
-  arr: T[],
-  finder: (element: T) => boolean,
-  updater: (element: T) => T
-) => arr.map(element => (finder(element) ? updater(element) : element));
 
 const relayHasReserveBalances = (relay: EosMultiRelay) =>
   relay.reserves.every(reserve => reserve.amount > 0);
@@ -390,101 +380,6 @@ const generateSmartTokenSymbol = async (
   throw new Error("Failed to find a new SmartTokenSymbol!");
 };
 
-const tokenMetaDataEndpoint =
-  "https://raw.githubusercontent.com/eoscafe/eos-airdrops/master/tokens.json";
-
-interface TokenMeta {
-  name: string;
-  logo: string;
-  logo_lg: string;
-  symbol: string;
-  account: string;
-  chain: string;
-}
-
-const hardCoded: TokenMeta[] = [
-  {
-    name: "EOS",
-    logo:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/359b8290-0767-11e8-8744-97748b632eaf.png",
-    logo_lg:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/359b8290-0767-11e8-8744-97748b632eaf.png",
-    symbol: "EOS",
-    account: "eosio.token",
-    chain: "eos"
-  },
-  {
-    name: "Prochain",
-    logo:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/EPRA.png",
-    logo_lg:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/EPRA.png",
-    symbol: "EPRA",
-    account: "epraofficial",
-    chain: "eos"
-  },
-  {
-    name: "Gold Tael",
-    logo:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f146c8c0-1e6c-11e9-96e6-590b33725e90.jpeg",
-    logo_lg:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f146c8c0-1e6c-11e9-96e6-590b33725e90.jpeg",
-    symbol: "TAEL",
-    account: "realgoldtael",
-    chain: "eos"
-  },
-  {
-    name: "ZOS",
-    logo:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/636a3e10-328f-11e9-99c6-21750f32c67e.jpeg",
-    logo_lg:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/636a3e10-328f-11e9-99c6-21750f32c67e.jpeg",
-    symbol: "ZOS",
-    account: "zosdiscounts",
-    chain: "eos"
-  },
-  {
-    name: "EQUA",
-    logo:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/d03d3120-cd5b-11e9-923a-f50a5610b222.jpeg",
-    logo_lg:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/d03d3120-cd5b-11e9-923a-f50a5610b222.jpeg",
-    symbol: "EQUA",
-    account: "equacasheos1",
-    chain: "eos"
-  },
-  {
-    name: "FINX",
-    logo:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/77c385a0-6675-11e9-9f0e-7591708e99af.jpeg",
-    logo_lg:
-      "https://storage.googleapis.com/bancor-prod-file-store/images/communities/77c385a0-6675-11e9-9f0e-7591708e99af.jpeg",
-    symbol: "FINX",
-    account: "finxtokenvci",
-    chain: "eos"
-  }
-];
-
-const getTokenMeta = async (): Promise<TokenMeta[]> => {
-  const res: AxiosResponse<TokenMeta[]> = await axios.get(
-    tokenMetaDataEndpoint
-  );
-  return [...res.data, ...hardCoded].filter(token =>
-    compareString(token.chain, "eos")
-  );
-};
-
-const parseDfuseTable = (data: MultiStateResponse<ReserveTableRow>) =>
-  data.tables.map(table => ({
-    smartToken: table.scope,
-    reserves: table.rows.map(row => row.json) as ReserveTableRow[]
-  }));
-
-const parseDfuseSettingTable = (data: MultiStateResponse<SettingTableRow>) =>
-  data.tables.map(table => ({
-    smartToken: table.scope,
-    ...table.rows[0].json!
-  }));
 
 const eosMultiToDryRelays = (relays: EosMultiRelay[]): DryRelay[] =>
   relays.map(relay => ({
