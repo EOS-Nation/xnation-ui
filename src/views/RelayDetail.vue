@@ -37,11 +37,8 @@ import wait from "waait";
 import { Chart } from "highcharts-vue";
 import moment from "moment";
 
-import Highcharts from "highcharts";
-// import exportingInit from 'highcharts/modules/exporting'
+import Highcharts, { getOptions } from "highcharts";
 import stockInit from "highcharts/modules/stock";
-
-// exportingInit(Highcharts)
 
 stockInit(Highcharts);
 
@@ -65,10 +62,83 @@ export default class RelayDetail extends Vue {
   }
 
   setChartData(data: HistoryRow[]) {
-    console.log(data, "was received by the chart data");
-
     const selectedData = data.sort((a, b) => a.timestamp - b.timestamp);
     console.log(selectedData, "should be newest data");
+
+    let cumulative_dm_roi: any[] = [];
+    let loss: any[] = [];
+    let net_position: any[] = [];
+    let price_ratio;
+    let cur_loss;
+
+    let dm_roi = 1;
+    let initial_price = 0;
+
+    selectedData.forEach((data, index, arr) => {
+      let { timestamp, roi, tradeVolume, tokenPrice } = data;
+
+      if (initial_price == 0) {
+        initial_price = tokenPrice;
+      }
+
+      dm_roi *= roi;
+      price_ratio = tokenPrice / initial_price;
+      cur_loss = (2.0 * Math.sqrt(price_ratio)) / (1.0 + price_ratio);
+
+      cumulative_dm_roi.push([
+        timestamp,
+        parseFloat(((dm_roi - 1) * 100).toFixed(2))
+      ]);
+
+      loss.push([timestamp, parseFloat(((cur_loss - 1) * 100).toFixed(2))]);
+
+      net_position.push([
+        timestamp,
+        parseFloat(((cur_loss * dm_roi - 1) * 100).toFixed(2))
+      ]);
+    });
+
+    console.log(
+      cumulative_dm_roi,
+      loss,
+      net_position,
+      "was the calculated data..."
+    );
+
+    const colours = Highcharts.getOptions().colors!;
+
+    const series = [
+      {
+        name: "Collected Fees",
+        color: colours[5],
+        tooltip: {
+          valueSuffix: "%"
+        },
+        yAxis: 0,
+        zIndex: 1,
+        data: cumulative_dm_roi
+      },
+      {
+        name: "Impermanent Loss",
+        color: colours[0],
+        yAxis: 0,
+        zIndex: 1,
+        data: loss,
+        tooltip: {
+          valueSuffix: "%"
+        }
+      },
+      {
+        name: "Net Profit",
+        color: colours[6],
+        yAxis: 0,
+        zIndex: 1,
+        tooltip: {
+          valueSuffix: "%"
+        },
+        data: net_position
+      }
+    ];
 
     const chartData = {
       title: {
@@ -93,7 +163,6 @@ export default class RelayDetail extends Vue {
         },
         {
           visible: false,
-
           title: {
             text: "Token Price"
           }
@@ -105,24 +174,7 @@ export default class RelayDetail extends Vue {
           }
         }
       ],
-
-      series: [
-        {
-          name: "ROI",
-          yAxis: 0,
-          data: selectedData.map(x => [x.timestamp, x.roi])
-        },
-        {
-          name: "Token Price",
-          yAxis: 1,
-          data: selectedData.map(x => [x.timestamp, x.tokenPrice])
-        },
-        {
-          name: "Trade Volume",
-          yAxis: 2,
-          data: selectedData.map(x => [x.timestamp, x.tradeVolume])
-        }
-      ]
+      series
     };
 
     this.chartOptions = chartData;
