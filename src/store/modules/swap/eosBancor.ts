@@ -122,14 +122,12 @@ const fetchBalanceAssets = async (
 ) => {
   return Promise.all(
     tokens.map(async token => {
-      const res = await client.stateTable<{ balance: string }>(
-        token.contract,
-        account,
-        "accounts"
-      );
-      const assets = res.rows
-        .map(row => row.json!)
-        .map(row => new Asset(row.balance));
+      const res: { rows: { balance: string }[] } = await rpc.get_table_rows({
+        code: token.contract,
+        scope: account,
+        table: "accounts"
+      });
+      const assets = res.rows.map(row => new Asset(row.balance));
       const foundAsset = assets.find(
         asset => asset.symbol.code().to_string() == token.symbol
       );
@@ -379,7 +377,6 @@ const generateSmartTokenSymbol = async (
   }
   throw new Error("Failed to find a new SmartTokenSymbol!");
 };
-
 
 const eosMultiToDryRelays = (relays: EosMultiRelay[]): DryRelay[] =>
   relays.map(relay => ({
@@ -903,6 +900,8 @@ export class EosBancorModule extends VuexModule
 
       const v1Relays = getHardCodedRelays();
 
+      console.log(v1Relays, "are v1");
+      console.log(v2Relays, "are v2 relays");
       const passedV1Relays = v1Relays.filter(
         noBlackListedReservesDry(blackListedTokens)
       );
@@ -1056,21 +1055,33 @@ export class EosBancorModule extends VuexModule
       relays.map(
         async (relay): Promise<EosMultiRelay> => {
           const [reserves, settings, reserveBalances] = await Promise.all([
-            client.stateTable<{
-              contract: string;
-              currency: string;
-              ratio: number;
-              p_enabled: boolean;
-            }>(relay.contract, relay.contract, "reserves"),
-            client.stateTable<{
-              smart_contract: string;
-              smart_currency: string;
-              smart_enabled: boolean;
-              enabled: boolean;
-              network: string;
-              max_fee: number;
-              fee: number;
-            }>(relay.contract, relay.contract, "settings"),
+            rpc.get_table_rows({
+              code: relay.contract,
+              scope: relay.contract,
+              table: "reserves"
+            }) as Promise<{
+              rows: {
+                contract: string;
+                currency: string;
+                ratio: number;
+                p_enabled: boolean;
+              }[];
+            }>,
+            rpc.get_table_rows({
+              code: relay.contract,
+              scope: relay.contract,
+              table: "settings"
+            }) as Promise<{
+              rows: {
+                smart_contract: string;
+                smart_currency: string;
+                smart_enabled: boolean;
+                enabled: boolean;
+                network: string;
+                max_fee: number;
+                fee: number;
+              }[];
+            }>,
             fetchBalanceAssets(
               relay.reserves.map(reserve => ({
                 contract: reserve.contract,
@@ -1096,7 +1107,7 @@ export class EosBancorModule extends VuexModule
           return {
             contract: relay.contract,
             isMultiContract: false,
-            fee: settings.rows[0].json!.fee / 1000000,
+            fee: settings.rows[0].fee / 1000000,
             owner: relay.contract,
             smartToken: {
               amount: 0,
@@ -1266,14 +1277,14 @@ export class EosBancorModule extends VuexModule
     smartTokenSymbol: string;
     accountHolder: string;
   }): Promise<{ symbl: string; quantity: string }[]> {
-    const res = await client.stateTable<{ symbl: string; quantity: string }>(
-      process.env.VUE_APP_MULTICONTRACT!,
-      accountHolder,
-      "accounts"
-    );
-    return res.rows
-      .map(row => row.json!)
-      .filter(row => row.symbl == smartTokenSymbol);
+    const res: {
+      rows: { symbl: string; quantity: string }[];
+    } = await rpc.get_table_rows({
+      code: process.env.VUE_APP_MULTICONTRACT!,
+      scope: accountHolder,
+      table: "accounts"
+    });
+    return res.rows.filter(row => row.symbl == smartTokenSymbol);
   }
 
   @action async removeLiquidity({
@@ -1527,15 +1538,14 @@ export class EosBancorModule extends VuexModule
     symbol: string;
   }) {
     try {
-      const res = await client.stateTable<{ balance: string }>(
-        contract,
-        this.isAuthenticated,
-        "accounts"
-      );
+      const res: { rows: { balance: string }[] } = await rpc.get_table_rows({
+        code: contract,
+        scope: this.isAuthenticated,
+        table: "accounts"
+      });
       return (
         res.rows.length > 0 &&
         res.rows
-          .map(x => x.json!)
           .map(({ balance }) => balance)
           .some(balance => balance.includes(symbol))
       );
@@ -1579,27 +1589,28 @@ export class EosBancorModule extends VuexModule
       reserve => reserve.symbol.code().to_string() == toSymbol
     )!.contract;
 
-    const existingBalance = await this.hasExistingBalance({
-      contract: toContract,
-      symbol: toSymbol
-    });
+    // TEMP DISABLE TILL WE USE RPC INSTEAD OF DFUSE FOR THIS FUNCTIONALITY
+    // const existingBalance = await this.hasExistingBalance({
+    //   contract: toContract,
+    //   symbol: toSymbol
+    // });
 
-    if (!existingBalance) {
-      const abiConf = await client.stateAbi(toContract);
-      const openSupported = abiConf.abi.actions.some(
-        action => action.name == "open"
-      );
-      if (!openSupported)
-        throw new Error(
-          `You do not have an existing balance of ${toSymbol} and it's token contract ${toContract} does not support 'open' functionality.`
-        );
-      const openActions = await multiContract.openActions(
-        toContract,
-        `${toToken.precision},${toSymbol}`,
-        this.isAuthenticated
-      );
-      convertActions = [...openActions, ...convertActions];
-    }
+    // if (!existingBalance) {
+    //   const abiConf = await client.stateAbi(toContract);
+    //   const openSupported = abiConf.abi.actions.some(
+    //     action => action.name == "open"
+    //   );
+    //   if (!openSupported)
+    //     throw new Error(
+    //       `You do not have an existing balance of ${toSymbol} and it's token contract ${toContract} does not support 'open' functionality.`
+    //     );
+    //   const openActions = await multiContract.openActions(
+    //     toContract,
+    //     `${toToken.precision},${toSymbol}`,
+    //     this.isAuthenticated
+    //   );
+    //   convertActions = [...openActions, ...convertActions];
+    // }
 
     const tokenContractsAndSymbols = [
       { contract: toContract, symbol: toSymbol },

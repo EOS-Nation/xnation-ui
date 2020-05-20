@@ -73,6 +73,7 @@ export default class App extends Vue {
       } catch (e) {
         this.loading = false;
         this.error = e.message;
+        throw new Error(e)
       }
     }
   }
