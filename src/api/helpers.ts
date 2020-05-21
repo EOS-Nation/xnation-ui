@@ -4,7 +4,12 @@ import { JsonRpc } from "eosjs";
 import { Asset, asset_to_number, Sym } from "eos-common";
 import { rpc } from "./rpc";
 import { client } from "./dFuse";
-import { TokenBalances, EosMultiRelay, Converter, TokenMeta } from "@/types/bancor";
+import {
+  TokenBalances,
+  EosMultiRelay,
+  Converter,
+  TokenMeta
+} from "@/types/bancor";
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
 import wait from "waait";
@@ -101,14 +106,14 @@ export const getBalance = async (
   symbolName: string
 ): Promise<string> => {
   const account = isAuthenticatedViaModule(vxm.eosWallet);
-  const res = await client.stateTable<{ balance: string }>(
-    contract,
-    account,
-    "accounts"
+  const res: { rows: { balance: string }[] } = await rpc.get_table_rows({
+    code: contract,
+    scope: account,
+    table: "accounts"
+  });
+  const balance = res.rows.find(balance =>
+    compareString(balance.balance.split(" ")[1], symbolName)
   );
-  const balance = res.rows
-    .map(row => row.json!)
-    .find(balance => compareString(balance.balance.split(" ")[1], symbolName));
   if (!balance) return `0.0000 ${symbolName}`;
   return balance.balance;
 };
@@ -3478,12 +3483,18 @@ export const getBankBalance = async (): Promise<
   }[]
 > => {
   const account = isAuthenticatedViaModule(vxm.eosWallet);
-  const res = await client.stateTable<{
-    id: number;
-    quantity: string;
-    symbl: string;
-  }>(process.env.VUE_APP_MULTICONTRACT!, account, "accounts")!;
-  return res.rows.map(row => row.json!);
+  const res: {
+    rows: {
+      id: number;
+      quantity: string;
+      symbl: string;
+    }[];
+  } = await rpc.get_table_rows({
+    code: process.env.VUE_APP_MULTICONTRACT!,
+    scope: account,
+    table: "accounts"
+  })!;
+  return res.rows;
 };
 
 export enum Feature {
@@ -3537,8 +3548,8 @@ export interface ConverterV2Row {
   reserve_balances: {
     key: string;
     value: {
-      asset: string;
-      Contract: string;
+      quantity: string;
+      contract: string;
     };
   }[];
   reserve_weights: {
@@ -3565,12 +3576,13 @@ const assetStringtoBaseSymbol = (assetString: string): BaseSymbol => {
 export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
 
-  const rawRelays = await client.stateTable<ConverterV2Row>(
-    process.env.VUE_APP_MULTICONTRACT!,
-    process.env.VUE_APP_MULTICONTRACT!,
-    "converter.v2"
-  );
-  const parsedRelays = rawRelays.rows.map(relay => relay.json!);
+  const rawRelays: { rows: ConverterV2Row[] } = await rpc.get_table_rows({
+    code: process.env.VUE_APP_MULTICONTRACT,
+    table: "converter.v2",
+    scope: process.env.VUE_APP_MULTICONTRACT,
+    limit: 90
+  });
+  const parsedRelays = rawRelays.rows;
   const passedRelays = parsedRelays
     .filter(
       relay =>
@@ -3583,10 +3595,10 @@ export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
 
   const relays: EosMultiRelay[] = passedRelays.map(relay => ({
     reserves: relay.reserve_balances.map(({ value }) => ({
-      ...assetStringtoBaseSymbol(value.asset),
-      contract: value.Contract,
+      ...assetStringtoBaseSymbol(value.quantity),
+      contract: value.contract,
       network: "eos",
-      amount: asset_to_number(new Asset(value.asset))
+      amount: asset_to_number(new Asset(value.quantity))
     })),
     contract: contractName,
     owner: relay.owner,
