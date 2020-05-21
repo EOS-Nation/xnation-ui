@@ -62,6 +62,11 @@ import _ from "lodash";
 import wait from "waait";
 import { getHardCodedRelays } from "./staticRelays";
 
+const tokenContractSupportsOpen = async (contractName: string) => {
+  const abiConf = await rpc.get_abi(contractName);
+  return abiConf.abi.actions.some(action => action.name == "open");
+};
+
 const getSymbolName = (tokenSymbol: TokenSymbol) =>
   tokenSymbol.symbol.code().to_string();
 
@@ -1586,28 +1591,24 @@ export class EosBancorModule extends VuexModule
       reserve => reserve.symbol.code().to_string() == toSymbol
     )!.contract;
 
-    // TEMP DISABLE TILL WE USE RPC INSTEAD OF DFUSE FOR THIS FUNCTIONALITY
-    // const existingBalance = await this.hasExistingBalance({
-    //   contract: toContract,
-    //   symbol: toSymbol
-    // });
+    const existingBalance = await this.hasExistingBalance({
+      contract: toContract,
+      symbol: toSymbol
+    });
 
-    // if (!existingBalance) {
-    //   const abiConf = await client.stateAbi(toContract);
-    //   const openSupported = abiConf.abi.actions.some(
-    //     action => action.name == "open"
-    //   );
-    //   if (!openSupported)
-    //     throw new Error(
-    //       `You do not have an existing balance of ${toSymbol} and it's token contract ${toContract} does not support 'open' functionality.`
-    //     );
-    //   const openActions = await multiContract.openActions(
-    //     toContract,
-    //     `${toToken.precision},${toSymbol}`,
-    //     this.isAuthenticated
-    //   );
-    //   convertActions = [...openActions, ...convertActions];
-    // }
+    if (!existingBalance) {
+      const openSupported = await tokenContractSupportsOpen(toContract);
+      if (!openSupported)
+        throw new Error(
+          `You do not have an existing balance of ${toSymbol} and it's token contract ${toContract} does not support 'open' functionality.`
+        );
+      const openActions = await multiContract.openActions(
+        toContract,
+        `${toToken.precision},${toSymbol}`,
+        this.isAuthenticated
+      );
+      convertActions = [...openActions, ...convertActions];
+    }
 
     const tokenContractsAndSymbols = [
       { contract: toContract, symbol: toSymbol },
