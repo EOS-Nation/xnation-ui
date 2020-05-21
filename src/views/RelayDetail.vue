@@ -11,12 +11,14 @@
               :style="{ color: 'black' }"
             />
           </h3>
-          <div class="block-options">
-            <p>yeah mate {{ focusedSymbolName }}</p>
-          </div>
         </div>
-        <div class="block-content px-0 px-md-3 ">
-          <h3 v-if="loading">LOADING!</h3>
+        <div :class="classes">
+          <b-spinner
+            v-if="loading"
+            style="display: block; width: 10rem; height: 10rem;"
+            class="text-dark"
+            label="Loading..."
+          ></b-spinner>
           <div v-else>
             <highcharts
               :constructor-type="'stockChart'"
@@ -57,8 +59,21 @@ export default class RelayDetail extends Vue {
     return this.$router.currentRoute.params.account;
   }
 
+  get classes() {
+    return [
+      "block-content",
+      "px-0",
+      "px-md-3",
+      "main",
+      ...(this.loading ? ["d-flex", "justify-content-center"] : [])
+    ];
+  }
+
   goBack() {
-    this.$router.push({ name: "Relays" });
+    this.$router.push({
+      name: "Relay",
+      params: { account: this.focusedSymbolName }
+    });
   }
 
   setChartData(data: HistoryRow[]) {
@@ -194,4 +209,8 @@ export default class RelayDetail extends Vue {
 }
 </script>
 
-<style lang="scss"></style>
+<style lang="scss">
+.main {
+  padding-bottom: 10px;
+}
+</style>
