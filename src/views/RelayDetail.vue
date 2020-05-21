@@ -42,6 +42,13 @@ import moment from "moment";
 import Highcharts, { getOptions } from "highcharts";
 import stockInit from "highcharts/modules/stock";
 
+const networkSymbols = ['BNT', 'USDB']
+
+const getNonNetworkTokenName = (smartTokenSymbol: string) => {
+  const networkSymbol = networkSymbols.find(networkSymbol => smartTokenSymbol.includes(networkSymbol))!;
+  return smartTokenSymbol.split(networkSymbol).find(Boolean)
+};
+
 stockInit(Highcharts);
 
 @Component({
@@ -78,7 +85,10 @@ export default class RelayDetail extends Vue {
 
   setChartData(data: HistoryRow[]) {
     const selectedData = data.sort((a, b) => a.timestamp - b.timestamp);
-    console.log(selectedData, "should be newest data");
+
+    const name = getNonNetworkTokenName(
+      this.focusedSymbolName
+    );
 
     let cumulative_dm_roi: any[] = [];
     let loss: any[] = [];
@@ -113,13 +123,6 @@ export default class RelayDetail extends Vue {
       ]);
     });
 
-    console.log(
-      cumulative_dm_roi,
-      loss,
-      net_position,
-      "was the calculated data..."
-    );
-
     const colours = Highcharts.getOptions().colors!;
 
     const series = [
@@ -152,6 +155,17 @@ export default class RelayDetail extends Vue {
           valueSuffix: "%"
         },
         data: net_position
+      },
+      {
+        name: "Trade Volume",
+        yAxis: 1,
+        zIndex: 0,
+        data: selectedData.map(x => [x.timestamp, x.tradeVolume]),
+        tooltip: {
+          valueSuffix: " " + name
+        },
+        type: "column",
+        color: "#bbb"
       }
     ];
 
