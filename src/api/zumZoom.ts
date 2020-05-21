@@ -29,7 +29,7 @@ const parseSmartTokenHistory = (csvString: string): HistoryRow[] => {
 };
 
 export const getSmartTokenHistory = async (smartToken: string) => {
-  const history = await fetchSmartTokenHistory(smartToken);
-  const parsed = parseSmartTokenHistory(history);
-  return parsed;
+  const csvHistory = await fetchSmartTokenHistory(smartToken);
+  const parsedCsv = parseSmartTokenHistory(csvHistory);
+  return parsedCsv;
 };
