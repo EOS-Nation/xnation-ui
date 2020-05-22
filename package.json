@@ -50,7 +50,7 @@
     "qrcode.vue": "^1.7.0",
     "sxjs": "^0.6.1",
     "velocity-animate": "^1.5.2",
-    "vue": "^2.6.6",
+    "vue": "^2.6.11",
     "vue-analytics": "^5.17.2",
     "vue-avatar": "^2.2.0",
     "vue-chartjs": "^3.5.0",
@@ -62,8 +62,8 @@
     "vue-property-decorator": "^8.2.2",
     "vue-qrcode-reader": "^2.1.1",
     "vue-ripple-directive": "^2.0.1",
-    "vue-router": "^3.1.6",
-    "vuex": "^3.1.2",
+    "vue-router": "^3.2.0",
+    "vuex": "^3.4.0",
     "vuex-class": "^0.3.2",
     "vuex-class-component": "^2.2.1",
     "vuex-router-sync": "^5.0.0",
@@ -88,7 +88,7 @@
     "tslib": "^1.10.0",
     "typescript": "^3.7.4",
     "vue-cli-plugin-i18n": "^0.6.0",
-    "vue-template-compiler": "^2.5.21"
+    "vue-template-compiler": "^2.6.11"
   },
   "prettier": {
     "semi": true,
