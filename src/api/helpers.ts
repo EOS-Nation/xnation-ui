@@ -143,7 +143,7 @@ export const retryPromise = async <T>(
   interval = 1000
 ): Promise<T> => {
   return new Promise(async (resolve, reject) => {
-    for (var i = 0; i < maxAttempts; i++) {
+    for (let i = 0; i < maxAttempts; i++) {
       try {
         return resolve(await promise());
       } catch (e) {

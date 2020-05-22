@@ -314,7 +314,7 @@ export class EthBancorModule extends VuexModule
     const interval = 1000;
     const attempts = 10;
 
-    for (var i = 0; i < attempts; i++) {
+    for (let i = 0; i < attempts; i++) {
       const info = await web3.eth.getTransactionReceipt(hash);
       if (info) {
         return removeLeadingZeros(info.logs[0].topics[1]);
@@ -330,7 +330,7 @@ export class EthBancorModule extends VuexModule
     const interval = 1000;
     const attempts = 10;
 
-    for (var i = 0; i < attempts; i++) {
+    for (let i = 0; i < attempts; i++) {
       const info = await web3.eth.getTransactionReceipt(hash);
       console.log(info, "was info");
       if (info) {

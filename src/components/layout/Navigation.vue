@@ -6,7 +6,7 @@
         style="width: 180px"
       >
         <router-link :to="{ name: 'Tokens' }">
-          <img src="@/assets/media/logos/eosn.png" height="30px" class="mr-4" />
+          <img src="@/assets/media/logos/eosn.png" height="30px" class="mr-4 d-none d-sm-block" />
         </router-link>
         <b-form-group id="form-group">
           <b-form-radio-group
@@ -19,7 +19,7 @@
           ></b-form-radio-group>
         </b-form-group>
       </div>
-      <div class="d-none d-md-flex align-items-center justify-content-center">
+      <div class="d-md-flex align-items-center justify-content-center">
         <b-btn
           :to="{ name: `Tokens` }"
           v-if="selectedService.features.includes(0)"

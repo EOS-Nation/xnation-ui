@@ -104,7 +104,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const tokens = Object.keys(pools);
     const newTokens = await Promise.all(
       tokens.map(async token => {
-        let {
+        const {
           id: { sym, contract },
           depth,
           pegged,
