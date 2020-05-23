@@ -1,13 +1,24 @@
 <template>
-  <header id="page-header">
-    <div class="content content-header content-boxed py-0">
-      <div
-        class="d-flex align-items-center align-middle float-left"
-        style="width: 180px"
-      >
-        <router-link :to="{ name: 'Tokens' }">
-          <img src="@/assets/media/logos/eosn.png" height="30px" class="mr-4 d-none d-sm-block" />
-        </router-link>
+  <b-navbar
+    class="d-flex justify-content-end  align-items-end"
+    toggleable="lg"
+    type="dark"
+    variant="dark"
+  >
+    <b-navbar-brand>
+      <router-link :to="{ name: 'Tokens' }">
+        <img
+          src="@/assets/media/logos/eosn.png"
+          height="30px"
+          class="mr-4 d-none d-sm-block"
+        />
+      </router-link>
+    </b-navbar-brand>
+
+    <b-navbar-toggle target="nav-collapse" />
+
+    <b-collapse id="nav-collapse" is-nav>
+      <b-navbar-nav>
         <b-form-group id="form-group">
           <b-form-radio-group
             class="align-self-center"
@@ -18,69 +29,28 @@
             buttons
           ></b-form-radio-group>
         </b-form-group>
-      </div>
-      <div class="d-md-flex align-items-center justify-content-center">
-        <b-btn
-          :to="{ name: `Tokens` }"
-          v-if="selectedService.features.includes(0)"
-          variant="primary"
-          size="sm"
-          :active="$route.name == 'Tokens'"
-          class="mr-2"
-        >
-          <font-awesome-icon icon="exchange-alt" fixed-width class="mr-1" />
-          Convert
-        </b-btn>
-        <b-btn
-          :to="{ name: `Relays` }"
-          v-if="selectedService.features.includes(2)"
-          variant="primary"
-          size="sm"
-          :active="$route.name == 'Relay' || $router.name == 'Relays'"
-          class="mr-2"
-        >
-          <font-awesome-icon icon="swimming-pool" fixed-width class="mr-1" />
-          Pools
-        </b-btn>
-        <b-btn
-          :to="{ name: 'Create' }"
-          v-if="selectedService.features.includes(3)"
-          variant="primary"
-          size="sm"
-          :disabled="!isAuthenticated"
-          exact
-          class="mr-2"
-        >
-          <font-awesome-icon icon="plus" fixed-width class="mr-1" />
-          Create
-        </b-btn>
-        <b-btn
-          v-if="!isAuthenticated && selectedService.features.includes(1)"
-          :to="{ name: `Wallet` }"
-          variant="primary"
-          size="sm"
-          exact
-        >
-          <font-awesome-icon icon="wallet" fixed-width /> Wallet
-        </b-btn>
-        <b-btn
-          v-else-if="selectedService.features.includes(1)"
-          :to="{
-            name: `WalletAccount`,
-            params: { account: isAuthenticated }
-          }"
-          variant="primary"
-          size="sm"
-        >
-          <font-awesome-icon icon="wallet" fixed-width /> Wallet
-        </b-btn>
-      </div>
+      </b-navbar-nav>
 
-      <div
-        class="d-flex align-items-center float-right justify-content-end"
-        style="width: 180px"
-      >
+      <b-navbar-nav justified="center" >
         <b-btn
+          class="navItem"
+          v-for="navItem in navItems"
+          :key="navItem.label"
+          :to="navItem.destination"
+          :disabled="navItem.disabled"
+          variant="primary"
+          size="sm"
+          exact
+        >
+          <font-awesome-icon :icon="navItem.icon" fixed-width />
+          {{ navItem.label }}
+        </b-btn>
+      </b-navbar-nav>
+
+      <!-- Right aligned nav items -->
+      <b-navbar-nav class="ml-auto">
+        <b-btn
+          right
           @click="loginAction"
           variant="dual"
           size="sm"
@@ -90,9 +60,9 @@
           {{ loginButtonLabel }}
           <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
         </b-btn>
-      </div>
-    </div>
-  </header>
+      </b-navbar-nav>
+    </b-collapse>
+  </b-navbar>
 </template>
 
 <script lang="ts">
@@ -104,8 +74,66 @@ import { sync } from "vuex-router-sync";
 import { services, Feature } from "@/api/helpers";
 import { store } from "../../store";
 
+const createDirectRoute = (name: string, params?: any) => ({
+  name,
+  ...(params && { params })
+});
+
 @Component
 export default class Navigation extends Vue {
+  get navItems() {
+    return [
+      {
+        label: "Convert",
+        destination: createDirectRoute("Tokens"),
+        render: this.selectedService!.features.includes(0),
+        disabled: false,
+        icon: "exchange-alt",
+        active: this.$route.name == "Tokens" || this.$route.name == "Relays"
+      },
+      {
+        label: "Pools",
+        destination: createDirectRoute("Relays"),
+        render: this.selectedService!.features.includes(2),
+        disabled: false,
+        icon: "swimming-pool",
+        active: this.$route.name == "Relay" || this.$route.name == "Relays"
+      },
+      {
+        label: "Create",
+        destination: createDirectRoute("Create"),
+        disabled: !this.isAuthenticated,
+        icon: "plus",
+        render: this.selectedService!.features.includes(3),
+        active: this.$route.name == "Create"
+      },
+      ...[
+        this.selectedService!.features.includes(1)
+          ? this.isAuthenticated
+            ? {
+                label: "Wallet",
+                destination: createDirectRoute("WalletAccount", {
+                  account: this.isAuthenticated
+                }),
+                icon: "wallet",
+                active: this.$route.name == "Wallet",
+                disabled: false,
+                render: true
+              }
+            : {
+                label: "Wallet",
+                destination: createDirectRoute("Wallet"),
+                icon: "wallet",
+                active: this.$route.name == "Wallet",
+                disabled: false,
+                render: true
+              }
+          : []
+      ]
+      // @ts-ignore
+    ].filter(route => route.render);
+  }
+
   get selectedNetwork() {
     return vxm.bancor.currentNetwork;
   }
@@ -138,7 +166,7 @@ export default class Navigation extends Vue {
   ];
 
   get selectedService() {
-    return services.find(service => service.namespace == this.selectedNetwork);
+    return services.find(service => service.namespace == this.selectedNetwork)!;
   }
 
   created() {
@@ -253,6 +281,9 @@ export default class Navigation extends Vue {
 </script>
 
 <style>
+.navItem {
+}
+
 #form-group {
   margin-bottom: unset;
 }
