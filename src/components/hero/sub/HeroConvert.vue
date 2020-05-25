@@ -272,7 +272,7 @@ export default class HeroConvert extends Vue {
   }
 
   get choices() {
-    return this.tokens.map((token: any) => ({
+    return this.tokens.map(token => ({
       symbol: token.symbol,
       balance: token.balance,
       img: token.logo
