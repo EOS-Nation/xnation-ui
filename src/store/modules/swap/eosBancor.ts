@@ -895,13 +895,10 @@ export class EosBancorModule extends VuexModule
         fetchMultiRelays(),
         getTokenMeta()
       ]);
-      console.log("eos init received", usdPriceOfBnt);
       this.setBntPrice(usdPriceOfBnt);
 
       const v1Relays = getHardCodedRelays();
 
-      console.log(v1Relays, "are v1");
-      console.log(v2Relays, "are v2 relays");
       const passedV1Relays = v1Relays.filter(
         noBlackListedReservesDry(blackListedTokens)
       );

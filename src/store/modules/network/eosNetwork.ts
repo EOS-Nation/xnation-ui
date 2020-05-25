@@ -153,7 +153,6 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
       const equalisedBalances = bulkTokens.tokens.map(
         tokenBalanceToTokenBalanceReturn
       );
-      console.log("slow is hitting this");
       this.updateTokenBalances(equalisedBalances);
       const missedTokens = _.differenceWith(
         tokens,
@@ -188,10 +187,6 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
   }
 
   @mutation updateTokenBalances(tokens: TokenBalanceReturn[]) {
-    console.log(
-      "tokens provided",
-      tokens.filter(token => compareString(token.symbol, "bnt"))
-    );
     this.tokenBalances = _.uniqWith(
       [...tokens, ...this.tokenBalances],
       compareToken
