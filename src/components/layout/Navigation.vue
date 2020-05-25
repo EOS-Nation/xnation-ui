@@ -5,7 +5,7 @@
         class="d-flex align-items-center align-middle float-left"
         style="width: 180px"
       >
-        <router-link :to="{ name: 'Tokens' }">
+        <router-link class="d-none d-lg-block" :to="{ name: 'Tokens' }">
           <img src="@/assets/media/logos/eosn.png" height="30px" class="mr-4" />
         </router-link>
         <b-form-group id="form-group">
