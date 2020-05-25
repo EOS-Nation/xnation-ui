@@ -29,6 +29,7 @@ export class NetworkModule extends VuexModule {
   }
 
   get balances() {
+    console.log(this.currentNetwork, 'is the current network on balances');
     // @ts-ignore
     return vxm[`${this.currentNetwork}Network`]["balances"];
   }

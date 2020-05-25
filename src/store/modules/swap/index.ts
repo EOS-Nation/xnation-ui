@@ -7,7 +7,8 @@ import {
   ModalChoice,
   NetworkChoice,
   FeeParams,
-  NewOwnerParams
+  NewOwnerParams,
+  HistoryRow
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -152,6 +153,10 @@ export class BancorModule extends VuexModule {
 
   @mutation setUsdPriceOfBnt(usdPriceOfBnt: BntPrice) {
     this.usdPriceOfBnt = usdPriceOfBnt;
+  }
+
+  @action async fetchHistoryData(relayId: string): Promise<HistoryRow[]> {
+    return this.dispatcher(["fetchHistoryData", relayId]);
   }
 
   @action async convert(tx: ProposedConvertTransaction) {

@@ -373,7 +373,7 @@ const generateSmartTokenSymbol = async (
 ) => {
   for (const strat in tokenStrategies) {
     console.log({ symbolOne, symbolTwo });
-    let draftedToken = tokenStrategies[strat](symbolOne, symbolTwo);
+    const draftedToken = tokenStrategies[strat](symbolOne, symbolTwo);
     try {
       await getEosioTokenPrecision(draftedToken, multiTokenContract);
     } catch (e) {
@@ -643,7 +643,7 @@ export class EosBancorModule extends VuexModule
       poolParams.fee
     );
 
-    let res = await this.triggerTx(actions!);
+    const res = await this.triggerTx(actions!);
     return res.transaction_id;
   }
 
@@ -848,6 +848,7 @@ export class EosBancorModule extends VuexModule
           smartTokenSymbol: relay.smartToken.symbol,
           liqDepth: relayFeed && relayFeed.liqDepth,
           addRemoveLiquiditySupported: relay.isMultiContract,
+          focusAvailable: false,
           reserves: relay.reserves
             .map((reserve: AgnosticToken) => ({
               ...reserve,
@@ -1335,7 +1336,7 @@ export class EosBancorModule extends VuexModule
   @action async expectNewRelay(smartToken: string) {
     const attempts = 10;
     const waitPeriod = 1000;
-    for (var i = 0; i < attempts; i++) {
+    for (let i = 0; i < attempts; i++) {
       const relays = await fetchMultiRelays();
       const includesRelay = relays.find(relay =>
         compareString(relay.smartToken.symbol, smartToken)

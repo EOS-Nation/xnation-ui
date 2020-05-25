@@ -68,8 +68,8 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
     interval?: number;
   }) {
     return new Promise(async (resolve, reject) => {
-      for (var i = 0; i < maxPings; i++) {
-        let newBalanceArray = await this.getBalances({
+      for (let i = 0; i < maxPings; i++) {
+        const newBalanceArray = await this.getBalances({
           tokens: originalBalances,
           disableSetting: true
         });

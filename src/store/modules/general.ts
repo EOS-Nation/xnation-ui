@@ -10,11 +10,11 @@ export class GeneralModule extends VuexModule {
       this.language = i18n.locale = lang;
       localStorage.setItem("language", lang);
     } else {
-      let userLang: string | null = localStorage.getItem("language");
+      const userLang: string | null = localStorage.getItem("language");
       if (userLang) {
         this.language = i18n.locale = userLang;
       } else {
-        let browserLang = navigator.language.split("-")[0];
+        const browserLang = navigator.language.split("-")[0];
         this.language = i18n.locale = browserLang;
         localStorage.setItem("language", browserLang);
       }

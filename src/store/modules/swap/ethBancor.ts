@@ -15,7 +15,8 @@ import {
   ViewRelay,
   TokenPrice,
   Section,
-  Step
+  Step,
+  HistoryModule
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -57,11 +58,15 @@ import {
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
 import BigNumber from "bignumber.js";
+import {
+  getSmartTokenHistory,
+  fetchSmartTokens,
+  fetchSmartTokenHistory
+} from "@/api/zumZoom";
 
 const compareRelayFeed = (a: RelayFeed, b: RelayFeed) =>
   compareString(a.smartTokenContract, b.smartTokenContract) &&
   compareString(a.tokenId, b.tokenId);
-
 
 const tokenPriceToFeed = (
   tokenAddress: string,
@@ -209,13 +214,14 @@ interface RelayFeed {
 
 @Module({ namespacedPath: "ethBancor/" })
 export class EthBancorModule extends VuexModule
-  implements TradingModule, LiquidityModule, CreatePoolModule {
+  implements TradingModule, LiquidityModule, CreatePoolModule, HistoryModule {
   tokensList: any[] = [];
   relayFeed: RelayFeed[] = [];
   relaysList: Relay[] = [];
   tokenBalances: { id: string; balance: number }[] = [];
   bntUsdPrice: number = 0;
   tokenMeta: TokenMeta[] = [];
+  availableHistories: string[] = [];
   bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
   bancorNetworkPathFinder = "0x6F0cD8C4f6F06eAB664C7E3031909452b4B72861";
   contracts: RegisteredContracts = {
@@ -308,7 +314,7 @@ export class EthBancorModule extends VuexModule
     const interval = 1000;
     const attempts = 10;
 
-    for (var i = 0; i < attempts; i++) {
+    for (let i = 0; i < attempts; i++) {
       const info = await web3.eth.getTransactionReceipt(hash);
       if (info) {
         return removeLeadingZeros(info.logs[0].topics[1]);
@@ -324,7 +330,7 @@ export class EthBancorModule extends VuexModule
     const interval = 1000;
     const attempts = 10;
 
-    for (var i = 0; i < attempts; i++) {
+    for (let i = 0; i < attempts; i++) {
       const info = await web3.eth.getTransactionReceipt(hash);
       console.log(info, "was info");
       if (info) {
@@ -369,6 +375,10 @@ export class EthBancorModule extends VuexModule
         500000
       )
     });
+  }
+
+  @action async fetchHistoryData(smartTokenSymbol: string) {
+    return getSmartTokenHistory(smartTokenSymbol.toLowerCase());
   }
 
   @action async createPool(poolParams: CreatePoolParams) {
@@ -850,6 +860,11 @@ export class EthBancorModule extends VuexModule
           compareString(feed.smartTokenContract, relay.smartToken.contract)
         )!;
 
+        const smartTokenSymbol = relay.smartToken.symbol;
+        const hasHistory = this.availableHistories.some(history =>
+          compareString(smartTokenSymbol, history)
+        );
+
         return {
           id: relay.smartToken.contract,
           reserves: relay.reserves.map(reserve => {
@@ -862,13 +877,14 @@ export class EthBancorModule extends VuexModule
               smartTokenSymbol: relay.smartToken.contract
             };
           }),
-          smartTokenSymbol: relay.smartToken.symbol,
+          smartTokenSymbol,
           fee: relay.fee / 100,
           liqDepth: relayFeed.liqDepth,
           owner: relay.owner,
           swap: "eth",
           symbol: lowestReserve.symbol,
-          addRemoveLiquiditySupported: true
+          addRemoveLiquiditySupported: true,
+          focusAvailable: hasHistory
         } as ViewRelay;
       });
   }
@@ -1406,13 +1422,24 @@ export class EthBancorModule extends VuexModule
     return relayFeeds.flat(1);
   }
 
+  @mutation setAvailableHistories(smartTokenNames: string[]) {
+    this.availableHistories = smartTokenNames;
+  }
+
   @action async init() {
     try {
-      const [tokenMeta, contractAddresses] = await Promise.all([
+      const [
+        tokenMeta,
+        contractAddresses,
+        availableSmartTokenHistories
+      ] = await Promise.all([
         getTokenMeta(),
-        this.fetchContractAddresses()
+        this.fetchContractAddresses(),
+        fetchSmartTokens()
       ]);
-
+      this.setAvailableHistories(
+        availableSmartTokenHistories.map(history => history.id)
+      );
       const hardCodedRelays = getEthRelays();
 
       this.setTokenMeta(tokenMeta);
@@ -1447,6 +1474,20 @@ export class EthBancorModule extends VuexModule
       this.updateRelays(relaysWithTokenMeta(nonHardCodedRelays, tokenMeta));
       await this.fetchAndUpdateRelayFeeds(
         relaysWithTokenMeta(nonHardCodedRelays, tokenMeta)
+      );
+
+      const allRelays = [...nonHardCodedRelays, ...hardCodedRelaysInRegistry];
+      const relaysWithHistory = allRelays.filter(relay =>
+        availableSmartTokenHistories.some(smartToken =>
+          compareString(relay.smartToken.symbol, smartToken.id)
+        )
+      );
+      console.log(
+        relaysWithHistory,
+        "are relays with history",
+        relaysWithHistory.length,
+        "out of ",
+        allRelays.length
       );
     } catch (e) {
       throw new Error(`Threw inside ethBancor ${e.message}`);

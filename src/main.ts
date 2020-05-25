@@ -4,6 +4,8 @@ import { router } from "./router";
 import { store } from "./store/";
 import i18n from "./i18n";
 import BootstrapVue from "bootstrap-vue";
+import "bootstrap/dist/css/bootstrap.css";
+import "bootstrap-vue/dist/bootstrap-vue.css";
 import "@/assets/_scss/main.scss";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { fas } from "@fortawesome/free-solid-svg-icons";
@@ -23,7 +25,7 @@ import { sync } from "vuex-router-sync";
 
 import * as firebase from "firebase/app";
 import "firebase/analytics";
-import LogRocket from 'logrocket';
+import LogRocket from "logrocket";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA4wJnD2aEvo_m3G7ELk-u1P2XmaxziGU8",
@@ -41,11 +43,10 @@ firebase.analytics();
 
 Vue.prototype.$analytics = firebase.analytics();
 
-LogRocket.init('n9wwc1/xnation');
+LogRocket.init("n9wwc1/xnation");
 
 Vue.prototype.$log = LogRocket;
 Vue.use(VueFuse);
-
 
 Ripple.color = "rgba(255, 255, 255, 0.35)";
 Ripple.zIndex = 1055;

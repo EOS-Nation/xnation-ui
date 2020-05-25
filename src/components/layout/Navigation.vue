@@ -26,6 +26,7 @@
           :key="navItem.label"
           :to="navItem.destination"
           :disabled="navItem.disabled"
+          :active="navItem.active"
           variant="primary"
           size="sm"
           exact
@@ -90,7 +91,7 @@ export default class Navigation extends Vue {
         render: this.selectedService!.features.includes(0),
         disabled: false,
         icon: "exchange-alt",
-        active: this.$route.name == "Tokens" || this.$route.name == "Relays"
+        active: this.$route.name == "Tokens"
       },
       {
         label: "Pools",
