@@ -169,7 +169,9 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
 
     const [directTokens, bonusTokens] = await Promise.all([
       this.fetchBulkBalances(tokens),
-      getTokenBalances(this.isAuthenticated)
+      getTokenBalances(this.isAuthenticated).catch(() => ({
+        tokens: [] as TokenBalance[]
+      }))
     ]);
 
     const equalisedBalances: TokenBalanceReturn[] = bonusTokens.tokens.map(
