@@ -21,7 +21,7 @@
       </div>
       <div class="d-none d-md-flex align-items-center justify-content-center">
         <b-btn
-          class="navItem"
+          class="mr-1"
           v-for="navItem in navItems"
           :key="navItem.label"
           :to="navItem.destination"
@@ -31,7 +31,7 @@
           size="sm"
           exact
         >
-          <font-awesome-icon :icon="navItem.icon" fixed-width />
+          <font-awesome-icon :icon="navItem.icon" class="mr-1" fixed-width />
           {{ navItem.label }}
         </b-btn>
       </div>
@@ -271,6 +271,11 @@ export default class Navigation extends Vue {
 </script>
 
 <style>
+
+.navItem {
+  margin: 2px 2px;
+}
+
 #form-group {
   margin-bottom: unset;
 }
