@@ -31,7 +31,7 @@
   <div v-else id="page-container" class="page-header-fixed page-header-dark">
     <router-view name="Nav"></router-view>
 
-    <main id="main-container" class="bg-primary">
+    <main class="bg-primary">
       <router-view name="Hero"></router-view>
       <router-view></router-view>
     </main>

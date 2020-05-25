@@ -19,7 +19,7 @@
 
 // Used for buttons that adapt to light/dark header and sidebar variations
 .btn-dual {
-    @include button-dual-variant($body-color-dark, #f5f5f5, #f5f5f5);
+    @include button-dual-variant(white, #3a5363, #3a5363);
 }
 
 .page-header-dark #page-header .btn-dual,

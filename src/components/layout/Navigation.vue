@@ -1,45 +1,44 @@
 <template>
-  <header id="page-header">
-    <div class="content content-header content-boxed py-0">
-      <div
-        class="d-flex align-items-center align-middle float-left"
-        style="width: 180px"
-      >
-        <router-link class="d-none d-lg-block" :to="{ name: 'Tokens' }">
-          <img src="@/assets/media/logos/eosn.png" height="30px" class="mr-4" />
-        </router-link>
-        <b-form-group id="form-group">
-          <b-form-radio-group
-            class="align-self-center"
-            size="sm"
-            v-model="selected"
-            :options="options"
-            button-variant="branded"
-            buttons
-          ></b-form-radio-group>
-        </b-form-group>
-      </div>
-      <div class="d-none d-md-flex align-items-center justify-content-center">
-        <b-btn
-          class="mr-1"
-          v-for="navItem in navItems"
-          :key="navItem.label"
-          :to="navItem.destination"
-          :disabled="navItem.disabled"
-          :active="navItem.active"
-          variant="primary"
-          size="sm"
-          exact
-        >
-          <font-awesome-icon :icon="navItem.icon" class="mr-1" fixed-width />
-          {{ navItem.label }}
-        </b-btn>
-      </div>
+  <b-navbar toggleable="md" type="dark" variant="dark">
+    <b-navbar-brand>
+      <router-link :to="{ name: 'Tokens' }">
+        <img src="@/assets/media/logos/eosn.png" height="30px" class="mr-4" />
+      </router-link>
+    </b-navbar-brand>
 
-      <div
-        class="d-flex align-items-center float-right justify-content-end"
-        style="width: 180px"
-      >
+    <b-navbar-toggle target="navbar-toggle-collapse" />
+
+    <b-collapse id="navbar-toggle-collapse" is-nav>
+      <b-navbar-nav class="big" :fill="false">
+        <div class="networks">
+        <b-form-radio-group
+          size="sm"
+          v-model="selected"
+          :options="options"
+          button-variant="branded"
+          buttons
+        />
+
+        </div>
+        <div class="features">
+          <b-btn
+            class="mr-1"
+            v-for="navItem in navItems"
+            :key="navItem.label"
+            :to="navItem.destination"
+            :disabled="navItem.disabled"
+            :active="navItem.active"
+            variant="primary"
+            size="sm"
+            exact
+          >
+            <font-awesome-icon :icon="navItem.icon" class="mr-1" fixed-width />
+            {{ navItem.label }}
+          </b-btn>
+        </div>
+      </b-navbar-nav>
+
+      <b-navbar-nav class="ml-auto">
         <b-btn
           @click="loginAction"
           variant="dual"
@@ -50,9 +49,9 @@
           {{ loginButtonLabel }}
           <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
         </b-btn>
-      </div>
-    </div>
-  </header>
+      </b-navbar-nav>
+    </b-collapse>
+  </b-navbar>
 </template>
 
 <script lang="ts">
@@ -271,7 +270,6 @@ export default class Navigation extends Vue {
 </script>
 
 <style>
-
 .navItem {
   margin: 2px 2px;
 }
@@ -288,6 +286,22 @@ export default class Navigation extends Vue {
 .btn-branded:hover {
   color: black !important;
   background-color: #fa932b !important;
+}
+
+.networks {
+  margin-right: 30px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.big {
+    position: relative;
+
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 label.active {
