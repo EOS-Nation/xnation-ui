@@ -1,24 +1,13 @@
 <template>
-  <b-navbar
-    class="d-flex justify-content-end  align-items-end"
-    toggleable="lg"
-    type="dark"
-    variant="dark"
-  >
-    <b-navbar-brand>
-      <router-link :to="{ name: 'Tokens' }">
-        <img
-          src="@/assets/media/logos/eosn.png"
-          height="30px"
-          class="mr-4 d-none d-sm-block"
-        />
-      </router-link>
-    </b-navbar-brand>
-
-    <b-navbar-toggle target="nav-collapse" />
-
-    <b-collapse id="nav-collapse" is-nav>
-      <b-navbar-nav>
+  <header id="page-header">
+    <div class="content content-header content-boxed py-0">
+      <div
+        class="d-flex align-items-center align-middle float-left"
+        style="width: 180px"
+      >
+        <router-link :to="{ name: 'Tokens' }">
+          <img src="@/assets/media/logos/eosn.png" height="30px" class="mr-4" />
+        </router-link>
         <b-form-group id="form-group">
           <b-form-radio-group
             class="align-self-center"
@@ -29,9 +18,8 @@
             buttons
           ></b-form-radio-group>
         </b-form-group>
-      </b-navbar-nav>
-
-      <b-navbar-nav justified="center" >
+      </div>
+      <div class="d-none d-md-flex align-items-center justify-content-center">
         <b-btn
           class="navItem"
           v-for="navItem in navItems"
@@ -45,12 +33,13 @@
           <font-awesome-icon :icon="navItem.icon" fixed-width />
           {{ navItem.label }}
         </b-btn>
-      </b-navbar-nav>
+      </div>
 
-      <!-- Right aligned nav items -->
-      <b-navbar-nav class="ml-auto">
+      <div
+        class="d-flex align-items-center float-right justify-content-end"
+        style="width: 180px"
+      >
         <b-btn
-          right
           @click="loginAction"
           variant="dual"
           size="sm"
@@ -60,9 +49,9 @@
           {{ loginButtonLabel }}
           <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
         </b-btn>
-      </b-navbar-nav>
-    </b-collapse>
-  </b-navbar>
+      </div>
+    </div>
+  </header>
 </template>
 
 <script lang="ts">
@@ -81,6 +70,18 @@ const createDirectRoute = (name: string, params?: any) => ({
 
 @Component
 export default class Navigation extends Vue {
+  get selectedNetwork() {
+    return vxm.bancor.currentNetwork;
+  }
+
+  get selectedWallet() {
+    return vxm.wallet.currentWallet;
+  }
+
+  get selected() {
+    return this.selectedNetwork;
+  }
+
   get navItems() {
     return [
       {
@@ -134,18 +135,6 @@ export default class Navigation extends Vue {
     ].filter(route => route.render);
   }
 
-  get selectedNetwork() {
-    return vxm.bancor.currentNetwork;
-  }
-
-  get selectedWallet() {
-    return vxm.wallet.currentWallet;
-  }
-
-  get selected() {
-    return this.selectedNetwork;
-  }
-
   set selected(newSelection: string) {
     this.$router.replace(`/${newSelection}`);
   }
@@ -166,7 +155,7 @@ export default class Navigation extends Vue {
   ];
 
   get selectedService() {
-    return services.find(service => service.namespace == this.selectedNetwork)!;
+    return services.find(service => service.namespace == this.selectedNetwork);
   }
 
   created() {
@@ -281,9 +270,6 @@ export default class Navigation extends Vue {
 </script>
 
 <style>
-.navItem {
-}
-
 #form-group {
   margin-bottom: unset;
 }
