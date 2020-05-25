@@ -21,58 +21,17 @@
       </div>
       <div class="d-none d-md-flex align-items-center justify-content-center">
         <b-btn
-          :to="{ name: `Tokens` }"
-          v-if="selectedService.features.includes(0)"
-          variant="primary"
-          size="sm"
-          :active="$route.name == 'Tokens'"
-          class="mr-2"
-        >
-          <font-awesome-icon icon="exchange-alt" fixed-width class="mr-1" />
-          Convert
-        </b-btn>
-        <b-btn
-          :to="{ name: `Relays` }"
-          v-if="selectedService.features.includes(2)"
-          variant="primary"
-          size="sm"
-          :active="$route.name == 'Relay' || $router.name == 'Relays'"
-          class="mr-2"
-        >
-          <font-awesome-icon icon="swimming-pool" fixed-width class="mr-1" />
-          Pools
-        </b-btn>
-        <b-btn
-          :to="{ name: 'Create' }"
-          v-if="selectedService.features.includes(3)"
-          variant="primary"
-          size="sm"
-          :disabled="!isAuthenticated"
-          exact
-          class="mr-2"
-        >
-          <font-awesome-icon icon="plus" fixed-width class="mr-1" />
-          Create
-        </b-btn>
-        <b-btn
-          v-if="!isAuthenticated && selectedService.features.includes(1)"
-          :to="{ name: `Wallet` }"
+          class="navItem"
+          v-for="navItem in navItems"
+          :key="navItem.label"
+          :to="navItem.destination"
+          :disabled="navItem.disabled"
           variant="primary"
           size="sm"
           exact
         >
-          <font-awesome-icon icon="wallet" fixed-width /> Wallet
-        </b-btn>
-        <b-btn
-          v-else-if="selectedService.features.includes(1)"
-          :to="{
-            name: `WalletAccount`,
-            params: { account: isAuthenticated }
-          }"
-          variant="primary"
-          size="sm"
-        >
-          <font-awesome-icon icon="wallet" fixed-width /> Wallet
+          <font-awesome-icon :icon="navItem.icon" fixed-width />
+          {{ navItem.label }}
         </b-btn>
       </div>
 
@@ -104,6 +63,11 @@ import { sync } from "vuex-router-sync";
 import { services, Feature } from "@/api/helpers";
 import { store } from "../../store";
 
+const createDirectRoute = (name: string, params?: any) => ({
+  name,
+  ...(params && { params })
+});
+
 @Component
 export default class Navigation extends Vue {
   get selectedNetwork() {
@@ -116,6 +80,59 @@ export default class Navigation extends Vue {
 
   get selected() {
     return this.selectedNetwork;
+  }
+
+  get navItems() {
+    return [
+      {
+        label: "Convert",
+        destination: createDirectRoute("Tokens"),
+        render: this.selectedService!.features.includes(0),
+        disabled: false,
+        icon: "exchange-alt",
+        active: this.$route.name == "Tokens" || this.$route.name == "Relays"
+      },
+      {
+        label: "Pools",
+        destination: createDirectRoute("Relays"),
+        render: this.selectedService!.features.includes(2),
+        disabled: false,
+        icon: "swimming-pool",
+        active: this.$route.name == "Relay" || this.$route.name == "Relays"
+      },
+      {
+        label: "Create",
+        destination: createDirectRoute("Create"),
+        disabled: !this.isAuthenticated,
+        icon: "plus",
+        render: this.selectedService!.features.includes(3),
+        active: this.$route.name == "Create"
+      },
+      ...[
+        this.selectedService!.features.includes(1)
+          ? this.isAuthenticated
+            ? {
+                label: "Wallet",
+                destination: createDirectRoute("WalletAccount", {
+                  account: this.isAuthenticated
+                }),
+                icon: "wallet",
+                active: this.$route.name == "Wallet",
+                disabled: false,
+                render: true
+              }
+            : {
+                label: "Wallet",
+                destination: createDirectRoute("Wallet"),
+                icon: "wallet",
+                active: this.$route.name == "Wallet",
+                disabled: false,
+                render: true
+              }
+          : []
+      ]
+      // @ts-ignore
+    ].filter(route => route.render);
   }
 
   set selected(newSelection: string) {
