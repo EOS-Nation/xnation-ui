@@ -35,6 +35,7 @@
             {{ navItem.label }}
           </b-btn>
         </div>
+        <div class="spacer"></div>
       </b-navbar-nav>
 
       <b-navbar-nav class="ml-auto login">
@@ -292,13 +293,6 @@ export default class Navigation extends Vue {
 }
 
 @media (max-width: 768px) {
-  .big {
-    display: flex;
-    justify-content: center;
-    justify-items: center;
-    align-items: center;
-  }
-
   .networks {
     margin-top: 15px;
     margin-bottom: 15px;
@@ -309,21 +303,23 @@ export default class Navigation extends Vue {
   }
 }
 
-@media (min-width: 1076px) {
-  .big {
-    position: relative;
-  }
+.features {
+  flex-grow: 2;
+  flex-basis: auto;
+  display: flex;
+  justify-content: center;
+}
 
-  .networks {
-    position: absolute;
-    left: 0;
-  }
+.spacer {
+  display: hidden;
+  flex-grow: 1;
 }
 
 .networks {
-  margin-right: 30px;
-  left: 5%;
-  right: 0;
+  flex-grow: 1;
+  flex-basis: auto;
+  display: flex;
+  justify-content: center;
 }
 
 .big {
