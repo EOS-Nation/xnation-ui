@@ -1,5 +1,5 @@
 <template>
-  <b-navbar toggleable="md" type="dark" variant="dark">
+  <b-navbar class="navBar" toggleable="md" type="dark" variant="dark">
     <b-navbar-brand>
       <router-link :to="{ name: 'Tokens' }">
         <img src="@/assets/media/logos/eosn.png" height="30px" class="mr-4" />
@@ -11,14 +11,13 @@
     <b-collapse id="navbar-toggle-collapse" is-nav>
       <b-navbar-nav class="big" :fill="false">
         <div class="networks">
-        <b-form-radio-group
-          size="sm"
-          v-model="selected"
-          :options="options"
-          button-variant="branded"
-          buttons
-        />
-
+          <b-form-radio-group
+            size="sm"
+            v-model="selected"
+            :options="options"
+            button-variant="branded"
+            buttons
+          />
         </div>
         <div class="features">
           <b-btn
@@ -38,7 +37,7 @@
         </div>
       </b-navbar-nav>
 
-      <b-navbar-nav class="ml-auto">
+      <b-navbar-nav class="ml-auto login">
         <b-btn
           @click="loginAction"
           variant="dual"
@@ -288,17 +287,46 @@ export default class Navigation extends Vue {
   background-color: #fa932b !important;
 }
 
+.login {
+  min-width: 130px;
+}
+
+@media (max-width: 768px) {
+  .big {
+    display: flex;
+    justify-content: center;
+    justify-items: center;
+    align-items: center;
+  }
+
+  .networks {
+    margin-top: 15px;
+    margin-bottom: 15px;
+  }
+
+  .login {
+    margin-top: 15px;
+  }
+}
+
+@media (min-width: 1076px) {
+  .big {
+    position: relative;
+  }
+
+  .networks {
+    position: absolute;
+    left: 0;
+  }
+}
+
 .networks {
   margin-right: 30px;
-  position: absolute;
-  left: 0;
+  left: 5%;
   right: 0;
-  bottom: 0;
 }
 
 .big {
-    position: relative;
-
   width: 100%;
   display: flex;
   justify-content: center;
