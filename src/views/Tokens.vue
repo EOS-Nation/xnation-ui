@@ -1,16 +1,18 @@
 <template>
-  <div>
-    <div class="container-md d-md-block content content-boxed">
-      <tokens-table
-        :loading="false"
-        :name="name"
-        :tokens="tokens"
-        @convert="onConvert"
-        @transfer="onTransfer"
-        scrollToTop
-      />
-    </div>
-  </div>
+  <b-container>
+    <b-row>
+      <b-col cols="12">
+        <tokens-table
+          :loading="false"
+          :name="name"
+          :tokens="tokens"
+          @convert="onConvert"
+          @transfer="onTransfer"
+          scrollToTop
+        />
+      </b-col>
+    </b-row>
+  </b-container>
 </template>
 
 <script lang="ts">
