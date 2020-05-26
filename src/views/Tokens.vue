@@ -1,5 +1,5 @@
 <template>
-  <b-container>
+  <b-container fluid="xl">
     <b-row>
       <b-col cols="12">
         <tokens-table
