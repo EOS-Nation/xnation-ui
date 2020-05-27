@@ -8,12 +8,12 @@
       <b-col cols="10" md="6" class="d-flex">
         <b-container>
           <b-row class="d-flex justify-content-end">
-            <b-col sm="6" md="2">
+            <b-col sm="6" lg="2">
               <router-link class="orange" :to="{ name: 'Privacy' }">
                 Privacy Policy
               </router-link>
             </b-col>
-            <b-col sm="6" md="3">
+            <b-col sm="6" lg="5">
               <span class="text"
                 >Created with
                 <font-awesome-icon
@@ -27,10 +27,10 @@
                 >EOS Nation
               </a>
             </b-col>
-            <b-col sm="6" md="2">
+            <b-col sm="6" lg="2">
               <span class="text">Version: {{ appVersion }} </span>
             </b-col>
-            <b-col sm="6" md="2">
+            <b-col sm="6" lg="2">
               <span class="text">
                 <a
                   href="https://github.com/EOS-Nation/xnation-ui"
