@@ -58,18 +58,23 @@
               {{ data.index + 1 }}
             </template>
             <template v-slot:cell(smartTokenSymbol)="data">
-              <b-link
-                v-if="data.item.focusAvailable"
-                @click="focusRelay(data.item.smartTokenSymbol)"
-                >{{ data.item.smartTokenSymbol }}</b-link
-              >
-              <span v-else> {{ data.item.smartTokenSymbol }}</span>
+              <span> {{ data.item.smartTokenSymbol }}</span>
             </template>
             <template v-slot:cell(ratio)>
               50 - 50
             </template>
             <template v-slot:cell(actions)="data">
               <div>
+                <b-btn
+                  v-if="focusDoesExist"
+                  @click="focusRelay(data.item.smartTokenSymbol)"
+                  :disabled="!data.item.focusAvailable"
+                  size="sm"
+                  variant="warning"
+                  class="mr-1"
+                >
+                  <font-awesome-icon icon="chart-line" />
+                </b-btn>
                 <b-btn
                   @click="goToRelay(data.item.smartTokenSymbol, 'liquidate')"
                   :disabled="!data.item.addRemoveLiquiditySupported"
@@ -191,6 +196,10 @@ export default class Relays extends Vue {
           "..." +
           ethAddress.substring(ethAddress.length - 6, ethAddress.length)
       : ethAddress;
+  }
+
+  get focusDoesExist() {
+    return this.tokens.some((token: any) => token.focusAvailable)
   }
 
   get tokens() {
