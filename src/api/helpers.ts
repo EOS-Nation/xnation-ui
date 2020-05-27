@@ -158,7 +158,7 @@ export const getTokenBalances = async (
   accountName: string
 ): Promise<TokenBalances> => {
   const res = await axios.get<TokenBalances>(
-    `http://eos.eosn.io/v2/state/get_tokens?account=${accountName}`
+    `https://eos.eosn.io/v2/state/get_tokens?account=${accountName}`
   );
   return res.data;
 };
