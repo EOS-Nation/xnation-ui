@@ -1,11 +1,11 @@
 <template>
   <b-container fluid>
     <b-row class="footer">
-      <b-col md="2">
+      <b-col>
         <a :href="website" target="_blank" class="orange">EOS NATION </a
         ><span class="text">© 2020</span>
       </b-col>
-      <b-col md="10" class="d-flex">
+      <b-col cols="10" md="6" class="d-flex">
         <b-container>
           <b-row class="d-flex justify-content-end">
             <b-col sm="6" md="2">
@@ -77,11 +77,6 @@ export default class MyFooter extends Vue {
   background-color: #1f2d36;
   padding: 15px 15px;
   justify-content: space-between;
-}
-
-.fuck {
-    justify-content: flex-end;
-
 }
 
 // @media (min-width: 768px) {
