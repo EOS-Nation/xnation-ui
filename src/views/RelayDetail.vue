@@ -10,7 +10,19 @@
               @click="goBack"
               :style="{ color: 'black' }"
             />
+            Return: {{ performanceLabel }}
           </h3>
+          <div>
+            <b-dropdown size="sm" :text="selectedMode" class="m-md-2">
+              <b-dropdown-item
+                :active="option.active"
+                v-for="option in options"
+                :key="option.label"
+                @click="changeOption(option.value)"
+                >{{ option.label }}</b-dropdown-item
+              >
+            </b-dropdown>
+          </div>
         </div>
         <div :class="classes">
           <b-spinner
@@ -41,15 +53,24 @@ import moment from "moment";
 
 import Highcharts, { getOptions } from "highcharts";
 import stockInit from "highcharts/modules/stock";
+import { compareString, findOrThrow } from "../api/helpers";
 
-const networkSymbols = ['BNT', 'USDB']
+const networkSymbols = ["BNT", "USDB"];
 
 const getNonNetworkTokenName = (smartTokenSymbol: string) => {
-  const networkSymbol = networkSymbols.find(networkSymbol => smartTokenSymbol.includes(networkSymbol))!;
-  return smartTokenSymbol.split(networkSymbol).find(Boolean)
+  const networkSymbol = networkSymbols.find(networkSymbol =>
+    smartTokenSymbol.includes(networkSymbol)
+  )!;
+  return smartTokenSymbol.split(networkSymbol).find(Boolean);
 };
 
 stockInit(Highcharts);
+
+enum YieldType {
+  portfolio = "Both",
+  token = "Token",
+  network = "Network"
+}
 
 @Component({
   components: {
@@ -59,8 +80,74 @@ stockInit(Highcharts);
 export default class RelayDetail extends Vue {
   loading = true;
   data: HistoryRow[] = [];
+  performance = {
+    Token: 0,
+    Both: 0,
+    Network: 0
+  };
+  type: YieldType = YieldType.portfolio;
 
   chartOptions = {};
+
+  changeOption(newType: YieldType) {
+    this.type = newType;
+  }
+
+  get performanceNumber() {
+    return (
+      (this.performance[this.type] > 1 ? "+" : "") +
+      ((this.performance[this.type] - 1) * 100).toFixed(2)
+    );
+  }
+
+  get performanceLabel() {
+    return `${this.performanceNumber} %`;
+  }
+
+  getTokenType(label: string) {
+    switch (label) {
+      case YieldType.token:
+        return "Hodl " + this.token.symbol;
+      case YieldType.network:
+        return "Hodl " + this.network.symbol;
+      case YieldType.portfolio:
+        return "Hodl 50/50";
+    }
+  }
+
+  get options() {
+    return Object.values(YieldType).map(x => ({
+      label: this.getTokenType(x),
+      value: x,
+      active: this.type == x
+    }));
+  }
+
+  get selectedMode() {
+    return this.getTokenType(this.type);
+  }
+
+  get relay() {
+    return findOrThrow(vxm.bancor.relays, (relay: any) =>
+      compareString(relay.smartTokenSymbol, this.focusedSymbolName)
+    );
+  }
+
+  get token() {
+    return this.reserves.find((reserve: any) =>
+      networkSymbols.every(network => !compareString(reserve.symbol, network))
+    );
+  }
+
+  get network() {
+    return this.reserves.find((reserve: any) =>
+      networkSymbols.some(network => compareString(reserve.symbol, network))
+    );
+  }
+
+  get reserves() {
+    return this.relay.reserves;
+  }
 
   get focusedSymbolName() {
     return this.$router.currentRoute.params.account;
@@ -86,21 +173,21 @@ export default class RelayDetail extends Vue {
   setChartData(data: HistoryRow[]) {
     const selectedData = data.sort((a, b) => a.timestamp - b.timestamp);
 
-    const name = getNonNetworkTokenName(
-      this.focusedSymbolName
-    );
+    const name = getNonNetworkTokenName(this.focusedSymbolName);
 
     let cumulative_dm_roi: any[] = [];
     let loss: any[] = [];
     let net_position: any[] = [];
     let price_ratio;
-    let cur_loss;
+    let cur_loss: number = 0;
+    let cur_price = 0;
 
     let dm_roi = 1;
     let initial_price = 0;
 
     selectedData.forEach((data, index, arr) => {
       let { timestamp, roi, tradeVolume, tokenPrice } = data;
+      cur_price = tokenPrice;
 
       if (initial_price == 0) {
         initial_price = tokenPrice;
@@ -122,6 +209,12 @@ export default class RelayDetail extends Vue {
         parseFloat(((cur_loss * dm_roi - 1) * 100).toFixed(2))
       ]);
     });
+
+    this.performance = {
+      Token: ((1 + cur_price / initial_price) * cur_loss * dm_roi) / 2,
+      Network: ((1 + initial_price / cur_price) * cur_loss * dm_roi) / 2,
+      Both: cur_loss * dm_roi
+    };
 
     const colours = Highcharts.getOptions().colors!;
 
