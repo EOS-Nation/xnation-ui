@@ -1,46 +1,47 @@
 <template>
-  <div>
-    <div class="container-md d-md-block content content-boxed">
-      <div class="block">
-        <div class="block-header">
-          <h3 class="block-title">
-            <font-awesome-icon
-              icon="arrow-left"
-              fixed-width
-              @click="goBack"
-              :style="{ color: 'black' }"
-            />
-            Return: {{ performanceLabel }}
-          </h3>
-          <div>
-            <b-dropdown size="sm" :text="selectedMode" class="m-md-2">
-              <b-dropdown-item
-                :active="option.active"
-                v-for="option in options"
-                :key="option.label"
-                @click="changeOption(option.value)"
-                >{{ option.label }}</b-dropdown-item
-              >
-            </b-dropdown>
-          </div>
-        </div>
-        <div :class="classes">
-          <b-spinner
-            v-if="loading"
-            style="display: block; width: 10rem; height: 10rem;"
-            class="text-dark"
-            label="Loading..."
-          ></b-spinner>
-          <div v-else>
-            <highcharts
-              :constructor-type="'stockChart'"
-              :options="chartOptions"
-            />
-          </div>
+  <b-container class="base">
+    <b-row align-v="center">
+      <b-col>
+        <font-awesome-icon
+          icon="arrow-left"
+          fixed-width
+          @click="goBack"
+          :style="{ color: 'black' }"
+        />
+      </b-col>
+      <b-col class="text-center align-middle">
+        <p class="h3">Return: {{ performanceLabel }}</p>
+      </b-col>
+      <b-col class="justify-content-end d-flex flex-end">
+        <b-dropdown size="sm" :text="selectedMode" class="m-md-2">
+          <b-dropdown-item
+            :active="option.active"
+            v-for="option in options"
+            :key="option.label"
+            @click="changeOption(option.value)"
+            >{{ option.label }}</b-dropdown-item
+          >
+        </b-dropdown>
+      </b-col>
+    </b-row>
+
+    <b-row>
+      <div :class="classes">
+        <b-spinner
+          v-if="loading"
+          style="display: block; width: 10rem; height: 10rem;"
+          class="text-dark"
+          label="Loading..."
+        ></b-spinner>
+        <div v-else>
+          <highcharts
+            :constructor-type="'stockChart'"
+            :options="chartOptions"
+          />
         </div>
       </div>
-    </div>
-  </div>
+    </b-row>
+  </b-container>
 </template>
 
 <script lang="ts">
@@ -317,7 +318,8 @@ export default class RelayDetail extends Vue {
 </script>
 
 <style lang="scss">
-.main {
-  padding-bottom: 10px;
+.base {
+  padding: 10px;
+  background-color: white;
 }
 </style>
