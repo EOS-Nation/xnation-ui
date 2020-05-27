@@ -9,10 +9,10 @@
           :style="{ color: 'black' }"
         />
       </b-col>
-      <b-col class="text-center align-middle">
+      <b-col v-if="!loading" class="text-center align-middle">
         <p class="h3">Return: {{ performanceLabel }}</p>
       </b-col>
-      <b-col class="justify-content-end d-flex flex-end">
+      <b-col v-if="!loading" class="justify-content-end d-flex flex-end">
         <b-dropdown size="sm" :text="selectedMode" class="m-md-2">
           <b-dropdown-item
             :active="option.active"
