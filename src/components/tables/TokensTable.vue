@@ -46,7 +46,7 @@
             <span
               :class="
                 data.item.change24h == null
-                  ? 'text'
+                  ? ''
                   : data.item.change24h > 0
                   ? `text-success font-w700`
                   : 'text-danger font-w700'
