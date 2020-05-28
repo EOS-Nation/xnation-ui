@@ -54,7 +54,9 @@ import {
   buildConverterContract,
   buildTokenContract,
   expandToken,
-  shrinkToken
+  shrinkToken,
+  buildRegistryContract,
+  buildV28ConverterContract
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
 import BigNumber from "bignumber.js";
@@ -341,38 +343,34 @@ export class EthBancorModule extends VuexModule
     throw new Error("Failed to find new address in decent time");
   }
 
-  @action async existingReserveAddress(
-    reserveTokens: string[]
-  ): Promise<string | false> {
-    const registryContract = new web3.eth.Contract(
-      ABIConverterRegistry,
+  @action async deployConverter({
+    smartTokenName,
+    smartTokenSymbol,
+    reserveTokenAddresses,
+    precision = 18
+  }: {
+    smartTokenName: string;
+    smartTokenSymbol: string;
+    reserveTokenAddresses: string[];
+    precision?: number;
+  }): Promise<string> {
+    if (reserveTokenAddresses.length !== 2)
+      throw new Error("Method deployConverter only supports 2 reserves");
+    const contract = buildRegistryContract(
       this.contracts.BancorConverterRegistry
     );
-    const address = await registryContract.methods
-      .getLiquidityPoolByReserveConfig(reserveTokens, [500000, 500000])
-      .call();
 
-    return address !== "0x0000000000000000000000000000000000000000" && address;
-  }
+    const smartTokenDecimals = precision;
 
-  @action async deployConverter({
-    smartTokenAddress,
-    firstReserveTokenAddress
-  }: {
-    smartTokenAddress: string;
-    firstReserveTokenAddress: string;
-  }): Promise<string> {
-    const contract = new web3.eth.Contract(
-      FactoryAbi,
-      this.contracts.BancorConverterFactory
-    );
     return this.resolveTxOnConfirmation({
-      tx: contract.methods.createConverter(
-        smartTokenAddress,
-        bancorRegistry,
+      tx: contract.methods.newConverter(
+        1,
+        smartTokenName,
+        smartTokenSymbol,
+        smartTokenDecimals,
         50000,
-        firstReserveTokenAddress,
-        500000
+        reserveTokenAddresses,
+        [500000, 500000]
       )
     });
   }
@@ -396,51 +394,27 @@ export class EthBancorModule extends VuexModule
     const [networkSymbol, networkAmount] = poolParams.reserves[networkIndex];
     const [tokenSymbol, tokenAmount] = poolParams.reserves[tokenIndex];
 
-    const smartTokenName = `${tokenSymbol} Smart Relay Token`;
+    const smartTokenName = `${tokenSymbol} Smart Pool Token`;
     const smartTokenSymbol = tokenSymbol + networkSymbol;
     const precision = 18;
 
     const steps = [
-      { name: "Smart Token", description: "Creating Smart Token Contract..." },
-      {
-        name: "Address",
-        description: "Fetching new Smart Token Contract address..."
-      },
       {
         name: "Converter",
-        description: "Deploying new Pool and minting initial Smart Tokens..."
+        description: "Deploying new Pool.."
       },
       {
-        name: "ConverterAddress",
-        description: "Fetching new Converter Address.."
+        name: "FetchConverterAddress",
+        description: "Fetching address of new converter..."
       },
       {
         name: "Claim",
-        description: "Claiming new converter..."
+        description:
+          "Transferring ownership of pool and adding reserve allowances..."
       },
       {
-        name: "AddReserve",
-        description: "Setting reserve..."
-      },
-      {
-        name: "SetFee",
-        description: "Setting Fee..."
-      },
-      {
-        name: "SetBalances",
-        description: "Adding Liquidity..."
-      },
-      {
-        name: "OfferOwnership",
-        description: "Passing Smart Token Contract ownership to your Pool.."
-      },
-      {
-        name: "AcceptOwnership",
-        description: "Pool accepting ownership of Smart Token Contract..."
-      },
-      {
-        name: "AddPool",
-        description: "Adding pool to Bancor Registry"
+        name: "SetFeeAndAddLiquidity",
+        description: "Adding reserve liquidity and setting fee..."
       },
       {
         name: "Finished",
@@ -448,114 +422,82 @@ export class EthBancorModule extends VuexModule
       }
     ];
 
-    const networkTokenAddress = this.tokenMeta.find(
-      token => token.symbol == networkSymbol
-    )!.contract;
-    const listedTokenAddress = this.tokenMeta.find(
-      token => token.symbol == tokenSymbol
-    )!.contract;
-
     poolParams.onUpdate(0, steps);
-    const txHash = await this.deploySmartTokenContract({
-      smartTokenSymbol,
-      precision,
-      smartTokenName
-    });
 
-    poolParams.onUpdate(1, steps);
-    const smartTokenAddress = await this.fetchNewSmartContractAddressFromHash(
-      txHash
+    // Fetch Reserve metadata
+
+    const reserves = await Promise.all(
+      poolParams.reserves.map(async ([symbol, decAmount]) => {
+        const token = findOrThrow(
+          this.tokenMeta,
+          meta => compareString(meta.symbol, symbol),
+          `failed finding ${symbol} in known token meta`
+        );
+        const decimals = await this.getDecimalsByTokenAddress(token.contract);
+        return {
+          weiAmount: expandToken(decAmount, decimals),
+          contract: token.contract
+        };
+      })
     );
+
+
+    // Create Converter
+    const converterRes = await this.deployConverter({
+      reserveTokenAddresses: reserves.map(reserve => reserve.contract),
+      smartTokenName,
+      smartTokenSymbol,
+      precision 
+    });
+    console.log(converterRes, 'was converter res');
+
+    const converterAddress = "ADDRESSOFNEWCONVERTERGOESHERE";
+
+    // Calculate amounts of liquidity to be added in WeiForm and fetch the token contract
+    poolParams.onUpdate(1, steps);
+
+    // Let converter have access to reserves of users
 
     poolParams.onUpdate(2, steps);
-    const [converterRes] = await Promise.all([
-      this.deployConverter({
-        smartTokenAddress,
-        firstReserveTokenAddress: networkTokenAddress
-      }),
-      this.issueInitialSupply({ smartTokenAddress })
+
+    await Promise.all<any>([
+      this.claimOwnership(converterAddress),
+      ...reserves.map(reserve =>
+        this.triggerApprovalIfRequired({
+          owner: this.isAuthenticated,
+          amount: reserve.weiAmount,
+          tokenAddress: reserve.contract,
+          spender: converterAddress
+        })
+      )
     ]);
 
+    // hit addLiquidity method on new converter and set fee if required;;
     poolParams.onUpdate(3, steps);
-    const converterAddress = await this.fetchNewConverterAddressFromHash(
-      converterRes
-    );
+
+    await Promise.all<any>([
+      ...[
+        poolParams.fee > 0
+          ? this.setFee({
+              converterAddress,
+              decFee: Number(poolParams.fee)
+            })
+          : []
+      ],
+      this.addLiquidityV28({
+        converterAddress,
+        reserves: reserves.map(reserve => ({
+          tokenContract: reserve.contract,
+          weiAmount: reserve.weiAmount
+        }))
+      })
+    ]);
 
     poolParams.onUpdate(4, steps);
-    await this.claimOwnership(converterAddress);
-
-    poolParams.onUpdate(5, steps);
-    await this.addReserveToken({
-      converterAddress,
-      reserveTokenAddress: listedTokenAddress
-    });
-
-    poolParams.onUpdate(6, steps);
-    if (poolParams.fee) {
-      await this.setFee({
-        converterAddress,
-        decFee: poolParams.fee
-      });
-    }
-
-    poolParams.onUpdate(7, steps);
-    await this.sendTokens([
-      {
-        tokenContract: networkTokenAddress,
-        toAddress: converterAddress,
-        amount: networkAmount
-      },
-      {
-        tokenContract: listedTokenAddress,
-        toAddress: converterAddress,
-        amount: tokenAmount
-      }
-    ]);
-
-    poolParams.onUpdate(8, steps);
-    await this.transferTokenContractOwnership([
-      smartTokenAddress,
-      converterAddress
-    ]);
-
-    poolParams.onUpdate(9, steps);
-    await this.acceptTokenContractOwnership(converterAddress);
-
-    poolParams.onUpdate(10, steps);
-    await this.addPoolToRegistry(converterAddress);
-
-    poolParams.onUpdate(11, steps);
 
     wait(5000).then(() => this.init());
 
-    return txHash;
-  }
-
-  @action async addPoolToRegistry(converterAddress: string) {
-    const registryContract = new web3.eth.Contract(
-      ABIConverterRegistry,
-      this.contracts.BancorConverterRegistry
-    );
-    return this.resolveTxOnConfirmation({
-      tx: registryContract.methods.addConverter(converterAddress)
-    });
-  }
-
-  @action async transferTokenContractOwnership([
-    smartTokenAddress,
-    converterAddress
-  ]: string[]) {
-    const tokenContract = buildTokenContract(smartTokenAddress);
-    return this.resolveTxOnConfirmation({
-      tx: tokenContract.methods.transferOwnership(converterAddress)
-    });
-  }
-
-  @action async acceptTokenContractOwnership(converterAddress: string) {
-    const converterContract = buildConverterContract(converterAddress);
-    return this.resolveTxOnConfirmation({
-      tx: converterContract.methods.acceptTokenOwnership()
-    });
+    return 'txHash';
   }
 
   @action async issueInitialSupply({
@@ -638,6 +580,7 @@ export class EthBancorModule extends VuexModule
     const converterContract = buildConverterContract(converterAddress);
 
     const ppm = decFee * 1000000;
+    // @ts-ignore
     return this.resolveTxOnConfirmation({
       tx: converterContract.methods.setConversionFee(ppm),
       resolveImmediately: true
@@ -1109,6 +1052,21 @@ export class EthBancorModule extends VuexModule
     });
   }
 
+  @action async addLiquidityV28(par: {
+    converterAddress: string;
+    reserves: { tokenContract: string; weiAmount: string }[];
+  }) {
+    const contract = buildV28ConverterContract(par.converterAddress);
+
+    return this.resolveTxOnConfirmation({
+      tx: contract.methods.addLiquidity(
+        par.reserves.map(reserve => reserve.tokenContract),
+        par.reserves.map(reserve => reserve.weiAmount),
+        "0"
+      )
+    });
+  }
+
   @action async addLiquidity({
     fundAmount,
     smartTokenSymbol,
@@ -1443,6 +1401,8 @@ export class EthBancorModule extends VuexModule
       const hardCodedRelays = getEthRelays();
 
       this.setTokenMeta(tokenMeta);
+
+      console.log(contractAddresses, "are contract addresses");
 
       const registeredSmartTokenAddresses = await this.fetchSmartTokenAddresses(
         contractAddresses.BancorConverterRegistry
@@ -1831,10 +1791,11 @@ export class EthBancorModule extends VuexModule
     );
 
     const confirmedHash = await this.resolveTxOnConfirmation({
-      tx: networkContract.methods.claimAndConvert2(
+      tx: networkContract.methods.convertByPath(
         path,
         expandToken(fromAmount, fromTokenDecimals),
         expandToken(toAmount * 0.95, toTokenDecimals),
+        "0x0000000000000000000000000000000000000000",
         "0x0000000000000000000000000000000000000000",
         0
       ),
@@ -1928,8 +1889,7 @@ export class EthBancorModule extends VuexModule
       this.contracts.BancorNetwork
     );
 
-    const res = await contract.methods.getReturnByPath(path, amount).call();
-    return res["0"];
+    return contract.methods.rateByPath(path, amount).call();
   }
 
   @action async getDecimalsByTokenAddress(tokenAddress: string) {

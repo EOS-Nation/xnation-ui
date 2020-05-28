@@ -1,7 +1,12 @@
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import _ from "lodash";
 import { CallReturn, ContractMethods } from "@/types/bancor.d.ts";
-import { ABIConverter, ABISmartToken } from "@/api/ethConfig";
+import {
+  ABIConverter,
+  ABISmartToken,
+  ABIConverterRegistry,
+  ABIConverterV28
+} from "@/api/ethConfig";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
 
@@ -252,3 +257,50 @@ export const buildConverterContract = (
   connectorTokens: (index: number) => CallReturn<string>;
   conversionFee: () => CallReturn<string>;
 }> => new web3.eth.Contract(ABIConverter, contractAddress);
+
+export const buildV28ConverterContract = (
+  contractAddress: string
+): ContractMethods<{
+  acceptTokenOwnership: () => ContractSendMethod;
+  acceptOwnership: () => ContractSendMethod;
+  setConversionFee: (ppm: number) => ContractSendMethod;
+  addLiquidity: (
+    reserveTokens: string[],
+    reserveAmounts: string[],
+    minReturn: string
+  ) => ContractSendMethod;
+  addReserve: (
+    reserveAddress: string,
+    connectorWeight: number
+  ) => ContractSendMethod;
+  getReturn: (
+    fromTokenAddress: string,
+    toTokenAddress: string,
+    wei: string
+  ) => CallReturn<{ "0": string; "1": string }>;
+  rateAndFee: (
+    fromTokenAddress: string,
+    toTokenAddress: string,
+    wei: string
+  ) => CallReturn<{ "0": string; "1": string }>;
+  owner: () => CallReturn<string>;
+  version: () => CallReturn<string>;
+  converterType: () => CallReturn<string>;
+  connectorTokenCount: () => CallReturn<string>;
+  connectorTokens: (index: number) => CallReturn<string>;
+  conversionFee: () => CallReturn<string>;
+}> => new web3.eth.Contract(ABIConverterV28, contractAddress);
+
+export const buildRegistryContract = (
+  contractAddress: string
+): ContractMethods<{
+  newConverter: (
+    type: number,
+    smartTokenName: string,
+    smartTokenSymbol: string,
+    smartTokenDecimals: number,
+    maxConversionFee: number,
+    reserveTokens: string[],
+    reserveWeights: number[]
+  ) => ContractSendMethod;
+}> => new web3.eth.Contract(ABIConverterRegistry, contractAddress);

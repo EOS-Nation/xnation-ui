@@ -81,25 +81,36 @@ const relayHasReserveBalances = (relay: EosMultiRelay) =>
 
 const reservesIncludeTokenMeta = (tokenMeta: TokenMeta[]) => (
   relay: EosMultiRelay
-) =>
-  relay.reserves.every(reserve =>
+) =>{
+  
+  const status = relay.reserves.every(reserve =>
     tokenMeta.some(
       meta =>
         compareString(reserve.contract, meta.account) &&
         compareString(reserve.symbol, meta.symbol)
     )
   );
-
+  if (!status) console.warn('Dropping relay', relay.reserves.map(x => x.symbol), 'because it does not exist in tokenMeta');
+  return status;
+}
 const reservesIncludeTokenMetaDry = (tokenMeta: TokenMeta[]) => (
   relay: DryRelay
-) =>
-  relay.reserves.every(reserve =>
+) => {
+  const status = relay.reserves.every(reserve =>
     tokenMeta.some(
       meta =>
         compareString(reserve.contract, meta.account) &&
         compareString(reserve.symbol.code().to_string(), meta.symbol)
     )
   );
+  if (!status)
+    console.warn(
+      "Dropping relay containing reserves",
+      relay.reserves.map(x => x.symbol),
+      "because they are not included in reserves"
+    );
+    return status;
+};
 
 const compareEosMultiToDry = (multi: EosMultiRelay, dry: DryRelay) =>
   compareString(
