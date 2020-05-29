@@ -5,12 +5,10 @@ const buildMockRelay = reserveSymbols =>
 
 const networkTokens = ["BNT", "USDB"];
 
+const toSymbol = reserve => reserve.symbol;
+
 const sorter = reserveSymbols =>
-  sortByNetworkTokens(
-    buildMockRelay(reserveSymbols),
-    reserve => reserve.symbol,
-    networkTokens
-  );
+  sortByNetworkTokens(buildMockRelay(reserveSymbols), toSymbol, networkTokens);
 
 const testSort = (originalOrder, newOrder) => {
   const sorted = sorter(["BNT", "ANT"]);
@@ -31,9 +29,18 @@ describe("sorting by network symbols", () => {
   });
 
   test("3 reserve relay", () => {
-    testSort(["BNT", "CAT", 'USDB'], ["BNT", "USDB", 'CAT'])
-    testSort(["USDB", "BNT", 'CAT'], ["BNT", "USDB", 'CAT'])
-    testSort(["BNT", "USDB", 'CAT'], ["BNT", "USDB", 'CAT'])
-  })
+    testSort(["BNT", "CAT", "USDB"], ["BNT", "USDB", "CAT"]);
+    testSort(["USDB", "BNT", "CAT"], ["BNT", "USDB", "CAT"]);
+    testSort(["BNT", "USDB", "CAT"], ["BNT", "USDB", "CAT"]);
+  });
 
+  test("sort with no network tokens included throws", () => {
+    expect(() =>
+      sortByNetworkTokens(
+        buildMockRelay(["CAT", "DOG"]),
+        toSymbol,
+        networkTokens
+      )
+    ).toThrow();
+  });
 });

@@ -23,6 +23,8 @@
             :items="tokens"
             :fields="fields"
             :filter="filter"
+            sort-by="liqDepth"
+            :sort-desc="true"
             primary-key="id"
             :tbody-transition-props="transProps"
             :tbody-transition-handlers="transHandler"

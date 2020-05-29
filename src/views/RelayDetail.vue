@@ -55,15 +55,7 @@ import moment from "moment";
 import Highcharts, { getOptions } from "highcharts";
 import stockInit from "highcharts/modules/stock";
 import { compareString, findOrThrow } from "../api/helpers";
-
-const networkSymbols = ["BNT", "USDB"];
-
-const getNonNetworkTokenName = (smartTokenSymbol: string) => {
-  const networkSymbol = networkSymbols.find(networkSymbol =>
-    smartTokenSymbol.includes(networkSymbol)
-  )!;
-  return smartTokenSymbol.split(networkSymbol).find(Boolean);
-};
+import { sortByNetworkTokens } from "../api/sortByNetworkTokens";
 
 stockInit(Highcharts);
 
@@ -135,15 +127,15 @@ export default class RelayDetail extends Vue {
   }
 
   get token() {
-    return this.reserves.find((reserve: any) =>
-      networkSymbols.every(network => !compareString(reserve.symbol, network))
-    );
+    return this.sortedReserves[1];
   }
 
   get network() {
-    return this.reserves.find((reserve: any) =>
-      networkSymbols.some(network => compareString(reserve.symbol, network))
-    );
+    return this.sortedReserves[0];
+  }
+
+  get sortedReserves() {
+    return sortByNetworkTokens(this.reserves, (reserve: any) => reserve.symbol);
   }
 
   get reserves() {
@@ -174,7 +166,7 @@ export default class RelayDetail extends Vue {
   setChartData(data: HistoryRow[]) {
     const selectedData = data.sort((a, b) => a.timestamp - b.timestamp);
 
-    const name = getNonNetworkTokenName(this.focusedSymbolName);
+    const name = this.token.symbol;
 
     let cumulative_dm_roi: any[] = [];
     let loss: any[] = [];

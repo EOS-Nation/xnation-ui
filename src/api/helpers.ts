@@ -15,6 +15,8 @@ import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
 import wait from "waait";
 import { buildConverterContract, shrinkToken } from "./ethBancorCalc";
 
+export const networkTokens = ["BNT", "USDB"];
+
 const eosRpc: JsonRpc = rpc;
 
 interface TraditionalStat {
