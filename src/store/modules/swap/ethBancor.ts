@@ -883,7 +883,6 @@ export class EthBancorModule extends VuexModule
           fee: relay.fee / 100,
           liqDepth: relayFeed.liqDepth,
           owner: relay.owner,
-          swap: "eth",
           symbol: tokenReserve.symbol,
           addRemoveLiquiditySupported: true,
           focusAvailable: hasHistory

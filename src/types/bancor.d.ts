@@ -184,7 +184,6 @@ interface TokenWithLogo extends AgnosticToken {
 
 export interface ViewReserve {
   reserveId: string;
-  swap: string;
   smartTokenSymbol: string;
   logo: string[];
   symbol: string;
@@ -200,7 +199,6 @@ export interface ViewRelay {
   reserves: ViewReserve[];
   fee: number;
   owner: string;
-  swap: string;
   addRemoveLiquiditySupported: boolean;
   focusAvailable?: boolean;
 }

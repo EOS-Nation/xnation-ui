@@ -836,7 +836,6 @@ export class EosBancorModule extends VuexModule
         return {
           ...relay,
           id: `${relay.contract}${relay.smartToken.symbol}`,
-          swap: "eos",
           symbol: sortedReserves[1].symbol,
           smartTokenSymbol: relay.smartToken.symbol,
           liqDepth: relayFeed && relayFeed.liqDepth,
