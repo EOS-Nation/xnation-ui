@@ -22,7 +22,6 @@ import numeral from "numeral";
 
 @Component
 export default class TokenBalanceBlock extends Vue {
-  // props
   @Prop() symbol!: string;
   @Prop() img!: string;
   @Prop() balance!: string;
