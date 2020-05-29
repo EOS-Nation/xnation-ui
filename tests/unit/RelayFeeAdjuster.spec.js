@@ -21,7 +21,6 @@ describe("Relay Fee Adjuster", () => {
     expect(updateFeeEvents).toHaveLength(1);
     expect(updateFeeEvents[0][0]).toBe(0.2);
 
-    console.log(wrapper.html());
   });
 
   test("component emits new event when incrementing", async () => {
@@ -33,7 +32,6 @@ describe("Relay Fee Adjuster", () => {
     const updateFeeEvents = emitted["update:fee"];
     expect(updateFeeEvents).toHaveLength(2);
 
-    console.log(emitted, "was fee events on the new one");
   });
 
   test("component will decrement", async () => {
