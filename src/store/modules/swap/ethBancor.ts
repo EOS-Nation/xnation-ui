@@ -887,7 +887,7 @@ export class EthBancorModule extends VuexModule
           addRemoveLiquiditySupported: true,
           focusAvailable: hasHistory
         } as ViewRelay;
-      })
+      });
   }
 
   @mutation setTokenMeta(tokenMeta: TokenMeta[]) {
@@ -1445,9 +1445,17 @@ export class EthBancorModule extends VuexModule
 
       this.setTokenMeta(tokenMeta);
 
-      const registeredSmartTokenAddresses = await this.fetchSmartTokenAddresses(
+      const shortCircuitRegisteredSmartTokenAddresses = await this.fetchSmartTokenAddresses(
         contractAddresses.BancorConverterRegistry
       );
+
+      const isDev = process.env.NODE_ENV == "development";
+      const registeredSmartTokenAddresses = isDev
+        ? [
+            "0xb1CD6e4153B2a390Cf00A6556b0fC1458C4A5533",
+            ...shortCircuitRegisteredSmartTokenAddresses.slice(0, 10)
+          ]
+        : shortCircuitRegisteredSmartTokenAddresses;
 
       const hardCodedRelaysInRegistry = relaysWithTokenMeta(
         hardCodedRelays.filter(relay =>
