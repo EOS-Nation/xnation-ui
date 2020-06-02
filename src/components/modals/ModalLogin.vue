@@ -50,13 +50,35 @@ import { Component, Prop, Vue } from "vue-property-decorator";
 import { vxm } from "@/store/";
 import { WalletProvider } from "eos-transit";
 
+
+const mobileCompatibleWallets = [
+  "EOS Lynx",
+  "TokenPocket",
+  "meetone_provider",
+  "whalevault",
+  "Keycat",
+  "anchor-link"
+];
+
+const isMobileCompatible = (mobileCompatibleIds: string[]) => (
+  provider: WalletProvider
+): boolean => mobileCompatibleIds.some(id => provider.id == id);
+
 @Component
 export default class ModalLogin extends Vue {
   loading = false;
   error: any = false;
 
+  get width() {
+    return window.innerWidth;
+  }
+
+  get isMobile() {
+    return this.width <= 768; 
+  }
+
   get walletProviders(): WalletProvider[] {
-    return vxm.eosWallet.walletProviders;
+    return this.isMobile ? vxm.eosWallet.walletProviders.filter(isMobileCompatible(mobileCompatibleWallets)) : vxm.eosWallet.walletProviders
   }
 
   get selectedProvider() {
