@@ -1,5 +1,5 @@
 <template>
-  <b-modal id="modal-login" size="lg" centered hide-footer>
+  <b-modal id="modal-login" class="modal" size="lg" centered hide-footer>
     <template slot="modal-title">
       SELECT WALLET PROVIDER
     </template>
@@ -50,7 +50,6 @@ import { Component, Prop, Vue } from "vue-property-decorator";
 import { vxm } from "@/store/";
 import { WalletProvider } from "eos-transit";
 
-
 const mobileCompatibleWallets = [
   "EOS Lynx",
   "TokenPocket",
@@ -74,11 +73,15 @@ export default class ModalLogin extends Vue {
   }
 
   get isMobile() {
-    return this.width <= 768; 
+    return this.width <= 768;
   }
 
   get walletProviders(): WalletProvider[] {
-    return this.isMobile ? vxm.eosWallet.walletProviders.filter(isMobileCompatible(mobileCompatibleWallets)) : vxm.eosWallet.walletProviders
+    return this.isMobile
+      ? vxm.eosWallet.walletProviders.filter(
+          isMobileCompatible(mobileCompatibleWallets)
+        )
+      : vxm.eosWallet.walletProviders;
   }
 
   get selectedProvider() {
@@ -125,11 +128,19 @@ export default class ModalLogin extends Vue {
 }
 </script>
 
+<style lang="scss">
+@media only screen and (max-width: 768px) {
+  #modal-login {
+    width: 100%;
+  }
+}
+</style>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="scss">
 .row {
   min-height: 50vh;
 }
+
 .slide-fade-enter-active {
   transition: all 0.3s ease;
 }
