@@ -18,6 +18,7 @@ import tp from "eos-transit-tokenpocket-provider";
 import meetone from "eos-transit-meetone-provider";
 import whalevault from "eos-transit-whalevault-provider";
 import keycat from "eos-transit-keycat-provider";
+import anchor from "eos-transit-anchorlink-provider";
 import LogRocket from "logrocket";
 
 interface EosWalletAction {
@@ -30,10 +31,25 @@ interface EosWalletAction {
   account: string;
 }
 
+const appName = "XNation";
+
+const mobileCompatibleWallets = [
+  "EOS Lynx",
+  "TokenPocket",
+  "meetone_provider",
+  "whalevault",
+  "Keycat",
+  "anchor-link"
+];
+
+const isMobileCompatible = (mobileCompatibleIds: string[]) => (
+  provider: WalletProvider
+): boolean => mobileCompatibleIds.some(id => provider.id == id);
+
 @Module({ namespacedPath: "eosWallet/" })
 export class EosTransitModule extends VuexModule {
   @getter accessContext = initAccessContext({
-    appName: "XNation",
+    appName,
     network: {
       host: "nodes.get-scatter.com",
       port: 443,
@@ -48,12 +64,20 @@ export class EosTransitModule extends VuexModule {
       tp(),
       meetone(),
       whalevault(),
-      keycat()
+      keycat(),
+      anchor(appName)
     ]
   });
+  isMobile = false;
 
   @getter
-  walletProviders: WalletProvider[] = this.accessContext.getWalletProviders();
+  providers: WalletProvider[] = this.accessContext.getWalletProviders();
+
+  get walletProviders() {
+    return this.isMobile
+      ? this.providers.filter(isMobileCompatible(mobileCompatibleWallets))
+      : this.providers;
+  }
 
   selectedProvider: WalletProvider | "" = "";
 
@@ -77,6 +101,20 @@ export class EosTransitModule extends VuexModule {
   get isAuthenticated(): string | false {
     // @ts-ignore
     return this.wallet && this.wallet.auth && this.wallet.auth.accountName;
+  }
+
+  @action async checkDevice() {
+    const userAgent = window.navigator.userAgent;
+    const isIOS = userAgent.includes("iPhone") || userAgent.includes("iPad");
+    const isMobile = userAgent.includes("Mobile");
+    const isAndroid = userAgent.includes("Android");
+    const isCustom = userAgent.toLowerCase().includes("eoslynx");
+
+    this.setIsMobile(isIOS || isMobile || isAndroid || isCustom);
+  }
+
+  @mutation setIsMobile(isMobile: boolean) {
+    this.isMobile = true;
   }
 
   @action async tx(actions: EosWalletAction[]) {
@@ -140,6 +178,7 @@ export class EosTransitModule extends VuexModule {
 
   @action async initLogin(provider: WalletProvider) {
     this.setProvider(provider);
+    this.checkDevice();
 
     const wallet = this.accessContext.initWallet(provider);
 
