@@ -1,4 +1,4 @@
-import { networkTokens } from './helpers';
+import { networkTokens } from "./helpers";
 
 export const sortByNetworkTokens = <T>(
   arr: T[],
@@ -10,11 +10,16 @@ export const sortByNetworkTokens = <T>(
     allTokenSymbols.includes(networkSymbol)
   );
   if (!atLeastOneNetworkTokenIncluded) {
-    console.error(arr, allTokenSymbols, 'was the array passed, my network tokens are', order)
+    console.error(
+      arr,
+      allTokenSymbols,
+      "was the array passed, my network tokens are",
+      order
+    );
     throw new Error("No network tokens are found in these reserves");
   }
 
-  return arr.sort((a, b) => {
+  return [...arr].sort((a, b) => {
     const aSymbol = selector(a);
     const bSymbol = selector(b);
 
