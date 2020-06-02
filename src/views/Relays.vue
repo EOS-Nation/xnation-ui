@@ -20,6 +20,7 @@
           <b-table
             id="relays-table"
             striped
+            stacked="sm"
             :items="tokens"
             :fields="fields"
             :filter="filter"
@@ -201,7 +202,7 @@ export default class Relays extends Vue {
   }
 
   get focusDoesExist() {
-    return this.tokens.some((token: any) => token.focusAvailable)
+    return this.tokens.some((token: any) => token.focusAvailable);
   }
 
   get tokens() {

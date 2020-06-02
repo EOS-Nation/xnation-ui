@@ -18,6 +18,7 @@ import tp from "eos-transit-tokenpocket-provider";
 import meetone from "eos-transit-meetone-provider";
 import whalevault from "eos-transit-whalevault-provider";
 import keycat from "eos-transit-keycat-provider";
+import anchor from "eos-transit-anchorlink-provider";
 import LogRocket from "logrocket";
 
 interface EosWalletAction {
@@ -30,10 +31,13 @@ interface EosWalletAction {
   account: string;
 }
 
+const appName = "XNation";
+
+
 @Module({ namespacedPath: "eosWallet/" })
 export class EosTransitModule extends VuexModule {
   @getter accessContext = initAccessContext({
-    appName: "XNation",
+    appName,
     network: {
       host: "nodes.get-scatter.com",
       port: 443,
@@ -48,12 +52,15 @@ export class EosTransitModule extends VuexModule {
       tp(),
       meetone(),
       whalevault(),
-      keycat()
+      keycat(),
+      anchor(appName)
     ]
   });
+  isMobile = false;
 
   @getter
   walletProviders: WalletProvider[] = this.accessContext.getWalletProviders();
+
 
   selectedProvider: WalletProvider | "" = "";
 
@@ -77,6 +84,15 @@ export class EosTransitModule extends VuexModule {
   get isAuthenticated(): string | false {
     // @ts-ignore
     return this.wallet && this.wallet.auth && this.wallet.auth.accountName;
+  }
+
+  @action async checkDevice() {
+    const width = window.innerWidth;
+    this.setIsMobile(width <= 768);
+  }
+
+  @mutation setIsMobile(isMobile: boolean) {
+    this.isMobile = isMobile;
   }
 
   @action async tx(actions: EosWalletAction[]) {
@@ -140,6 +156,7 @@ export class EosTransitModule extends VuexModule {
 
   @action async initLogin(provider: WalletProvider) {
     this.setProvider(provider);
+    this.checkDevice();
 
     const wallet = this.accessContext.initWallet(provider);
 
