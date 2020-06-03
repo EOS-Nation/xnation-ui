@@ -10,20 +10,34 @@
         class="d-flex align-items-center justify-content-center"
       >
         <b-col
+          sm="12"
           md="6"
           v-for="provider in walletProviders"
           :key="provider.id"
-          class="text-center"
+          class="text-center d-flex justify-content-between fail"
         >
-          <img
-            @click="initLogin(provider)"
-            class="img-avatar img-avatar-thumb cursor"
-            :src="require('@/assets/media/logos/' + providerLogoUrl(provider))"
-            alt="Provider Logo"
-          />
-          <h3 @click="initLogin(provider)" class="mt-2 mb-5 cursor">
-            {{ provider.meta.name }}
-          </h3>
+          <b-container>
+            <b-row class="fail">
+              <b-col @click="initLogin(provider)">
+                <img
+                  @click="initLogin(provider)"
+                  class="img-avatar img-avatar-thumb cursor"
+                  :src="
+                    require('@/assets/media/logos/' + providerLogoUrl(provider))
+                  "
+                  alt="Provider Logo"
+                />
+              </b-col>
+              <b-col class="Aligner">
+                <h3
+                  @click="initLogin(provider)"
+                  class="mt-2 mb-5 cursor text-center align-middle Aligner-item"
+                >
+                  {{ provider.meta.name }}
+                </h3></b-col
+              >
+            </b-row>
+          </b-container>
         </b-col>
       </b-row>
       <b-row v-else-if="error" key="error" class="d-flex align-items-center">
@@ -136,9 +150,41 @@ export default class ModalLogin extends Vue {
 }
 </style>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
+<style lang="scss">
+.fail {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .fail {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+}
+</style>
 <style scoped lang="scss">
 .row {
   min-height: 50vh;
+}
+
+.Aligner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.Aligner-item {
+  vertical-align: middle;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .derp {
+    display: flex;
+    flex-direction: column;
+  }
 }
 
 .slide-fade-enter-active {
