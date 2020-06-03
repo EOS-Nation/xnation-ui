@@ -10,7 +10,7 @@
         />
       </b-col>
       <b-col v-if="!loading" class="text-center align-middle">
-        <p class="h3">Return: {{ performanceLabel }}</p>
+        <p class="h3">ROI: {{ performanceLabel }}</p>
       </b-col>
       <b-col v-if="!loading" class="justify-content-end d-flex flex-end">
         <b-dropdown size="sm" :text="selectedMode" class="m-md-2">
@@ -52,7 +52,7 @@ import wait from "waait";
 import { Chart } from "highcharts-vue";
 import moment from "moment";
 
-import Highcharts, { getOptions } from "highcharts";
+import Highcharts, { getOptions, AxisSetExtremesEventObject } from "highcharts";
 import stockInit from "highcharts/modules/stock";
 import { compareString, findOrThrow } from "../api/helpers";
 import { sortByNetworkTokens } from "../api/sortByNetworkTokens";
@@ -81,6 +81,59 @@ export default class RelayDetail extends Vue {
   type: YieldType = YieldType.portfolio;
 
   chartOptions = {};
+
+  setRange(minRange: number, maxRange: number) {
+    this.updatePerformance(
+      this.data.filter(
+        row => row.timestamp >= minRange && row.timestamp <= maxRange
+      )
+    );
+  }
+
+  updatePerformance(data: HistoryRow[]) {
+    const selectedData = data.sort((a, b) => a.timestamp - b.timestamp);
+
+    let cumulative_dm_roi: any[] = [];
+    let loss: any[] = [];
+    let net_position: any[] = [];
+    let price_ratio;
+    let cur_loss: number = 0;
+    let cur_price = 0;
+
+    let dm_roi = 1;
+    let initial_price = 0;
+
+    selectedData.forEach((data, index, arr) => {
+      let { timestamp, roi, tradeVolume, tokenPrice } = data;
+      cur_price = tokenPrice;
+
+      if (initial_price == 0) {
+        initial_price = tokenPrice;
+      }
+
+      dm_roi *= roi;
+      price_ratio = tokenPrice / initial_price;
+      cur_loss = (2.0 * Math.sqrt(price_ratio)) / (1.0 + price_ratio);
+
+      cumulative_dm_roi.push([
+        timestamp,
+        parseFloat(((dm_roi - 1) * 100).toFixed(2))
+      ]);
+
+      loss.push([timestamp, parseFloat(((cur_loss - 1) * 100).toFixed(2))]);
+
+      net_position.push([
+        timestamp,
+        parseFloat(((cur_loss * dm_roi - 1) * 100).toFixed(2))
+      ]);
+    });
+
+    this.performance = {
+      Token: ((1 + cur_price / initial_price) * cur_loss * dm_roi) / 2,
+      Network: ((1 + initial_price / cur_price) * cur_loss * dm_roi) / 2,
+      Both: cur_loss * dm_roi
+    };
+  }
 
   changeOption(newType: YieldType) {
     this.type = newType;
@@ -256,6 +309,41 @@ export default class RelayDetail extends Vue {
     ];
 
     const chartData = {
+      rangeSelector: {
+        selected: 2,
+        buttons: [
+          {
+            type: "week",
+            count: 1,
+            text: "1w"
+          },
+          {
+            type: "month",
+            count: 1,
+            text: "1m"
+          },
+          {
+            type: "month",
+            count: 3,
+            text: "3m"
+          },
+          {
+            type: "month",
+            count: 6,
+            text: "6m"
+          },
+          {
+            type: "year",
+            count: 1,
+            text: "1y"
+          },
+          {
+            type: "all",
+            text: "All"
+          }
+        ],
+        inputEnabled: true
+      },
       title: {
         text: this.focusedSymbolName
       },
@@ -268,6 +356,13 @@ export default class RelayDetail extends Vue {
       legend: {
         enabled: true,
         align: "center"
+      },
+      xAxis: {
+        events: {
+          afterSetExtremes: (event: AxisSetExtremesEventObject) => {
+            this.setRange(event.min, event.max);
+          }
+        }
       },
       yAxis: [
         {
