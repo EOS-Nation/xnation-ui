@@ -19,7 +19,6 @@ import meetone from "eos-transit-meetone-provider";
 import whalevault from "eos-transit-whalevault-provider";
 import keycat from "eos-transit-keycat-provider";
 import anchor from "eos-transit-anchorlink-provider";
-import LogRocket from "logrocket";
 
 interface EosWalletAction {
   name: string;
@@ -113,7 +112,6 @@ export class EosTransitModule extends VuexModule {
             }
           ]
         }));
-    console.log("tx ran", LogRocket, "should have been logrocket");
     try {
       // @ts-ignore
       return await this.wallet.eosApi.transact(
@@ -127,17 +125,6 @@ export class EosTransitModule extends VuexModule {
         }
       );
     } catch (e) {
-      console.log("log rocket should be taking care of this...", LogRocket);
-
-      LogRocket.captureException(e, {
-        extra: {
-          // @ts-ignore
-          account: this.wallet.auth.accountName,
-          actions: JSON.stringify(builtActions.map(action => action.data))
-        }
-      });
-      // @ts-ignore
-      LogRocket.captureMessage(`FailedTx${this.wallet.auth.accountName}`);
       if (e.message == "Unexpected end of JSON input")
         // @ts-ignore
         return await this.wallet.eosApi.transact(
