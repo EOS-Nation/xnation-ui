@@ -18,6 +18,7 @@
         <b-table
           id="tokens-table"
           striped
+          stacked="sm"
           :items="tokens"
           :fields="filteredFields"
           :filter="filter"

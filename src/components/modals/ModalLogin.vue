@@ -1,5 +1,5 @@
 <template>
-  <b-modal id="modal-login" size="lg" centered hide-footer>
+  <b-modal id="modal-login" class="modal" size="lg" centered hide-footer>
     <template slot="modal-title">
       SELECT WALLET PROVIDER
     </template>
@@ -10,20 +10,34 @@
         class="d-flex align-items-center justify-content-center"
       >
         <b-col
+          sm="12"
           md="6"
           v-for="provider in walletProviders"
           :key="provider.id"
-          class="text-center"
+          class="text-center d-flex justify-content-between fail"
         >
-          <img
-            @click="initLogin(provider)"
-            class="img-avatar img-avatar-thumb cursor"
-            :src="require('@/assets/media/logos/' + providerLogoUrl(provider))"
-            alt="Provider Logo"
-          />
-          <h3 @click="initLogin(provider)" class="mt-2 mb-5 cursor">
-            {{ provider.meta.name }}
-          </h3>
+          <b-container>
+            <b-row class="fail">
+              <b-col @click="initLogin(provider)">
+                <img
+                  @click="initLogin(provider)"
+                  class="img-avatar img-avatar-thumb cursor"
+                  :src="
+                    require('@/assets/media/logos/' + providerLogoUrl(provider))
+                  "
+                  alt="Provider Logo"
+                />
+              </b-col>
+              <b-col class="Aligner">
+                <h3
+                  @click="initLogin(provider)"
+                  class="mt-2 mb-5 cursor text-center align-middle Aligner-item"
+                >
+                  {{ provider.meta.name }}
+                </h3></b-col
+              >
+            </b-row>
+          </b-container>
         </b-col>
       </b-row>
       <b-row v-else-if="error" key="error" class="d-flex align-items-center">
@@ -50,13 +64,38 @@ import { Component, Prop, Vue } from "vue-property-decorator";
 import { vxm } from "@/store/";
 import { WalletProvider } from "eos-transit";
 
+const mobileCompatibleWallets = [
+  "EOS Lynx",
+  "TokenPocket",
+  "meetone_provider",
+  "whalevault",
+  "Keycat",
+  "anchor-link"
+];
+
+const isMobileCompatible = (mobileCompatibleIds: string[]) => (
+  provider: WalletProvider
+): boolean => mobileCompatibleIds.some(id => provider.id == id);
+
 @Component
 export default class ModalLogin extends Vue {
   loading = false;
   error: any = false;
 
+  get width() {
+    return window.innerWidth;
+  }
+
+  get isMobile() {
+    return this.width <= 768;
+  }
+
   get walletProviders(): WalletProvider[] {
-    return vxm.eosWallet.walletProviders;
+    return this.isMobile
+      ? vxm.eosWallet.walletProviders.filter(
+          isMobileCompatible(mobileCompatibleWallets)
+        )
+      : vxm.eosWallet.walletProviders;
   }
 
   get selectedProvider() {
@@ -103,11 +142,51 @@ export default class ModalLogin extends Vue {
 }
 </script>
 
+<style lang="scss">
+@media only screen and (max-width: 768px) {
+  #modal-login {
+    width: 100%;
+  }
+}
+</style>
 <!-- Add "scoped" attribute to limit CSS to this component only -->
+<style lang="scss">
+.fail {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .fail {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+}
+</style>
 <style scoped lang="scss">
 .row {
   min-height: 50vh;
 }
+
+.Aligner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.Aligner-item {
+  vertical-align: middle;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .derp {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
 .slide-fade-enter-active {
   transition: all 0.3s ease;
 }

@@ -170,10 +170,6 @@ export default class Navigation extends Vue {
       this.$analytics.setUserId(account);
       // @ts-ignore
       this.$analytics.logEvent("login", { account });
-      // @ts-ignore
-      this.$log.identify(account);
-      // @ts-ignore
-      this.$log.track("Successful Login");
     }
   }
 

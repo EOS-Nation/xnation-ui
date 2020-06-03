@@ -188,10 +188,10 @@ export default class HeroRelay extends Vue {
   get menus() {
     const baseMenus = [
       ["addLiquidity", "Add Liquidity", "arrow-up"],
-      ["removeLiquidity", "Remove Liquidity", "arrow-down"],
+      ["removeLiquidity", "Remove Liquidity", "arrow-down", "danger"],
       ["setFee", "Set Fee", "dollar-sign"],
-      ["changeOwner", "Change Owner", "handshake"],
-      ["deleteRelay", "Delete Pool", "trash-alt"]
+      ["changeOwner", "Change Owner", "handshake", "info"],
+      ["deleteRelay", "Delete Pool", "trash-alt", "warning"]
     ];
     if (!this.supportedFeatures) return [baseMenus[0]];
     const features = this.supportedFeatures(this.focusedSymbol)

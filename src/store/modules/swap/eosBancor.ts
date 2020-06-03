@@ -61,6 +61,7 @@ import {
 import _ from "lodash";
 import wait from "waait";
 import { getHardCodedRelays } from "./staticRelays";
+import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 
 const tokenContractSupportsOpen = async (contractName: string) => {
   const abiConf = await rpc.get_abi(contractName);
@@ -69,12 +70,6 @@ const tokenContractSupportsOpen = async (contractName: string) => {
 
 const getSymbolName = (tokenSymbol: TokenSymbol) =>
   tokenSymbol.symbol.code().to_string();
-
-const sortReserves = (tokenSymbols: TokenSymbol[]) =>
-  tokenSymbols.sort((a, b) => {
-    const aSymbol = getSymbolName(a);
-    return aSymbol == "BNT" ? 2 : aSymbol == "USDB" ? 1 : -1;
-  });
 
 const relayHasReserveBalances = (relay: EosMultiRelay) =>
   relay.reserves.every(reserve => reserve.amount > 0);
@@ -622,17 +617,11 @@ export class EosBancorModule extends VuexModule
       )
     );
 
-    const networkAsset = [token1Asset, token2Asset].find(asset => {
-      const symbolName = asset.symbol.code().to_string();
-      return (
-        compareString(symbolName, "BNT") || compareString(symbolName, "USDB")
-      );
-    });
-    if (!networkAsset) {
-      throw new Error(
-        "Failed to find network asset, therefore cannot determine initial liquidity."
-      );
-    }
+    const [networkAsset] = sortByNetworkTokens(
+      [token1Asset, token2Asset],
+      asset => asset.symbol.code().to_string()
+    );
+
     const networkSymbol = networkAsset.symbol.code().to_string();
     const initialLiquidity = compareString(networkSymbol, "USDB")
       ? 0.5
@@ -850,30 +839,27 @@ export class EosBancorModule extends VuexModule
           )
         );
 
+        const sortedReserves = sortByNetworkTokens(
+          relay.reserves,
+          reserve => reserve.symbol
+        );
+
         return {
           ...relay,
           id: `${relay.contract}${relay.smartToken.symbol}`,
-          swap: "eos",
-          symbol: relay.reserves.find(reserve => reserve.symbol !== "BNT")!
-            .symbol,
+          symbol: sortedReserves[1].symbol,
           smartTokenSymbol: relay.smartToken.symbol,
           liqDepth: relayFeed && relayFeed.liqDepth,
           addRemoveLiquiditySupported: relay.isMultiContract,
           focusAvailable: false,
-          reserves: relay.reserves
-            .map((reserve: AgnosticToken) => ({
-              ...reserve,
-              reserveId: relay.smartToken.symbol + reserve.symbol,
-              logo: [this.token(reserve.symbol).logo],
-              ...(reserve.amount && { balance: reserve.amount })
-            }))
-            .sort(reserve => (reserve.symbol == "USDB" ? -1 : 1))
-            .sort(reserve => (reserve.symbol == "BNT" ? -1 : 1))
+          reserves: sortedReserves.map((reserve: AgnosticToken) => ({
+            ...reserve,
+            reserveId: relay.smartToken.symbol + reserve.symbol,
+            logo: [this.token(reserve.symbol).logo],
+            ...(reserve.amount && { balance: reserve.amount })
+          }))
         };
-      })
-      .sort(
-        (a, b) => (a.liqDepth && b.liqDepth && b.liqDepth - a.liqDepth) || 1
-      );
+      });
   }
 
   get convertableRelays() {
@@ -1004,7 +990,10 @@ export class EosBancorModule extends VuexModule
       ).price;
 
       const relayFeeds: RelayFeed[] = relays.flatMap(relay => {
-        const [primaryReserve, secondaryReserve] = sortReserves(relay.reserves);
+        const [secondaryReserve, primaryReserve] = sortByNetworkTokens(
+          relay.reserves,
+          reserve => reserve.symbol.code().to_string()
+        );
         const token = tokenPrices.find(price =>
           compareString(price.code, primaryReserve.symbol.code().to_string())
         )!;

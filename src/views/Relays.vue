@@ -20,9 +20,12 @@
           <b-table
             id="relays-table"
             striped
+            stacked="sm"
             :items="tokens"
             :fields="fields"
             :filter="filter"
+            sort-by="liqDepth"
+            :sort-desc="true"
             primary-key="id"
             :tbody-transition-props="transProps"
             :tbody-transition-handlers="transHandler"
@@ -199,7 +202,7 @@ export default class Relays extends Vue {
   }
 
   get focusDoesExist() {
-    return this.tokens.some((token: any) => token.focusAvailable)
+    return this.tokens.some((token: any) => token.focusAvailable);
   }
 
   get tokens() {
