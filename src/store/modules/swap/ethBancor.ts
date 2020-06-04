@@ -1430,6 +1430,8 @@ export class EthBancorModule extends VuexModule
         this.fetchContractAddresses(),
         fetchSmartTokens()
       ]);
+
+      console.log(contractAddresses, "are the contract addresses");
       this.setAvailableHistories(
         availableSmartTokenHistories.map(history => history.id)
       );
@@ -1761,7 +1763,6 @@ export class EthBancorModule extends VuexModule
         name: "Pathing",
         description: "Finding path..."
       },
-      { name: "MintETH", description: "Minting ETH ERC20..." },
       {
         name: "SetApprovalAmount",
         description: "Setting approval amount..."
@@ -1813,20 +1814,19 @@ export class EthBancorModule extends VuexModule
       )
     );
 
-    if (fromIsEth) {
-      onUpdate!(1, steps);
-      await this.mintEthErcIfRequired(String(fromAmount));
-    }
-
     const path = generateEthPath(fromSymbol, dryRelays);
-    onUpdate!(2, steps);
 
-    await this.triggerApprovalIfRequired({
-      owner: this.isAuthenticated,
-      amount: expandToken(fromAmount, fromTokenDecimals),
-      spender: this.contracts.BancorNetwork,
-      tokenAddress: fromTokenContract
-    });
+    const fromWei = expandToken(fromAmount, fromTokenDecimals);
+
+    if (!fromIsEth) {
+      onUpdate!(2, steps);
+      await this.triggerApprovalIfRequired({
+        owner: this.isAuthenticated,
+        amount: fromWei,
+        spender: this.contracts.BancorNetwork,
+        tokenAddress: fromTokenContract
+      });
+    }
 
     onUpdate!(3, steps);
 
@@ -1835,13 +1835,14 @@ export class EthBancorModule extends VuexModule
     const confirmedHash = await this.resolveTxOnConfirmation({
       tx: networkContract.methods.convertByPath(
         path,
-        expandToken(fromAmount, fromTokenDecimals),
+        fromWei,
         expandToken(toAmount * 0.95, toTokenDecimals),
         "0x0000000000000000000000000000000000000000",
         "0x0000000000000000000000000000000000000000",
         0
       ),
-      gas: 550000,
+      ...(fromIsEth && { value: fromWei }),
+      gas: 550000 * 1.1,
       onHash: () => onUpdate!(4, steps)
     });
     onUpdate!(5, steps);
