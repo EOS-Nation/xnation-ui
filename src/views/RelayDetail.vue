@@ -310,7 +310,7 @@ export default class RelayDetail extends Vue {
 
     const chartData = {
       rangeSelector: {
-        selected: 2,
+        selected: 5,
         buttons: [
           {
             type: "week",
