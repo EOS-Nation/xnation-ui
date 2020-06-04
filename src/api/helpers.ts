@@ -165,6 +165,15 @@ export const getTokenBalances = async (
   return res.data;
 };
 
+export const identifyVersionBySha3ByteCodeHash = (sha3Hash: string): string => {
+  if (
+    sha3Hash ==
+    "0xf0a5de528f6d887b14706f0e66b20bee0d4c81078b6de9f395250e287e09e55f"
+  )
+    return "11";
+  throw new Error("Failed to identify version of Pool");
+};
+
 export const getEthRelays = (): Relay[] => {
   const relays = [
     {
@@ -365,7 +374,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 8,
       conversionFee: "3",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
@@ -445,7 +454,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x9B70740e708a083C6fF38Df52297020f5DfAa5EE",
@@ -505,7 +514,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0.5",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x68d57c9a1C35f63E2c83eE8e49A64e9d70528D25",
@@ -605,7 +614,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 8,
       conversionFee: "0.5",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0xC011A72400E58ecD99Ee497CF89E3775d4bd732F",
@@ -705,7 +714,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x607F4C5BB672230e8672085532f7e901544a7375",
@@ -1065,7 +1074,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 8,
       conversionFee: "0.1",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0xBC86727E770de68B1060C91f6BB6945c73e10388",
@@ -1225,7 +1234,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 4,
       conversionFee: "0.1",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x737F98AC8cA59f2C68aD658E3C3d8C8963E40a4c",
@@ -1365,7 +1374,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "2",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x0cB20b77AdBe5cD58fCeCc4F4069D04b327862e5",
@@ -1405,7 +1414,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0xa3d58c4E56fedCae3a7c43A725aeE9A71F0ece4e",
@@ -1465,7 +1474,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 4,
       conversionFee: "0.1",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x4954Db6391F4feB5468b6B943D4935353596aEC9",
@@ -1485,7 +1494,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0xc20464e0C373486d2B3335576e83a218b1618A5E",
@@ -1925,7 +1934,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x408e41876cCCDC0F92210600ef50372656052a38",
@@ -2065,7 +2074,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 4,
       conversionFee: "0.1",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x84F7c44B6Fed1080f647E354D552595be2Cc602F",
@@ -2125,7 +2134,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0.1",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x744d70FDBE2Ba4CF95131626614a1763DF805B9E",
@@ -2165,7 +2174,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0.1",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x009e864923b49263c7F10D19B7f8Ab7a9A5AAd33",
@@ -2225,7 +2234,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0.5",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0xe3818504c1B32bF1557b16C238B2E01Fd3149C17",
@@ -2385,7 +2394,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0.1",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x08711D3B02C8758F2FB3ab4e80228418a7F8e39c",
@@ -2425,7 +2434,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0xDF2C7238198Ad8B389666574f2d8bc411A4b7428",
@@ -2465,7 +2474,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0.5",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x37E8789bB9996CaC9156cD5F5Fd32599E6b91289",
@@ -2545,7 +2554,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0.1",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0xb0280743b44bF7db4B6bE482b2Ba7b75E5dA096C",
@@ -2605,7 +2614,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x2C974B2d0BA1716E644c1FC59982a89DDD2fF724",
@@ -2945,7 +2954,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0.1",
-      converterVersion: "0"
+      converterVersion: "11"
     },
     {
       tokenAddress: "0x4CEdA7906a5Ed2179785Cd3A40A69ee8bc99C466",

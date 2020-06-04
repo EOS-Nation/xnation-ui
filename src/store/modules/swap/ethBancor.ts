@@ -28,18 +28,18 @@ import {
   compareString,
   findOrThrow,
   updateArray,
-  networkTokens
+  networkTokens,
+  identifyVersionBySha3ByteCodeHash
 } from "@/api/helpers";
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import {
   smartTokenByteCode,
-  FactoryAbi,
-  bancorRegistry,
   ABIContractRegistry,
   ABINetworkContract,
   ABIConverterRegistry,
   ABINetworkPathFinder,
-  ethErc20WrapperContract
+  ethErc20WrapperContract,
+  ethReserveAddress
 } from "@/api/ethConfig";
 import { toWei, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
@@ -443,15 +443,14 @@ export class EthBancorModule extends VuexModule
       })
     );
 
-
     // Create Converter
     const converterRes = await this.deployConverter({
       reserveTokenAddresses: reserves.map(reserve => reserve.contract),
       smartTokenName,
       smartTokenSymbol,
-      precision 
+      precision
     });
-    console.log(converterRes, 'was converter res');
+    console.log(converterRes, "was converter res");
 
     const converterAddress = "ADDRESSOFNEWCONVERTERGOESHERE";
 
@@ -499,7 +498,7 @@ export class EthBancorModule extends VuexModule
 
     wait(5000).then(() => this.init());
 
-    return 'txHash';
+    return "txHash";
   }
 
   @action async issueInitialSupply({
@@ -592,10 +591,12 @@ export class EthBancorModule extends VuexModule
   @action async resolveTxOnConfirmation({
     tx,
     gas,
+    value,
     resolveImmediately = false,
     onHash
   }: {
     tx: ContractSendMethod;
+    value?: string;
     gas?: number;
     resolveImmediately?: boolean;
     onHash?: (hash: string) => void;
@@ -605,7 +606,8 @@ export class EthBancorModule extends VuexModule
       let txHash: string;
       tx.send({
         from: this.isAuthenticated,
-        ...(gas && { gas })
+        ...(gas && { gas }),
+        value
       })
         .on("transactionHash", (hash: string) => {
           txHash = hash;
@@ -1056,15 +1058,22 @@ export class EthBancorModule extends VuexModule
   @action async addLiquidityV28(par: {
     converterAddress: string;
     reserves: { tokenContract: string; weiAmount: string }[];
+    onHash?: (hash: string) => void;
   }) {
     const contract = buildV28ConverterContract(par.converterAddress);
+
+    const newEthReserve = par.reserves.find(
+      reserve => reserve.tokenContract == ethReserveAddress
+    );
 
     return this.resolveTxOnConfirmation({
       tx: contract.methods.addLiquidity(
         par.reserves.map(reserve => reserve.tokenContract),
         par.reserves.map(reserve => reserve.weiAmount),
         "0"
-      )
+      ),
+      onHash: par.onHash,
+      ...(newEthReserve && { value: newEthReserve.weiAmount })
     });
   }
 
@@ -1081,6 +1090,13 @@ export class EthBancorModule extends VuexModule
       compareString(relay.smartToken.symbol, smartTokenSymbol)
     )!;
 
+    const preV11 = Number(relay.version) < 11;
+    if (preV11)
+      throw new Error("This Pool is not supported for adding liquidity");
+
+    const postV28 = Number(relay.version) >= 28;
+    console.log({ postV28 });
+
     const amounts = [
       [token1Symbol, token1Amount],
       [token2Symbol, token2Amount]
@@ -1090,7 +1106,7 @@ export class EthBancorModule extends VuexModule
       ...reserve,
       amount: amounts.find(([symbol]) =>
         compareString(symbol!, reserve.symbol)
-      )![1]
+      )![1]!
     }));
 
     const steps: Step[] = [
@@ -1103,7 +1119,7 @@ export class EthBancorModule extends VuexModule
         description: "Now funding..."
       },
       {
-        name: "HashConfirmation",
+        name: "BlockConfirmation",
         description: "Awaiting block confirmation..."
       },
       {
@@ -1118,9 +1134,13 @@ export class EthBancorModule extends VuexModule
 
     await Promise.all(
       matchedBalances.map(async balance => {
-        if (compareString(balance.contract, ethErc20WrapperContract)) {
+        if (
+          compareString(balance.contract, ethErc20WrapperContract) &&
+          !postV28
+        ) {
           await this.mintEthErc(balance.amount!);
         }
+        if (balance.contract == ethReserveAddress) return;
         return this.triggerApprovalIfRequired({
           owner: this.isAuthenticated,
           amount: expandToken(balance.amount!, balance.decimals),
@@ -1132,11 +1152,24 @@ export class EthBancorModule extends VuexModule
 
     onUpdate!(1, steps);
 
-    const txHash = await this.fundRelay({
-      converterAddress,
-      fundAmount,
-      onHash: () => onUpdate!(2, steps)
-    });
+    let txHash: string;
+
+    if (postV28) {
+      txHash = await this.addLiquidityV28({
+        converterAddress,
+        reserves: matchedBalances.map(balance => ({
+          tokenContract: balance.contract,
+          weiAmount: expandToken(balance.amount, balance.decimals)
+        })),
+        onHash: () => onUpdate!(2, steps)
+      });
+    } else {
+      txHash = await this.fundRelay({
+        converterAddress,
+        fundAmount,
+        onHash: () => onUpdate!(2, steps)
+      });
+    }
 
     onUpdate!(3, steps);
     wait(3000).then(() =>

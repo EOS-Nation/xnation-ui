@@ -2422,6 +2422,8 @@ export const smartTokenByteCode =
 export const ethErc20WrapperContract =
   "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315";
 
+export const ethReserveAddress = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+
 export const ABINetworkPathFinder: AbiItem[] = [
   {
     constant: false,
