@@ -5,7 +5,8 @@ import {
   ABIConverter,
   ABISmartToken,
   ABIConverterRegistry,
-  ABIConverterV28
+  ABIConverterV28,
+  ABINetworkContract
 } from "@/api/ethConfig";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
@@ -290,6 +291,20 @@ export const buildV28ConverterContract = (
   connectorTokens: (index: number) => CallReturn<string>;
   conversionFee: () => CallReturn<string>;
 }> => new web3.eth.Contract(ABIConverterV28, contractAddress);
+
+export const buildNetworkContract = (
+  contractAddress: string
+): ContractMethods<{
+  rateByPath: (path: string[], amount: number) => CallReturn<string>;
+  convertByPath: (
+    path: string[],
+    amount: string,
+    minReturn: string,
+    beneficiary: string,
+    affiliateAccount: string,
+    affiliateFee: number
+  ) => ContractSendMethod;
+}> => new web3.eth.Contract(ABINetworkContract, contractAddress);
 
 export const buildRegistryContract = (
   contractAddress: string

@@ -57,7 +57,8 @@ import {
   expandToken,
   shrinkToken,
   buildRegistryContract,
-  buildV28ConverterContract
+  buildV28ConverterContract,
+  buildNetworkContract
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
 import BigNumber from "bignumber.js";
@@ -1829,10 +1830,7 @@ export class EthBancorModule extends VuexModule
 
     onUpdate!(3, steps);
 
-    const networkContract = new web3.eth.Contract(
-      ABINetworkContract,
-      this.contracts.BancorNetwork
-    );
+    const networkContract = buildNetworkContract(this.contracts.BancorNetwork);
 
     const confirmedHash = await this.resolveTxOnConfirmation({
       tx: networkContract.methods.convertByPath(
