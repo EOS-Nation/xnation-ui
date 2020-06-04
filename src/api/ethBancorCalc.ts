@@ -10,6 +10,7 @@ import {
 } from "@/api/ethConfig";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
+import { AbiItem } from "web3-utils";
 
 export const expandToken = (amount: string | number, precision: number) =>
   new BigNumber(amount).times(new BigNumber(10).pow(precision)).toFixed(0);
@@ -62,11 +63,10 @@ const removeChoppedRelay = (relays: ChoppedRelay[], relay: ChoppedRelay) => {
 
 const relayHasBothSymbols = (symbol1: string, symbol2: string) => (
   relay: ChoppedRelay
-) => {
-  return relay.reserves.every(
+) =>
+  relay.reserves.every(
     reserve => reserve.symbol == symbol1 || reserve.symbol == symbol2
   );
-};
 
 const getOppositeSymbol = (relay: ChoppedRelay, symbol: string) =>
   relay.reserves.find(reserve => reserve.symbol !== symbol)!.symbol;
@@ -210,6 +210,11 @@ export const generateEthPath = (from: string, relays: DryRelay[]) =>
     }
   ).path;
 
+const buildContract = (abi: AbiItem[], contractAddress?: string) =>
+  contractAddress
+    ? new web3.eth.Contract(abi, contractAddress)
+    : new web3.eth.Contract(abi);
+
 export const buildTokenContract = (
   contractAddress?: string
 ): ContractMethods<{
@@ -226,9 +231,7 @@ export const buildTokenContract = (
     approvedAmount: string
   ) => ContractSendMethod;
 }> => {
-  return contractAddress
-    ? new web3.eth.Contract(ABISmartToken, contractAddress)
-    : new web3.eth.Contract(ABISmartToken);
+  return buildContract(ABISmartToken, contractAddress);
 };
 
 export const buildConverterContract = (
@@ -257,7 +260,7 @@ export const buildConverterContract = (
   connectorTokenCount: () => CallReturn<string>;
   connectorTokens: (index: number) => CallReturn<string>;
   conversionFee: () => CallReturn<string>;
-}> => new web3.eth.Contract(ABIConverter, contractAddress);
+}> => buildContract(ABIConverter, contractAddress);
 
 export const buildV28ConverterContract = (
   contractAddress: string
@@ -290,7 +293,7 @@ export const buildV28ConverterContract = (
   connectorTokenCount: () => CallReturn<string>;
   connectorTokens: (index: number) => CallReturn<string>;
   conversionFee: () => CallReturn<string>;
-}> => new web3.eth.Contract(ABIConverterV28, contractAddress);
+}> => buildContract(ABIConverterV28, contractAddress);
 
 export const buildNetworkContract = (
   contractAddress: string
@@ -304,7 +307,7 @@ export const buildNetworkContract = (
     affiliateAccount: string,
     affiliateFee: number
   ) => ContractSendMethod;
-}> => new web3.eth.Contract(ABINetworkContract, contractAddress);
+}> => buildContract(ABINetworkContract, contractAddress);
 
 export const buildRegistryContract = (
   contractAddress: string
@@ -318,4 +321,4 @@ export const buildRegistryContract = (
     reserveTokens: string[],
     reserveWeights: number[]
   ) => ContractSendMethod;
-}> => new web3.eth.Contract(ABIConverterRegistry, contractAddress);
+}> => buildContract(ABIConverterRegistry, contractAddress);
