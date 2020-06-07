@@ -60,13 +60,21 @@ export interface ProposedTransaction {
   amount: FloatAmount;
 }
 
+export interface ViewAmount {
+  id: string;
+  amount: string;
+}
+
+// Utilise ViewAmount instead of [string, string][];
+// Add ViewAmount to getting max smart user balances and remove userBalances
+// Maybe utilise ViewAmount on Converts as well
+// Bonus:
+// Utilise ID over symbol more
+// TODO
+
 export interface LiquidityParams {
   smartTokenSymbol: string;
-  fundAmount: string;
-  token1Amount?: string;
-  token1Symbol?: string;
-  token2Symbol?: string;
-  token2Amount?: string;
+  reserves: ViewAmount[];
   onUpdate?: (index: number, sections: Section[]) => void;
 }
 

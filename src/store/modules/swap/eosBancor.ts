@@ -1132,12 +1132,8 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async addLiquidity({
-    fundAmount,
     smartTokenSymbol,
-    token1Amount,
-    token1Symbol,
-    token2Amount,
-    token2Symbol,
+    reserves,
     onUpdate
   }: LiquidityParams) {
     const steps: Step[] = [
@@ -1168,10 +1164,8 @@ export class EosBancorModule extends VuexModule
     ];
 
     const relay = this.relay(smartTokenSymbol);
-    const deposits = [
-      { symbol: token1Symbol, amount: token1Amount },
-      { symbol: token2Symbol, amount: token2Amount }
-    ];
+    const deposits = reserves.map(({ id, amount }) => ({ symbol: id, amount }));
+
     const tokenAmounts = deposits.map(deposit => {
       // @ts-ignore
       const { precision, contract, symbol } = relay.reserves.find(
@@ -1192,8 +1186,19 @@ export class EosBancorModule extends VuexModule
       smartTokenSymbol,
       tokenAmounts
     );
+
+    const [{ id, amount }] = reserves;
+
+    const { smartTokenAmount } = await this.calculateOpposingDeposit({
+      smartTokenSymbol,
+      tokenSymbol: id,
+      tokenAmount: amount
+    });
+
+    const fundAmount = smartTokenAmount;
+
     const fundAction = multiContractAction.fund(
-      vxm.wallet.isAuthenticated,
+      this.isAuthenticated,
       number_to_asset(
         Number(fundAmount),
         new Symbol(smartTokenSymbol, 4)
@@ -1280,11 +1285,18 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async removeLiquidity({
-    fundAmount,
+    reserves,
     smartTokenSymbol
   }: LiquidityParams) {
+    const [{ id, amount }] = reserves;
+    const { smartTokenAmount } = await this.calculateOpposingWithdraw({
+      smartTokenSymbol,
+      tokenSymbol: id,
+      tokenAmount: amount
+    });
+
     const liquidityAsset = number_to_asset(
-      Number(fundAmount),
+      Number(smartTokenAmount),
       new Sym(smartTokenSymbol, 4)
     );
 

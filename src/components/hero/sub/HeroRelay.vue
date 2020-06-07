@@ -394,11 +394,10 @@ export default class HeroRelay extends Vue {
       this.txBusy = true;
       const txResult = await this.removeLiquidity({
         smartTokenSymbol: this.focusedSymbol,
-        fundAmount: this.liquidateCost,
-        token1Amount: this.token1Amount,
-        token1Symbol: this.token1Symbol,
-        token2Amount: this.token2Amount,
-        token2Symbol: this.token2Symbol
+        reserves: [
+          { id: this.token1Symbol, amount: this.token1Amount },
+          { id: this.token2Symbol, amount: this.token2Amount }
+        ]
       });
       this.fetchBalances();
       wait(7000).then(() => this.fetchBalances());
@@ -424,11 +423,10 @@ export default class HeroRelay extends Vue {
       this.txBusy = true;
       const txResult = await this.addLiquidity({
         smartTokenSymbol: this.focusedSymbol,
-        fundAmount: this.fundReward,
-        token1Amount: this.token1Amount,
-        token1Symbol: this.token1Symbol,
-        token2Amount: this.token2Amount,
-        token2Symbol: this.token2Symbol,
+        reserves: [
+          { id: this.token1Symbol, amount: this.token1Amount },
+          { id: this.token2Symbol, amount: this.token2Amount }
+        ],
         onUpdate: this.onUpdate
       });
       this.fetchBalances();

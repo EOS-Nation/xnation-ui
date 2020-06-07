@@ -1055,15 +1055,22 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async removeLiquidity({
-    fundAmount,
+    reserves,
     smartTokenSymbol
   }: LiquidityParams) {
     const relay = this.relayBySmartSymbol(smartTokenSymbol);
 
+    const [{ id, amount }] = reserves;
+    const { smartTokenAmount } = await this.calculateOpposingWithdraw({
+      smartTokenSymbol,
+      tokenSymbol: id,
+      tokenAmount: amount
+    });
+
     const converterContract = buildConverterContract(relay.contract);
 
     const hash = await this.resolveTxOnConfirmation({
-      tx: converterContract.methods.liquidate(fundAmount)
+      tx: converterContract.methods.liquidate(smartTokenAmount)
     });
 
     wait(2000).then(() =>
@@ -1111,28 +1118,18 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async addLiquidity({
-    fundAmount,
     smartTokenSymbol,
-    token1Amount,
-    token1Symbol,
-    token2Amount,
-    token2Symbol,
+    reserves,
     onUpdate
   }: LiquidityParams) {
     const relay = this.relaysList.find(relay =>
       compareString(relay.smartToken.symbol, smartTokenSymbol)
     )!;
 
-    const amounts = [
-      [token1Symbol, token1Amount],
-      [token2Symbol, token2Amount]
-    ];
-
     const matchedBalances = relay.reserves.map(reserve => ({
       ...reserve,
-      amount: amounts.find(([symbol]) =>
-        compareString(symbol!, reserve.symbol)
-      )![1]
+      amount: reserves.find(({ id }) => compareString(id, reserve.symbol))!
+        .amount
     }));
 
     const steps: Step[] = [
@@ -1155,6 +1152,15 @@ export class EthBancorModule extends VuexModule
     ];
 
     onUpdate!(0, steps);
+
+    const [{ id, amount }] = reserves;
+    const { smartTokenAmount } = await this.calculateOpposingDeposit({
+      tokenSymbol: id,
+      tokenAmount: amount,
+      smartTokenSymbol
+    });
+
+    const fundAmount = smartTokenAmount;
 
     const converterAddress = relay.contract;
 
