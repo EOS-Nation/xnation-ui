@@ -141,8 +141,6 @@ export default class HeroRelay extends Vue {
   token1Amount = "";
   token2Amount = "";
   smartUserBalance = "";
-  fundReward = "";
-  liquidateCost = "";
   token1MaxWithdraw = 0;
   token2MaxWithdraw = 0;
   modal = false;
@@ -315,7 +313,7 @@ export default class HeroRelay extends Vue {
   async tokenOneChanged(tokenAmount: string) {
     this.rateLoading = true;
     try {
-      const { opposingAmount, smartTokenAmount } = await this[
+      const { opposingAmount } = await this[
         this.withdrawLiquidity
           ? "calculateOpposingWithdraw"
           : "calculateOpposingDeposit"
@@ -325,9 +323,6 @@ export default class HeroRelay extends Vue {
         tokenSymbol: this.token1Symbol
       });
       this.token2Amount = opposingAmount;
-      this[
-        this.withdrawLiquidity ? "liquidateCost" : "fundReward"
-      ] = smartTokenAmount;
       this.token1Error = "";
       this.token2Error = "";
     } catch (e) {
@@ -340,7 +335,7 @@ export default class HeroRelay extends Vue {
   async tokenTwoChanged(tokenAmount: string) {
     this.rateLoading = true;
     try {
-      const { opposingAmount, smartTokenAmount } = await this[
+      const { opposingAmount } = await this[
         this.withdrawLiquidity
           ? "calculateOpposingWithdraw"
           : "calculateOpposingDeposit"
@@ -350,9 +345,6 @@ export default class HeroRelay extends Vue {
         tokenSymbol: this.token2Symbol
       });
       this.token1Amount = opposingAmount;
-      this[
-        this.withdrawLiquidity ? "liquidateCost" : "fundReward"
-      ] = smartTokenAmount;
       this.token2Error = "";
       this.token1Error = "";
     } catch (e) {
@@ -439,7 +431,7 @@ export default class HeroRelay extends Vue {
       this.error = e.message;
       // @ts-ignore
       this.$analytics.logEvent("exception", {
-        description: `${this.isAuthenticated} recieved error ${e.message} while attempting a fund action, expecting to receive ${this.fundReward} for ${this.token1Amount} ${this.token1Symbol} + ${this.token2Amount} ${this.token2Symbol}`
+        description: `${this.isAuthenticated} recieved error ${e.message} while attempting a fund action, ${this.token1Amount} ${this.token1Symbol} + ${this.token2Amount} ${this.token2Symbol}`
       });
     }
     this.txBusy = false;
