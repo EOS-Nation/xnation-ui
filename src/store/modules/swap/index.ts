@@ -23,7 +23,7 @@ interface BntPrice {
 
 @Module({ namespacedPath: "bancor/" })
 export class BancorModule extends VuexModule {
-  chains = ["eos", "eth"];
+  chains = ["eos", "eth", "usds"];
   usdPriceOfBnt: BntPrice = {
     price: null,
     lastChecked: 0

@@ -1,6 +1,5 @@
-import { Pools, Pool } from "sxjs";
+import { Tokens, Token } from "sxjs";
 import { Contract, ContractSendMethod } from "web3-eth-contract";
-
 
 export interface TokenPrice {
   id: string;
@@ -435,27 +434,6 @@ export interface ETH {
   price: Price;
 }
 
-export interface TokenInfo {
-  address: string;
-  name: string;
-  decimals: any;
-  symbol: string;
-  totalSupply: string;
-  owner: string;
-  lastUpdated: number;
-  issuancesCount: number;
-  holdersCount: number;
-  price: any;
-  description: string;
-  ethTransfersCount?: number;
-}
-
-export interface Token {
-  tokenInfo: TokenInfo;
-  balance: number;
-  totalIn: number;
-  totalOut: number;
-}
 
 export interface EthplorerBalance {
   address: string;
@@ -489,7 +467,7 @@ export interface Service {
   features: Feature[];
 }
 
-export interface ModulePool extends Pool {
+export interface ModulePool extends Token {
   volume24h: number;
 }
 

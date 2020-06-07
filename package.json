@@ -1,6 +1,6 @@
 {
   "name": "bancor-ui",
-  "version": "1.0.28",
+  "version": "1.0.30",
   "private": false,
   "scripts": {
     "start": "npm run serve",
@@ -29,7 +29,7 @@
     "core-js": "^2.6.9",
     "csv-parse": "^4.9.1",
     "decimal.js": "^10.2.0",
-    "eos-common": "^0.7.6",
+    "eos-common": "^0.7.9",
     "eos-transit": "^4.0.1",
     "eos-transit-anchorlink-provider": "^4.0.7",
     "eos-transit-keycat-provider": "^4.0.1",
@@ -50,7 +50,7 @@
     "moment": "^2.25.3",
     "numeral": "^2.0.6",
     "qrcode.vue": "^1.7.0",
-    "sxjs": "^0.6.1",
+    "sxjs": "^2.1.1",
     "velocity-animate": "^1.5.2",
     "vue": "^2.6.11",
     "vue-analytics": "^5.17.2",
