@@ -392,11 +392,11 @@ export class EthBancorModule extends VuexModule
 
     const [networkReserve, tokenReserve] = sortByNetworkTokens(
       poolParams.reserves,
-      ([symbol]) => symbol,
+      reserve => reserve.id,
       networkTokens
     );
-    const [networkSymbol, networkAmount] = networkReserve;
-    const [tokenSymbol, tokenAmount] = tokenReserve;
+    const { id: networkSymbol, amount: networkAmount } = networkReserve;
+    const { id: tokenSymbol, amount: tokenAmount } = tokenReserve;
 
     const smartTokenName = `${tokenSymbol} Smart Relay Token`;
     const smartTokenSymbol = tokenSymbol + networkSymbol;

@@ -578,37 +578,31 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async createPool(poolParams: CreatePoolParams): Promise<string> {
-    const [
-      [token1Symbol, token1Amount],
-      [token2Symbol, token2Amount]
-    ] = poolParams.reserves;
-    const smartTokenSymbol = await generateSmartTokenSymbol(
-      token1Symbol,
-      token2Symbol,
-      process.env.VUE_APP_SMARTTOKENCONTRACT!
+    const reserveAssets = await Promise.all(
+      poolParams.reserves.map(async reserve => {
+        const data = this.tokenMetaObj(reserve.id);
+        return {
+          amount: number_to_asset(
+            Number(reserve.amount),
+            new Symbol(
+              data.symbol,
+              await getEosioTokenPrecision(data.symbol, data.account)
+            )
+          ),
+          contract: data.account
+        };
+      })
     );
 
-    const token1Data = this.tokenMetaObj(token1Symbol);
-    const token2Data = this.tokenMetaObj(token2Symbol);
-
-    const token1Asset = number_to_asset(
-      Number(token1Amount),
-      new Symbol(
-        token1Data.symbol,
-        await getEosioTokenPrecision(token1Data.symbol, token1Data.account)
-      )
-    );
-    const token2Asset = number_to_asset(
-      Number(token2Amount),
-      new Symbol(
-        token2Data.symbol,
-        await getEosioTokenPrecision(token2Data.symbol, token2Data.account)
-      )
-    );
-
-    const [networkAsset] = sortByNetworkTokens(
-      [token1Asset, token2Asset],
+    const [networkAsset, tokenAsset] = sortByNetworkTokens(
+      reserveAssets.map(reserveAsset => reserveAsset.amount),
       asset => asset.symbol.code().to_string()
+    );
+
+    const smartTokenSymbol = await generateSmartTokenSymbol(
+      tokenAsset.symbol.code().to_string(),
+      networkAsset.symbol.code().to_string(),
+      process.env.VUE_APP_SMARTTOKENCONTRACT!
     );
 
     const networkSymbol = networkAsset.symbol.code().to_string();
@@ -618,16 +612,7 @@ export class EosBancorModule extends VuexModule
 
     const actions = await multiContract.kickStartRelay(
       smartTokenSymbol,
-      [
-        {
-          contract: token1Data.account,
-          amount: token1Asset
-        },
-        {
-          contract: token2Data.account,
-          amount: token2Asset
-        }
-      ],
+      reserveAssets,
       Number(initialLiquidity.toFixed(0)),
       poolParams.fee
     );

@@ -282,7 +282,7 @@ export interface Step {
 }
 
 export interface CreatePoolParams {
-  reserves: [string, string][];
+  reserves: ViewAmount[];
   fee: number;
   onUpdate: (stepIndex: number, steps: Step[]) => void;
 }

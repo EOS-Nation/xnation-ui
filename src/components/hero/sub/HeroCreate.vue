@@ -107,7 +107,6 @@ import {
 import wait from "waait";
 import TxModalFooter from "@/components/common/TxModalFooter.vue";
 
-
 const bancor = namespace("bancor");
 
 @Component({
@@ -290,8 +289,8 @@ export default class HeroConvert extends Vue {
     try {
       const txId = await this.createPool({
         reserves: [
-          [this.token1Symbol, this.token1Amount],
-          [this.token2Symbol, this.token2Amount]
+          { id: this.token1Symbol, amount: this.token1Amount },
+          { id: this.token2Symbol, amount: this.token2Amount }
         ],
         fee: fee / 100,
         onUpdate: this.onUpdate
