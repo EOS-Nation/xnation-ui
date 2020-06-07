@@ -21,7 +21,8 @@ import {
   CreatePoolParams,
   ViewRelay,
   Step,
-  TokenMeta
+  TokenMeta,
+  ViewAmount
 } from "@/types/bancor";
 import { bancorApi, ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -1354,7 +1355,7 @@ export class EosBancorModule extends VuexModule
 
   @action async getUserBalances(symbolName: string) {
     const relay = this.relay(symbolName);
-    const [[smartTokenBalance], [token1, token2], supply] = await Promise.all([
+    const [[smartTokenBalance], reserves, supply] = await Promise.all([
       vxm.network.getBalances({
         tokens: [
           {
@@ -1371,18 +1372,15 @@ export class EosBancorModule extends VuexModule
     ]);
 
     const smartSupply = asset_to_number(supply.supply);
-    const token1ReserveBalance = asset_to_number(token1);
-    const token2ReserveBalance = asset_to_number(token2);
-
     const percent = smartTokenBalance.balance / smartSupply;
-    const token1MaxWithdraw = percent * token1ReserveBalance;
-    const token2MaxWithdraw = percent * token2ReserveBalance;
+
+    const maxWithdrawals: ViewAmount[] = reserves.map(reserve => ({
+      id: reserve.symbol.code().to_string(),
+      amount: String(asset_to_number(reserve) * percent)
+    }));
 
     return {
-      maxWithdrawals: [
-        { id: token1.symbol.code().to_string(), amount: String(token1MaxWithdraw) },
-        { id: token2.symbol.code().to_string(), amount: String(token2MaxWithdraw) }
-      ],
+      maxWithdrawals,
       smartTokenBalance: String(smartTokenBalance.balance)
     };
   }
