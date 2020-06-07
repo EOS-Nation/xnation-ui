@@ -6113,10 +6113,10 @@ eos-common@0.x:
   resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.6.0.tgz#da8d4096c3d34d80ad434fbe8f0d6d2dda5f1aa9"
   integrity sha512-5gPYJSGxIkl6FmEqLp+RT7Lwz0PwfxljXV1pR8O6dixUR8hfH+/VEYHu1CbbWYRS66wuj4X/ezedWm4H5b0Sww==
 
-eos-common@^0.7.6:
-  version "0.7.6"
-  resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.7.6.tgz#426fb020bf84df9baad908f1040d32cd19b7d57f"
-  integrity sha512-FFy8XKApJWddjnyHzYiR6qs0gUOUNzP8IgKsXBbLCJTdBQLewmk3DTpFixBY/llJcOHJydcy3gCCDBgRRwm9cg==
+eos-common@^0.7.9:
+  version "0.7.9"
+  resolved "https://registry.yarnpkg.com/eos-common/-/eos-common-0.7.9.tgz#c4ebe8957f063672c7d9d4a829aa8b29cff0561f"
+  integrity sha512-/inCfSIMeXxp6bK+Cb61jYSI5K+JEFD6ppDXGvl+QMfsdxrUe+cobaRVi8vYs3qzZ6wXz7TGZVWmz2SPBJFPMg==
   dependencies:
     big-integer "^1.6.48"
 
@@ -13954,12 +13954,12 @@ swarm-js@0.1.39:
     tar "^4.0.2"
     xhr-request-promise "^0.1.2"
 
-sxjs@^0.6.1:
-  version "0.6.1"
-  resolved "https://registry.yarnpkg.com/sxjs/-/sxjs-0.6.1.tgz#0d861de620b96dda933090ecb5423e18089f9155"
-  integrity sha512-0hLElKS92+cxAMkVvzT97rENBID3DG9EcgYhmmvG3you3T60qv9sPjppWgzKqwpxP44ry5/6eYCCa0NyR9HQ2g==
+sxjs@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/sxjs/-/sxjs-2.1.1.tgz#bb09dc180db0ac013ffbd48bfd4303a474403ad6"
+  integrity sha512-pn1do/iC+0Eub65WQPmm6jg7qsVjs96BCf2Y2Ils7n+YR5xbyvLxcUqWUR2jUMxiVlKLdWmAjer1Jo0IRxAFjg==
   dependencies:
-    eos-common "^0.7.6"
+    eos-common "^0.7.9"
 
 symbol-tree@^3.2.2:
   version "3.2.4"

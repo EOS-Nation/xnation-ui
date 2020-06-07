@@ -148,10 +148,10 @@ export default class Navigation extends Vue {
       text: "ETH",
       value: "eth"
     },
-    // {
-    //   text: "USDⓈ",
-    //   value: "usds"
-    // }
+    {
+      text: "USDⓈ",
+      value: "usds"
+    }
   ];
 
   get selectedService() {

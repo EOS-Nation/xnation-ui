@@ -383,6 +383,7 @@ export default class HeroConvert extends Vue {
   }
 
   closeTxModal() {
+    this.txModal = false;
     if (this.success) {
       this.fromTokenAmount = "";
       this.toTokenAmount = "";
