@@ -26,7 +26,6 @@ export interface PriceHistory {
 
 export type FloatAmount = number;
 
-
 export interface RawRow {
   timestamp: string;
   ROI: string;
@@ -65,7 +64,6 @@ export interface ViewAmount {
   amount: string;
 }
 
-// Utilise ViewAmount instead of [string, string][];
 // Add ViewAmount to getting max smart user balances and remove userBalances
 // Maybe utilise ViewAmount on Converts as well
 // Bonus:
@@ -210,7 +208,6 @@ export interface ViewRelay {
   focusAvailable?: boolean;
 }
 
-
 export interface ContractMethods<T> extends Contract {
   methods: T;
 }
@@ -295,7 +292,7 @@ export interface CreatePoolModule {
 }
 
 export interface HistoryModule {
-  fetchHistoryData: (relayId: string) => Promise<any[]>
+  fetchHistoryData: (relayId: string) => Promise<any[]>;
 }
 
 export interface FeeParams {
@@ -340,10 +337,7 @@ export interface LiquidityModule {
   getUserBalances: (
     symbolName: string
   ) => Promise<{
-    token1MaxWithdraw: string;
-    token2MaxWithdraw: string;
-    token1Balance: string;
-    token2Balance: string;
+    maxWithdrawals: ViewAmount[];
     smartTokenBalance: string;
   }>;
   removeLiquidity: (params: LiquidityParams) => Promise<string>;
@@ -441,7 +435,6 @@ export interface ETH {
   balance: number;
   price: Price;
 }
-
 
 export interface EthplorerBalance {
   address: string;

@@ -107,7 +107,8 @@ import {
   ViewRelay,
   LiquidityModule,
   TradingModule,
-  Step
+  Step,
+  ViewAmount
 } from "../../../types/bancor";
 import { State, Getter, Action, namespace } from "vuex-class";
 import ModalTx from "@/components/modals/ModalTx.vue";
@@ -478,16 +479,25 @@ export default class HeroRelay extends Vue {
     this.focusSymbol(symbol);
   }
 
+  updateMaxBalances(balances: ViewAmount[]) {
+    const [firstBalance, secondBalance] = balances;
+    if (firstBalance.id == this.token1Symbol) {
+      this.token1MaxWithdraw = Number(firstBalance.amount);
+      this.token2MaxWithdraw = Number(secondBalance.amount);
+    } else {
+      this.token1MaxWithdraw = Number(secondBalance.amount);
+      this.token2MaxWithdraw = Number(firstBalance.amount);
+    }
+  }
+
   async fetchBalances() {
     if (!this.isAuthenticated) return;
-    const {
-      token1MaxWithdraw,
-      token2MaxWithdraw,
-      smartTokenBalance
-    } = await this.getUserBalances(this.focusedSymbol);
+    const { maxWithdrawals, smartTokenBalance } = await this.getUserBalances(
+      this.focusedSymbol
+    );
 
-    this.token1MaxWithdraw = Number(token1MaxWithdraw);
-    this.token2MaxWithdraw = Number(token2MaxWithdraw);
+    this.updateMaxBalances(maxWithdrawals);
+
     this.smartUserBalance = smartTokenBalance;
   }
 

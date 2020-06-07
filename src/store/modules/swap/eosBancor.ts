@@ -1354,21 +1354,9 @@ export class EosBancorModule extends VuexModule
 
   @action async getUserBalances(symbolName: string) {
     const relay = this.relay(symbolName);
-    const [
-      [token1Balance, token2Balance, smartTokenBalance],
-      [token1, token2],
-      supply
-    ] = await Promise.all([
+    const [[smartTokenBalance], [token1, token2], supply] = await Promise.all([
       vxm.network.getBalances({
         tokens: [
-          {
-            contract: relay.reserves[0].contract,
-            symbol: relay.reserves[0].symbol
-          },
-          {
-            contract: relay.reserves[1].contract,
-            symbol: relay.reserves[1].symbol
-          },
           {
             // @ts-ignore
             contract: relay.smartToken.contract,
@@ -1391,10 +1379,10 @@ export class EosBancorModule extends VuexModule
     const token2MaxWithdraw = percent * token2ReserveBalance;
 
     return {
-      token1MaxWithdraw: String(token1MaxWithdraw),
-      token2MaxWithdraw: String(token2MaxWithdraw),
-      token1Balance: String(token1Balance.balance),
-      token2Balance: String(token2Balance.balance),
+      maxWithdrawals: [
+        { id: token1.symbol.code().to_string(), amount: String(token1MaxWithdraw) },
+        { id: token2.symbol.code().to_string(), amount: String(token2MaxWithdraw) }
+      ],
       smartTokenBalance: String(smartTokenBalance.balance)
     };
   }
