@@ -503,18 +503,6 @@ export class EthBancorModule extends VuexModule
     return "txHash";
   }
 
-  @action async issueInitialSupply({
-    smartTokenAddress
-  }: {
-    smartTokenAddress: string;
-  }) {
-    const tokenContract = buildTokenContract(smartTokenAddress);
-
-    return this.resolveTxOnConfirmation({
-      tx: tokenContract.methods.issue(this.isAuthenticated, toWei("1000"))
-    });
-  }
-
   @action async sendTokens(
     tokens: { tokenContract: string; toAddress: string; amount: string }[]
   ) {
@@ -609,7 +597,7 @@ export class EthBancorModule extends VuexModule
       tx.send({
         from: this.isAuthenticated,
         ...(gas && { gas }),
-        value
+        ...(value && { value: web3.utils.toHex(value) })
       })
         .on("transactionHash", (hash: string) => {
           txHash = hash;
@@ -1007,11 +995,33 @@ export class EthBancorModule extends VuexModule
     };
   }
 
+  @action async liquidate({
+    converterAddress,
+    smartTokenAmount
+  }: {
+    converterAddress: string;
+    smartTokenAmount: string;
+  }) {
+    const converterContract = buildConverterContract(converterAddress);
+
+    return this.resolveTxOnConfirmation({
+      tx: converterContract.methods.liquidate(smartTokenAmount)
+    });
+  }
+
   @action async removeLiquidity({
     reserves,
     smartTokenSymbol
   }: LiquidityParams) {
-    const relay = this.relayBySmartSymbol(smartTokenSymbol);
+    const relay = this.relaysList.find(relay =>
+      compareString(relay.smartToken.symbol, smartTokenSymbol)
+    )!;
+
+    const preV11 = Number(relay.version) < 11;
+    if (preV11)
+      throw new Error("This Pool is not supported for adding liquidity");
+
+    const postV28 = Number(relay.version) >= 28;
 
     const [{ id, amount }] = reserves;
     const { smartTokenAmount } = await this.calculateOpposingWithdraw({
@@ -1020,11 +1030,16 @@ export class EthBancorModule extends VuexModule
       tokenAmount: amount
     });
 
-    const converterContract = buildConverterContract(relay.contract);
-
-    const hash = await this.resolveTxOnConfirmation({
-      tx: converterContract.methods.liquidate(smartTokenAmount)
-    });
+    const hash = postV28
+      ? await this.removeLiquidityV28({
+          converterAddress: relay.contract,
+          smartTokensWei: smartTokenAmount,
+          reserveTokenAddresses: relay.reserves.map(reserve => reserve.contract)
+        })
+      : await this.liquidate({
+          converterAddress: relay.contract,
+          smartTokenAmount
+        });
 
     wait(2000).then(() =>
       relay.reserves
@@ -1089,6 +1104,26 @@ export class EthBancorModule extends VuexModule
       ),
       onHash: par.onHash,
       ...(newEthReserve && { value: newEthReserve.weiAmount })
+    });
+  }
+
+  @action async removeLiquidityV28({
+    converterAddress,
+    smartTokensWei,
+    reserveTokenAddresses
+  }: {
+    converterAddress: string;
+    smartTokensWei: string;
+    reserveTokenAddresses: string[];
+  }) {
+    const contract = buildV28ConverterContract(converterAddress);
+
+    return this.resolveTxOnConfirmation({
+      tx: contract.methods.removeLiquidity(
+        smartTokensWei,
+        reserveTokenAddresses,
+        reserveTokenAddresses.map(() => "0")
+      )
     });
   }
 

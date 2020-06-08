@@ -273,6 +273,11 @@ export const buildV28ConverterContract = (
     reserveAmounts: string[],
     minReturn: string
   ) => ContractSendMethod;
+  removeLiquidity: (
+    amount: string,
+    reserveTokens: string[],
+    reserveMinReturnAmounts: string[]
+  ) => ContractSendMethod;
   addReserve: (
     reserveAddress: string,
     connectorWeight: number
