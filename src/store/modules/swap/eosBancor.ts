@@ -145,6 +145,34 @@ const blackListedTokens: BaseToken[] = [
   { contract: "therealkarma", symbol: "KARMA" }
 ];
 
+const appendVersionToSmartTokenSymbol = (appendedString: string) => (
+  relay: EosMultiRelay
+): EosMultiRelay => {
+  return {
+    ...relay,
+    smartToken: {
+      ...relay.smartToken,
+      symbol: relay.smartToken.symbol + appendedString
+    }
+  };
+};
+
+const appendVersionToSmartTokenSymbolDry = (appendedString: string) => (
+  relay: DryRelay
+): DryRelay => {
+  const orgSym = relay.smartToken.symbol;
+  return {
+    ...relay,
+    smartToken: {
+      ...relay.smartToken,
+      symbol: new Sym(
+        orgSym.code().to_string() + appendedString,
+        orgSym.precision()
+      )
+    }
+  };
+};
+
 const noBlackListedReservesDry = (blackListedTokens: BaseToken[]) => (
   relay: DryRelay
 ) =>
@@ -160,7 +188,7 @@ const noBlackListedReservesDry = (blackListedTokens: BaseToken[]) => (
 
 const noBlackListedReserves = (blackListedTokens: BaseToken[]) => (
   relay: EosMultiRelay
-) =>
+): boolean =>
   relay.reserves.every(reserve =>
     blackListedTokens.some(
       token =>
@@ -780,14 +808,12 @@ export class EosBancorModule extends VuexModule
   }
 
   get relay() {
-    return (symbolName: string) => {
-      const relay = this.relays.find(relay =>
-        compareString(relay.smartTokenSymbol, symbolName)
+    return (symbolName: string) =>
+      findOrThrow(
+        this.relays,
+        relay => compareString(relay.smartTokenSymbol, symbolName),
+        `Failed to find relay with ID of ${symbolName}`
       );
-      if (!relay)
-        throw new Error(`Failed to find relay with ID of ${symbolName}`);
-      return relay;
-    };
   }
 
   get relays(): ViewRelay[] {
@@ -821,7 +847,10 @@ export class EosBancorModule extends VuexModule
 
         return {
           ...relay,
-          id: `${relay.contract}${relay.smartToken.symbol}`,
+          id: buildTokenId({
+            contract: relay.smartToken.contract,
+            symbol: relay.smartToken.symbol
+          }),
           symbol: sortedReserves[1].symbol,
           smartTokenSymbol: relay.smartToken.symbol,
           liqDepth: relayFeed && relayFeed.liqDepth,
@@ -919,7 +948,23 @@ export class EosBancorModule extends VuexModule
         )
       );
 
-      this.setMultiRelays([...passedV2Relays, ...hydratedRelays]);
+      const allRelays = [...passedV2Relays, ...hydratedRelays];
+      console.log(allRelays, "are all relays");
+
+      const duplicateSmartTokenSymbols = allRelays
+        .filter(
+          (item, index, arr) =>
+            arr.findIndex(i =>
+              compareString(i.smartToken.symbol, item.smartToken.symbol)
+            ) !== index
+        )
+        .map(i => i.smartToken.symbol);
+      const duplicateRelays = duplicateSmartTokenSymbols.map(symbol => [
+        symbol,
+        ...allRelays.filter(x => compareString(x.smartToken.symbol, symbol))
+      ]);
+      console.log(duplicateRelays, "are the relays!");
+      this.setMultiRelays(allRelays);
       this.setTokenMeta(tokenMeta);
       this.refreshBalances();
     } catch (e) {
