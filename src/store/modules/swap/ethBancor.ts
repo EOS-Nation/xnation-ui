@@ -885,7 +885,8 @@ export class EthBancorModule extends VuexModule
           liqDepth: relayFeed.liqDepth,
           owner: relay.owner,
           symbol: tokenReserve.symbol,
-          addRemoveLiquiditySupported: true,
+          addLiquiditySupported: true,
+          removeLiquiditySupported: true,
           focusAvailable: hasHistory
         } as ViewRelay;
       });

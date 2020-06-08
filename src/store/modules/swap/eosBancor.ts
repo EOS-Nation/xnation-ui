@@ -448,7 +448,7 @@ export class EosBancorModule extends VuexModule
       const relay = this.relaysList.find(relay =>
         compareString(relay.smartToken.symbol, symbolName)
       )!;
-      if (!relay.isMultiContract) return [];
+      if (!relay.isMultiContract) return ["removeLiquidity"];
       const features: Feature[] = [
         ["addLiquidity", () => true],
         [
@@ -825,7 +825,8 @@ export class EosBancorModule extends VuexModule
           symbol: sortedReserves[1].symbol,
           smartTokenSymbol: relay.smartToken.symbol,
           liqDepth: relayFeed && relayFeed.liqDepth,
-          addRemoveLiquiditySupported: relay.isMultiContract,
+          addLiquiditySupported: relay.isMultiContract,
+          removeLiquiditySupported: true,
           focusAvailable: false,
           reserves: sortedReserves.map((reserve: AgnosticToken) => ({
             ...reserve,

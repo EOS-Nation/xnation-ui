@@ -204,7 +204,8 @@ export interface ViewRelay {
   reserves: ViewReserve[];
   fee: number;
   owner: string;
-  addRemoveLiquiditySupported: boolean;
+  addLiquiditySupported: boolean;
+  removeLiquiditySupported: boolean;
   focusAvailable?: boolean;
 }
 

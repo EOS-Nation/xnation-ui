@@ -192,7 +192,7 @@ export default class HeroRelay extends Vue {
       ["changeOwner", "Change Owner", "handshake", "info"],
       ["deleteRelay", "Delete Pool", "trash-alt", "warning"]
     ];
-    if (!this.supportedFeatures) return [baseMenus[0]];
+    if (!this.supportedFeatures) return [baseMenus[1]];
     const features = this.supportedFeatures(this.focusedSymbol)
       .map(feature => baseMenus.find(([name]) => name == feature)!)
       .filter(Boolean);
@@ -438,7 +438,7 @@ export default class HeroRelay extends Vue {
   }
 
   get defaultFocusedSymbol() {
-    return this.relays.find(relay => relay.addRemoveLiquiditySupported)!
+    return this.relays.find(relay => relay.addLiquiditySupported && relay.removeLiquiditySupported)!
       .smartTokenSymbol;
   }
 
