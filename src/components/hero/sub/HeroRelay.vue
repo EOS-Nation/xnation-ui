@@ -107,7 +107,8 @@ import {
   ViewRelay,
   LiquidityModule,
   TradingModule,
-  Step
+  Step,
+  ViewAmount
 } from "../../../types/bancor";
 import { State, Getter, Action, namespace } from "vuex-class";
 import ModalTx from "@/components/modals/ModalTx.vue";
@@ -140,8 +141,6 @@ export default class HeroRelay extends Vue {
   token1Amount = "";
   token2Amount = "";
   smartUserBalance = "";
-  fundReward = "";
-  liquidateCost = "";
   token1MaxWithdraw = 0;
   token2MaxWithdraw = 0;
   modal = false;
@@ -314,7 +313,7 @@ export default class HeroRelay extends Vue {
   async tokenOneChanged(tokenAmount: string) {
     this.rateLoading = true;
     try {
-      const { opposingAmount, smartTokenAmount } = await this[
+      const { opposingAmount } = await this[
         this.withdrawLiquidity
           ? "calculateOpposingWithdraw"
           : "calculateOpposingDeposit"
@@ -324,9 +323,6 @@ export default class HeroRelay extends Vue {
         tokenSymbol: this.token1Symbol
       });
       this.token2Amount = opposingAmount;
-      this[
-        this.withdrawLiquidity ? "liquidateCost" : "fundReward"
-      ] = smartTokenAmount;
       this.token1Error = "";
       this.token2Error = "";
     } catch (e) {
@@ -339,7 +335,7 @@ export default class HeroRelay extends Vue {
   async tokenTwoChanged(tokenAmount: string) {
     this.rateLoading = true;
     try {
-      const { opposingAmount, smartTokenAmount } = await this[
+      const { opposingAmount } = await this[
         this.withdrawLiquidity
           ? "calculateOpposingWithdraw"
           : "calculateOpposingDeposit"
@@ -349,9 +345,6 @@ export default class HeroRelay extends Vue {
         tokenSymbol: this.token2Symbol
       });
       this.token1Amount = opposingAmount;
-      this[
-        this.withdrawLiquidity ? "liquidateCost" : "fundReward"
-      ] = smartTokenAmount;
       this.token2Error = "";
       this.token1Error = "";
     } catch (e) {
@@ -394,11 +387,10 @@ export default class HeroRelay extends Vue {
       this.txBusy = true;
       const txResult = await this.removeLiquidity({
         smartTokenSymbol: this.focusedSymbol,
-        fundAmount: this.liquidateCost,
-        token1Amount: this.token1Amount,
-        token1Symbol: this.token1Symbol,
-        token2Amount: this.token2Amount,
-        token2Symbol: this.token2Symbol
+        reserves: [
+          { id: this.token1Symbol, amount: this.token1Amount },
+          { id: this.token2Symbol, amount: this.token2Amount }
+        ]
       });
       this.fetchBalances();
       wait(7000).then(() => this.fetchBalances());
@@ -424,11 +416,10 @@ export default class HeroRelay extends Vue {
       this.txBusy = true;
       const txResult = await this.addLiquidity({
         smartTokenSymbol: this.focusedSymbol,
-        fundAmount: this.fundReward,
-        token1Amount: this.token1Amount,
-        token1Symbol: this.token1Symbol,
-        token2Amount: this.token2Amount,
-        token2Symbol: this.token2Symbol,
+        reserves: [
+          { id: this.token1Symbol, amount: this.token1Amount },
+          { id: this.token2Symbol, amount: this.token2Amount }
+        ],
         onUpdate: this.onUpdate
       });
       this.fetchBalances();
@@ -440,7 +431,7 @@ export default class HeroRelay extends Vue {
       this.error = e.message;
       // @ts-ignore
       this.$analytics.logEvent("exception", {
-        description: `${this.isAuthenticated} recieved error ${e.message} while attempting a fund action, expecting to receive ${this.fundReward} for ${this.token1Amount} ${this.token1Symbol} + ${this.token2Amount} ${this.token2Symbol}`
+        description: `${this.isAuthenticated} recieved error ${e.message} while attempting a fund action, ${this.token1Amount} ${this.token1Symbol} + ${this.token2Amount} ${this.token2Symbol}`
       });
     }
     this.txBusy = false;
@@ -480,16 +471,25 @@ export default class HeroRelay extends Vue {
     this.focusSymbol(symbol);
   }
 
+  updateMaxBalances(balances: ViewAmount[]) {
+    const [firstBalance, secondBalance] = balances;
+    if (firstBalance.id == this.token1Symbol) {
+      this.token1MaxWithdraw = Number(firstBalance.amount);
+      this.token2MaxWithdraw = Number(secondBalance.amount);
+    } else {
+      this.token1MaxWithdraw = Number(secondBalance.amount);
+      this.token2MaxWithdraw = Number(firstBalance.amount);
+    }
+  }
+
   async fetchBalances() {
     if (!this.isAuthenticated) return;
-    const {
-      token1MaxWithdraw,
-      token2MaxWithdraw,
-      smartTokenBalance
-    } = await this.getUserBalances(this.focusedSymbol);
+    const { maxWithdrawals, smartTokenBalance } = await this.getUserBalances(
+      this.focusedSymbol
+    );
 
-    this.token1MaxWithdraw = Number(token1MaxWithdraw);
-    this.token2MaxWithdraw = Number(token2MaxWithdraw);
+    this.updateMaxBalances(maxWithdrawals);
+
     this.smartUserBalance = smartTokenBalance;
   }
 

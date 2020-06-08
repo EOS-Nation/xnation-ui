@@ -16,7 +16,8 @@ import {
   TokenPrice,
   Section,
   Step,
-  HistoryModule
+  HistoryModule,
+  ViewAmount
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -391,11 +392,11 @@ export class EthBancorModule extends VuexModule
 
     const [networkReserve, tokenReserve] = sortByNetworkTokens(
       poolParams.reserves,
-      ([symbol]) => symbol,
+      reserve => reserve.id,
       networkTokens
     );
-    const [networkSymbol, networkAmount] = networkReserve;
-    const [tokenSymbol, tokenAmount] = tokenReserve;
+    const { id: networkSymbol, amount: networkAmount } = networkReserve;
+    const { id: tokenSymbol, amount: tokenAmount } = tokenReserve;
 
     const smartTokenName = `${tokenSymbol} Smart Pool Token`;
     const smartTokenSymbol = tokenSymbol + networkSymbol;
@@ -430,7 +431,7 @@ export class EthBancorModule extends VuexModule
     // Fetch Reserve metadata
 
     const reserves = await Promise.all(
-      poolParams.reserves.map(async ([symbol, decAmount]) => {
+      poolParams.reserves.map(async ({ id: symbol, amount: decAmount }) => {
         const token = findOrThrow(
           this.tokenMeta,
           meta => compareString(meta.symbol, symbol),
@@ -854,17 +855,22 @@ export class EthBancorModule extends VuexModule
 
     const smartTokenContract = buildTokenContract(smartTokenAddress);
 
-    const [
-      tokenReserveBalance,
-      bntReserveBalance,
-      totalSupply
-    ] = await Promise.all([
-      ...reserves.map(reserve =>
-        fetchReserveBalance(converterContract, reserve.contract, version)
+    const [reserveBalances, totalSupplyWei] = await Promise.all([
+      Promise.all(
+        reserves.map(reserve =>
+          fetchReserveBalance(converterContract, reserve.contract, version)
+        )
       ),
       smartTokenContract.methods.totalSupply().call()
     ]);
-    return { tokenReserveBalance, bntReserveBalance, totalSupply };
+
+    return {
+      reserves: reserves.map((reserve, index) => ({
+        ...reserve,
+        weiAmount: reserveBalances[index]
+      })),
+      totalSupplyWei
+    };
   }
 
   @action async calculateOpposingDeposit(
@@ -874,29 +880,37 @@ export class EthBancorModule extends VuexModule
     const smartTokenAddress = this.relayBySmartSymbol(smartTokenSymbol)
       .smartToken.contract;
 
-    const {
-      tokenReserveBalance,
-      bntReserveBalance,
-      totalSupply
-    } = await this.fetchRelayBalances(smartTokenAddress);
+    const { reserves, totalSupplyWei } = await this.fetchRelayBalances(
+      smartTokenAddress
+    );
 
-    const decimals = this.relaysList
-      .flatMap(relay => relay.reserves)
-      .find(token => compareString(token.symbol, tokenSymbol))!.decimals;
-    const tokenAmountWei = expandToken(tokenAmount, decimals);
+    const tokenSymbolIncludedInReserves = reserves.some(reserve =>
+      compareString(reserve.symbol, tokenSymbol)
+    );
+    if (!tokenSymbolIncludedInReserves)
+      throw new Error(`Failed to find token ${tokenSymbol} in this pool`);
+
+    const [sameReserve, opposingReserve] = sortByNetworkTokens(
+      reserves,
+      reserve => reserve.symbol,
+      [tokenSymbol]
+    );
+
+    const tokenAmountWei = expandToken(tokenAmount, sameReserve.decimals);
+
     const opposingAmount = calculateOppositeFundRequirement(
       tokenAmountWei,
-      tokenReserveBalance,
-      bntReserveBalance
+      sameReserve.weiAmount,
+      opposingReserve.weiAmount
     );
     const fundReward = calculateFundReward(
       tokenAmountWei,
-      tokenReserveBalance,
-      totalSupply
+      sameReserve.weiAmount,
+      totalSupplyWei
     );
 
     return {
-      opposingAmount: fromWei(opposingAmount),
+      opposingAmount: shrinkToken(opposingAmount, opposingReserve.decimals),
       smartTokenAmount: fundReward
     };
   }
@@ -910,42 +924,34 @@ export class EthBancorModule extends VuexModule
     return balance;
   }
 
-  // @ts-ignore
   @action async getUserBalances(symbolName: string) {
     if (!vxm.wallet.isAuthenticated)
       throw new Error("Cannot find users .isAuthenticated");
     const relay = this.relayBySmartSymbol(symbolName);
 
-    const [
-      bntUserBalance,
-      tokenUserBalance,
-      smartTokenUserBalance
-    ] = await Promise.all([
-      ...relay.reserves.map(reserve => this.getUserBalance(reserve.contract)),
-      this.getUserBalance(relay.smartToken.contract)
-    ]);
+    const smartTokenUserBalance = await this.getUserBalance(
+      relay.smartToken.contract
+    );
 
-    console.log({ bntUserBalance, tokenUserBalance, smartTokenUserBalance });
-
-    const {
-      totalSupply,
-      bntReserveBalance,
-      tokenReserveBalance
-    } = await this.fetchRelayBalances(relay.smartToken.contract);
+    const { totalSupplyWei, reserves } = await this.fetchRelayBalances(
+      relay.smartToken.contract
+    );
 
     const percent = new Decimal(smartTokenUserBalance).div(
-      fromWei(totalSupply)
+      fromWei(totalSupplyWei)
     );
-    const token1SmartBalance = percent.times(tokenReserveBalance);
-    const token2SmartBalance = percent.times(bntReserveBalance);
-    const token1SmartInt = token1SmartBalance.toFixed(0);
-    const token2SmartInt = token2SmartBalance.toFixed(0);
+
+    const maxWithdrawals: ViewAmount[] = reserves.map(reserve => ({
+      id: reserve.symbol,
+      amount: shrinkToken(
+        percent.times(reserve.weiAmount).toString(),
+        reserve.decimals
+      )
+    }));
+
     return {
-      token1MaxWithdraw: Number(fromWei(token1SmartInt)),
-      token2MaxWithdraw: Number(fromWei(token2SmartInt)),
-      token1Balance: bntUserBalance,
-      token2Balance: tokenUserBalance,
-      smartTokenBalance: smartTokenUserBalance
+      maxWithdrawals,
+      smartTokenBalance: String(smartTokenUserBalance)
     };
   }
 
@@ -956,26 +962,27 @@ export class EthBancorModule extends VuexModule
     const smartTokenAddress = this.relayBySmartSymbol(smartTokenSymbol)
       .smartToken.contract;
 
-    const {
-      tokenReserveBalance,
-      bntReserveBalance,
-      totalSupply
-    } = await this.fetchRelayBalances(smartTokenAddress);
+    const { reserves, totalSupplyWei } = await this.fetchRelayBalances(
+      smartTokenAddress
+    );
 
-    const token = this.relaysList
-      .flatMap(relay => relay.reserves)
-      .find(token => compareString(token.symbol, tokenSymbol))!;
+    const [sameReserve, opposingReserve] = sortByNetworkTokens(
+      reserves,
+      reserve => reserve.symbol,
+      [tokenSymbol]
+    );
 
-    const token1Wei = expandToken(tokenAmount, token.decimals);
-    const token2Value = calculateOppositeLiquidateRequirement(
-      token1Wei,
-      tokenReserveBalance,
-      bntReserveBalance
+    const sameReserveWei = expandToken(tokenAmount, sameReserve.decimals);
+
+    const opposingValue = calculateOppositeLiquidateRequirement(
+      sameReserveWei,
+      sameReserve.weiAmount,
+      opposingReserve.weiAmount
     );
     const liquidateCost = calculateLiquidateCost(
-      token1Wei,
-      tokenReserveBalance,
-      totalSupply
+      sameReserveWei,
+      sameReserve.weiAmount,
+      totalSupplyWei
     );
 
     const smartUserBalance = await vxm.ethWallet.getBalance({
@@ -995,21 +1002,28 @@ export class EthBancorModule extends VuexModule
       smartTokenAmount = liquidateCost;
     }
     return {
-      opposingAmount: fromWei(token2Value),
+      opposingAmount: shrinkToken(opposingValue, opposingReserve.decimals),
       smartTokenAmount
     };
   }
 
   @action async removeLiquidity({
-    fundAmount,
+    reserves,
     smartTokenSymbol
   }: LiquidityParams) {
     const relay = this.relayBySmartSymbol(smartTokenSymbol);
 
+    const [{ id, amount }] = reserves;
+    const { smartTokenAmount } = await this.calculateOpposingWithdraw({
+      smartTokenSymbol,
+      tokenSymbol: id,
+      tokenAmount: amount
+    });
+
     const converterContract = buildConverterContract(relay.contract);
 
     const hash = await this.resolveTxOnConfirmation({
-      tx: converterContract.methods.liquidate(fundAmount)
+      tx: converterContract.methods.liquidate(smartTokenAmount)
     });
 
     wait(2000).then(() =>
@@ -1079,12 +1093,8 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async addLiquidity({
-    fundAmount,
     smartTokenSymbol,
-    token1Amount,
-    token1Symbol,
-    token2Amount,
-    token2Symbol,
+    reserves,
     onUpdate
   }: LiquidityParams) {
     const relay = this.relaysList.find(relay =>
@@ -1098,16 +1108,10 @@ export class EthBancorModule extends VuexModule
     const postV28 = Number(relay.version) >= 28;
     console.log({ postV28 });
 
-    const amounts = [
-      [token1Symbol, token1Amount],
-      [token2Symbol, token2Amount]
-    ];
-
     const matchedBalances = relay.reserves.map(reserve => ({
       ...reserve,
-      amount: amounts.find(([symbol]) =>
-        compareString(symbol!, reserve.symbol)
-      )![1]!
+      amount: reserves.find(({ id }) => compareString(id, reserve.symbol))!
+        .amount
     }));
 
     const steps: Step[] = [
@@ -1130,6 +1134,15 @@ export class EthBancorModule extends VuexModule
     ];
 
     onUpdate!(0, steps);
+
+    const [{ id, amount }] = reserves;
+    const { smartTokenAmount } = await this.calculateOpposingDeposit({
+      tokenSymbol: id,
+      tokenAmount: amount,
+      smartTokenSymbol
+    });
+
+    const fundAmount = smartTokenAmount;
 
     const converterAddress = relay.contract;
 

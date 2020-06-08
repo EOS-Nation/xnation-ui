@@ -21,7 +21,8 @@ import {
   CreatePoolParams,
   ViewRelay,
   Step,
-  TokenMeta
+  TokenMeta,
+  ViewAmount
 } from "@/types/bancor";
 import { bancorApi, ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -589,37 +590,31 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async createPool(poolParams: CreatePoolParams): Promise<string> {
-    const [
-      [token1Symbol, token1Amount],
-      [token2Symbol, token2Amount]
-    ] = poolParams.reserves;
-    const smartTokenSymbol = await generateSmartTokenSymbol(
-      token1Symbol,
-      token2Symbol,
-      process.env.VUE_APP_SMARTTOKENCONTRACT!
+    const reserveAssets = await Promise.all(
+      poolParams.reserves.map(async reserve => {
+        const data = this.tokenMetaObj(reserve.id);
+        return {
+          amount: number_to_asset(
+            Number(reserve.amount),
+            new Symbol(
+              data.symbol,
+              await getEosioTokenPrecision(data.symbol, data.account)
+            )
+          ),
+          contract: data.account
+        };
+      })
     );
 
-    const token1Data = this.tokenMetaObj(token1Symbol);
-    const token2Data = this.tokenMetaObj(token2Symbol);
-
-    const token1Asset = number_to_asset(
-      Number(token1Amount),
-      new Symbol(
-        token1Data.symbol,
-        await getEosioTokenPrecision(token1Data.symbol, token1Data.account)
-      )
-    );
-    const token2Asset = number_to_asset(
-      Number(token2Amount),
-      new Symbol(
-        token2Data.symbol,
-        await getEosioTokenPrecision(token2Data.symbol, token2Data.account)
-      )
-    );
-
-    const [networkAsset] = sortByNetworkTokens(
-      [token1Asset, token2Asset],
+    const [networkAsset, tokenAsset] = sortByNetworkTokens(
+      reserveAssets.map(reserveAsset => reserveAsset.amount),
       asset => asset.symbol.code().to_string()
+    );
+
+    const smartTokenSymbol = await generateSmartTokenSymbol(
+      tokenAsset.symbol.code().to_string(),
+      networkAsset.symbol.code().to_string(),
+      process.env.VUE_APP_SMARTTOKENCONTRACT!
     );
 
     const networkSymbol = networkAsset.symbol.code().to_string();
@@ -629,16 +624,7 @@ export class EosBancorModule extends VuexModule
 
     const actions = await multiContract.kickStartRelay(
       smartTokenSymbol,
-      [
-        {
-          contract: token1Data.account,
-          amount: token1Asset
-        },
-        {
-          contract: token2Data.account,
-          amount: token2Asset
-        }
-      ],
+      reserveAssets,
       Number(initialLiquidity.toFixed(0)),
       poolParams.fee
     );
@@ -1143,12 +1129,8 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async addLiquidity({
-    fundAmount,
     smartTokenSymbol,
-    token1Amount,
-    token1Symbol,
-    token2Amount,
-    token2Symbol,
+    reserves,
     onUpdate
   }: LiquidityParams) {
     const steps: Step[] = [
@@ -1179,10 +1161,8 @@ export class EosBancorModule extends VuexModule
     ];
 
     const relay = this.relay(smartTokenSymbol);
-    const deposits = [
-      { symbol: token1Symbol, amount: token1Amount },
-      { symbol: token2Symbol, amount: token2Amount }
-    ];
+    const deposits = reserves.map(({ id, amount }) => ({ symbol: id, amount }));
+
     const tokenAmounts = deposits.map(deposit => {
       // @ts-ignore
       const { precision, contract, symbol } = relay.reserves.find(
@@ -1203,8 +1183,19 @@ export class EosBancorModule extends VuexModule
       smartTokenSymbol,
       tokenAmounts
     );
+
+    const [{ id, amount }] = reserves;
+
+    const { smartTokenAmount } = await this.calculateOpposingDeposit({
+      smartTokenSymbol,
+      tokenSymbol: id,
+      tokenAmount: amount
+    });
+
+    const fundAmount = smartTokenAmount;
+
     const fundAction = multiContractAction.fund(
-      vxm.wallet.isAuthenticated,
+      this.isAuthenticated,
       number_to_asset(
         Number(fundAmount),
         new Symbol(smartTokenSymbol, 4)
@@ -1291,11 +1282,18 @@ export class EosBancorModule extends VuexModule
   }
 
   @action async removeLiquidity({
-    fundAmount,
+    reserves,
     smartTokenSymbol
   }: LiquidityParams) {
+    const [{ id, amount }] = reserves;
+    const { smartTokenAmount } = await this.calculateOpposingWithdraw({
+      smartTokenSymbol,
+      tokenSymbol: id,
+      tokenAmount: amount
+    });
+
     const liquidityAsset = number_to_asset(
-      Number(fundAmount),
+      Number(smartTokenAmount),
       new Sym(smartTokenSymbol, 4)
     );
 
@@ -1368,21 +1366,9 @@ export class EosBancorModule extends VuexModule
 
   @action async getUserBalances(symbolName: string) {
     const relay = this.relay(symbolName);
-    const [
-      [token1Balance, token2Balance, smartTokenBalance],
-      [token1, token2],
-      supply
-    ] = await Promise.all([
+    const [[smartTokenBalance], reserves, supply] = await Promise.all([
       vxm.network.getBalances({
         tokens: [
-          {
-            contract: relay.reserves[0].contract,
-            symbol: relay.reserves[0].symbol
-          },
-          {
-            contract: relay.reserves[1].contract,
-            symbol: relay.reserves[1].symbol
-          },
           {
             // @ts-ignore
             contract: relay.smartToken.contract,
@@ -1397,18 +1383,15 @@ export class EosBancorModule extends VuexModule
     ]);
 
     const smartSupply = asset_to_number(supply.supply);
-    const token1ReserveBalance = asset_to_number(token1);
-    const token2ReserveBalance = asset_to_number(token2);
-
     const percent = smartTokenBalance.balance / smartSupply;
-    const token1MaxWithdraw = percent * token1ReserveBalance;
-    const token2MaxWithdraw = percent * token2ReserveBalance;
+
+    const maxWithdrawals: ViewAmount[] = reserves.map(reserve => ({
+      id: reserve.symbol.code().to_string(),
+      amount: String(asset_to_number(reserve) * percent)
+    }));
 
     return {
-      token1MaxWithdraw: String(token1MaxWithdraw),
-      token2MaxWithdraw: String(token2MaxWithdraw),
-      token1Balance: String(token1Balance.balance),
-      token2Balance: String(token2Balance.balance),
+      maxWithdrawals,
       smartTokenBalance: String(smartTokenBalance.balance)
     };
   }
