@@ -297,26 +297,6 @@ export class EthBancorModule extends VuexModule
     return vxm.wallet.isAuthenticated;
   }
 
-  @action async deploySmartTokenContract({
-    smartTokenName,
-    smartTokenSymbol,
-    precision
-  }: {
-    smartTokenName: string;
-    smartTokenSymbol: string;
-    precision: number;
-  }): Promise<string> {
-    const contract = buildTokenContract();
-
-    return this.resolveTxOnConfirmation({
-      tx: contract.deploy({
-        data: smartTokenByteCode,
-        arguments: [smartTokenName, smartTokenSymbol, precision]
-      }),
-      gas: 1200000
-    });
-  }
-
   @action async fetchNewConverterAddressFromHash(
     hash: string
   ): Promise<string> {
@@ -454,6 +434,8 @@ export class EthBancorModule extends VuexModule
     });
     console.log(converterRes, "was converter res");
 
+    // TODO
+    // Logic to find new ConverterAddress
     const converterAddress = "ADDRESSOFNEWCONVERTERGOESHERE";
 
     // Calculate amounts of liquidity to be added in WeiForm and fetch the token contract
@@ -500,7 +482,7 @@ export class EthBancorModule extends VuexModule
 
     wait(5000).then(() => this.init());
 
-    return "txHash";
+    return converterRes;
   }
 
   @action async sendTokens(
