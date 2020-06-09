@@ -1274,6 +1274,23 @@ export class EosBancorModule extends VuexModule
     reserves,
     smartTokenSymbol
   }: LiquidityParams) {
+    const relay = findOrThrow(
+      this.relaysList,
+      relay => {
+        const matchingSmartToken = compareString(
+          relay.smartToken.symbol,
+          smartTokenSymbol
+        );
+        const matchingReserves = reserves.every(reserve =>
+          relay.reserves.some(r => compareString(r.symbol, reserve.id))
+        );
+        return matchingSmartToken && matchingReserves;
+      },
+      `failed to find a pool matching smart token symbol ${smartTokenSymbol} and with reserve symbols of ${reserves
+        .map(x => x.id)
+        .join(" ")}`
+    );
+
     const [{ id, amount }] = reserves;
     const { smartTokenAmount } = await this.calculateOpposingWithdraw({
       smartTokenSymbol,
@@ -1293,14 +1310,10 @@ export class EosBancorModule extends VuexModule
         contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
         symbol: smartTokenSymbol
       },
-      ...this.convertableRelays
-        .find(relay =>
-          compareString(relay.smartToken.symbol, smartTokenSymbol)
-        )!
-        .reserves.map(reserve => ({
-          contract: reserve.contract,
-          symbol: reserve.symbol
-        }))
+      ...relay.reserves.map(reserve => ({
+        contract: reserve.contract,
+        symbol: reserve.symbol
+      }))
     ];
 
     const [txRes, originalBalances] = await Promise.all([
