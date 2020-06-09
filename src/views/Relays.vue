@@ -70,7 +70,7 @@
               <div>
                 <b-btn
                   v-if="focusDoesExist"
-                  @click="focusRelay(data.item.smartTokenSymbol)"
+                  @click="focusRelay(data.item.id)"
                   :disabled="!data.item.focusAvailable"
                   size="sm"
                   variant="warning"
@@ -79,7 +79,7 @@
                   <font-awesome-icon icon="chart-line" />
                 </b-btn>
                 <b-btn
-                  @click="goToRelay(data.item.smartTokenSymbol, 'liquidate')"
+                  @click="goToRelay(data.item.id, 'liquidate')"
                   :disabled="!data.item.addRemoveLiquiditySupported"
                   size="sm"
                   variant="success"
@@ -88,7 +88,7 @@
                   <font-awesome-icon icon="minus" />
                 </b-btn>
                 <b-btn
-                  @click="goToRelay(data.item.smartTokenSymbol)"
+                  @click="goToRelay(data.item.id)"
                   :disabled="!data.item.addRemoveLiquiditySupported"
                   size="sm"
                   variant="info"

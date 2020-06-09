@@ -71,13 +71,13 @@ export interface ViewAmount {
 // TODO
 
 export interface LiquidityParams {
-  smartTokenSymbol: string;
+  id: string;
   reserves: ViewAmount[];
   onUpdate?: (index: number, sections: Section[]) => void;
 }
 
 export interface OpposingLiquidParams {
-  smartTokenSymbol: string;
+  id: string;
   tokenSymbol: string;
   tokenAmount: string;
 }
@@ -253,6 +253,7 @@ export interface AgnosticToken {
 }
 
 export interface EosMultiRelay {
+  id: string;
   reserves: AgnosticToken[];
   contract: string;
   owner: string;
@@ -297,12 +298,12 @@ export interface HistoryModule {
 
 export interface FeeParams {
   fee: number;
-  smartTokenSymbol: string;
+  id: string;
 }
 
 export interface NewOwnerParams {
   newOwner: string;
-  smartTokenSymbol: string;
+  id: string;
 }
 
 export interface BaseToken {
@@ -335,7 +336,7 @@ export interface LiquidityModule {
     opposingWithdraw: OpposingLiquidParams
   ) => Promise<OpposingLiquid>;
   getUserBalances: (
-    symbolName: string
+    relayId: string
   ) => Promise<{
     maxWithdrawals: ViewAmount[];
     smartTokenBalance: string;

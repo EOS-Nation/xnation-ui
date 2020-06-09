@@ -3415,6 +3415,7 @@ export const getEthRelays = (): Relay[] => {
         : relay.symbol
     }))
     .map(relay => ({
+      id: relay.smartTokenAddress,
       reserves: [
         {
           symbol: relay.symbol,
@@ -3460,6 +3461,7 @@ export interface Token {
 }
 
 export interface Relay {
+  id: string;
   reserves: Token[];
   smartToken: Token;
   contract: ContractAccount;
@@ -3575,15 +3577,29 @@ const assetStringtoBaseSymbol = (assetString: string): BaseSymbol => {
   return symToBaseSymbol(asset.symbol);
 };
 
+export const buildTokenId = ({
+  contract,
+  symbol
+}: {
+  contract: string;
+  symbol: string;
+}): string => contract + symbol;
+
 export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
 
-  const rawRelays: { rows: ConverterV2Row[] } = await rpc.get_table_rows({
+  const rawRelays: {
+    rows: ConverterV2Row[];
+    more: boolean;
+  } = await rpc.get_table_rows({
     code: process.env.VUE_APP_MULTICONTRACT,
     table: "converter.v2",
     scope: process.env.VUE_APP_MULTICONTRACT,
-    limit: 90
+    limit: 99
   });
+  if (rawRelays.more) {
+    console.warn("Warning, there are more than 99 multi relays!");
+  }
   const parsedRelays = rawRelays.rows;
   const passedRelays = parsedRelays
     .filter(
@@ -3595,7 +3611,13 @@ export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
     )
     .filter(relay => relay.reserve_balances.length == 2);
 
+  const smartTokenContract = process.env.VUE_APP_SMARTTOKENCONTRACT!;
+
   const relays: EosMultiRelay[] = passedRelays.map(relay => ({
+    id: buildTokenId({
+      contract: smartTokenContract,
+      symbol: symToBaseSymbol(new Sym(relay.currency)).symbol
+    }),
     reserves: relay.reserve_balances.map(({ value }) => ({
       ...assetStringtoBaseSymbol(value.quantity),
       contract: value.contract,
@@ -3607,7 +3629,7 @@ export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
     isMultiContract: true,
     smartToken: {
       ...symToBaseSymbol(new Sym(relay.currency)),
-      contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
+      contract: smartTokenContract!,
       amount: 0,
       network: "eos"
     },

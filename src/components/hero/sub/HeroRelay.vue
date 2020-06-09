@@ -27,7 +27,9 @@
           />
           <div class="mb-3 mt-3">
             <div class="text-white font-size-sm">
-              {{ `Your balance: ${smartUserBalance} ${focusedSymbol}` }}
+              {{
+                `Your balance: ${smartUserBalance} ${focusedRelay.smartTokenSymbol}`
+              }}
               <span v-if="rateLoading">
                 <font-awesome-icon icon="circle-notch" spin />
               </span>
@@ -193,7 +195,7 @@ export default class HeroRelay extends Vue {
       ["deleteRelay", "Delete Pool", "trash-alt", "warning"]
     ];
     if (!this.supportedFeatures) return [baseMenus[0]];
-    const features = this.supportedFeatures(this.focusedSymbol)
+    const features = this.supportedFeatures(this.focusedId)
       .map(feature => baseMenus.find(([name]) => name == feature)!)
       .filter(Boolean);
     return features;
@@ -209,7 +211,7 @@ export default class HeroRelay extends Vue {
   }
 
   get focusedRelay() {
-    return this.relay(this.focusedSymbol);
+    return this.relay(this.focusedId);
   }
 
   get owner() {
@@ -305,7 +307,7 @@ export default class HeroRelay extends Vue {
 
   async setOwner() {
     this.updateOwner!({
-      smartTokenSymbol: this.focusedSymbol,
+      id: this.focusedId,
       newOwner: this.newOwner
     });
   }
@@ -318,7 +320,7 @@ export default class HeroRelay extends Vue {
           ? "calculateOpposingWithdraw"
           : "calculateOpposingDeposit"
       ]({
-        smartTokenSymbol: this.focusedSymbol,
+        id: this.focusedId,
         tokenAmount,
         tokenSymbol: this.token1Symbol
       });
@@ -340,7 +342,7 @@ export default class HeroRelay extends Vue {
           ? "calculateOpposingWithdraw"
           : "calculateOpposingDeposit"
       ]({
-        smartTokenSymbol: this.focusedSymbol,
+        id: this.focusedId,
         tokenAmount,
         tokenSymbol: this.token2Symbol
       });
@@ -368,13 +370,13 @@ export default class HeroRelay extends Vue {
   }
 
   async deleteRelay() {
-    await this.removeRelay!(this.focusedSymbol);
+    await this.removeRelay!(this.focusedId);
     this.$router.push({ name: "Relays" });
   }
 
   async setFee() {
     const feeDec = this.feeAmount / 100;
-    this.updateFee!({ fee: feeDec, smartTokenSymbol: this.focusedSymbol });
+    this.updateFee!({ fee: feeDec, id: this.focusedId });
   }
 
   async remove() {
@@ -386,7 +388,7 @@ export default class HeroRelay extends Vue {
     try {
       this.txBusy = true;
       const txResult = await this.removeLiquidity({
-        smartTokenSymbol: this.focusedSymbol,
+        id: this.focusedId,
         reserves: [
           { id: this.token1Symbol, amount: this.token1Amount },
           { id: this.token2Symbol, amount: this.token2Amount }
@@ -415,7 +417,7 @@ export default class HeroRelay extends Vue {
     try {
       this.txBusy = true;
       const txResult = await this.addLiquidity({
-        smartTokenSymbol: this.focusedSymbol,
+        id: this.focusedId,
         reserves: [
           { id: this.token1Symbol, amount: this.token1Amount },
           { id: this.token2Symbol, amount: this.token2Amount }
@@ -437,13 +439,12 @@ export default class HeroRelay extends Vue {
     this.txBusy = false;
   }
 
-  get defaultFocusedSymbol() {
-    return this.relays.find(relay => relay.addRemoveLiquiditySupported)!
-      .smartTokenSymbol;
+  get defaultFocusedId() {
+    return this.relays.find(relay => relay.addRemoveLiquiditySupported)!.id;
   }
 
-  get focusedSymbol() {
-    return this.$route.params.account || this.defaultFocusedSymbol;
+  get focusedId() {
+    return this.$route.params.account || this.defaultFocusedId;
   }
 
   @Watch("isAuthenticated")
@@ -485,8 +486,9 @@ export default class HeroRelay extends Vue {
   async fetchBalances() {
     if (!this.isAuthenticated) return;
     const { maxWithdrawals, smartTokenBalance } = await this.getUserBalances(
-      this.focusedSymbol
+      this.focusedId
     );
+    console.log(smartTokenBalance, 'is smart token balance')
 
     this.updateMaxBalances(maxWithdrawals);
 
