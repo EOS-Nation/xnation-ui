@@ -441,7 +441,9 @@ export default class HeroRelay extends Vue {
   }
 
   get defaultFocusedId() {
-    return this.relays.find(relay => relay.addLiquiditySupported && relay.removeLiquiditySupported)!.id;
+    return this.relays.find(
+      relay => relay.addLiquiditySupported && relay.removeLiquiditySupported
+    )!.id;
   }
 
   get focusedId() {
@@ -489,7 +491,7 @@ export default class HeroRelay extends Vue {
     const { maxWithdrawals, smartTokenBalance } = await this.getUserBalances(
       this.focusedId
     );
-    console.log(smartTokenBalance, 'is smart token balance')
+    console.log(smartTokenBalance, "is smart token balance");
 
     this.updateMaxBalances(maxWithdrawals);
 
