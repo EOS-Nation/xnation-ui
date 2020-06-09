@@ -792,12 +792,12 @@ export class EthBancorModule extends VuexModule
 
   // @ts-ignore
   get relay() {
-    return (symbolName: string) => {
-      const relay = this.relays.find(
-        (relay: any) => relay.smartTokenSymbol == symbolName
+    return (id: string) => {
+      return findOrThrow(
+        this.relays,
+        relay => compareString(relay.id, id),
+        `failed to find relay with id of ${id} in eth relay getter`
       );
-      if (!relay) throw new Error(`Failed to find relay ${symbolName}`);
-      return relay;
     };
   }
 
@@ -931,9 +931,11 @@ export class EthBancorModule extends VuexModule
   @action async calculateOpposingDeposit(
     opposingDeposit: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
-    const { smartTokenSymbol, tokenAmount, tokenSymbol } = opposingDeposit;
-    const smartTokenAddress = this.relayBySmartSymbol(smartTokenSymbol)
-      .smartToken.contract;
+    const { id, tokenAmount, tokenSymbol } = opposingDeposit;
+    const relay = findOrThrow(this.relaysList, relay =>
+      compareString(relay.id, id)
+    );
+    const smartTokenAddress = relay.smartToken.contract;
 
     const { reserves, totalSupplyWei } = await this.fetchRelayBalances(
       smartTokenAddress
@@ -979,10 +981,16 @@ export class EthBancorModule extends VuexModule
     return balance;
   }
 
-  @action async getUserBalances(symbolName: string) {
+  @action async relayById(relayId: string) {
+    return findOrThrow(this.relaysList, relay =>
+      compareString(relay.id, relayId)
+    );
+  }
+
+  @action async getUserBalances(relayId: string) {
     if (!vxm.wallet.isAuthenticated)
       throw new Error("Cannot find users .isAuthenticated");
-    const relay = this.relayBySmartSymbol(symbolName);
+    const relay = await this.relayById(relayId);
 
     const smartTokenUserBalance = await this.getUserBalance(
       relay.smartToken.contract
@@ -1013,9 +1021,11 @@ export class EthBancorModule extends VuexModule
   @action async calculateOpposingWithdraw(
     opposingWithdraw: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
-    const { smartTokenSymbol, tokenAmount, tokenSymbol } = opposingWithdraw;
-    const smartTokenAddress = this.relayBySmartSymbol(smartTokenSymbol)
-      .smartToken.contract;
+    const { id, tokenAmount, tokenSymbol } = opposingWithdraw;
+    const relay = findOrThrow(this.relaysList, relay =>
+      compareString(relay.id, id)
+    );
+    const smartTokenAddress = relay.smartToken.contract;
 
     const { reserves, totalSupplyWei } = await this.fetchRelayBalances(
       smartTokenAddress
@@ -1062,15 +1072,14 @@ export class EthBancorModule extends VuexModule
     };
   }
 
-  @action async removeLiquidity({
-    reserves,
-    smartTokenSymbol
-  }: LiquidityParams) {
-    const relay = this.relayBySmartSymbol(smartTokenSymbol);
+  @action async removeLiquidity({ reserves, id: relayId }: LiquidityParams) {
+    const relay = findOrThrow(this.relaysList, relay =>
+      compareString(relay.id, relayId)
+    );
 
     const [{ id, amount }] = reserves;
     const { smartTokenAmount } = await this.calculateOpposingWithdraw({
-      smartTokenSymbol,
+      id: relayId,
       tokenSymbol: id,
       tokenAmount: amount
     });
@@ -1126,13 +1135,13 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async addLiquidity({
-    smartTokenSymbol,
+    id: relayId,
     reserves,
     onUpdate
   }: LiquidityParams) {
-    const relay = this.relaysList.find(relay =>
-      compareString(relay.smartToken.symbol, smartTokenSymbol)
-    )!;
+    const relay = findOrThrow(this.relaysList, relay =>
+      compareString(relay.id, relayId)
+    );
 
     const matchedBalances = relay.reserves.map(reserve => ({
       ...reserve,
@@ -1161,11 +1170,11 @@ export class EthBancorModule extends VuexModule
 
     onUpdate!(0, steps);
 
-    const [{ id, amount }] = reserves;
+    const [{ id: tokenSymbol, amount: tokenAmount }] = reserves;
     const { smartTokenAmount } = await this.calculateOpposingDeposit({
-      tokenSymbol: id,
-      tokenAmount: amount,
-      smartTokenSymbol
+      tokenSymbol,
+      tokenAmount,
+      id: relayId
     });
 
     const fundAmount = smartTokenAmount;
@@ -1588,6 +1597,7 @@ export class EthBancorModule extends VuexModule
     );
 
     return {
+      id: relayAddresses.smartTokenAddress,
       fee: Number(fee) / 10000,
       owner,
       network: "ETH",

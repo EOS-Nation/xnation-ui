@@ -175,7 +175,7 @@ export default class RelayDetail extends Vue {
 
   get relay() {
     return findOrThrow(vxm.bancor.relays, (relay: any) =>
-      compareString(relay.smartTokenSymbol, this.focusedSymbolName)
+      compareString(relay.id, this.focusedId)
     );
   }
 
@@ -195,7 +195,7 @@ export default class RelayDetail extends Vue {
     return this.relay.reserves;
   }
 
-  get focusedSymbolName() {
+  get focusedId() {
     return this.$router.currentRoute.params.account;
   }
 
@@ -212,7 +212,7 @@ export default class RelayDetail extends Vue {
   goBack() {
     this.$router.push({
       name: "Relay",
-      params: { account: this.focusedSymbolName }
+      params: { account: this.focusedId }
     });
   }
 
@@ -345,7 +345,7 @@ export default class RelayDetail extends Vue {
         inputEnabled: true
       },
       title: {
-        text: this.focusedSymbolName
+        text: this.relay.smartTokenSymbol
       },
       subtitle: {
         text: "ROI"
@@ -393,7 +393,8 @@ export default class RelayDetail extends Vue {
 
   async fetchData() {
     this.loading = true;
-    const data = await vxm.bancor.fetchHistoryData(this.focusedSymbolName);
+    const { smartTokenSymbol } = this.relay;
+    const data = await vxm.bancor.fetchHistoryData(smartTokenSymbol);
     this.data = data;
     this.setChartData(data);
   }
