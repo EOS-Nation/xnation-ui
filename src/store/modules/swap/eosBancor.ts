@@ -1414,6 +1414,10 @@ export class EosBancorModule extends VuexModule
     let suggestTxs = parseInt(String(percentChunkOfRelay / maxSlippage));
     if (suggestTxs == 0) suggestTxs = 1;
 
+    const tooSmall =
+      asset_to_number(pureTimesAsset(smartTokenAmount, 1 / suggestTxs)) == 0;
+    if (tooSmall) suggestTxs = 1;
+
     const steps = Array(suggestTxs)
       .fill(null)
       .map((_, i) => ({
