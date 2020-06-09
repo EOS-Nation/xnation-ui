@@ -1686,7 +1686,7 @@ export class EosBancorModule extends VuexModule
     const calculatedCost = findCost(assetAmount, hydratedRelays);
 
     return {
-      amount: calculatedCost.amount.to_string().split(" ")[0],
+      amount: String(asset_to_number(calculatedCost.amount)),
       slippage: calculatedCost.highestSlippage
     };
   }
