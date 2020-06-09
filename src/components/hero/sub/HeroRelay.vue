@@ -393,7 +393,8 @@ export default class HeroRelay extends Vue {
         reserves: [
           { id: this.token1Symbol, amount: this.token1Amount },
           { id: this.token2Symbol, amount: this.token2Amount }
-        ]
+        ],
+        onUpdate: this.onUpdate
       });
       this.fetchBalances();
       wait(7000).then(() => this.fetchBalances());

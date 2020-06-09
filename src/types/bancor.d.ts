@@ -84,7 +84,6 @@ export interface OpposingLiquidParams {
 
 export interface OpposingLiquid {
   opposingAmount: string;
-  smartTokenAmount: string;
 }
 
 export interface Section {

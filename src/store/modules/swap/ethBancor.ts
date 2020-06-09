@@ -67,6 +67,10 @@ import {
 } from "@/api/zumZoom";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 
+interface EthOpposingLiquid extends OpposingLiquid {
+  smartTokenAmount: string;
+}
+
 const relayIncludesAtLeastOneNetworkToken = (relay: Relay) =>
   relay.reserves.some(reserve => networkTokens.includes(reserve.symbol));
 
@@ -930,7 +934,7 @@ export class EthBancorModule extends VuexModule
 
   @action async calculateOpposingDeposit(
     opposingDeposit: OpposingLiquidParams
-  ): Promise<OpposingLiquid> {
+  ): Promise<EthOpposingLiquid> {
     const { id, tokenAmount, tokenSymbol } = opposingDeposit;
     const relay = findOrThrow(this.relaysList, relay =>
       compareString(relay.id, id)
@@ -1020,7 +1024,7 @@ export class EthBancorModule extends VuexModule
 
   @action async calculateOpposingWithdraw(
     opposingWithdraw: OpposingLiquidParams
-  ): Promise<OpposingLiquid> {
+  ): Promise<EthOpposingLiquid> {
     const { id, tokenAmount, tokenSymbol } = opposingWithdraw;
     const relay = findOrThrow(this.relaysList, relay =>
       compareString(relay.id, id)
