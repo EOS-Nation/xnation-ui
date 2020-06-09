@@ -111,8 +111,6 @@ const compareEosMultiToDry = (multi: EosMultiRelay, dry: DryRelay) =>
     })
   );
 
-
-
 const fetchBalanceAssets = async (
   tokens: { symbol: string; contract: string }[],
   account: string
@@ -1368,16 +1366,13 @@ export class EosBancorModule extends VuexModule
       vxm.network.getBalances({
         tokens: [
           {
-            // @ts-ignore
             contract: relay.smartToken.contract,
-            // @ts-ignore
             symbol: relay.smartToken.symbol
           }
         ]
       }),
       this.fetchRelayReservesAsAssets(relayId),
-      // @ts-ignore
-      fetchTokenStats(relay.smartToken.contract, symbolName)
+      fetchTokenStats(relay.smartToken.contract, relay.smartToken.symbol)
     ]);
 
     const smartSupply = asset_to_number(supply.supply);
