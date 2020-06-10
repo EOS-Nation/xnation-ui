@@ -19,6 +19,7 @@ import { vxm } from "@/store";
 import _ from "lodash";
 import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
+import { Asset, asset_to_number } from "eos-common";
 
 const compareToken = (
   a: TokenBalanceParam | TokenBalanceReturn,
@@ -27,9 +28,10 @@ const compareToken = (
 
 const pickBalanceReturn = (data: any): TokenBalanceReturn => {
   const res = _.pick(data, ["balance", "contract", "symbol"]);
-  if (!res.contract || !res.symbol) throw new Error("Failed to parse contract or symbol in pickBalanceReturn");
+  if (!res.contract || !res.symbol)
+    throw new Error("Failed to parse contract or symbol in pickBalanceReturn");
   return res;
-}
+};
 
 const tokenBalanceToTokenBalanceReturn = (
   token: TokenBalance
@@ -135,7 +137,7 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
     const balances = await Promise.all(
       tokens.map(async token => {
         const balance = await getBalance(token.contract, token.symbol);
-        return { ...token, balance: Number(balance.split(" ")[0]) };
+        return { ...token, balance: asset_to_number(new Asset(balance)) };
       })
     );
     return balances;
