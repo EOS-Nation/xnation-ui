@@ -496,7 +496,7 @@ export class EosBancorModule extends VuexModule
             return {
               symbol: tokenMeta.symbol,
               contract: tokenMeta.account,
-              balance: balance && balance.amount,
+              balance: balance && balance.balance,
               img: tokenMeta.logo
             };
           })
@@ -543,7 +543,7 @@ export class EosBancorModule extends VuexModule
       }
     ].map(choice => ({
       ...choice,
-      balance: this.balance(choice) && this.balance(choice)!.amount,
+      balance: this.balance(choice) && this.balance(choice)!.balance,
       img: this.tokenMetaObj(choice.symbol).logo
     }));
   }

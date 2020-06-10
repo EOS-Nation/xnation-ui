@@ -25,6 +25,12 @@ const compareToken = (
   b: TokenBalanceParam | TokenBalanceReturn
 ) => compareString(a.contract, b.contract) && compareString(a.symbol, b.symbol);
 
+const pickBalanceReturn = (data: any): TokenBalanceReturn => {
+  const res = _.pick(data, ["balance", "contract", "symbol"]);
+  if (!res.contract || !res.symbol) throw new Error("Failed to parse contract or symbol in pickBalanceReturn");
+  return res;
+}
+
 const tokenBalanceToTokenBalanceReturn = (
   token: TokenBalance
 ): TokenBalanceReturn => ({ ...token, balance: token.amount });
@@ -188,7 +194,7 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
 
   @mutation updateTokenBalances(tokens: TokenBalanceReturn[]) {
     this.tokenBalances = _.uniqWith(
-      [...tokens, ...this.tokenBalances],
+      [...tokens.map(pickBalanceReturn), ...this.tokenBalances],
       compareToken
     );
   }
