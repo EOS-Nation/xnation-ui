@@ -248,7 +248,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     propose: ProposedTransaction;
     useFrom: boolean;
   }) {
-    const { fromSymbol, amount, toSymbol } = propose;
+    const { from, toId } = propose;
 
     const tokens = tokensToArray(this.tokensObj!);
 

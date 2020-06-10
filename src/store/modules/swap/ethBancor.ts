@@ -1,6 +1,7 @@
 import { VuexModule, mutation, action, Module } from "vuex-class-component";
 import {
-  ProposedTransaction,
+  ProposedFromTransaction,
+  ProposedToTransaction,
   ProposedConvertTransaction,
   LiquidityParams,
   OpposingLiquidParams,
@@ -935,10 +936,9 @@ export class EthBancorModule extends VuexModule
   @action async calculateOpposingDeposit(
     opposingDeposit: OpposingLiquidParams
   ): Promise<EthOpposingLiquid> {
-    const { id, tokenAmount, tokenSymbol } = opposingDeposit;
-    const relay = findOrThrow(this.relaysList, relay =>
-      compareString(relay.id, id)
-    );
+    const { id, reserve } = opposingDeposit;
+    const relay = await this.relayById(id);
+    
     const smartTokenAddress = relay.smartToken.contract;
 
     const { reserves, totalSupplyWei } = await this.fetchRelayBalances(

@@ -53,10 +53,14 @@ export interface TokenBalances {
   tokens: TokenBalance[];
 }
 
-export interface ProposedTransaction {
-  fromSymbol: string;
-  toSymbol: string;
-  amount: FloatAmount;
+export interface ProposedFromTransaction {
+  from: ViewAmount;
+  toId: string;
+}
+
+export interface ProposedToTransaction {
+  to: ViewAmount;
+  fromId: string;
 }
 
 export interface ViewAmount {
@@ -78,8 +82,7 @@ export interface LiquidityParams {
 
 export interface OpposingLiquidParams {
   id: string;
-  tokenSymbol: string;
-  tokenAmount: string;
+  reserve: ViewAmount;
 }
 
 export interface OpposingLiquid {
@@ -92,10 +95,8 @@ export interface Section {
 }
 
 export interface ProposedConvertTransaction {
-  fromSymbol: string;
-  toSymbol: string;
-  fromAmount: FloatAmount;
-  toAmount: FloatAmount;
+  from: ViewAmount;
+  to: ViewAmount;
   onUpdate?: (index: number, sections: Section[]) => void;
 }
 
@@ -170,7 +171,7 @@ export interface ConvertReturn {
 }
 
 export interface ViewToken {
-  id?: string;
+  id: string;
   symbol: string;
   name: string;
   price?: number;
@@ -245,6 +246,7 @@ export interface TokenMeta {
 }
 
 export interface AgnosticToken {
+  id: string;
   contract: string;
   precision: number;
   symbol: string;
