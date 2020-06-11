@@ -72,7 +72,7 @@
           <template v-slot:cell(actions)="data">
             <span>
               <b-btn
-                @click="initAction('convert', data.item.symbol)"
+                @click="initAction('convert', data.item.id)"
                 size="sm"
                 variant="success"
                 class="mr-1"
@@ -80,7 +80,7 @@
                 <font-awesome-icon icon="exchange-alt" />
               </b-btn>
               <b-btn
-                @click="initAction('transfer', data.item.symbol)"
+                @click="initAction('transfer', data.item.id)"
                 size="sm"
                 variant="info"
               >

@@ -313,7 +313,6 @@ export interface BaseToken {
   contract: string;
   symbol: string;
 }
-
 export interface PromiseEvent {
   name: string;
   description: string;

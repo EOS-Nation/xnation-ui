@@ -147,9 +147,17 @@ const addDefaultQueryParams = (to: Route): any => {
         to
       );
     case "eth":
-      return appendBaseQuoteQuery("BNT", "ETH", to);
+      return appendBaseQuoteQuery(
+        "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315",
+        "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c",
+        to
+      );
     case "usds":
-      return appendBaseQuoteQuery("USDT", "EOSDT", to);
+      return appendBaseQuoteQuery(
+        buildTokenId({ contract: "eosdtsttoken", symbol: "EOSDT" }),
+        buildTokenId({ contract: "tethertether", symbol: "USDT" }),
+        to
+      );
     default:
       throw new Error("Unrecognised service!");
   }

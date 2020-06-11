@@ -869,7 +869,7 @@ export class EosBancorModule extends VuexModule
           reserves: sortedReserves.map((reserve: AgnosticToken) => ({
             ...reserve,
             reserveId: relay.smartToken.symbol + reserve.symbol,
-            logo: [this.token(reserve.symbol).logo],
+            logo: [this.token(reserve.id).logo],
             ...(reserve.amount && { balance: reserve.amount })
           }))
         };

@@ -788,22 +788,21 @@ export class EthBancorModule extends VuexModule
   }
 
   get token(): (arg0: string) => any {
-    return (symbolName: string) => {
-      const token = this.tokens.find(token => token.symbol == symbolName)!;
-      if (!token) throw new Error(`Failed to find token ${symbolName}`);
-      return token;
-    };
+    return (id: string) =>
+      findOrThrow(
+        this.tokens,
+        token => compareString(token.id, id),
+        `failed to find token() with ID ${id} ethBancor`
+      );
   }
 
-  // @ts-ignore
   get relay() {
-    return (id: string) => {
-      return findOrThrow(
+    return (id: string) =>
+      findOrThrow(
         this.relays,
         relay => compareString(relay.id, id),
         `failed to find relay with id of ${id} in eth relay getter`
       );
-    };
   }
 
   get relayBySmartSymbol() {
@@ -876,6 +875,7 @@ export class EthBancorModule extends VuexModule
             relay.reserves.map(reserve => {
               const meta = this.tokenMetaObj(reserve.contract);
               return {
+                id: reserve.contract,
                 reserveId: relay.smartToken.contract + reserve.contract,
                 logo: [meta.image],
                 symbol: reserve.symbol,

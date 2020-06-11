@@ -68,7 +68,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     return this.newTokens
       .map(token => {
         let name, logo: string;
-        console.log("token", token, "really it");
+        const { contract, symbol } = token;
 
         try {
           const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(
@@ -83,12 +83,16 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           logo =
             "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f39c32b0-cfae-11e9-9f7d-af4705d95e66.jpeg";
         }
-        const tokenBalance = vxm.eosNetwork.balance({
-          contract: token.contract,
-          symbol: token.symbol
-        });
+
+        const baseToken: BaseToken = {
+          contract,
+          symbol
+        };
+        const tokenBalance = vxm.eosNetwork.balance(baseToken);
+
         return {
           ...token,
+          id: buildTokenId(baseToken),
           name,
           logo,
           balance: tokenBalance && tokenBalance.balance
@@ -99,9 +103,11 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
   get token() {
     return (arg0: string) => {
-      const token = this.tokens.find(token => token.symbol == arg0);
-      if (!token) throw new Error("Cannot find token");
-      return token;
+      return findOrThrow(
+        this.tokens,
+        token => compareString(token.id, arg0),
+        `getter: token ${arg0}`
+      );
     };
   }
 
@@ -179,7 +185,11 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   }
 
   @action async tokenById(id: string) {
-    return findOrThrow(this.newTokens, token => compareString(token.id, id));
+    return findOrThrow(
+      this.newTokens,
+      token => compareString(token.id, id),
+      `failed to find ${id} in sx tokenById`
+    );
   }
 
   @action async viewAmountToAsset(amount: ViewAmount) {
