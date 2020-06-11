@@ -230,9 +230,8 @@ export default class HeroRelay extends Vue {
     return this.token2!.id;
   }
 
-
   get token1Img() {
-    return this.token2!.logo;
+    return this.token1!.logo;
   }
 
   get token2Img() {
