@@ -3,7 +3,8 @@
     <b-row>
       <b-col md="4">
         <token-field
-          :symbol.sync="symbolOne"
+          :tokenId.sync="idOne"
+          :symbol="tokenOneSymbol"
           :amount.sync="amountOne"
           :clickable="tokenOneClickable"
           @clicked="tokenOneClicked"
@@ -25,7 +26,8 @@
       </b-col>
       <b-col md="4">
         <token-field
-          :symbol.sync="symbolTwo"
+          :tokenId.sync="idTwo"
+          :symbol="tokenTwoSymbol"
           :amount.sync="amountTwo"
           :clickable="tokenTwoClickable"
           @clicked="tokenTwoClicked"
@@ -59,13 +61,15 @@ import TokenField from "@/components/convert/TokenField.vue";
   }
 })
 export default class HeroConvert extends Vue {
-  @PropSync("tokenOneSymbol", { type: String }) symbolOne!: string;
+  @PropSync("tokenOneId", { type: String }) idOne!: string;
+  @Prop(String) tokenOneSymbol!: string;
   @PropSync("tokenOneAmount", { type: String }) amountOne!: string;
   @Prop(Number) tokenOneBalance?: number;
   @Prop(String) tokenOneImg!: string;
   @Prop(String) tokenOneError?: string;
   @Prop(Array) tokenOneErrors?: string[];
-  @PropSync("tokenTwoSymbol", { type: String }) symbolTwo!: string;
+  @PropSync("tokenTwoId", { type: String }) idTwo!: string;
+  @Prop(String) tokenTwoSymbol!: string;
   @PropSync("tokenTwoAmount", { type: String }) amountTwo!: string;
   @Prop(Number) tokenTwoBalance?: number;
   @Prop(String) tokenTwoImg!: string;

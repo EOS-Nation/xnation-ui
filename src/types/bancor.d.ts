@@ -189,6 +189,7 @@ interface TokenWithLogo extends AgnosticToken {
 
 export interface ViewReserve {
   reserveId: string;
+  id: string;
   smartTokenSymbol: string;
   logo: string[];
   symbol: string;
@@ -232,8 +233,8 @@ export interface TradingModule {
   refreshBalances: (symbols?: BaseToken[]) => Promise<void>;
   convert: (propose: ProposedConvertTransaction) => Promise<string>;
   focusSymbol: (symbolName: string) => Promise<void>;
-  getReturn: (propose: ProposedTransaction) => Promise<ConvertReturn>;
-  getCost: (propose: ProposedTransaction) => Promise<ConvertReturn>;
+  getReturn: (propose: ProposedFromTransaction) => Promise<ConvertReturn>;
+  getCost: (propose: ProposedToTransaction) => Promise<ConvertReturn>;
 }
 
 export interface TokenMeta {

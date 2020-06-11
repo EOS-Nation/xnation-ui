@@ -3620,6 +3620,10 @@ export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
     }),
     reserves: relay.reserve_balances.map(({ value }) => ({
       ...assetStringtoBaseSymbol(value.quantity),
+      id: buildTokenId({
+        contract: value.contract,
+        symbol: assetStringtoBaseSymbol(value.quantity).symbol
+      }),
       contract: value.contract,
       network: "eos",
       amount: asset_to_number(new Asset(value.quantity))
@@ -3629,6 +3633,10 @@ export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
     isMultiContract: true,
     smartToken: {
       ...symToBaseSymbol(new Sym(relay.currency)),
+      id: buildTokenId({
+        contract: smartTokenContract,
+        symbol: symToBaseSymbol(new Sym(relay.currency)).symbol
+      }),
       contract: smartTokenContract!,
       amount: 0,
       network: "eos"

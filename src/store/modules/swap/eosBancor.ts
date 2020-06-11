@@ -1,6 +1,5 @@
 import { VuexModule, action, Module, mutation } from "vuex-class-component";
 import {
-  ProposedTransaction,
   ProposedConvertTransaction,
   TokenPrice,
   TradingModule,
@@ -23,8 +22,8 @@ import {
   Step,
   TokenMeta,
   ViewAmount,
-  ProposedToTransaction,
-  ProposedFromTransaction
+  ProposedFromTransaction,
+  ProposedToTransaction
 } from "@/types/bancor";
 import { bancorApi, ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -71,8 +70,6 @@ const pureTimesAsset = (asset: Asset, multiplier: number) => {
   const newAsset = new Asset(asset.to_string());
   return newAsset.times(multiplier);
 };
-
-const hardCodedV2SmartTokenPrecision = 4;
 
 const tokenContractSupportsOpen = async (contractName: string) => {
   const abiConf = await rpc.get_abi(contractName);
@@ -793,9 +790,9 @@ export class EosBancorModule extends VuexModule
   }
 
   get token(): (arg0: string) => ViewToken {
-    return (symbolName: string) => {
+    return (id: string) => {
       const tradableToken = this.tokens.find(token =>
-        compareString(token.symbol, symbolName)
+        compareString(token.id, id)
       );
 
       if (tradableToken) {
@@ -803,8 +800,8 @@ export class EosBancorModule extends VuexModule
       } else {
         const token = findOrThrow(
           this.relaysList.flatMap(relay => relay.reserves),
-          token => compareString(token.symbol, symbolName),
-          `Failed to find token ${symbolName} in this.token on EOS`
+          token => compareString(token.id, id),
+          `Failed to find token ${id} in this.token on EOS`
         );
 
         const meta = this.tokenMetaObj(token.symbol);

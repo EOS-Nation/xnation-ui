@@ -938,18 +938,17 @@ export class EthBancorModule extends VuexModule
   ): Promise<EthOpposingLiquid> {
     const { id, reserve } = opposingDeposit;
     const relay = await this.relayById(id);
-    
+
+    const reserveToken = await this.tokenById(reserve.id);
+
+    const tokenSymbol = reserveToken.symbol;
+    const tokenAmount = reserveToken.id;
+
     const smartTokenAddress = relay.smartToken.contract;
 
     const { reserves, totalSupplyWei } = await this.fetchRelayBalances(
       smartTokenAddress
     );
-
-    const tokenSymbolIncludedInReserves = reserves.some(reserve =>
-      compareString(reserve.symbol, tokenSymbol)
-    );
-    if (!tokenSymbolIncludedInReserves)
-      throw new Error(`Failed to find token ${tokenSymbol} in this pool`);
 
     const [sameReserve, opposingReserve] = sortByNetworkTokens(
       reserves,
@@ -1025,10 +1024,11 @@ export class EthBancorModule extends VuexModule
   @action async calculateOpposingWithdraw(
     opposingWithdraw: OpposingLiquidParams
   ): Promise<EthOpposingLiquid> {
-    const { id, tokenAmount, tokenSymbol } = opposingWithdraw;
-    const relay = findOrThrow(this.relaysList, relay =>
-      compareString(relay.id, id)
-    );
+    const { id, reserve } = opposingWithdraw;
+    const tokenAmount = reserve.amount;
+    const sameReserveToken = await this.tokenById(reserve.id);
+
+    const relay = await this.relayById(id);
     const smartTokenAddress = relay.smartToken.contract;
 
     const { reserves, totalSupplyWei } = await this.fetchRelayBalances(
@@ -1038,7 +1038,7 @@ export class EthBancorModule extends VuexModule
     const [sameReserve, opposingReserve] = sortByNetworkTokens(
       reserves,
       reserve => reserve.symbol,
-      [tokenSymbol]
+      [sameReserveToken.symbol]
     );
 
     const sameReserveWei = expandToken(tokenAmount, sameReserve.decimals);
@@ -1081,11 +1081,9 @@ export class EthBancorModule extends VuexModule
       compareString(relay.id, relayId)
     );
 
-    const [{ id, amount }] = reserves;
     const { smartTokenAmount } = await this.calculateOpposingWithdraw({
       id: relayId,
-      tokenSymbol: id,
-      tokenAmount: amount
+      reserve: reserves[0]
     });
 
     const converterContract = buildConverterContract(relay.contract);
@@ -1174,10 +1172,8 @@ export class EthBancorModule extends VuexModule
 
     onUpdate!(0, steps);
 
-    const [{ id: tokenSymbol, amount: tokenAmount }] = reserves;
     const { smartTokenAmount } = await this.calculateOpposingDeposit({
-      tokenSymbol,
-      tokenAmount,
+      reserve: reserves[0],
       id: relayId
     });
 
@@ -1783,14 +1779,21 @@ export class EthBancorModule extends VuexModule
     }
   }
 
-  @action async convert({
-    fromSymbol,
-    toSymbol,
-    fromAmount,
-    toAmount,
-    onUpdate
-  }: ProposedConvertTransaction) {
-    const fromIsEth = compareString(fromSymbol, "eth");
+  @action async tokenById(id: string) {
+    return findOrThrow(
+      this.tokens,
+      token => compareString(token.id, id),
+      `tokenById failed to find token with ID ${id} `
+    );
+  }
+
+  @action async tokensById(ids: string[]) {
+    return Promise.all(ids.map(id => this.tokenById(id)));
+  }
+
+  @action async convert({ from, to, onUpdate }: ProposedConvertTransaction) {
+    const [fromToken, toToken] = await this.tokensById([from.id, to.id]);
+    const fromIsEth = compareString(fromToken.symbol, "eth");
 
     const steps: Section[] = [
       {
@@ -1818,23 +1821,14 @@ export class EthBancorModule extends VuexModule
 
     onUpdate!(0, steps);
 
-    const fromToken = this.tokens.find(x => x.symbol == fromSymbol)!;
-    const toToken = this.tokens.find(x => x.symbol == toSymbol)!;
-
-    const [fromTokenContract, toTokenContract] = [fromToken, toToken].map(
-      token => token.id!
-    );
-
     const fromTokenDecimals = await this.getDecimalsByTokenAddress(
-      fromTokenContract
+      fromToken.id
     );
-    const toTokenDecimals = await this.getDecimalsByTokenAddress(
-      toTokenContract
-    );
+    const toTokenDecimals = await this.getDecimalsByTokenAddress(toToken.id);
 
     const { dryRelays } = createPath(
-      fromSymbol,
-      toSymbol,
+      fromToken.symbol,
+      toToken.symbol,
       this.relaysList.map(
         (relay): DryRelay => ({
           contract: relay.contract,
@@ -1848,6 +1842,12 @@ export class EthBancorModule extends VuexModule
         })
       )
     );
+
+    const fromAmount = from.amount;
+    const toAmount = Number(to.amount);
+    const fromSymbol = fromToken.symbol;
+    const fromTokenContract = fromToken.id;
+    const toTokenContract = toToken.id;
 
     if (fromIsEth) {
       onUpdate!(1, steps);
@@ -1984,17 +1984,11 @@ export class EthBancorModule extends VuexModule
     return reserve.decimals;
   }
 
-  @action async getReturn({
-    fromSymbol,
-    toSymbol,
-    amount
-  }: ProposedTransaction) {
-    const fromToken = this.tokens.find(x => x.symbol == fromSymbol)!;
-    const toToken = this.tokens.find(x => x.symbol == toSymbol)!;
+  @action async getReturn({ from, toId }: ProposedFromTransaction) {
+    const [fromToken, toToken] = await this.tokensById([from.id, toId]);
 
-    const [fromTokenContract, toTokenContract] = [fromToken, toToken].map(
-      token => token.id!
-    );
+    const [fromTokenContract, toTokenContract] = [fromToken.id, toToken.id];
+    const amount = from.amount;
 
     const fromTokenDecimals = await this.getDecimalsByTokenAddress(
       fromTokenContract
@@ -2004,8 +1998,8 @@ export class EthBancorModule extends VuexModule
     );
 
     const { dryRelays } = createPath(
-      fromSymbol,
-      toSymbol,
+      fromToken.symbol,
+      toToken.symbol,
       this.relaysList.map(
         (x): DryRelay => ({
           contract: x.contract,
@@ -2020,9 +2014,8 @@ export class EthBancorModule extends VuexModule
       )
     );
 
-    const path = generateEthPath(fromSymbol, dryRelays);
+    const path = generateEthPath(fromToken.symbol, dryRelays);
 
-    console.log("expanding", amount, "with decimals", fromTokenDecimals);
     const wei = await this.getReturnByPath({
       path,
       amount: expandToken(amount, fromTokenDecimals)
@@ -2033,13 +2026,13 @@ export class EthBancorModule extends VuexModule
     };
   }
 
-  @action async getCost({ fromSymbol, toSymbol, amount }: ProposedTransaction) {
-    const fromToken = this.tokens.find(x => x.symbol == fromSymbol)!;
-    const toToken = this.tokens.find(x => x.symbol == toSymbol)!;
+  @action async getCost({ fromId, to }: ProposedToTransaction) {
+    const fromToken = await this.tokenById(fromId);
+    const toToken = await this.tokenById(to.id);
 
-    const [fromTokenContract, toTokenContract] = [fromToken, toToken].map(
-      token => token.id!
-    );
+    const amount = to.amount;
+
+    const [fromTokenContract, toTokenContract] = [fromToken.id, toToken.id];
 
     const fromTokenDecimals = await this.getDecimalsByTokenAddress(
       fromTokenContract
@@ -2049,8 +2042,8 @@ export class EthBancorModule extends VuexModule
     );
 
     const { dryRelays } = createPath(
-      fromSymbol,
-      toSymbol,
+      fromToken.symbol,
+      toToken.symbol,
       this.relaysList.map(
         (x): DryRelay => ({
           contract: x.contract,
@@ -2077,8 +2070,8 @@ export class EthBancorModule extends VuexModule
       throw new Error("Fetching the cost of this token is not yet supported.");
 
     const [fromTokenTicker, toTokenTicker] = await Promise.all([
-      ethBancorApi.getToken(fromSymbol),
-      ethBancorApi.getToken(toSymbol)
+      ethBancorApi.getToken(fromToken.symbol),
+      ethBancorApi.getToken(toToken.symbol)
     ]);
     const fromTokenId = fromTokenTicker._id;
     const toTokenId = toTokenTicker._id;

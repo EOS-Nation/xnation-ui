@@ -236,11 +236,11 @@ export default class HeroRelay extends Vue {
   }
 
   get token1() {
-    return this.token(this.focusedRelay.reserves[0].symbol)!;
+    return this.token(this.focusedRelay.reserves[0].id)!;
   }
 
   get token2() {
-    return this.token(this.focusedRelay.reserves[1].symbol)!;
+    return this.token(this.focusedRelay.reserves[1].id)!;
   }
 
   get fee() {
@@ -322,8 +322,7 @@ export default class HeroRelay extends Vue {
           : "calculateOpposingDeposit"
       ]({
         id: this.focusedId,
-        tokenAmount,
-        tokenSymbol: this.token1Symbol
+        reserve: { id: this.token1Symbol, amount: tokenAmount }
       });
       this.token2Amount = opposingAmount;
       this.token1Error = "";
@@ -344,8 +343,7 @@ export default class HeroRelay extends Vue {
           : "calculateOpposingDeposit"
       ]({
         id: this.focusedId,
-        tokenAmount,
-        tokenSymbol: this.token2Symbol
+        reserve: { id: this.token2Symbol, amount: this.token1Amount }
       });
       this.token1Amount = opposingAmount;
       this.token2Error = "";
