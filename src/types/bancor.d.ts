@@ -53,10 +53,14 @@ export interface TokenBalances {
   tokens: TokenBalance[];
 }
 
-export interface ProposedTransaction {
-  fromSymbol: string;
-  toSymbol: string;
-  amount: FloatAmount;
+export interface ProposedFromTransaction {
+  from: ViewAmount;
+  toId: string;
+}
+
+export interface ProposedToTransaction {
+  to: ViewAmount;
+  fromId: string;
 }
 
 export interface ViewAmount {
@@ -78,8 +82,7 @@ export interface LiquidityParams {
 
 export interface OpposingLiquidParams {
   id: string;
-  tokenSymbol: string;
-  tokenAmount: string;
+  reserve: ViewAmount;
 }
 
 export interface OpposingLiquid {
@@ -92,10 +95,8 @@ export interface Section {
 }
 
 export interface ProposedConvertTransaction {
-  fromSymbol: string;
-  toSymbol: string;
-  fromAmount: FloatAmount;
-  toAmount: FloatAmount;
+  from: ViewAmount;
+  to: ViewAmount;
   onUpdate?: (index: number, sections: Section[]) => void;
 }
 
@@ -170,7 +171,7 @@ export interface ConvertReturn {
 }
 
 export interface ViewToken {
-  id?: string;
+  id: string;
   symbol: string;
   name: string;
   price?: number;
@@ -188,6 +189,7 @@ interface TokenWithLogo extends AgnosticToken {
 
 export interface ViewReserve {
   reserveId: string;
+  id: string;
   smartTokenSymbol: string;
   logo: string[];
   symbol: string;
@@ -231,8 +233,8 @@ export interface TradingModule {
   refreshBalances: (symbols?: BaseToken[]) => Promise<void>;
   convert: (propose: ProposedConvertTransaction) => Promise<string>;
   focusSymbol: (symbolName: string) => Promise<void>;
-  getReturn: (propose: ProposedTransaction) => Promise<ConvertReturn>;
-  getCost: (propose: ProposedTransaction) => Promise<ConvertReturn>;
+  getReturn: (propose: ProposedFromTransaction) => Promise<ConvertReturn>;
+  getCost: (propose: ProposedToTransaction) => Promise<ConvertReturn>;
 }
 
 export interface TokenMeta {
@@ -245,6 +247,7 @@ export interface TokenMeta {
 }
 
 export interface AgnosticToken {
+  id: string;
   contract: string;
   precision: number;
   symbol: string;
@@ -310,7 +313,6 @@ export interface BaseToken {
   contract: string;
   symbol: string;
 }
-
 export interface PromiseEvent {
   name: string;
   description: string;

@@ -8,7 +8,8 @@ import {
   TokenBalances,
   EosMultiRelay,
   Converter,
-  TokenMeta
+  TokenMeta,
+  BaseToken
 } from "@/types/bancor";
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
@@ -3607,13 +3608,8 @@ const assetStringtoBaseSymbol = (assetString: string): BaseSymbol => {
   return symToBaseSymbol(asset.symbol);
 };
 
-export const buildTokenId = ({
-  contract,
-  symbol
-}: {
-  contract: string;
-  symbol: string;
-}): string => contract + symbol;
+export const buildTokenId = ({ contract, symbol }: BaseToken): string =>
+  contract + symbol;
 
 export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
@@ -3650,6 +3646,10 @@ export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
     }),
     reserves: relay.reserve_balances.map(({ value }) => ({
       ...assetStringtoBaseSymbol(value.quantity),
+      id: buildTokenId({
+        contract: value.contract,
+        symbol: assetStringtoBaseSymbol(value.quantity).symbol
+      }),
       contract: value.contract,
       network: "eos",
       amount: asset_to_number(new Asset(value.quantity))
@@ -3659,6 +3659,10 @@ export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
     isMultiContract: true,
     smartToken: {
       ...symToBaseSymbol(new Sym(relay.currency)),
+      id: buildTokenId({
+        contract: smartTokenContract,
+        symbol: symToBaseSymbol(new Sym(relay.currency)).symbol
+      }),
       contract: smartTokenContract!,
       amount: 0,
       network: "eos"

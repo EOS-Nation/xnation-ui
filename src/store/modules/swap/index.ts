@@ -1,6 +1,5 @@
 import { VuexModule, action, Module, mutation } from "vuex-class-component";
 import {
-  ProposedTransaction,
   ProposedConvertTransaction,
   LiquidityParams,
   OpposingLiquidParams,
@@ -8,7 +7,9 @@ import {
   NetworkChoice,
   FeeParams,
   NewOwnerParams,
-  HistoryRow
+  HistoryRow,
+  ProposedToTransaction,
+  ProposedFromTransaction
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -183,11 +184,11 @@ export class BancorModule extends VuexModule {
     return this.dispatcher(["createPool", newPoolParams]);
   }
 
-  @action async getCost(proposedTransaction: ProposedTransaction) {
+  @action async getCost(proposedTransaction: ProposedToTransaction) {
     return this.dispatcher(["getCost", proposedTransaction]);
   }
 
-  @action async getReturn(proposedTransaction: ProposedTransaction) {
+  @action async getReturn(proposedTransaction: ProposedFromTransaction) {
     return this.dispatcher(["getReturn", proposedTransaction]);
   }
 

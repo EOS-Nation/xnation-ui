@@ -1,14 +1,16 @@
 <template>
   <hero-wrapper>
     <two-token-hero
-      :tokenOneSymbol.sync="fromTokenSymbol"
+      :tokenOneId.sync="fromTokenId"
+      :tokenTwoId.sync="toTokenId"
+      :tokenOneSymbol="fromToken.symbol"
       :tokenOneAmount.sync="fromTokenAmount"
       :tokenOneErrors="fromTokenErrors"
       @update:tokenOneAmount="updatePriceReturn"
       @update:tokenTwoAmount="updatePriceCost"
       :tokenOneBalance="fromToken.balance"
       :tokenOneImg="fromToken.logo"
-      :tokenTwoSymbol.sync="toTokenSymbol"
+      :tokenTwoSymbol="toToken.symbol"
       :tokenTwoAmount.sync="toTokenAmount"
       :tokenTwoBalance="toToken.balance"
       :tokenTwoImg="toToken.logo"
@@ -33,7 +35,7 @@
           </span>
           <div class="text-white font-size-sm">
             {{
-              `1 ${fromTokenSymbol} = $${(
+              `1 ${fromToken.symbol} = $${(
                 this.toToken.price * this.reward
               ).toFixed(2)} USD`
             }}
@@ -85,14 +87,14 @@
           :error="error"
           :success="success"
           :leftImg="fromToken.logo"
-          :leftTitle="`${fromTokenAmount} ${fromTokenSymbol}`"
+          :leftTitle="`${fromTokenAmount} ${fromToken.symbol}`"
           :leftSubtitle="
             `${fromToken.name} ($${(
-              token(fromTokenSymbol).price * Number(fromTokenAmount)
+              token(fromTokenId).price * Number(fromTokenAmount)
             ).toFixed(2)} USD)`
           "
           :rightImg="toToken.logo"
-          :rightTitle="`${toTokenAmount} ${toTokenSymbol}`"
+          :rightTitle="`${toTokenAmount} ${toToken.symbol}`"
           :rightSubtitle="toToken.name"
         >
           <template v-slot:footer>
@@ -126,6 +128,7 @@ import { State, Getter, Action, Mutation, namespace } from "vuex-class";
 import { LiquidityModule, TradingModule, Step } from "../../../types/bancor";
 import numeral from "numeral";
 import { vxm } from "@/store";
+import { buildTokenId } from "../../../api/helpers";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
   return {
@@ -138,11 +141,23 @@ const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
 const addDefaultQueryParams = (to: Route): any => {
   switch (to.params.service) {
     case "eos":
-      return appendBaseQuoteQuery("BNT", "EOS", to);
+      return appendBaseQuoteQuery(
+        buildTokenId({ contract: "bntbntbntbnt", symbol: "BNT" }),
+        buildTokenId({ contract: "eosio.token", symbol: "EOS" }),
+        to
+      );
     case "eth":
-      return appendBaseQuoteQuery("BNT", "ETH", to);
+      return appendBaseQuoteQuery(
+        "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315",
+        "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c",
+        to
+      );
     case "usds":
-      return appendBaseQuoteQuery("USDT", "EOSDT", to);
+      return appendBaseQuoteQuery(
+        buildTokenId({ contract: "eosdtsttoken", symbol: "EOSDT" }),
+        buildTokenId({ contract: "tethertether", symbol: "USDT" }),
+        to
+      );
     default:
       throw new Error("Unrecognised service!");
   }
@@ -264,41 +279,42 @@ export default class HeroConvert extends Vue {
   }
 
   get fromToken() {
-    return this.token(this.fromTokenSymbol);
+    return this.token(this.fromTokenId);
   }
 
   get toToken() {
-    return this.token(this.toTokenSymbol);
+    return this.token(this.toTokenId);
   }
 
   get choices() {
     return this.tokens.map(token => ({
+      id: token.id,
       symbol: token.symbol,
       balance: token.balance,
       img: token.logo
     }));
   }
 
-  get fromTokenSymbol() {
+  get fromTokenId() {
     return this.$route.query.base as string;
   }
 
-  set fromTokenSymbol(symbol: string) {
+  set fromTokenId(id: string) {
     this.$router.push({
       name: "Tokens",
       query: {
-        base: symbol,
-        quote: this.toTokenSymbol
+        base: id,
+        quote: this.toTokenId
       }
     });
   }
 
-  set toTokenSymbol(symbol: string) {
+  set toTokenId(id: string) {
     this.$router.push({
       name: "Tokens",
       query: {
-        base: this.fromTokenSymbol,
-        quote: symbol
+        base: this.fromTokenId,
+        quote: id
       }
     });
   }
@@ -311,16 +327,16 @@ export default class HeroConvert extends Vue {
     return Number(this.slippage) > 0.2;
   }
 
-  get toTokenSymbol() {
+  get toTokenId() {
     return this.$route.query.quote as string;
   }
 
   get fromTokenBalance() {
-    return this.token(this.fromTokenSymbol).balance;
+    return this.token(this.fromTokenId).balance;
   }
 
   get toTokenBalance() {
-    return this.token(this.toTokenSymbol).balance;
+    return this.token(this.toTokenId).balance;
   }
 
   get disableConvert() {
@@ -338,8 +354,8 @@ export default class HeroConvert extends Vue {
     this.$router.push({
       name: "Tokens",
       query: {
-        base: this.toTokenSymbol,
-        quote: this.fromTokenSymbol
+        base: this.toTokenId,
+        quote: this.fromTokenId
       }
     });
     setTimeout(() => (this.flipping = false), 500);
@@ -359,10 +375,14 @@ export default class HeroConvert extends Vue {
       this.error = "";
 
       const result = await this.convert({
-        fromSymbol: this.fromTokenSymbol,
-        toSymbol: this.toTokenSymbol,
-        fromAmount: Number(this.fromTokenAmount),
-        toAmount: Number(this.toTokenAmount),
+        from: {
+          id: this.fromTokenId,
+          amount: this.fromTokenAmount
+        },
+        to: {
+          id: this.toTokenId,
+          amount: this.toTokenAmount
+        },
         onUpdate: this.onUpdate
       });
 
@@ -403,9 +423,11 @@ export default class HeroConvert extends Vue {
     this.loadingConversion = true;
     try {
       const reward = await this.getReturn({
-        fromSymbol: this.fromTokenSymbol,
-        amount,
-        toSymbol: this.toTokenSymbol
+        from: {
+          id: this.fromTokenId,
+          amount: amountString
+        },
+        toId: this.toTokenId
       });
       if (reward.slippage) {
         this.slippage = reward.slippage;
@@ -431,9 +453,11 @@ export default class HeroConvert extends Vue {
 
     try {
       const reward = await this.getCost({
-        amount,
-        toSymbol: this.toTokenSymbol,
-        fromSymbol: this.fromTokenSymbol
+        to: {
+          id: this.toTokenId,
+          amount: this.toTokenAmount
+        },
+        fromId: this.fromTokenId
       });
       this.fromTokenAmount = reward.amount;
       if (reward.slippage) {
@@ -448,12 +472,12 @@ export default class HeroConvert extends Vue {
     this.loading = false;
   }
 
-  @Watch("fromTokenSymbol")
-  @Watch("toTokenSymbol")
-  tokenChange(symbol: string) {
+  @Watch("fromTokenId")
+  @Watch("toTokenId")
+  tokenChange(id: string) {
     this.loadSimpleReward();
     this.updatePriceReturn(this.fromTokenAmount);
-    this.focusSymbol(symbol);
+    this.focusSymbol(id);
   }
 
   get reward() {
@@ -467,17 +491,19 @@ export default class HeroConvert extends Vue {
   }
 
   get unitReward() {
-    return `1 ${this.fromTokenSymbol} = ${this.reward.toFixed(
+    return `1 ${this.fromToken.symbol} = ${this.reward.toFixed(
       this.toToken.precision! > 6 ? 6 : this.toToken.precision
-    )} ${this.toTokenSymbol}`;
+    )} ${this.toToken.symbol}`;
   }
 
   async loadSimpleReward() {
     this.loading = true;
     const reward = await this.getReturn({
-      fromSymbol: this.fromTokenSymbol,
-      amount: 1,
-      toSymbol: this.toTokenSymbol
+      from: {
+        id: this.fromTokenId,
+        amount: "1"
+      },
+      toId: this.toTokenId
     });
     this.oneUnitReward = Number(reward.amount);
 
@@ -486,8 +512,8 @@ export default class HeroConvert extends Vue {
 
   async created() {
     this.loadSimpleReward();
-    this.focusSymbol(this.fromTokenSymbol);
-    this.focusSymbol(this.toTokenSymbol);
+    this.focusSymbol(this.fromTokenId);
+    this.focusSymbol(this.toTokenId);
   }
 }
 </script>
