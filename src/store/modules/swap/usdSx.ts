@@ -55,7 +55,6 @@ const accumulateVolume = (acc: SxToken, token: SxToken) => {
     volume24h: acc.volume24h + token.volume24h
   };
 };
-  buildTokenId
 
 const tokensToArray = (tokens: Tokens): Token[] =>
   Object.keys(tokens).map(key => tokens[key]);
@@ -392,16 +391,10 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const pools = this.tokensObj!;
     const settings = this.settings!;
 
-    const { out, slippage } = get_rate(
-      amountAsset,
-      opposingSymbol.code(),
-      pools,
-      settings
-    );
+    const out = get_rate(amountAsset, opposingSymbol.code(), pools, settings);
 
     return {
-      amount: String(asset_to_number(out)),
-      slippage
+      amount: String(asset_to_number(out))
     };
   }
 
@@ -417,7 +410,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const expectedReward = amountAsset;
     const offering = opposingSymbol;
 
-    const { quantity, slippage } = get_inverse_rate(
+    const quantity = get_inverse_rate(
       expectedReward,
       offering.code(),
       pools,
@@ -425,8 +418,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     );
 
     return {
-      amount: String(asset_to_number(quantity)),
-      slippage
+      amount: String(asset_to_number(quantity))
     };
   }
 
