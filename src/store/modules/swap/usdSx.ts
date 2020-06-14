@@ -21,7 +21,38 @@ import {
 } from "sxjs";
 import { rpc } from "@/api/rpc";
 import { asset_to_number, number_to_asset, symbol } from "eos-common";
-import { compareString, retryPromise, findOrThrow } from "@/api/helpers";
+import {
+  compareString,
+  retryPromise,
+  findOrThrow,
+  getSxContracts,
+  buildTokenId
+} from "@/api/helpers";
+import _ from "lodash";
+
+interface SxToken {
+  id: string;
+  symbol: string;
+  precision: number;
+  contract: string;
+  volume24h: number;
+  price: number;
+  liqDepth: number;
+}
+
+const accumulateLiq = (acc: SxToken, token: SxToken) => {
+  return {
+    ...acc,
+    liqDepth: acc.liqDepth + token.liqDepth
+  };
+};
+
+const accumulateVolume = (acc: SxToken, token: SxToken) => {
+  return {
+    ...acc,
+    volume24h: acc.volume24h + token.volume24h
+  };
+};
 
 const tokensToArray = (tokens: Tokens): Token[] =>
   Object.keys(tokens).map(key => tokens[key]);
@@ -34,7 +65,7 @@ const contract = process.env.VUE_APP_USDSTABLE!;
 
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
-  newTokens: any[] = [];
+  newTokens: SxToken[] = [];
   initiated: boolean = false;
   tokensObj: Tokens | undefined = undefined;
   settings: Settings | undefined = undefined;
@@ -91,7 +122,21 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     this.initiated = true;
   }
 
+  @action async fetchContract(contract: string) {
+    const [tokens, volume, settings] = await Promise.all([
+      retryPromise(() => get_tokens(rpc, contract), 4, 500),
+      retryPromise(() => get_volume(rpc, contract, 1), 4, 500),
+      retryPromise(() => get_settings(rpc, contract), 4, 500)
+    ]);
+
+    return { tokens, volume, settings };
+  }
+
   @action async init() {
+    const registryData = await getSxContracts();
+    const contracts = registryData.map(x => x.contract);
+    const allTokens = await Promise.all(contracts.map(this.fetchContract));
+    console.log(allTokens, "is all tokens");
 
     const [tokens, volume, settings] = await Promise.all([
       retryPromise(() => get_tokens(rpc, contract), 4, 500),
@@ -100,9 +145,56 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     ]);
     retryPromise(() => this.updateStats(), 4, 1000);
     console.log(tokens, volume, settings);
-    await this.buildTokens({ tokens, settings, volume: volume[0] });
+
+    const all = await Promise.all(
+      allTokens.flatMap(token =>
+        this.buildTokens({
+          tokens: token.tokens,
+          volume: token.volume[0],
+          settings: token.settings
+        })
+      )
+    );
+
+    console.log(all, "is all");
     this.moduleInitiated();
     setInterval(() => this.checkRefresh(), 20000);
+
+    vxm.eosNetwork.getBalances({
+      tokens: registryData.flatMap(data => data.tokens),
+      slow: true
+    });
+
+    const allWithId: SxToken[] = all.flatMap(x =>
+      x.map(token => ({
+        ...token,
+        id: buildTokenId(token)
+      }))
+    );
+
+    const uniqTokens = _.uniqBy(allWithId, "id").map(x => x.id);
+
+    const newTokens = uniqTokens.map(
+      (id): SxToken => {
+        const allTokensOfId = allWithId.filter(token =>
+          compareString(id, token.id)
+        );
+
+        const { precision, price, contract, symbol } = allTokensOfId[0];
+
+        return {
+          precision,
+          price,
+          contract,
+          id,
+          liqDepth: allTokensOfId.reduce(accumulateLiq).liqDepth,
+          symbol,
+          volume24h: allTokensOfId.reduce(accumulateVolume).volume24h
+        };
+      }
+    );
+
+    this.setNewTokens(newTokens);
   }
 
   @action async buildTokens({
@@ -146,14 +238,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         };
       })
     );
-    vxm.eosNetwork.getBalances({
-      tokens: newTokens.map(token => ({
-        contract: token.contract,
-        symbol: token.symbol
-      })),
-      slow: true
-    });
-    this.setNewTokens(newTokens);
+    return newTokens;
   }
 
   @mutation setNewTokens(tokens: any[]) {
@@ -241,6 +326,10 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     }
   }
 
+  @action async tokenById(id: string) {
+    return findOrThrow(this.newTokens, token => compareString(token.id, id));
+  }
+
   @action async getTradeData({
     propose,
     useFrom
@@ -250,7 +339,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   }) {
     const { fromSymbol, amount, toSymbol } = propose;
 
-    const tokens = tokensToArray(this.tokensObj!);
+    
 
     const fromPrecision = findOrThrow(tokens, token =>
       compareString(token.sym.code().to_string(), fromSymbol)
