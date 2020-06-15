@@ -234,14 +234,10 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const contracts = registryData.map(x => x.contract);
     this.setContracts(contracts);
     const allTokens = await Promise.all(contracts.map(this.fetchContract));
+    this.setStats(allTokens);
 
-    const [tokens, volume, settings] = await Promise.all([
-      retryPromise(() => get_tokens(rpc, contract), 4, 500),
-      retryPromise(() => get_volume(rpc, contract, 1), 4, 500),
-      retryPromise(() => get_settings(rpc, contract), 4, 500)
-    ]);
+
     retryPromise(() => this.updateStats(), 4, 1000);
-    console.log(tokens, volume, settings);
 
     const all = await Promise.all(
       allTokens.flatMap(token =>
@@ -474,6 +470,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     );
 
     const [fromId, toId] = tokenIds;
+    console.log({ fromId, toId, miniRelays})
 
     const poolCandidates = miniRelays.filter(
       relay => relay.tokenIds.includes(fromId) && relay.tokenIds.includes(toId)
