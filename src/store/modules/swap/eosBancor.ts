@@ -955,24 +955,16 @@ export class EosBancorModule extends VuexModule
       );
 
       const allRelays = [...passedV2Relays, ...hydratedRelays];
-      console.log(allRelays, "are all relays");
 
-      const duplicateSmartTokenSymbols = allRelays
-        .filter(
-          (item, index, arr) =>
-            arr.findIndex(i =>
-              compareString(i.smartToken.symbol, item.smartToken.symbol)
-            ) !== index
-        )
-        .map(i => i.smartToken.symbol);
-      const duplicateRelays = duplicateSmartTokenSymbols.map(symbol => [
-        symbol,
-        ...allRelays.filter(x => compareString(x.smartToken.symbol, symbol))
-      ]);
-      console.log(duplicateRelays, "are the relays!");
       this.setMultiRelays(allRelays);
       this.setTokenMeta(tokenMeta);
-      this.refreshBalances();
+
+      const uniqueTokens = _.uniqBy(
+        allRelays.flatMap(relay => relay.reserves),
+        "id"
+      );
+      console.log('eosNetwork.getBalances should be called with', uniqueTokens);
+      vxm.eosNetwork.getBalances({ tokens: uniqueTokens, slow: true });
     } catch (e) {
       throw new Error(`Threw inside eosBancor: ${e.message}`);
     }
