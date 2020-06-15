@@ -1908,7 +1908,6 @@ export class EosBancorModule extends VuexModule
   }
 
   @mutation setMultiRelays(relays: EosMultiRelay[]) {
-    console.log("setting muilti relays...", relays);
     this.relaysList = relays;
   }
 
