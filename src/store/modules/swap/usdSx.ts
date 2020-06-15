@@ -109,7 +109,7 @@ const findPath = (
     return [singleRelay];
   }
   throw new Error(
-    "Failed to find straight relay path, more paths not yet supported"
+    `Failed to find direct ${sourceToken} => ${destinationToken}, please convert ${sourceToken} to USDT first, then USDT to ${destinationToken}`
   );
 };
 
