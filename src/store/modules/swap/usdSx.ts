@@ -19,7 +19,9 @@ import {
   Settings,
   get_tokens,
   Token,
-  Volume
+  Volume,
+  get_slippage,
+  get_fee
 } from "sxjs";
 import { rpc } from "@/api/rpc";
 import {
@@ -39,6 +41,40 @@ import {
 import _ from "lodash";
 import wait from "waait";
 
+interface RateDetail {
+  rate: Asset;
+  slippage: number;
+  fee: Asset;
+}
+
+const getRate = (
+  asset: Asset,
+  sym: Sym,
+  tokens: Tokens,
+  settings: Settings
+): RateDetail => {
+  const rate = get_rate(asset, sym.code(), tokens, settings);
+  const slippage = get_slippage(asset, sym.code(), tokens, settings);
+  const fee = get_fee(asset, settings);
+
+  return { rate, slippage, fee };
+};
+const getInverseRate = (
+  asset: Asset,
+  sym: Sym,
+  tokens: Tokens,
+  settings: Settings
+): RateDetail => {
+  const rate = get_inverse_rate(asset, sym.code(), tokens, settings);
+  const slippage = get_slippage(asset, sym.code(), tokens, settings);
+  const fee = get_fee(asset, settings);
+
+  return { rate, slippage, fee };
+};
+
+const shortAssetString = (asset: Asset): string =>
+  `${asset_to_number(asset)} ${asset.symbol.code().to_string()}`;
+
 interface SxToken {
   id: string;
   symbol: string;
@@ -49,19 +85,15 @@ interface SxToken {
   liqDepth: number;
 }
 
-const accumulateLiq = (acc: SxToken, token: SxToken) => {
-  return {
-    ...acc,
-    liqDepth: acc.liqDepth + token.liqDepth
-  };
-};
+const accumulateLiq = (acc: SxToken, token: SxToken) => ({
+  ...acc,
+  liqDepth: acc.liqDepth + token.liqDepth
+});
 
-const accumulateVolume = (acc: SxToken, token: SxToken) => {
-  return {
-    ...acc,
-    volume24h: acc.volume24h + token.volume24h
-  };
-};
+const accumulateVolume = (acc: SxToken, token: SxToken) => ({
+  ...acc,
+  volume24h: acc.volume24h + token.volume24h
+});
 
 const tokensToArray = (tokens: Tokens): Token[] =>
   Object.keys(tokens).map(key => tokens[key]);
@@ -109,27 +141,8 @@ interface TradeProposal {
 
 interface PoolReturn {
   id: string;
-  amount: Asset;
+  amount: RateDetail;
 }
-
-const findPath = (
-  miniRelays: MiniRelay[],
-  sourceToken: string,
-  destinationToken: string
-) => {
-  const singleRelay = miniRelays.find(
-    relay =>
-      relay.tokenIds.includes(sourceToken) &&
-      relay.tokenIds.includes(destinationToken)
-  );
-  console.log(singleRelay, "is the single relay found");
-  if (singleRelay) {
-    return [singleRelay];
-  }
-  throw new Error(
-    `Failed to find direct ${sourceToken} => ${destinationToken}, please convert ${sourceToken} to USDT first, then USDT to ${destinationToken}`
-  );
-};
 
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
@@ -447,7 +460,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     calculator,
     tokenIds
   }: {
-    calculator: (tokens: Tokens, settings: Settings) => Asset;
+    calculator: (tokens: Tokens, settings: Settings) => RateDetail;
     tokenIds: string[];
   }): Promise<PoolReturn[]> {
     if (tokenIds.length !== 2)
@@ -490,12 +503,12 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
     const poolResults = await this.returnAcrossPools({
       calculator: (tokens, settings) =>
-        get_rate(amountAsset, opposingSymbol.code(), tokens, settings),
+        getRate(amountAsset, opposingSymbol, tokens, settings),
       tokenIds: [propose.from.id, propose.toId]
     });
 
     const sortedByAmount = poolResults.sort((a, b) =>
-      b.amount.isLessThan(a.amount) ? -1 : 1
+      b.amount.rate.isLessThan(a.amount.rate) ? -1 : 1
     );
 
     return sortedByAmount[0];
@@ -508,12 +521,12 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
     const poolResults = await this.returnAcrossPools({
       calculator: (tokens, settings) =>
-        get_inverse_rate(amountAsset, opposingSymbol.code(), tokens, settings),
+        getInverseRate(amountAsset, opposingSymbol, tokens, settings),
       tokenIds: [propose.fromId, propose.to.id]
     });
 
     const sortedByAmount = poolResults.sort((a, b) =>
-      b.amount.isGreaterThan(a.amount) ? -1 : 1
+      b.amount.rate.isGreaterThan(a.amount.rate) ? -1 : 1
     );
 
     return sortedByAmount[0];
@@ -525,7 +538,9 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const bestReturn = await this.bestFromReturn(propose);
 
     return {
-      amount: String(asset_to_number(bestReturn.amount))
+      amount: String(asset_to_number(bestReturn.amount.rate)),
+      fee: shortAssetString(bestReturn.amount.fee),
+      slippage: bestReturn.amount.slippage
     };
   }
 
@@ -535,7 +550,9 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const cheapestCost = await this.bestToReturn(propose);
 
     return {
-      amount: String(asset_to_number(cheapestCost.amount))
+      amount: String(asset_to_number(cheapestCost.amount.rate)),
+      fee: shortAssetString(cheapestCost.amount.fee),
+      slippage: cheapestCost.amount.slippage
     };
   }
 
