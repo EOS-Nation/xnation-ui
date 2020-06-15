@@ -31,6 +31,7 @@ import {
   buildTokenId
 } from "@/api/helpers";
 import _ from "lodash";
+import wait from "waait";
 
 interface SxToken {
   id: string;
@@ -59,6 +60,12 @@ const accumulateVolume = (acc: SxToken, token: SxToken) => {
 const tokensToArray = (tokens: Tokens): Token[] =>
   Object.keys(tokens).map(key => tokens[key]);
 
+const tokenToId = (token: Token) =>
+  buildTokenId({
+    contract: token.contract.to_string(),
+    symbol: token.sym.code().to_string()
+  });
+
 interface AddedVolume extends Token {
   volume24h?: number;
 }
@@ -75,12 +82,43 @@ interface SXToken {
   liqDepth: number;
 }
 
+interface Stat {
+  tokens: Tokens;
+  volume: Volume[];
+  settings: Settings;
+  contract: string;
+}
+
+interface MiniRelay {
+  id: string;
+  tokenIds: string[];
+}
+
+const findPath = (
+  miniRelays: MiniRelay[],
+  sourceToken: string,
+  destinationToken: string
+) => {
+  const singleRelay = miniRelays.find(
+    relay =>
+      relay.tokenIds.includes(sourceToken) &&
+      relay.tokenIds.includes(destinationToken)
+  );
+  console.log(singleRelay, "is the single relay found");
+  if (singleRelay) {
+    return [singleRelay];
+  }
+  throw new Error(
+    "Failed to find straight relay path, more paths not yet supported"
+  );
+};
+
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
   newTokens: SxToken[] = [];
   initiated: boolean = false;
-  tokensObj: Tokens | undefined = undefined;
-  settings: Settings | undefined = undefined;
+  contracts: string[] = [];
+  stats: Stat[] = [];
   lastLoaded: number = 0;
 
   get wallet() {
@@ -137,25 +175,34 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     };
   }
 
+  @mutation setContracts(contracts: string[]) {
+    this.contracts = contracts;
+  }
+
   @mutation moduleInitiated() {
     this.initiated = true;
   }
 
-  @action async fetchContract(contract: string) {
+  @action async fetchContract(contract: string): Promise<Stat> {
     const [tokens, volume, settings] = await Promise.all([
       retryPromise(() => get_tokens(rpc, contract), 4, 500),
       retryPromise(() => get_volume(rpc, contract, 1), 4, 500),
       retryPromise(() => get_settings(rpc, contract), 4, 500)
     ]);
 
-    return { tokens, volume, settings };
+    return { tokens, volume, settings, contract };
   }
 
   @action async init() {
     const registryData = await getSxContracts();
+    vxm.eosNetwork.getBalances({
+      tokens: registryData.flatMap(data => data.tokens),
+      slow: true
+    });
+
     const contracts = registryData.map(x => x.contract);
+    this.setContracts(contracts);
     const allTokens = await Promise.all(contracts.map(this.fetchContract));
-    console.log(allTokens, "is all tokens");
 
     const [tokens, volume, settings] = await Promise.all([
       retryPromise(() => get_tokens(rpc, contract), 4, 500),
@@ -175,14 +222,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       )
     );
 
-    console.log(all, "is all");
-    this.moduleInitiated();
     setInterval(() => this.checkRefresh(), 20000);
-
-    vxm.eosNetwork.getBalances({
-      tokens: registryData.flatMap(data => data.tokens),
-      slow: true
-    });
 
     const allWithId: SxToken[] = all.flatMap(x =>
       x.map(token => ({
@@ -214,6 +254,8 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     );
 
     this.setNewTokens(newTokens);
+    await wait(100);
+    this.moduleInitiated();
   }
 
   @action async buildTokens({
@@ -315,6 +357,15 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       ({ contract, symbol }) => ({ contract, symbol })
     );
 
+    const path = await this.generatePath({
+      fromId: fromToken.id,
+      toId: toToken.id
+    });
+
+    if (path.length > 1) throw new Error("Hops currently not supported");
+
+    const [firstHop] = path;
+
     const [txRes, originalBalances] = await Promise.all([
       this.triggerTx([
         {
@@ -322,7 +373,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           name: "transfer",
           data: {
             from: accountName,
-            to: process.env.VUE_APP_USDSTABLE!,
+            to: firstHop.contract,
             memo: toToken.symbol,
             quantity: amountAsset.to_string()
           }
@@ -382,16 +433,43 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     }
   }
 
+  @action async generatePath({
+    fromId,
+    toId
+  }: {
+    fromId: string;
+    toId: string;
+  }): Promise<Stat[]> {
+    const miniRelays: MiniRelay[] = this.stats.map(
+      (stat): MiniRelay => ({
+        id: stat.contract,
+        tokenIds: tokensToArray(stat.tokens).map(tokenToId)
+      })
+    );
+
+    const path = findPath(miniRelays, fromId, toId);
+    const hydratedPath = path.map(x =>
+      findOrThrow(this.stats, stat => compareString(stat.contract, x.id))
+    );
+    return hydratedPath;
+  }
+
   @action async getReturn(propose: ProposedFromTransaction) {
     this.checkRefresh();
     const { opposingSymbol, amountAsset } = await this.getTradeData({
       propose
     });
 
-    const pools = this.tokensObj!;
-    const settings = this.settings!;
+    const path = await this.generatePath({
+      fromId: propose.from.id,
+      toId: propose.toId
+    });
 
-    const out = get_rate(amountAsset, opposingSymbol.code(), pools, settings);
+    if (path.length > 1) throw new Error("Hops currently not supported");
+
+    const { tokens, settings } = path[0];
+
+    const out = get_rate(amountAsset, opposingSymbol.code(), tokens, settings);
 
     return {
       amount: String(asset_to_number(out))
@@ -404,8 +482,14 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       propose
     });
 
-    const pools = this.tokensObj!;
-    const settings = this.settings!;
+    const path = await this.generatePath({
+      fromId: propose.fromId,
+      toId: propose.to.id
+    });
+
+    if (path.length > 1) throw new Error("Hops currently not supported");
+
+    const { tokens, settings } = path[0];
 
     const expectedReward = amountAsset;
     const offering = opposingSymbol;
@@ -413,7 +497,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const quantity = get_inverse_rate(
       expectedReward,
       offering.code(),
-      pools,
+      tokens,
       settings
     );
 
@@ -428,23 +512,14 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
   @action async updateStats() {
     this.resetTimer();
-    const [tokens, settings] = await Promise.all([
-      get_tokens(rpc, contract),
-      get_settings(rpc, contract)
-    ]);
-    this.setStats({ tokens, settings });
-    return { tokens, settings };
+    const contracts = this.contracts;
+    const allTokens = await Promise.all(contracts.map(this.fetchContract));
+
+    this.setStats(allTokens);
   }
 
-  @mutation setStats({
-    tokens,
-    settings
-  }: {
-    tokens: Tokens;
-    settings: Settings;
-  }) {
-    this.tokensObj = tokens;
-    this.settings = settings;
+  @mutation setStats(stats: Stat[]) {
+    this.stats = stats;
     this.lastLoaded = new Date().getTime();
   }
 }
