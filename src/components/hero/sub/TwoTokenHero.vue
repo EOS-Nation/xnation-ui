@@ -55,6 +55,15 @@ import {
 import { vxm } from "@/store";
 import TokenField from "@/components/convert/TokenField.vue";
 
+interface TokenMeta {
+  balance?: number;
+  symbol: string;
+  errors?: string[];
+  error?: string;
+  img: string;
+  choices?: any[];
+}
+
 @Component({
   components: {
     TokenField
@@ -62,24 +71,14 @@ import TokenField from "@/components/convert/TokenField.vue";
 })
 export default class HeroConvert extends Vue {
   @PropSync("tokenOneId", { type: String }) idOne!: string;
-  @Prop(String) tokenOneSymbol!: string;
+  @Prop(Object) tokenOneMeta!: TokenMeta;
+  @Prop(Object) tokenTwoMeta!: TokenMeta;
   @PropSync("tokenOneAmount", { type: String }) amountOne!: string;
-  @Prop(Number) tokenOneBalance?: number;
-  @Prop(String) tokenOneImg!: string;
-  @Prop(String) tokenOneError?: string;
-  @Prop(Array) tokenOneErrors?: string[];
   @PropSync("tokenTwoId", { type: String }) idTwo!: string;
-  @Prop(String) tokenTwoSymbol!: string;
   @PropSync("tokenTwoAmount", { type: String }) amountTwo!: string;
-  @Prop(Number) tokenTwoBalance?: number;
-  @Prop(String) tokenTwoImg!: string;
   @Prop(String) label?: string;
-  @Prop(String) tokenTwoError?: string;
-  @Prop(Array) tokenTwoErrors?: string[];
 
   @Prop(Array) choices?: any[];
-  @Prop(Array) tokenOneChoices?: any[];
-  @Prop(Array) tokenTwoChoices?: any[];
   @Prop({ default: false }) warnBalance?: boolean;
 
   modal = false;
@@ -89,6 +88,14 @@ export default class HeroConvert extends Vue {
 
   @Emit()
   tokenTwoClicked() {}
+
+  get tokenOneChoices() {
+    return this.tokenOneMeta.choices;
+  }
+
+  get tokenTwoChoices() {
+    return this.tokenTwoMeta.choices;
+  }
 
   get tokenOneClickable() {
     return (
