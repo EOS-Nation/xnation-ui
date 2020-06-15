@@ -969,9 +969,13 @@ export class EosBancorModule extends VuexModule
           relay.reserves,
           reserve => reserve.symbol.code().to_string()
         );
-        const token = tokenPrices.find(price =>
-          compareString(price.code, primaryReserve.symbol.code().to_string())
-        )!;
+
+        const token = findOrThrow(
+          tokenPrices,
+          price =>
+            compareString(price.code, primaryReserve.symbol.code().to_string()),
+          "failed to find token in possible relayfeeds from bancor API"
+        );
 
         const includeBnt = compareString(
           relay.smartToken.symbol.code().to_string(),
