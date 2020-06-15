@@ -913,9 +913,11 @@ export class EosBancorModule extends VuexModule
       const hydratedRelays = await this.hydrateOldRelays(passedV1Relays);
 
       this.buildPossibleRelayFeedsFromHydrated(
-        hydratedRelays.filter(relay =>
-          relaysNotFulfilled.some(r => compareEosMultiToDry(relay, r))
-        )
+        hydratedRelays
+          .filter(relay =>
+            relaysNotFulfilled.some(r => compareEosMultiToDry(relay, r))
+          )
+          .filter(relayHasReserveBalances)
       );
 
       this.setMultiRelays([...passedV2Relays, ...hydratedRelays]);
