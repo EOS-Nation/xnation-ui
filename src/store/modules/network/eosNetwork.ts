@@ -19,7 +19,7 @@ import { vxm } from "@/store";
 import _ from "lodash";
 import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
-import { Asset, asset_to_number } from "eos-common";
+import { Asset, asset_to_number, number_to_asset, Sym } from "eos-common";
 
 const compareToken = (
   a: TokenBalanceParam | TokenBalanceReturn,
@@ -118,9 +118,11 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
 
     const { contract, precision } = dirtyReserve;
 
+    const asset = number_to_asset(amount, new Sym(symbol, precision));
+
     const actions = await multiContract.tokenTransfer(contract, {
       to,
-      quantity: `${String(Number(amount).toFixed(precision))} ${symbol}`,
+      quantity: asset.to_string(),
       memo
     });
 
