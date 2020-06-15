@@ -116,10 +116,7 @@ const compareEosMultiToDry = (multi: EosMultiRelay, dry: DryRelay) =>
     })
   );
 
-const fetchBalanceAssets = async (
-  tokens: { symbol: string; contract: string }[],
-  account: string
-) => {
+const fetchBalanceAssets = async (tokens: BaseToken[], account: string) => {
   return Promise.all(
     tokens.map(async token => {
       const res: { rows: { balance: string }[] } = await rpc.get_table_rows({
@@ -1800,9 +1797,8 @@ export class EosBancorModule extends VuexModule
     return openActions;
   }
 
-
   // Todo
-  // just change this to a promise instead. 
+  // just change this to a promise instead.
   @action async triggerTxAndWatchBalances({
     actions,
     tokenIds

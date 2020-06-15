@@ -22,7 +22,13 @@ import {
   Volume
 } from "sxjs";
 import { rpc } from "@/api/rpc";
-import { asset_to_number, number_to_asset, symbol, Sym } from "eos-common";
+import {
+  asset_to_number,
+  number_to_asset,
+  symbol,
+  Sym,
+  Asset
+} from "eos-common";
 import {
   compareString,
   retryPromise,
@@ -92,6 +98,18 @@ interface Stat {
 interface MiniRelay {
   id: string;
   tokenIds: string[];
+}
+
+interface TradeProposal {
+  fromId: string;
+  toId: string;
+  amount: Asset;
+  calculator: (token: Token, setting: Settings) => Asset;
+}
+
+interface PoolReturn {
+  id: string;
+  amount: Asset;
 }
 
 const findPath = (
@@ -353,18 +371,10 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
     const tokenContract = fromToken.contract;
 
-    const tokenContractsAndSymbols: BaseToken[] = tokens.map(
-      ({ contract, symbol }) => ({ contract, symbol })
-    );
-
-    const path = await this.generatePath({
-      fromId: fromToken.id,
-      toId: toToken.id
+    const poolReward = await this.bestFromReturn({
+      from: propose.from,
+      toId: propose.to.id
     });
-
-    if (path.length > 1) throw new Error("Hops currently not supported");
-
-    const [firstHop] = path;
 
     const [txRes, originalBalances] = await Promise.all([
       this.triggerTx([
@@ -373,14 +383,14 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           name: "transfer",
           data: {
             from: accountName,
-            to: firstHop.contract,
+            to: poolReward.id,
             memo: toToken.symbol,
             quantity: amountAsset.to_string()
           }
         }
       ]),
       vxm.eosNetwork.getBalances({
-        tokens: tokenContractsAndSymbols
+        tokens
       })
     ]);
     vxm.eosNetwork.pingTillChange({ originalBalances });
@@ -433,13 +443,16 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     }
   }
 
-  @action async generatePath({
-    fromId,
-    toId
+  @action async returnAcrossPools({
+    calculator,
+    tokenIds
   }: {
-    fromId: string;
-    toId: string;
-  }): Promise<Stat[]> {
+    calculator: (tokens: Tokens, settings: Settings) => Asset;
+    tokenIds: string[];
+  }): Promise<PoolReturn[]> {
+    if (tokenIds.length !== 2)
+      throw new Error("Can only trade between two tokens");
+
     const miniRelays: MiniRelay[] = this.stats.map(
       (stat): MiniRelay => ({
         id: stat.contract,
@@ -447,62 +460,77 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
       })
     );
 
-    const path = findPath(miniRelays, fromId, toId);
-    const hydratedPath = path.map(x =>
-      findOrThrow(this.stats, stat => compareString(stat.contract, x.id))
+    const [fromId, toId] = tokenIds;
+
+    const poolCandidates = miniRelays.filter(
+      relay => relay.tokenIds.includes(fromId) && relay.tokenIds.includes(toId)
     );
-    return hydratedPath;
+
+    const hydratedPools = this.stats.filter(stat =>
+      poolCandidates.some(pool => compareString(stat.contract, pool.id))
+    );
+
+    return hydratedPools.map(pool => ({
+      id: pool.contract,
+      amount: calculator(pool.tokens, pool.settings)
+    }));
   }
 
-  @action async getReturn(propose: ProposedFromTransaction) {
-    this.checkRefresh();
+  @action async bestFromReturn(
+    propose: ProposedFromTransaction
+  ): Promise<PoolReturn> {
     const { opposingSymbol, amountAsset } = await this.getTradeData({
       propose
     });
 
-    const path = await this.generatePath({
-      fromId: propose.from.id,
-      toId: propose.toId
+    const poolResults = await this.returnAcrossPools({
+      calculator: (tokens, settings) =>
+        get_rate(amountAsset, opposingSymbol.code(), tokens, settings),
+      tokenIds: [propose.from.id, propose.toId]
     });
 
-    if (path.length > 1) throw new Error("Hops currently not supported");
+    const sortedByAmount = poolResults.sort((a, b) =>
+      b.amount.isLessThan(a.amount) ? -1 : 1
+    );
 
-    const { tokens, settings } = path[0];
+    return sortedByAmount[0];
+  }
 
-    const out = get_rate(amountAsset, opposingSymbol.code(), tokens, settings);
+  @action async bestToReturn(propose: ProposedToTransaction) {
+    const { opposingSymbol, amountAsset } = await this.getTradeData({
+      propose
+    });
+
+    const poolResults = await this.returnAcrossPools({
+      calculator: (tokens, settings) =>
+        get_inverse_rate(amountAsset, opposingSymbol.code(), tokens, settings),
+      tokenIds: [propose.fromId, propose.to.id]
+    });
+
+    const sortedByAmount = poolResults.sort((a, b) =>
+      b.amount.isGreaterThan(a.amount) ? -1 : 1
+    );
+
+    return sortedByAmount[0];
+  }
+
+  @action async getReturn(propose: ProposedFromTransaction) {
+    this.checkRefresh();
+
+    const bestReturn = await this.bestFromReturn(propose);
 
     return {
-      amount: String(asset_to_number(out))
+      amount: String(asset_to_number(bestReturn.amount))
     };
   }
 
   @action async getCost(propose: ProposedToTransaction) {
     this.checkRefresh();
-    const { opposingSymbol, amountAsset } = await this.getTradeData({
-      propose
-    });
 
-    const path = await this.generatePath({
-      fromId: propose.fromId,
-      toId: propose.to.id
-    });
-
-    if (path.length > 1) throw new Error("Hops currently not supported");
-
-    const { tokens, settings } = path[0];
-
-    const expectedReward = amountAsset;
-    const offering = opposingSymbol;
-
-    const quantity = get_inverse_rate(
-      expectedReward,
-      offering.code(),
-      tokens,
-      settings
-    );
+    const cheapestCost = await this.bestToReturn(propose);
 
     return {
-      amount: String(asset_to_number(quantity))
+      amount: String(asset_to_number(cheapestCost.amount))
     };
   }
 
