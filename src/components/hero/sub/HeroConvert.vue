@@ -40,6 +40,9 @@
               ).toFixed(2)} USD`
             }}
           </div>
+          <div v-if="fee !== null" :class="['text-white', `font-size-sm`]">
+            Fee: {{ fee }}
+          </div>
           <div
             v-if="slippage !== null"
             :class="[
@@ -199,6 +202,7 @@ export default class HeroConvert extends Vue {
   txModal = false;
   flipping = false;
   txBusy = false;
+  fee: string | null = null;
   error = "";
   success = "";
   fromTokenAmount = "";
@@ -408,6 +412,7 @@ export default class HeroConvert extends Vue {
       this.fromTokenAmount = "";
       this.toTokenAmount = "";
       this.slippage = null;
+      this.fee = null;
     }
     this.success = "";
     this.error = "";
@@ -416,6 +421,7 @@ export default class HeroConvert extends Vue {
   async updatePriceReturn(amountString: string) {
     const amount = Number(amountString);
     this.slippage = null;
+    this.fee = null;
     if (!amount) {
       this.toTokenAmount = "";
       return;
@@ -432,6 +438,9 @@ export default class HeroConvert extends Vue {
       if (reward.slippage) {
         this.slippage = reward.slippage;
       }
+      if (reward.fee) {
+        this.fee = reward.fee;
+      }
       this.toTokenAmount = reward.amount;
       this.fromTokenError = "";
       this.toTokenError = "";
@@ -445,6 +454,7 @@ export default class HeroConvert extends Vue {
   async updatePriceCost(amountString: string) {
     const amount = Number(amountString);
     this.slippage = null;
+    this.fee = null;
     if (!amount) {
       this.fromTokenAmount = "";
       return;
@@ -462,6 +472,9 @@ export default class HeroConvert extends Vue {
       this.fromTokenAmount = reward.amount;
       if (reward.slippage) {
         this.slippage = reward.slippage;
+      }
+      if (reward.fee) {
+        this.fee = reward.fee;
       }
       this.fromTokenError = "";
       this.toTokenError = "";

@@ -168,6 +168,7 @@ export interface Converter {
 export interface ConvertReturn {
   amount: string;
   slippage?: number;
+  fee?: string;
 }
 
 export interface ViewToken {
