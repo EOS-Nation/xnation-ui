@@ -1,20 +1,15 @@
 <template>
   <hero-wrapper>
     <two-token-hero
-      :tokenOneId="token1Id"
-      :tokenTwoId="token2Id"
-      :tokenOneSymbol="token1.symbol"
-      :tokenOneError="token1Error"
-      :tokenTwoError="token2Error"
+      :tokenOneId.sync="token1Id"
+      :tokenTwoId.sync="token2Id"
+      :tokenOneMeta="token1Meta"
+      :tokenTwoMeta="token2Meta"
       :tokenOneAmount.sync="token1Amount"
+      :tokenTwoAmount.sync="token2Amount"
+      :warnBalance="true"
       @update:tokenOneAmount="tokenOneChanged"
       @update:tokenTwoAmount="tokenTwoChanged"
-      :tokenOneBalance="displayedToken1Balance"
-      :tokenOneImg="token1Img"
-      :tokenTwoSymbol="token2.symbol"
-      :tokenTwoAmount.sync="token2Amount"
-      :tokenTwoBalance="displayedToken2Balance"
-      :tokenTwoImg="token2Img"
       :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
     >
       <div>
@@ -75,11 +70,11 @@
             :error="error"
             :success="success"
             :leftHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
-            :leftImg="token1Img"
-            :leftTitle="`${token1.symbol} ${token1Amount}`"
+            :leftImg="token1Meta.img"
+            :leftTitle="`${token1Meta.symbol} ${token1Amount}`"
             leftSubtitle=""
-            :rightImg="token2Img"
-            :rightTitle="`${token2.symbol} ${token2Amount}`"
+            :rightImg="token2Meta.img"
+            :rightTitle="`${token2Meta.symbol} ${token2Amount}`"
             :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
             rightSubtitle=""
           >
@@ -122,7 +117,7 @@ import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
 import TxModalFooter from "@/components/common/TxModalFooter.vue";
 import Stepper from "@/components/modals/Stepper.vue";
 import wait from "waait";
-import { compareString } from '../../../api/helpers';
+import { compareString } from "../../../api/helpers";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
@@ -222,20 +217,28 @@ export default class HeroRelay extends Vue {
     return this.focusedRelay.owner;
   }
 
+  get token1Meta() {
+    return {
+      ...this.token1,
+      img: this.token1.logo,
+      errors: [this.token1Error]
+    };
+  }
+
+  get token2Meta() {
+    return {
+      ...this.token2,
+      img: this.token2.logo,
+      errors: [this.token1Error]
+    };
+  }
+
   get token1Id() {
     return this.token1!.id;
   }
 
   get token2Id() {
     return this.token2!.id;
-  }
-
-  get token1Img() {
-    return this.token1!.logo;
-  }
-
-  get token2Img() {
-    return this.token2!.logo;
   }
 
   get token1() {
@@ -466,7 +469,7 @@ export default class HeroRelay extends Vue {
   @Watch("token1Id")
   @Watch("token2Id")
   reserveChange(id: string) {
-    console.log('reserve change received', id)
+    console.log("reserve change received", id);
     // this.focusSymbol(id);
   }
 
@@ -495,8 +498,7 @@ export default class HeroRelay extends Vue {
 
   async created() {
     this.fetchBalances();
-    console.log(this.focusedRelay.reserves, 'reserves for the relay')
-
+    console.log(this.focusedRelay.reserves, "reserves for the relay");
   }
 }
 </script>
