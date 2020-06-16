@@ -283,6 +283,9 @@ export class EthBancorModule extends VuexModule
             this.tokenBalance(meta.contract) &&
             this.tokenBalance(meta.contract)!.balance
         }))
+        .filter(
+          (meta, index, arr) => arr.findIndex(m => m.id == meta.id) == index
+        )
         .filter(meta =>
           this.newNetworkTokenChoices.some(
             networkChoice => networkChoice.symbol !== meta.symbol
@@ -1010,8 +1013,7 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async removeLiquidity({ reserves, id: relayId }: LiquidityParams) {
-
-    const relay = await this.relayById(relayId)
+    const relay = await this.relayById(relayId);
 
     const preV11 = Number(relay.version) < 11;
     if (preV11)
@@ -1864,7 +1866,7 @@ export class EthBancorModule extends VuexModule
     const fromWei = expandToken(fromAmount, fromTokenDecimals);
 
     if (!fromIsEth) {
-      onUpdate!(2, steps);
+      onUpdate!(1, steps);
       await this.triggerApprovalIfRequired({
         owner: this.isAuthenticated,
         amount: fromWei,
@@ -1873,7 +1875,7 @@ export class EthBancorModule extends VuexModule
       });
     }
 
-    onUpdate!(3, steps);
+    onUpdate!(2, steps);
 
     const networkContract = buildNetworkContract(this.contracts.BancorNetwork);
 
@@ -1888,9 +1890,9 @@ export class EthBancorModule extends VuexModule
       ),
       ...(fromIsEth && { value: fromWei }),
       gas: 550000 * 1.1,
-      onHash: () => onUpdate!(4, steps)
+      onHash: () => onUpdate!(3, steps)
     });
-    onUpdate!(5, steps);
+    onUpdate!(4, steps);
     wait(2000).then(() =>
       [fromTokenContract, toTokenContract].forEach(contract =>
         this.getUserBalance(contract)
