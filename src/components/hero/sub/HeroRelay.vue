@@ -221,6 +221,7 @@ export default class HeroRelay extends Vue {
     return {
       ...this.token1,
       img: this.token1.logo,
+      balance: this.displayedToken1Balance,
       errors: [this.token1Error]
     };
   }
@@ -229,6 +230,7 @@ export default class HeroRelay extends Vue {
     return {
       ...this.token2,
       img: this.token2.logo,
+      balance: this.displayedToken2Balance,
       errors: [this.token1Error]
     };
   }
