@@ -735,13 +735,7 @@ export class EthBancorModule extends VuexModule
     return (id: string) =>
       findOrThrow(
         this.tokens,
-        token =>
-          compareString(
-            token.id,
-            compareString(id, ethReserveAddress)
-              ? "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315"
-              : id
-          ),
+        token => compareString(token.id, id),
         `failed to find token() with ID ${id} ethBancor`
       );
   }
@@ -883,80 +877,80 @@ export class EthBancorModule extends VuexModule
     };
   }
 
-  @action async newFetchReserveBalance({
-    converterAddress,
-    reserveAddress,
-    converterVersion
-  }: {
-    converterAddress: string;
-    reserveAddress: string;
-    converterVersion: number;
-  }) {
-    console.log(
-      `was the result of converter: ${converterAddress} ${reserveAddress} ${converterVersion}`
-    );
+  // @action async newFetchReserveBalance({
+  //   converterAddress,
+  //   reserveAddress,
+  //   converterVersion
+  // }: {
+  //   converterAddress: string;
+  //   reserveAddress: string;
+  //   converterVersion: number;
+  // }) {
+  //   console.log(
+  //     `was the result of converter: ${converterAddress} ${reserveAddress} ${converterVersion}`
+  //   );
 
-    const methods = [
-      "reserveBalance",
-      "getReserveBalance",
-      "getConnectorBalance"
-    ];
+  //   const methods = [
+  //     "reserveBalance",
+  //     "getReserveBalance",
+  //     "getConnectorBalance"
+  //   ];
 
-    const res = await Promise.all(
-      methods.map(methodName => {
-        const contract = buildConverterContract(converterAddress);
+  //   const res = await Promise.all(
+  //     methods.map(methodName => {
+  //       const contract = buildConverterContract(converterAddress);
 
-      })
-    );
+  //     })
+  //   );
 
-    if (converterVersion >= 28) {
-      const converter = buildV28ConverterContract(converterAddress);
+  //   if (converterVersion >= 28) {
+  //     const converter = buildV28ConverterContract(converterAddress);
 
-      const res = await converter.methods.reserveBalance(reserveAddress).call();
-      return res;
-    } else if (converterVersion >= 17) {
-      const converterContract = buildConverterContract(converterAddress);
+  //     const res = await converter.methods.reserveBalance(reserveAddress).call();
+  //     return res;
+  //   } else if (converterVersion >= 17) {
+  //     const converterContract = buildConverterContract(converterAddress);
 
-      return (
-        converterContract.methods
-          // @ts-ignore
-          .getConnectorBalance(reserveAddress)
-          .call()
-      );
-    } else {
-      const converterContract = buildConverterContract(converterAddress);
+  //     return (
+  //       converterContract.methods
+  //         // @ts-ignore
+  //         .getConnectorBalance(reserveAddress)
+  //         .call()
+  //     );
+  //   } else {
+  //     const converterContract = buildConverterContract(converterAddress);
 
-      return (
-        converterContract.methods
-          // @ts-ignore
-          .getReserveBalance(reserveAddress)
-          .call()
-      );
-    }
-  }
+  //     return (
+  //       converterContract.methods
+  //         // @ts-ignore
+  //         .getReserveBalance(reserveAddress)
+  //         .call()
+  //     );
+  //   }
+  // }
 
-  @action async newFetchRelayBalances(relayId: string) {
-    const relay = await this.relayById(relayId);
+  // @action async newFetchRelayBalances(relayId: string) {
+  //   const relay = await this.relayById(relayId);
 
-    const reserves = await Promise.all(
-      relay.reserves.map(async reserve => ({
-        ...reserve,
-        weiAmount: await this.newFetchReserveBalance({
-          converterAddress: relay.contract,
-          reserveAddress: reserve.contract,
-          converterVersion: Number(relay.version)
-        })
-      }))
-    );
+  //   const reserves = await Promise.all(
+  //     relay.reserves.map(async reserve => ({
+  //       ...reserve,
+  //       weiAmount: await this.newFetchReserveBalance({
+  //         converterAddress: relay.contract,
+  //         reserveAddress: reserve.contract,
+  //         converterVersion: Number(relay.version)
+  //       })
+  //     }))
+  //   );
 
-    const smartTokenContract = buildTokenContract(relay.smartToken.contract);
+  //   const smartTokenContract = buildTokenContract(relay.smartToken.contract);
 
-    const totalSupplyWei = await smartTokenContract.methods
-      .totalSupply()
-      .call();
+  //   const totalSupplyWei = await smartTokenContract.methods
+  //     .totalSupply()
+  //     .call();
 
-    return { reserves, totalSupplyWei };
-  }
+  //   return { reserves, totalSupplyWei };
+  // }
 
   @action async calculateOpposingDeposit(
     opposingDeposit: OpposingLiquidParams
@@ -967,11 +961,11 @@ export class EthBancorModule extends VuexModule
     const reserveToken = await this.tokenById(reserve.id);
 
     const tokenSymbol = reserveToken.symbol;
-    const tokenAmount = reserveToken.id;
+    const tokenAmount = reserve.amount;
 
     const smartTokenAddress = relay.smartToken.contract;
 
-    const { reserves, totalSupplyWei } = await this.newFetchRelayBalances(
+    const { reserves, totalSupplyWei } = await this.fetchRelayBalances(
       smartTokenAddress
     );
 
@@ -1221,7 +1215,7 @@ export class EthBancorModule extends VuexModule
       tx: contract.methods.removeLiquidity(
         smartTokensWei,
         reserveTokenAddresses,
-        reserveTokenAddresses.map(() => "0")
+        reserveTokenAddresses.map(() => "1")
       )
     });
   }
@@ -1231,20 +1225,17 @@ export class EthBancorModule extends VuexModule
     reserves,
     onUpdate
   }: LiquidityParams) {
-    const relay = findOrThrow(this.relaysList, relay =>
-      compareString(relay.id, relayId)
-    );
+    const relay = await this.relayById(relayId);
 
     const preV11 = Number(relay.version) < 11;
     if (preV11)
       throw new Error("This Pool is not supported for adding liquidity");
 
     const postV28 = Number(relay.version) >= 28;
-    console.log({ postV28 });
 
     const matchedBalances = relay.reserves.map(reserve => ({
       ...reserve,
-      amount: reserves.find(({ id }) => compareString(id, reserve.symbol))!
+      amount: reserves.find(({ id }) => compareString(id, reserve.contract))!
         .amount
     }));
 
@@ -1580,7 +1571,9 @@ export class EthBancorModule extends VuexModule
       this.setAvailableHistories(
         availableSmartTokenHistories.map(history => history.id)
       );
-      const hardCodedRelays = getEthRelays();
+
+      // const hardCodedRelays = getEthRelays();
+      const hardCodedRelays: Relay[] = [];
 
       this.setTokenMeta(tokenMeta);
 
@@ -1989,13 +1982,13 @@ export class EthBancorModule extends VuexModule
       tx: networkContract.methods.convertByPath(
         path,
         fromWei,
-        expandToken(toAmount * 0.95, toTokenDecimals),
+        expandToken(toAmount * 0.90, toTokenDecimals),
         "0x0000000000000000000000000000000000000000",
         "0x0000000000000000000000000000000000000000",
         0
       ),
       ...(fromIsEth && { value: fromWei }),
-      gas: 550000 * 1.1,
+      gas: 550000 * 1.3,
       onHash: () => onUpdate!(3, steps)
     });
     onUpdate!(4, steps);

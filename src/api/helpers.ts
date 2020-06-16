@@ -14,7 +14,7 @@ import {
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
 import wait from "waait";
-import { buildConverterContract, shrinkToken } from "./ethBancorCalc";
+import { buildConverterContract, shrinkToken, buildV28ConverterContract } from "./ethBancorCalc";
 
 export const networkTokens = ["BNT", "USDB"];
 
@@ -116,7 +116,6 @@ export const fetchReserveBalance = async (
   reserveTokenAddress: string,
   versionNumber: number | string
 ): Promise<string> => {
-  console.log({ converterContract, reserveTokenAddress, versionNumber })
   try {
     const res = await converterContract.methods[
       Number(versionNumber) >= 17 ? "getConnectorBalance" : "getReserveBalance"

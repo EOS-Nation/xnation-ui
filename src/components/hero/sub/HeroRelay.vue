@@ -468,11 +468,11 @@ export default class HeroRelay extends Vue {
     this.withdrawLiquidity = to.params.mode == "liquidate";
   }
 
-  @Watch("token1Id")
-  @Watch("token2Id")
+  @Watch("focusedId")
   reserveChange(id: string) {
-    console.log("reserve change received", id);
-    // this.focusSymbol(id);
+    this.relay(id).reserves.forEach(reserve =>
+      this.focusSymbol(reserve.id)
+    );
   }
 
   updateMaxBalances(balances: ViewAmount[]) {
@@ -500,7 +500,8 @@ export default class HeroRelay extends Vue {
 
   async created() {
     this.fetchBalances();
-    console.log(this.focusedRelay.reserves, "reserves for the relay");
+    this.focusSymbol(this.token1Id);
+    this.focusSymbol(this.token2Id);
   }
 }
 </script>

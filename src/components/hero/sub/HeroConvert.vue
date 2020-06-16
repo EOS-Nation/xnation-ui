@@ -125,6 +125,7 @@ import { LiquidityModule, TradingModule, Step } from "../../../types/bancor";
 import numeral from "numeral";
 import { vxm } from "@/store";
 import { buildTokenId } from "../../../api/helpers";
+import { ethReserveAddress } from '../../../api/ethConfig';
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
   return {
@@ -144,7 +145,7 @@ const addDefaultQueryParams = (to: Route): any => {
       );
     case "eth":
       return appendBaseQuoteQuery(
-        "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315",
+        ethReserveAddress,
         "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c",
         to
       );
