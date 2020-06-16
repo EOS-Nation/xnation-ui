@@ -147,7 +147,6 @@ export default class HeroConvert extends Vue {
   }
 
   networkTokenChange(id: string) {
-    console.log("network token change was hit");
     this.focusSymbol(id);
     const optionAvailable = vxm.bancor
       .newPoolTokenChoices(id)
@@ -255,10 +254,6 @@ export default class HeroConvert extends Vue {
   }
 
   get networkMeta() {
-    console.log('network meta is', {
-      ...this.selectedNetworkToken,
-      choices: this.networkChoices
-    })
     return {
       ...this.selectedNetworkToken,
       choices: this.networkChoices
