@@ -303,7 +303,7 @@ export const buildV28ConverterContract = (
 export const buildNetworkContract = (
   contractAddress: string
 ): ContractMethods<{
-  rateByPath: (path: string[], amount: number) => CallReturn<string>;
+  rateByPath: (path: string[], amount: string) => CallReturn<string>;
   convertByPath: (
     path: string[],
     amount: string,
