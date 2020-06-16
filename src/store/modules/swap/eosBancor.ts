@@ -949,9 +949,11 @@ export class EosBancorModule extends VuexModule
       const hydratedRelays = await this.hydrateOldRelays(passedV1Relays);
 
       this.buildPossibleRelayFeedsFromHydrated(
-        hydratedRelays.filter(relay =>
-          relaysNotFulfilled.some(r => compareEosMultiToDry(relay, r))
-        )
+        hydratedRelays
+          .filter(relay =>
+            relaysNotFulfilled.some(r => compareEosMultiToDry(relay, r))
+          )
+          .filter(relayHasReserveBalances)
       );
 
       const allRelays = [...passedV2Relays, ...hydratedRelays];
@@ -1013,9 +1015,13 @@ export class EosBancorModule extends VuexModule
           relay.reserves,
           reserve => reserve.symbol.code().to_string()
         );
-        const token = tokenPrices.find(price =>
-          compareString(price.code, primaryReserve.symbol.code().to_string())
-        )!;
+
+        const token = findOrThrow(
+          tokenPrices,
+          price =>
+            compareString(price.code, primaryReserve.symbol.code().to_string()),
+          "failed to find token in possible relayfeeds from bancor API"
+        );
 
         const includeBnt = compareString(
           relay.smartToken.symbol.code().to_string(),
