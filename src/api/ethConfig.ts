@@ -569,8 +569,75 @@ export const ABIConverterRegistry: AbiItem[] = [
   {
     constant: true,
     inputs: [],
+    name: "getSmartTokens",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_convertibleToken", type: "address" }],
+    name: "getConvertibleTokenAnchors",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_type", type: "uint16" },
+      { name: "_reserveTokens", type: "address[]" },
+      { name: "_reserveWeights", type: "uint32[]" }
+    ],
+    name: "getLiquidityPoolByConfig",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_smartTokens", type: "address[]" }],
+    name: "getConvertersBySmartTokens",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
     name: "onlyOwnerCanUpdateRegistry",
     outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_value", type: "address" }],
+    name: "isConvertibleToken",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_value", type: "address" }],
+    name: "isSmartToken",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_convertibleToken", type: "address" }],
+    name: "getConvertibleTokenAnchorCount",
+    outputs: [{ name: "", type: "uint256" }],
     payable: false,
     stateMutability: "view",
     type: "function"
@@ -586,9 +653,95 @@ export const ABIConverterRegistry: AbiItem[] = [
   },
   {
     constant: true,
+    inputs: [{ name: "_index", type: "uint256" }],
+    name: "getAnchor",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_type", type: "uint16" },
+      { name: "_name", type: "string" },
+      { name: "_symbol", type: "string" },
+      { name: "_decimals", type: "uint8" },
+      { name: "_maxConversionFee", type: "uint32" },
+      { name: "_reserveTokens", type: "address[]" },
+      { name: "_reserveWeights", type: "uint32[]" }
+    ],
+    name: "newConverter",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "getConvertibleTokens",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_convertibleToken", type: "address" },
+      { name: "_index", type: "uint256" }
+    ],
+    name: "getConvertibleTokenAnchor",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_anchors", type: "address[]" }],
+    name: "getConvertersByAnchors",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
     inputs: [],
     name: "prevRegistry",
     outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "getConvertibleTokenCount",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [{ name: "_converter", type: "address" }],
+    name: "addConverter",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_convertibleToken", type: "address" },
+      { name: "_value", type: "address" }
+    ],
+    name: "isConvertibleTokenSmartToken",
+    outputs: [{ name: "", type: "bool" }],
     payable: false,
     stateMutability: "view",
     type: "function"
@@ -605,7 +758,34 @@ export const ABIConverterRegistry: AbiItem[] = [
   {
     constant: true,
     inputs: [],
+    name: "getLiquidityPoolCount",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
     name: "registry",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "getLiquidityPools",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_index", type: "uint256" }],
+    name: "getConvertibleToken",
     outputs: [{ name: "", type: "address" }],
     payable: false,
     stateMutability: "view",
@@ -621,12 +801,90 @@ export const ABIConverterRegistry: AbiItem[] = [
     type: "function"
   },
   {
+    constant: true,
+    inputs: [{ name: "_converter", type: "address" }],
+    name: "isSimilarLiquidityPoolRegistered",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_converter", type: "address" }],
+    name: "isConverterValid",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [{ name: "_converter", type: "address" }],
+    name: "removeConverter",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_index", type: "uint256" }],
+    name: "getSmartToken",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_convertibleToken", type: "address" }],
+    name: "getConvertibleTokenSmartTokenCount",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_index", type: "uint256" }],
+    name: "getLiquidityPool",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
     constant: false,
     inputs: [],
     name: "restoreRegistry",
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_convertibleToken", type: "address" },
+      { name: "_value", type: "address" }
+    ],
+    name: "isConvertibleTokenAnchor",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_reserveTokens", type: "address[]" },
+      { name: "_reserveWeights", type: "uint32[]" }
+    ],
+    name: "getLiquidityPoolByReserveConfig",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
     type: "function"
   },
   {
@@ -645,8 +903,38 @@ export const ABIConverterRegistry: AbiItem[] = [
   {
     constant: true,
     inputs: [],
+    name: "getAnchorCount",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
     name: "newOwner",
     outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_convertibleToken", type: "address" },
+      { name: "_index", type: "uint256" }
+    ],
+    name: "getConvertibleTokenSmartToken",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_value", type: "address" }],
+    name: "isAnchor",
+    outputs: [{ name: "", type: "bool" }],
     payable: false,
     stateMutability: "view",
     type: "function"
@@ -666,6 +954,24 @@ export const ABIConverterRegistry: AbiItem[] = [
     type: "function"
   },
   {
+    constant: true,
+    inputs: [],
+    name: "getSmartTokenCount",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_value", type: "address" }],
+    name: "isLiquidityPool",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
     constant: false,
     inputs: [
       { name: "_token", type: "address" },
@@ -679,12 +985,30 @@ export const ABIConverterRegistry: AbiItem[] = [
     type: "function"
   },
   {
+    constant: true,
+    inputs: [],
+    name: "getAnchors",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
     constant: false,
     inputs: [{ name: "_newOwner", type: "address" }],
     name: "transferOwnership",
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_convertibleToken", type: "address" }],
+    name: "getConvertibleTokenSmartTokens",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
     type: "function"
   },
   {
@@ -695,14 +1019,14 @@ export const ABIConverterRegistry: AbiItem[] = [
   },
   {
     anonymous: false,
-    inputs: [{ indexed: true, name: "_smartToken", type: "address" }],
-    name: "SmartTokenAdded",
+    inputs: [{ indexed: true, name: "_anchor", type: "address" }],
+    name: "ConverterAnchorAdded",
     type: "event"
   },
   {
     anonymous: false,
-    inputs: [{ indexed: true, name: "_smartToken", type: "address" }],
-    name: "SmartTokenRemoved",
+    inputs: [{ indexed: true, name: "_anchor", type: "address" }],
+    name: "ConverterAnchorRemoved",
     type: "event"
   },
   {
@@ -737,249 +1061,24 @@ export const ABIConverterRegistry: AbiItem[] = [
   },
   {
     anonymous: false,
+    inputs: [{ indexed: true, name: "_smartToken", type: "address" }],
+    name: "SmartTokenAdded",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, name: "_smartToken", type: "address" }],
+    name: "SmartTokenRemoved",
+    type: "event"
+  },
+  {
+    anonymous: false,
     inputs: [
       { indexed: true, name: "_prevOwner", type: "address" },
       { indexed: true, name: "_newOwner", type: "address" }
     ],
     name: "OwnerUpdate",
     type: "event"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_type", type: "uint8" },
-      { name: "_smartTokenName", type: "string" },
-      { name: "_smartTokenSymbol", type: "string" },
-      { name: "_smartTokenDecimals", type: "uint8" },
-      { name: "_maxConversionFee", type: "uint32" },
-      { name: "_reserveTokens", type: "address[]" },
-      { name: "_reserveWeights", type: "uint32[]" }
-    ],
-    name: "newConverter",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [{ name: "_converter", type: "address" }],
-    name: "addConverter",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [{ name: "_converter", type: "address" }],
-    name: "removeConverter",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "getSmartTokenCount",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "getSmartTokens",
-    outputs: [{ name: "", type: "address[]" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_index", type: "uint256" }],
-    name: "getSmartToken",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_value", type: "address" }],
-    name: "isSmartToken",
-    outputs: [{ name: "", type: "bool" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "getLiquidityPoolCount",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "getLiquidityPools",
-    outputs: [{ name: "", type: "address[]" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_index", type: "uint256" }],
-    name: "getLiquidityPool",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_value", type: "address" }],
-    name: "isLiquidityPool",
-    outputs: [{ name: "", type: "bool" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "getConvertibleTokenCount",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "getConvertibleTokens",
-    outputs: [{ name: "", type: "address[]" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_index", type: "uint256" }],
-    name: "getConvertibleToken",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_value", type: "address" }],
-    name: "isConvertibleToken",
-    outputs: [{ name: "", type: "bool" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_convertibleToken", type: "address" }],
-    name: "getConvertibleTokenSmartTokenCount",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_convertibleToken", type: "address" }],
-    name: "getConvertibleTokenSmartTokens",
-    outputs: [{ name: "", type: "address[]" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_convertibleToken", type: "address" },
-      { name: "_index", type: "uint256" }
-    ],
-    name: "getConvertibleTokenSmartToken",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_convertibleToken", type: "address" },
-      { name: "_value", type: "address" }
-    ],
-    name: "isConvertibleTokenSmartToken",
-    outputs: [{ name: "", type: "bool" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_smartTokens", type: "address[]" }],
-    name: "getConvertersBySmartTokens",
-    outputs: [{ name: "", type: "address[]" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_converter", type: "address" }],
-    name: "isConverterValid",
-    outputs: [{ name: "", type: "bool" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_converter", type: "address" }],
-    name: "isSimilarLiquidityPoolRegistered",
-    outputs: [{ name: "", type: "bool" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_type", type: "uint8" },
-      { name: "_reserveTokens", type: "address[]" },
-      { name: "_reserveWeights", type: "uint32[]" }
-    ],
-    name: "getLiquidityPoolByConfig",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_reserveTokens", type: "address[]" },
-      { name: "_reserveWeights", type: "uint32[]" }
-    ],
-    name: "getLiquidityPoolByReserveConfig",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
   }
 ];
 
@@ -2573,6 +2672,46 @@ export const ABINetworkContract: AbiItem[] = [
     type: "function"
   },
   {
+    constant: false,
+    inputs: [
+      { name: "_token", type: "address" },
+      { name: "_register", type: "bool" }
+    ],
+    name: "registerEtherToken",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_path", type: "address[]" },
+      { name: "_amount", type: "uint256" }
+    ],
+    name: "getReturnByPath",
+    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_path", type: "address[]" },
+      { name: "_amount", type: "uint256" },
+      { name: "_minReturn", type: "uint256" },
+      { name: "_beneficiary", type: "address" },
+      { name: "_affiliateAccount", type: "address" },
+      { name: "_affiliateFee", type: "uint256" }
+    ],
+    name: "claimAndConvertFor2",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
     constant: true,
     inputs: [],
     name: "onlyOwnerCanUpdateRegistry",
@@ -2588,6 +2727,21 @@ export const ABINetworkContract: AbiItem[] = [
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_path", type: "address[]" },
+      { name: "_amount", type: "uint256" },
+      { name: "_minReturn", type: "uint256" },
+      { name: "_affiliateAccount", type: "address" },
+      { name: "_affiliateFee", type: "uint256" }
+    ],
+    name: "convert2",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: true,
+    stateMutability: "payable",
     type: "function"
   },
   {
@@ -2641,11 +2795,38 @@ export const ABINetworkContract: AbiItem[] = [
   },
   {
     constant: true,
+    inputs: [
+      { name: "_path", type: "address[]" },
+      { name: "_amount", type: "uint256" }
+    ],
+    name: "rateByPath",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
     inputs: [{ name: "", type: "address" }],
     name: "etherTokens",
     outputs: [{ name: "", type: "bool" }],
     payable: false,
     stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_path", type: "address[]" },
+      { name: "_bancorX", type: "address" },
+      { name: "_conversionId", type: "uint256" },
+      { name: "_minReturn", type: "uint256" },
+      { name: "_beneficiary", type: "address" }
+    ],
+    name: "completeXConversion",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "nonpayable",
     type: "function"
   },
   {
@@ -2659,142 +2840,41 @@ export const ABINetworkContract: AbiItem[] = [
   },
   {
     constant: false,
+    inputs: [
+      { name: "_path", type: "address[]" },
+      { name: "_amount", type: "uint256" },
+      { name: "_minReturn", type: "uint256" },
+      { name: "_beneficiary", type: "address" },
+      { name: "_affiliateAccount", type: "address" },
+      { name: "_affiliateFee", type: "uint256" }
+    ],
+    name: "convertFor2",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: true,
+    stateMutability: "payable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_path", type: "address[]" },
+      { name: "_amount", type: "uint256" },
+      { name: "_minReturn", type: "uint256" },
+      { name: "_beneficiary", type: "address" }
+    ],
+    name: "claimAndConvertFor",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: false,
     inputs: [],
     name: "restoreRegistry",
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_token", type: "address" },
-      { name: "_to", type: "address" },
-      { name: "_value", type: "uint256" }
-    ],
-    name: "safeTransfer",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "newOwner",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_token", type: "address" },
-      { name: "_from", type: "address" },
-      { name: "_to", type: "address" },
-      { name: "_value", type: "uint256" }
-    ],
-    name: "safeTransferFrom",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_token", type: "address" },
-      { name: "_spender", type: "address" },
-      { name: "_value", type: "uint256" }
-    ],
-    name: "safeApprove",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [{ name: "_newOwner", type: "address" }],
-    name: "transferOwnership",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    inputs: [{ name: "_registry", type: "address" }],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "constructor"
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: "_smartToken", type: "address" },
-      { indexed: true, name: "_fromToken", type: "address" },
-      { indexed: true, name: "_toToken", type: "address" },
-      { indexed: false, name: "_fromAmount", type: "uint256" },
-      { indexed: false, name: "_toAmount", type: "uint256" },
-      { indexed: false, name: "_trader", type: "address" }
-    ],
-    name: "Conversion",
-    type: "event"
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: "_prevOwner", type: "address" },
-      { indexed: true, name: "_newOwner", type: "address" }
-    ],
-    name: "OwnerUpdate",
-    type: "event"
-  },
-  {
-    constant: false,
-    inputs: [{ name: "_maxAffiliateFee", type: "uint256" }],
-    name: "setMaxAffiliateFee",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_token", type: "address" },
-      { name: "_register", type: "bool" }
-    ],
-    name: "registerEtherToken",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_sourceToken", type: "address" },
-      { name: "_targetToken", type: "address" }
-    ],
-    name: "conversionPath",
-    outputs: [{ name: "", type: "address[]" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_amount", type: "uint256" }
-    ],
-    name: "rateByPath",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
     type: "function"
   },
   {
@@ -2834,72 +2914,12 @@ export const ABINetworkContract: AbiItem[] = [
     inputs: [
       { name: "_path", type: "address[]" },
       { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_targetBlockchain", type: "bytes32" },
-      { name: "_targetAccount", type: "bytes32" },
-      { name: "_conversionId", type: "uint256" },
-      { name: "_affiliateAccount", type: "address" },
-      { name: "_affiliateFee", type: "uint256" }
+      { name: "_minReturn", type: "uint256" }
     ],
-    name: "xConvert2",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: true,
-    stateMutability: "payable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_bancorX", type: "address" },
-      { name: "_conversionId", type: "uint256" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_beneficiary", type: "address" }
-    ],
-    name: "completeXConversion",
+    name: "claimAndConvert",
     outputs: [{ name: "", type: "uint256" }],
     payable: false,
     stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_amount", type: "uint256" }
-    ],
-    name: "getReturnByPath",
-    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" }
-    ],
-    name: "convert",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: true,
-    stateMutability: "payable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_affiliateAccount", type: "address" },
-      { name: "_affiliateFee", type: "uint256" }
-    ],
-    name: "convert2",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: true,
-    stateMutability: "payable",
     type: "function"
   },
   {
@@ -2922,11 +2942,13 @@ export const ABINetworkContract: AbiItem[] = [
       { name: "_path", type: "address[]" },
       { name: "_amount", type: "uint256" },
       { name: "_minReturn", type: "uint256" },
-      { name: "_beneficiary", type: "address" },
+      { name: "_targetBlockchain", type: "bytes32" },
+      { name: "_targetAccount", type: "bytes32" },
+      { name: "_conversionId", type: "uint256" },
       { name: "_affiliateAccount", type: "address" },
       { name: "_affiliateFee", type: "uint256" }
     ],
-    name: "convertFor2",
+    name: "xConvert2",
     outputs: [{ name: "", type: "uint256" }],
     payable: true,
     stateMutability: "payable",
@@ -2935,12 +2957,47 @@ export const ABINetworkContract: AbiItem[] = [
   {
     constant: false,
     inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" }
+      { name: "_token", type: "address" },
+      { name: "_to", type: "address" },
+      { name: "_value", type: "uint256" }
     ],
-    name: "claimAndConvert",
-    outputs: [{ name: "", type: "uint256" }],
+    name: "safeTransfer",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "newOwner",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_sourceToken", type: "address" },
+      { name: "_targetToken", type: "address" }
+    ],
+    name: "conversionPath",
+    outputs: [{ name: "", type: "address[]" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_token", type: "address" },
+      { name: "_from", type: "address" },
+      { name: "_to", type: "address" },
+      { name: "_value", type: "uint256" }
+    ],
+    name: "safeTransferFrom",
+    outputs: [],
     payable: false,
     stateMutability: "nonpayable",
     type: "function"
@@ -2963,13 +3020,21 @@ export const ABINetworkContract: AbiItem[] = [
   {
     constant: false,
     inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_beneficiary", type: "address" }
+      { name: "_token", type: "address" },
+      { name: "_spender", type: "address" },
+      { name: "_value", type: "uint256" }
     ],
-    name: "claimAndConvertFor",
-    outputs: [{ name: "", type: "uint256" }],
+    name: "safeApprove",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [{ name: "_newOwner", type: "address" }],
+    name: "transferOwnership",
+    outputs: [],
     payable: false,
     stateMutability: "nonpayable",
     type: "function"
@@ -2979,15 +3044,49 @@ export const ABINetworkContract: AbiItem[] = [
     inputs: [
       { name: "_path", type: "address[]" },
       { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_beneficiary", type: "address" },
-      { name: "_affiliateAccount", type: "address" },
-      { name: "_affiliateFee", type: "uint256" }
+      { name: "_minReturn", type: "uint256" }
     ],
-    name: "claimAndConvertFor2",
+    name: "convert",
     outputs: [{ name: "", type: "uint256" }],
+    payable: true,
+    stateMutability: "payable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [{ name: "_maxAffiliateFee", type: "uint256" }],
+    name: "setMaxAffiliateFee",
+    outputs: [],
     payable: false,
     stateMutability: "nonpayable",
     type: "function"
+  },
+  {
+    inputs: [{ name: "_registry", type: "address" }],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "constructor"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "_smartToken", type: "address" },
+      { indexed: true, name: "_fromToken", type: "address" },
+      { indexed: true, name: "_toToken", type: "address" },
+      { indexed: false, name: "_fromAmount", type: "uint256" },
+      { indexed: false, name: "_toAmount", type: "uint256" },
+      { indexed: false, name: "_trader", type: "address" }
+    ],
+    name: "Conversion",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "_prevOwner", type: "address" },
+      { indexed: true, name: "_newOwner", type: "address" }
+    ],
+    name: "OwnerUpdate",
+    type: "event"
   }
 ];
