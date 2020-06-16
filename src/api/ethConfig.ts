@@ -1712,7 +1712,7 @@ export const ABIConverterV28: AbiItem[] = [
 export const ABIConverter: AbiItem[] = [
   {
     constant: false,
-    inputs: [{ name: "_adminOnly", type: "bool" }],
+    inputs: [{ name: "_onlyOwnerCanUpdateRegistry", type: "bool" }],
     name: "restrictRegistryUpdate",
     outputs: [],
     payable: false,
@@ -1720,17 +1720,12 @@ export const ABIConverter: AbiItem[] = [
     type: "function"
   },
   {
-    constant: false,
-    inputs: [
-      { name: "_connectorToken", type: "address" },
-      { name: "", type: "uint32" },
-      { name: "", type: "bool" },
-      { name: "_virtualBalance", type: "uint256" }
-    ],
-    name: "updateConnector",
-    outputs: [],
+    constant: true,
+    inputs: [],
+    name: "reserveRatio",
+    outputs: [{ name: "", type: "uint32" }],
     payable: false,
-    stateMutability: "nonpayable",
+    stateMutability: "view",
     type: "function"
   },
   {
@@ -1751,17 +1746,8 @@ export const ABIConverter: AbiItem[] = [
   {
     constant: true,
     inputs: [],
-    name: "bancorX",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_reserveToken", type: "address" }],
-    name: "getReserveBalance",
-    outputs: [{ name: "", type: "uint256" }],
+    name: "hasETHReserve",
+    outputs: [{ name: "", type: "bool" }],
     payable: false,
     stateMutability: "view",
     type: "function"
@@ -1777,9 +1763,18 @@ export const ABIConverter: AbiItem[] = [
   },
   {
     constant: true,
+    inputs: [{ name: "_reserveToken", type: "address" }],
+    name: "reserveWeight",
+    outputs: [{ name: "", type: "uint32" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
     inputs: [
-      { name: "_fromToken", type: "address" },
-      { name: "_toToken", type: "address" },
+      { name: "_sourceToken", type: "address" },
+      { name: "_targetToken", type: "address" },
       { name: "_amount", type: "uint256" }
     ],
     name: "getReturn",
@@ -1798,66 +1793,21 @@ export const ABIConverter: AbiItem[] = [
     type: "function"
   },
   {
-    constant: false,
-    inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_block", type: "uint256" },
-      { name: "_v", type: "uint8" },
-      { name: "_r", type: "bytes32" },
-      { name: "_s", type: "bytes32" }
-    ],
-    name: "quickConvertPrioritized",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: true,
-    stateMutability: "payable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [{ name: "_disable", type: "bool" }],
-    name: "disableConversions",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_fromToken", type: "address" },
-      { name: "_toToken", type: "address" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" }
-    ],
-    name: "convertInternal",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
     constant: true,
-    inputs: [{ name: "_reserveToken", type: "address" }],
-    name: "getReserveRatio",
-    outputs: [{ name: "", type: "uint256" }],
+    inputs: [],
+    name: "isActive",
+    outputs: [{ name: "", type: "bool" }],
     payable: false,
     stateMutability: "view",
     type: "function"
   },
   {
-    constant: false,
-    inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_conversionId", type: "uint256" },
-      { name: "_signature", type: "uint256[]" }
-    ],
-    name: "completeXConversion2",
-    outputs: [{ name: "", type: "uint256" }],
+    constant: true,
+    inputs: [],
+    name: "onlyOwnerCanUpdateRegistry",
+    outputs: [{ name: "", type: "bool" }],
     payable: false,
-    stateMutability: "nonpayable",
+    stateMutability: "view",
     type: "function"
   },
   {
@@ -1870,37 +1820,25 @@ export const ABIConverter: AbiItem[] = [
     type: "function"
   },
   {
-    constant: true,
+    constant: false,
     inputs: [
-      { name: "_amount", type: "uint256" },
-      { name: "_magnitude", type: "uint8" }
+      { name: "_token", type: "address" },
+      { name: "_to", type: "address" },
+      { name: "_amount", type: "uint256" }
     ],
-    name: "getFinalAmount",
-    outputs: [{ name: "", type: "uint256" }],
+    name: "withdrawFromAnchor",
+    outputs: [],
     payable: false,
-    stateMutability: "view",
+    stateMutability: "nonpayable",
     type: "function"
   },
   {
     constant: true,
     inputs: [],
     name: "converterType",
-    outputs: [{ name: "", type: "string" }],
+    outputs: [{ name: "", type: "uint16" }],
     payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_token", type: "address" },
-      { name: "_weight", type: "uint32" },
-      { name: "", type: "bool" }
-    ],
-    name: "addConnector",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
+    stateMutability: "pure",
     type: "function"
   },
   {
@@ -1913,32 +1851,14 @@ export const ABIConverter: AbiItem[] = [
     type: "function"
   },
   {
-    constant: false,
+    constant: true,
     inputs: [
-      { name: "_token", type: "address" },
-      { name: "_to", type: "address" },
+      { name: "_sourceToken", type: "address" },
+      { name: "_targetToken", type: "address" },
       { name: "_amount", type: "uint256" }
     ],
-    name: "withdrawFromToken",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "newManager",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "manager",
-    outputs: [{ name: "", type: "address" }],
+    name: "rateAndFee",
+    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
     payable: false,
     stateMutability: "view",
     type: "function"
@@ -1957,23 +1877,6 @@ export const ABIConverter: AbiItem[] = [
     inputs: [{ name: "_whitelist", type: "address" }],
     name: "setConversionWhitelist",
     outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_conversionId", type: "uint256" },
-      { name: "_block", type: "uint256" },
-      { name: "_v", type: "uint8" },
-      { name: "_r", type: "bytes32" },
-      { name: "_s", type: "bytes32" }
-    ],
-    name: "completeXConversion",
-    outputs: [{ name: "", type: "uint256" }],
     payable: false,
     stateMutability: "nonpayable",
     type: "function"
@@ -2010,20 +1913,6 @@ export const ABIConverter: AbiItem[] = [
     type: "function"
   },
   {
-    constant: false,
-    inputs: [
-      { name: "_fromToken", type: "address" },
-      { name: "_toToken", type: "address" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" }
-    ],
-    name: "change",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
     constant: true,
     inputs: [],
     name: "prevRegistry",
@@ -2034,8 +1923,17 @@ export const ABIConverter: AbiItem[] = [
   },
   {
     constant: false,
-    inputs: [{ name: "_scaleFactor", type: "uint16" }],
-    name: "enableVirtualBalances",
+    inputs: [{ name: "_newOwner", type: "address" }],
+    name: "transferAnchorOwnership",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [{ name: "_to", type: "address" }],
+    name: "withdrawETH",
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
@@ -2045,7 +1943,7 @@ export const ABIConverter: AbiItem[] = [
     constant: false,
     inputs: [
       { name: "_token", type: "address" },
-      { name: "_ratio", type: "uint32" }
+      { name: "_weight", type: "uint32" }
     ],
     name: "addReserve",
     outputs: [],
@@ -2054,19 +1952,12 @@ export const ABIConverter: AbiItem[] = [
     type: "function"
   },
   {
-    constant: false,
-    inputs: [
-      { name: "_fromToken", type: "address" },
-      { name: "_toToken", type: "address" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_affiliateAccount", type: "address" },
-      { name: "_affiliateFee", type: "uint256" }
-    ],
-    name: "convert2",
+    constant: true,
+    inputs: [{ name: "_x", type: "uint256" }],
+    name: "decimalLength",
     outputs: [{ name: "", type: "uint256" }],
     payable: false,
-    stateMutability: "nonpayable",
+    stateMutability: "pure",
     type: "function"
   },
   {
@@ -2076,32 +1967,6 @@ export const ABIConverter: AbiItem[] = [
     outputs: [{ name: "", type: "uint16" }],
     payable: false,
     stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_reserveToken", type: "address" },
-      { name: "_sellAmount", type: "uint256" }
-    ],
-    name: "getSaleReturn",
-    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_fromToken", type: "address" },
-      { name: "_toToken", type: "address" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" }
-    ],
-    name: "convert",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "nonpayable",
     type: "function"
   },
   {
@@ -2123,46 +1988,25 @@ export const ABIConverter: AbiItem[] = [
     type: "function"
   },
   {
+    constant: false,
+    inputs: [
+      { name: "_reserveTokens", type: "address[]" },
+      { name: "_reserveAmounts", type: "uint256[]" },
+      { name: "_minReturn", type: "uint256" }
+    ],
+    name: "addLiquidity",
+    outputs: [],
+    payable: true,
+    stateMutability: "payable",
+    type: "function"
+  },
+  {
     constant: true,
     inputs: [],
     name: "owner",
     outputs: [{ name: "", type: "address" }],
     payable: false,
     stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_fromConnectorToken", type: "address" },
-      { name: "_toConnectorToken", type: "address" },
-      { name: "_amount", type: "uint256" }
-    ],
-    name: "getCrossConnectorReturn",
-    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "CONVERTER_CONVERSION_WHITELIST",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_reserveToken", type: "address" },
-      { name: "_virtualBalance", type: "uint256" }
-    ],
-    name: "updateReserveVirtualBalance",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
     type: "function"
   },
   {
@@ -2184,55 +2028,25 @@ export const ABIConverter: AbiItem[] = [
     type: "function"
   },
   {
-    constant: false,
-    inputs: [
-      { name: "_connectorToken", type: "address" },
-      { name: "_disable", type: "bool" }
-    ],
-    name: "disableConnectorSale",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
     constant: true,
-    inputs: [
-      { name: "_reserveToken", type: "address" },
-      { name: "_depositAmount", type: "uint256" }
-    ],
-    name: "getPurchaseReturn",
-    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
+    inputs: [{ name: "_values", type: "uint256[]" }],
+    name: "geometricMean",
+    outputs: [{ name: "", type: "uint256" }],
     payable: false,
-    stateMutability: "view",
+    stateMutability: "pure",
     type: "function"
   },
   {
     constant: false,
     inputs: [
-      { name: "_reserveToken", type: "address" },
-      { name: "_disable", type: "bool" }
+      { name: "_amount", type: "uint256" },
+      { name: "_reserveTokens", type: "address[]" },
+      { name: "_reserveMinReturnAmounts", type: "uint256[]" }
     ],
-    name: "disableReserveSale",
+    name: "removeLiquidity",
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_signature", type: "uint256[]" },
-      { name: "_affiliateAccount", type: "address" },
-      { name: "_affiliateFee", type: "uint256" }
-    ],
-    name: "quickConvertPrioritized2",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: true,
-    stateMutability: "payable",
     type: "function"
   },
   {
@@ -2242,6 +2056,15 @@ export const ABIConverter: AbiItem[] = [
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_n", type: "uint256" }, { name: "_d", type: "uint256" }],
+    name: "roundDiv",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "pure",
     type: "function"
   },
   {
@@ -2264,48 +2087,57 @@ export const ABIConverter: AbiItem[] = [
   },
   {
     constant: false,
-    inputs: [],
-    name: "acceptManagement",
+    inputs: [{ name: "_amount", type: "uint256" }],
+    name: "fund",
     outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "adminOnly",
-    outputs: [{ name: "", type: "bool" }],
-    payable: false,
-    stateMutability: "view",
+    payable: true,
+    stateMutability: "payable",
     type: "function"
   },
   {
     constant: false,
-    inputs: [{ name: "_amount", type: "uint256" }],
-    name: "fund",
+    inputs: [],
+    name: "acceptAnchorOwnership",
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_fromReserveToken", type: "address" },
-      { name: "_toReserveToken", type: "address" },
-      { name: "_amount", type: "uint256" }
-    ],
-    name: "getCrossReserveReturn",
-    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
     type: "function"
   },
   {
     constant: true,
     inputs: [{ name: "", type: "uint256" }],
     name: "reserveTokens",
+    outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_token", type: "address" },
+      { name: "_to", type: "address" },
+      { name: "_value", type: "uint256" }
+    ],
+    name: "safeTransfer",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "isV28OrHigher",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "pure",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "anchor",
     outputs: [{ name: "", type: "address" }],
     payable: false,
     stateMutability: "view",
@@ -2334,10 +2166,10 @@ export const ABIConverter: AbiItem[] = [
     inputs: [{ name: "", type: "address" }],
     name: "reserves",
     outputs: [
-      { name: "virtualBalance", type: "uint256" },
-      { name: "ratio", type: "uint32" },
-      { name: "isVirtualBalanceEnabled", type: "bool" },
-      { name: "isSaleEnabled", type: "bool" },
+      { name: "balance", type: "uint256" },
+      { name: "weight", type: "uint32" },
+      { name: "deprecated1", type: "bool" },
+      { name: "deprecated2", type: "bool" },
       { name: "isSet", type: "bool" }
     ],
     payable: false,
@@ -2355,23 +2187,37 @@ export const ABIConverter: AbiItem[] = [
   },
   {
     constant: false,
-    inputs: [{ name: "_bancorX", type: "address" }],
-    name: "setBancorX",
+    inputs: [
+      { name: "_token", type: "address" },
+      { name: "_from", type: "address" },
+      { name: "_to", type: "address" },
+      { name: "_value", type: "uint256" }
+    ],
+    name: "safeTransferFrom",
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
     type: "function"
   },
   {
+    constant: true,
+    inputs: [{ name: "_reserveToken", type: "address" }],
+    name: "reserveBalance",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
     constant: false,
     inputs: [
-      { name: "_path", type: "address[]" },
+      { name: "_sourceToken", type: "address" },
+      { name: "_targetToken", type: "address" },
       { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" },
-      { name: "_affiliateAccount", type: "address" },
-      { name: "_affiliateFee", type: "uint256" }
+      { name: "_trader", type: "address" },
+      { name: "_beneficiary", type: "address" }
     ],
-    name: "quickConvert2",
+    name: "convert",
     outputs: [{ name: "", type: "uint256" }],
     payable: true,
     stateMutability: "payable",
@@ -2379,8 +2225,12 @@ export const ABIConverter: AbiItem[] = [
   },
   {
     constant: false,
-    inputs: [{ name: "_newManager", type: "address" }],
-    name: "transferManagement",
+    inputs: [
+      { name: "_token", type: "address" },
+      { name: "_spender", type: "address" },
+      { name: "_value", type: "uint256" }
+    ],
+    name: "safeApprove",
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
@@ -2393,19 +2243,6 @@ export const ABIConverter: AbiItem[] = [
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_path", type: "address[]" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" }
-    ],
-    name: "quickConvert",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: true,
-    stateMutability: "payable",
     type: "function"
   },
   {
@@ -2427,28 +2264,59 @@ export const ABIConverter: AbiItem[] = [
     type: "function"
   },
   {
-    constant: false,
-    inputs: [
-      { name: "_from", type: "address" },
-      { name: "_amount", type: "uint256" }
-    ],
-    name: "claimTokens",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
     inputs: [
       { name: "_token", type: "address" },
       { name: "_registry", type: "address" },
-      { name: "_maxConversionFee", type: "uint32" },
-      { name: "_reserveToken", type: "address" },
-      { name: "_reserveRatio", type: "uint32" }
+      { name: "_maxConversionFee", type: "uint32" }
     ],
     payable: false,
     stateMutability: "nonpayable",
     type: "constructor"
+  },
+  { payable: true, stateMutability: "payable", type: "fallback" },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "_connectorToken", type: "address" },
+      { indexed: false, name: "_tokenSupply", type: "uint256" },
+      { indexed: false, name: "_connectorBalance", type: "uint256" },
+      { indexed: false, name: "_connectorWeight", type: "uint32" }
+    ],
+    name: "PriceDataUpdate",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "_provider", type: "address" },
+      { indexed: true, name: "_reserveToken", type: "address" },
+      { indexed: false, name: "_amount", type: "uint256" },
+      { indexed: false, name: "_newBalance", type: "uint256" },
+      { indexed: false, name: "_newSupply", type: "uint256" }
+    ],
+    name: "LiquidityAdded",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "_provider", type: "address" },
+      { indexed: true, name: "_reserveToken", type: "address" },
+      { indexed: false, name: "_amount", type: "uint256" },
+      { indexed: false, name: "_newBalance", type: "uint256" },
+      { indexed: false, name: "_newSupply", type: "uint256" }
+    ],
+    name: "LiquidityRemoved",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: false, name: "_anchor", type: "address" },
+      { indexed: false, name: "_activated", type: "bool" }
+    ],
+    name: "Activation",
+    type: "event"
   },
   {
     anonymous: false,
@@ -2466,12 +2334,12 @@ export const ABIConverter: AbiItem[] = [
   {
     anonymous: false,
     inputs: [
-      { indexed: true, name: "_connectorToken", type: "address" },
-      { indexed: false, name: "_tokenSupply", type: "uint256" },
-      { indexed: false, name: "_connectorBalance", type: "uint256" },
-      { indexed: false, name: "_connectorWeight", type: "uint32" }
+      { indexed: true, name: "_token1", type: "address" },
+      { indexed: true, name: "_token2", type: "address" },
+      { indexed: false, name: "_rateN", type: "uint256" },
+      { indexed: false, name: "_rateD", type: "uint256" }
     ],
-    name: "PriceDataUpdate",
+    name: "TokenRateUpdate",
     type: "event"
   },
   {
@@ -2481,27 +2349,6 @@ export const ABIConverter: AbiItem[] = [
       { indexed: false, name: "_newFee", type: "uint32" }
     ],
     name: "ConversionFeeUpdate",
-    type: "event"
-  },
-  {
-    anonymous: false,
-    inputs: [{ indexed: false, name: "_conversionsEnabled", type: "bool" }],
-    name: "ConversionsEnable",
-    type: "event"
-  },
-  {
-    anonymous: false,
-    inputs: [{ indexed: false, name: "_enabled", type: "bool" }],
-    name: "VirtualBalancesEnable",
-    type: "event"
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, name: "_prevManager", type: "address" },
-      { indexed: true, name: "_newManager", type: "address" }
-    ],
-    name: "ManagerUpdate",
     type: "event"
   },
   {

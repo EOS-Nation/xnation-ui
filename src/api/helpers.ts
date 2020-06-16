@@ -116,18 +116,21 @@ export const fetchReserveBalance = async (
   reserveTokenAddress: string,
   versionNumber: number | string
 ): Promise<string> => {
+  console.log({ converterContract, reserveTokenAddress, versionNumber })
   try {
     const res = await converterContract.methods[
-      Number(versionNumber) >= 17 ? "getReserveBalance" : "getConnectorBalance"
+      Number(versionNumber) >= 17 ? "getConnectorBalance" : "getReserveBalance"
     ](reserveTokenAddress).call();
+    console.log('res', res, reserveTokenAddress, 'first try')
     return res;
   } catch (e) {
     try {
       const res = await converterContract.methods[
         Number(versionNumber) >= 17
-          ? "getConnectorBalance"
-          : "getReserveBalance"
+          ? "getReserveBalance"
+          : "getConnectorBalance"
       ](reserveTokenAddress).call();
+      console.log('res', res, reserveTokenAddress, 'second try')
       return res;
     } catch (e) {
       throw new Error("Failed getting reserve balance" + e);
@@ -2846,7 +2849,7 @@ export const getEthRelays = (): Relay[] => {
       smartTokeninUSD: null,
       tokenDecimals: 18,
       conversionFee: "0.1",
-      converterVersion: "23"
+      converterVersion: "28"
     },
     {
       tokenAddress: "0x0D8775F648430679A709E98d2b0Cb6250d2887EF",

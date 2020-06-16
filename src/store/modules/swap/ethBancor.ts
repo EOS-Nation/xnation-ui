@@ -735,7 +735,13 @@ export class EthBancorModule extends VuexModule
     return (id: string) =>
       findOrThrow(
         this.tokens,
-        token => compareString(token.id, id),
+        token =>
+          compareString(
+            token.id,
+            compareString(id, ethReserveAddress)
+              ? "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315"
+              : id
+          ),
         `failed to find token() with ID ${id} ethBancor`
       );
   }
@@ -877,6 +883,81 @@ export class EthBancorModule extends VuexModule
     };
   }
 
+  @action async newFetchReserveBalance({
+    converterAddress,
+    reserveAddress,
+    converterVersion
+  }: {
+    converterAddress: string;
+    reserveAddress: string;
+    converterVersion: number;
+  }) {
+    console.log(
+      `was the result of converter: ${converterAddress} ${reserveAddress} ${converterVersion}`
+    );
+
+    const methods = [
+      "reserveBalance",
+      "getReserveBalance",
+      "getConnectorBalance"
+    ];
+
+    const res = await Promise.all(
+      methods.map(methodName => {
+        const contract = buildConverterContract(converterAddress);
+
+      })
+    );
+
+    if (converterVersion >= 28) {
+      const converter = buildV28ConverterContract(converterAddress);
+
+      const res = await converter.methods.reserveBalance(reserveAddress).call();
+      return res;
+    } else if (converterVersion >= 17) {
+      const converterContract = buildConverterContract(converterAddress);
+
+      return (
+        converterContract.methods
+          // @ts-ignore
+          .getConnectorBalance(reserveAddress)
+          .call()
+      );
+    } else {
+      const converterContract = buildConverterContract(converterAddress);
+
+      return (
+        converterContract.methods
+          // @ts-ignore
+          .getReserveBalance(reserveAddress)
+          .call()
+      );
+    }
+  }
+
+  @action async newFetchRelayBalances(relayId: string) {
+    const relay = await this.relayById(relayId);
+
+    const reserves = await Promise.all(
+      relay.reserves.map(async reserve => ({
+        ...reserve,
+        weiAmount: await this.newFetchReserveBalance({
+          converterAddress: relay.contract,
+          reserveAddress: reserve.contract,
+          converterVersion: Number(relay.version)
+        })
+      }))
+    );
+
+    const smartTokenContract = buildTokenContract(relay.smartToken.contract);
+
+    const totalSupplyWei = await smartTokenContract.methods
+      .totalSupply()
+      .call();
+
+    return { reserves, totalSupplyWei };
+  }
+
   @action async calculateOpposingDeposit(
     opposingDeposit: OpposingLiquidParams
   ): Promise<EthOpposingLiquid> {
@@ -890,7 +971,7 @@ export class EthBancorModule extends VuexModule
 
     const smartTokenAddress = relay.smartToken.contract;
 
-    const { reserves, totalSupplyWei } = await this.fetchRelayBalances(
+    const { reserves, totalSupplyWei } = await this.newFetchRelayBalances(
       smartTokenAddress
     );
 
@@ -1205,7 +1286,7 @@ export class EthBancorModule extends VuexModule
         ) {
           await this.mintEthErc(balance.amount!);
         }
-        if (balance.contract == ethReserveAddress) return;
+        if (compareString(balance.contract, ethReserveAddress)) return;
         return this.triggerApprovalIfRequired({
           owner: this.isAuthenticated,
           amount: expandToken(balance.amount!, balance.decimals),
@@ -1507,13 +1588,16 @@ export class EthBancorModule extends VuexModule
         contractAddresses.BancorConverterRegistry
       );
 
-      const isDev = process.env.NODE_ENV == "development";
+      const isDev = process.env.NODE_ENV == "development" && false;
       const registeredSmartTokenAddresses = isDev
         ? [
             "0xb1CD6e4153B2a390Cf00A6556b0fC1458C4A5533",
             ...shortCircuitRegisteredSmartTokenAddresses.slice(0, 10)
           ]
         : shortCircuitRegisteredSmartTokenAddresses;
+
+      // my relay = 0xE81BaCfc5Bd508a40Ec6c46Aeb08dd481d866825
+      // my smart token contract = 0x3f132e3BAd85bf04e90F75Ba288A269aE9b1C747
 
       const hardCodedRelaysInRegistry = relaysWithTokenMeta(
         hardCodedRelays.filter(relay =>
@@ -1584,9 +1668,10 @@ export class EthBancorModule extends VuexModule
 
     const builtRelays = await Promise.all(
       combined.map(([converterAddress, smartTokenAddress]) =>
-        this.buildRelay({ smartTokenAddress, converterAddress }).catch(
-          () => false
-        )
+        this.buildRelay({ smartTokenAddress, converterAddress }).catch(e => {
+          console.log(`Failed building relay ${converterAddress} ${e.message}`);
+          return false;
+        })
       )
     );
     return builtRelays.filter(Boolean) as Relay[];
@@ -1645,6 +1730,15 @@ export class EthBancorModule extends VuexModule
   }
 
   @action async buildTokenByTokenAddress(address: string): Promise<Token> {
+    if (compareString(address, ethReserveAddress)) {
+      return {
+        contract: address,
+        decimals: 18,
+        network: "ETH",
+        symbol: "ETH"
+      };
+    }
+
     const tokenContract = buildTokenContract(address);
 
     const existingTokens = this.relaysList.flatMap(relay => [

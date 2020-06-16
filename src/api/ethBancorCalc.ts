@@ -298,6 +298,7 @@ export const buildV28ConverterContract = (
   connectorTokenCount: () => CallReturn<string>;
   connectorTokens: (index: number) => CallReturn<string>;
   conversionFee: () => CallReturn<string>;
+  reserveBalance: (reserveToken: string) => CallReturn<string>;
 }> => buildContract(ABIConverterV28, contractAddress);
 
 export const buildNetworkContract = (
