@@ -118,25 +118,12 @@ const removeLeadingZeros = (hexString: string) => {
   else throw new Error(`Failed parsing hex ${hexString}`);
 };
 
-const relaysWithTokenMeta = (relays: Relay[], tokenMeta: TokenMeta[]) => {
-  const passedRelays = relays.filter(relay =>
-    relay.reserves.every(reserve =>
-      tokenMeta.some(meta => compareString(reserve.contract, meta.contract))
-    )
+const relayReservesIncludedInTokenMeta = (tokenMeta: TokenMeta[]) => (
+  relay: Relay
+) =>
+  relay.reserves.every(reserve =>
+    tokenMeta.some(meta => compareString(reserve.contract, meta.contract))
   );
-  const missedRelays = _.differenceWith(
-    relays,
-    passedRelays,
-    compareRelayBySmartTokenAddress
-  );
-  console.warn(
-    missedRelays
-      .flatMap(x => x.reserves)
-      .filter(x => x.symbol !== "BNT" && x.symbol !== "USDB"),
-    "are being ditched due to not being included in token meta. "
-  );
-  return passedRelays;
-};
 
 const percentageOfReserve = (
   percent: number,
@@ -1567,13 +1554,9 @@ export class EthBancorModule extends VuexModule
         fetchSmartTokens()
       ]);
 
-      console.log(contractAddresses, "are the contract addresses");
       this.setAvailableHistories(
         availableSmartTokenHistories.map(history => history.id)
       );
-
-      // const hardCodedRelays = getEthRelays();
-      const hardCodedRelays: Relay[] = [];
 
       this.setTokenMeta(tokenMeta);
 
@@ -1589,22 +1572,20 @@ export class EthBancorModule extends VuexModule
           ]
         : shortCircuitRegisteredSmartTokenAddresses;
 
-      // my relay = 0xE81BaCfc5Bd508a40Ec6c46Aeb08dd481d866825
-      // my smart token contract = 0x3f132e3BAd85bf04e90F75Ba288A269aE9b1C747
+      // const hardCodedRelays = getEthRelays();
+      const hardCodedRelays: Relay[] = [];
 
-      const hardCodedRelaysInRegistry = relaysWithTokenMeta(
-        hardCodedRelays.filter(relay =>
+      const passedHardCodedRelays = hardCodedRelays
+        .filter(relayReservesIncludedInTokenMeta(tokenMeta))
+        .filter(relay =>
           registeredSmartTokenAddresses.includes(relay.smartToken.contract)
-        ),
-        tokenMeta
-      );
+        )
+        .filter(relayIncludesAtLeastOneNetworkToken);
 
-      this.updateRelays(hardCodedRelaysInRegistry);
-      await this.fetchAndUpdateRelayFeeds(
-        hardCodedRelaysInRegistry.filter(relayIncludesAtLeastOneNetworkToken)
-      );
+      this.updateRelays(passedHardCodedRelays);
+      await this.fetchAndUpdateRelayFeeds(passedHardCodedRelays);
 
-      const hardCodedSmartTokenAddresses = hardCodedRelaysInRegistry.map(
+      const hardCodedSmartTokenAddresses = passedHardCodedRelays.map(
         relay => relay.smartToken.contract
       );
 
@@ -1617,25 +1598,13 @@ export class EthBancorModule extends VuexModule
         nonHardCodedSmartTokenAddresses
       );
 
-      this.updateRelays(relaysWithTokenMeta(nonHardCodedRelays, tokenMeta));
+      this.updateRelays(
+        nonHardCodedRelays.filter(relayReservesIncludedInTokenMeta(tokenMeta))
+      );
       await this.fetchAndUpdateRelayFeeds(
-        relaysWithTokenMeta(nonHardCodedRelays, tokenMeta).filter(
-          relayIncludesAtLeastOneNetworkToken
-        )
-      );
-
-      const allRelays = [...nonHardCodedRelays, ...hardCodedRelaysInRegistry];
-      const relaysWithHistory = allRelays.filter(relay =>
-        availableSmartTokenHistories.some(smartToken =>
-          compareString(relay.smartToken.symbol, smartToken.id)
-        )
-      );
-      console.log(
-        relaysWithHistory,
-        "are relays with history",
-        relaysWithHistory.length,
-        "out of ",
-        allRelays.length
+        nonHardCodedRelays
+          .filter(relayReservesIncludedInTokenMeta(tokenMeta))
+          .filter(relayIncludesAtLeastOneNetworkToken)
       );
     } catch (e) {
       throw new Error(`Threw inside ethBancor ${e.message}`);
@@ -1982,7 +1951,7 @@ export class EthBancorModule extends VuexModule
       tx: networkContract.methods.convertByPath(
         path,
         fromWei,
-        expandToken(toAmount * 0.90, toTokenDecimals),
+        expandToken(toAmount * 0.9, toTokenDecimals),
         "0x0000000000000000000000000000000000000000",
         "0x0000000000000000000000000000000000000000",
         0
