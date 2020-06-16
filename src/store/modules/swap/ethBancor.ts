@@ -250,6 +250,7 @@ export class EthBancorModule extends VuexModule
     const usdBalance = this.tokenBalance(usdBTokenMeta.contract);
     return [
       {
+        id: bntTokenMeta.contract,
         contract: bntTokenMeta.contract,
         symbol: bntTokenMeta.symbol,
         img: bntTokenMeta.image,
@@ -257,6 +258,7 @@ export class EthBancorModule extends VuexModule
         balance: bntBalance && bntBalance.balance
       },
       {
+        id: usdBTokenMeta.contract,
         contract: usdBTokenMeta.contract,
         symbol: usdBTokenMeta.symbol,
         img: usdBTokenMeta.image,
@@ -270,6 +272,7 @@ export class EthBancorModule extends VuexModule
     return (networkToken: string): ModalChoice[] => {
       return this.tokenMeta
         .map(meta => ({
+          id: meta.contract,
           contract: meta.contract,
           symbol: meta.symbol,
           img: meta.image,

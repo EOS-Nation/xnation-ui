@@ -4,14 +4,10 @@
       <b-row>
         <b-col md="4" class="text-center">
           <token-amount-input
-            :key="focusedToken.symbol"
             :amount.sync="amount"
             :balance="focusedToken.balance"
             :img="focusedToken.logo"
             :symbol="focusedToken.symbol"
-            dropdown
-            @dropdown="promptModal"
-            @click="promptModal"
           />
         </b-col>
         <b-col
@@ -107,22 +103,17 @@ export default class HeroTransfer extends Vue {
   loadingBalance = false;
   numeral = numeral;
   contactHistory: string[] = [];
-  @Prop(String) symbolName!: string;
 
   amount = "";
   memo = "";
   recipient = "";
-
-  promptModal() {
-    console.log("prompt triggered");
-  }
 
   get isAuthenticated() {
     return vxm.eosWallet.isAuthenticated;
   }
 
   get focusedToken() {
-    return vxm.bancor.token(this.selectedSymbolOrDefault)!;
+    return vxm.bancor.token(this.selectedIdOrDefault)!;
   }
 
   async loadHistory() {
@@ -164,20 +155,19 @@ export default class HeroTransfer extends Vue {
     this.memo = "";
   }
 
-  get selectedSymbolOrDefault() {
-    return this.$route.params.symbolName || this.defaultSymbolName;
+  get selectedIdOrDefault() {
+    return this.$route.params.id || this.defaultId;
   }
 
-  get defaultSymbolName() {
-    return vxm.bancor.tokens.find((token: any) => token.symbol !== "BNT")!
-      .symbol;
+  get defaultId() {
+    return vxm.bancor.tokens.find((token: any) => token.symbol !== "BNT")!.id;
   }
 
   navConvert() {
     this.$router.push({
       name: "Token",
       params: {
-        symbolName: this.selectedSymbolOrDefault
+        symbolName: this.selectedIdOrDefault
       }
     });
   }

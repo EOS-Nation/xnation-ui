@@ -57,11 +57,11 @@ export const router = new Router({
       }
     },
     {
-      path: "/:service/transfer/:symbolName",
+      path: "/:service/transfer/:id",
       name: "Transfer",
       components: {
         Nav: Navigation,
-        default: Tokens,
+        default: WalletAccount,
         Hero: HeroTransfer
       },
       props: true
