@@ -1,9 +1,16 @@
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import _ from "lodash";
 import { CallReturn, ContractMethods } from "@/types/bancor.d.ts";
-import { ABIConverter, ABISmartToken } from "@/api/ethConfig";
+import {
+  ABIConverter,
+  ABISmartToken,
+  ABIConverterRegistry,
+  ABIConverterV28,
+  ABINetworkContract
+} from "@/api/ethConfig";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
+import { AbiItem } from "web3-utils";
 
 export const expandToken = (amount: string | number, precision: number) =>
   new BigNumber(amount).times(new BigNumber(10).pow(precision)).toFixed(0);
@@ -56,11 +63,10 @@ const removeChoppedRelay = (relays: ChoppedRelay[], relay: ChoppedRelay) => {
 
 const relayHasBothSymbols = (symbol1: string, symbol2: string) => (
   relay: ChoppedRelay
-) => {
-  return relay.reserves.every(
+) =>
+  relay.reserves.every(
     reserve => reserve.symbol == symbol1 || reserve.symbol == symbol2
   );
-};
 
 const getOppositeSymbol = (relay: ChoppedRelay, symbol: string) =>
   relay.reserves.find(reserve => reserve.symbol !== symbol)!.symbol;
@@ -204,6 +210,11 @@ export const generateEthPath = (from: string, relays: DryRelay[]) =>
     }
   ).path;
 
+const buildContract = (abi: AbiItem[], contractAddress?: string) =>
+  contractAddress
+    ? new web3.eth.Contract(abi, contractAddress)
+    : new web3.eth.Contract(abi);
+
 export const buildTokenContract = (
   contractAddress?: string
 ): ContractMethods<{
@@ -220,9 +231,7 @@ export const buildTokenContract = (
     approvedAmount: string
   ) => ContractSendMethod;
 }> => {
-  return contractAddress
-    ? new web3.eth.Contract(ABISmartToken, contractAddress)
-    : new web3.eth.Contract(ABISmartToken);
+  return buildContract(ABISmartToken, contractAddress);
 };
 
 export const buildConverterContract = (
@@ -251,4 +260,71 @@ export const buildConverterContract = (
   connectorTokenCount: () => CallReturn<string>;
   connectorTokens: (index: number) => CallReturn<string>;
   conversionFee: () => CallReturn<string>;
-}> => new web3.eth.Contract(ABIConverter, contractAddress);
+}> => buildContract(ABIConverter, contractAddress);
+
+export const buildV28ConverterContract = (
+  contractAddress: string
+): ContractMethods<{
+  acceptTokenOwnership: () => ContractSendMethod;
+  acceptOwnership: () => ContractSendMethod;
+  setConversionFee: (ppm: number) => ContractSendMethod;
+  addLiquidity: (
+    reserveTokens: string[],
+    reserveAmounts: string[],
+    minReturn: string
+  ) => ContractSendMethod;
+  removeLiquidity: (
+    amount: string,
+    reserveTokens: string[],
+    reserveMinReturnAmounts: string[]
+  ) => ContractSendMethod;
+  addReserve: (
+    reserveAddress: string,
+    connectorWeight: number
+  ) => ContractSendMethod;
+  getReturn: (
+    fromTokenAddress: string,
+    toTokenAddress: string,
+    wei: string
+  ) => CallReturn<{ "0": string; "1": string }>;
+  rateAndFee: (
+    fromTokenAddress: string,
+    toTokenAddress: string,
+    wei: string
+  ) => CallReturn<{ "0": string; "1": string }>;
+  owner: () => CallReturn<string>;
+  version: () => CallReturn<string>;
+  converterType: () => CallReturn<string>;
+  connectorTokenCount: () => CallReturn<string>;
+  connectorTokens: (index: number) => CallReturn<string>;
+  conversionFee: () => CallReturn<string>;
+  reserveBalance: (reserveToken: string) => CallReturn<string>;
+}> => buildContract(ABIConverterV28, contractAddress);
+
+export const buildNetworkContract = (
+  contractAddress: string
+): ContractMethods<{
+  rateByPath: (path: string[], amount: string) => CallReturn<string>;
+  convertByPath: (
+    path: string[],
+    amount: string,
+    minReturn: string,
+    beneficiary: string,
+    affiliateAccount: string,
+    affiliateFee: number
+  ) => ContractSendMethod;
+}> => buildContract(ABINetworkContract, contractAddress);
+
+export const buildRegistryContract = (
+  contractAddress: string
+): ContractMethods<{
+  newConverter: (
+    type: number,
+    smartTokenName: string,
+    smartTokenSymbol: string,
+    smartTokenDecimals: number,
+    maxConversionFee: number,
+    reserveTokens: string[],
+    reserveWeights: number[]
+  ) => ContractSendMethod;
+}> => buildContract(ABIConverterRegistry, contractAddress);

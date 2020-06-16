@@ -59,16 +59,16 @@
             </template>
             <template v-slot:cell(actions)="data">
               <span>
-                <b-btn
-                  @click="initAction('convert', data.item.symbol)"
+                <!-- <b-btn
+                  @click="initAction('convert', data.item.id)"
                   size="sm"
                   variant="success"
                   class="mr-1"
                 >
                   <font-awesome-icon icon="exchange-alt" />
-                </b-btn>
+                </b-btn> -->
                 <b-btn
-                  @click="initAction('transfer', data.item.symbol)"
+                  @click="initTransfer(data.item.id)"
                   size="sm"
                   variant="info"
                 >
@@ -161,17 +161,26 @@ export default class WalletAccount extends Vue {
     return vxm.bancor.tokens.length;
   }
 
-  initAction(action: "convert" | "transfer", symbolName: string) {
+  scrollToTop() {
     window.scroll({
       top: 0,
       left: 0,
       behavior: "smooth"
     });
+  }
+
+  initTransfer(id: string) {
+    this.scrollToTop();
 
     this.$router.push({
-      name: action == "convert" ? "Token" : "Transfer",
-      params: { symbolName }
+      name: "Transfer",
+      params: { id }
     });
+  }
+
+  initConvert(id: string) {
+    this.scrollToTop();
+    // add convert code
   }
 }
 </script>

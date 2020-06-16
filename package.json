@@ -1,6 +1,6 @@
 {
   "name": "bancor-ui",
-  "version": "1.0.35",
+  "version": "1.0.5",
   "private": false,
   "scripts": {
     "start": "npm run serve",
@@ -50,7 +50,7 @@
     "moment": "^2.25.3",
     "numeral": "^2.0.6",
     "qrcode.vue": "^1.7.0",
-    "sxjs": "^2.1.1",
+    "sxjs": "^2.2.2",
     "velocity-animate": "^1.5.2",
     "vue": "^2.6.11",
     "vue-analytics": "^5.17.2",

@@ -1,6 +1,6 @@
 import { VuexModule, mutation, action, Module } from "vuex-class-component";
-import { web3 } from "@/api/helpers";
-import { ABISmartToken } from "@/api/ethConfig";
+import { web3, compareString } from "@/api/helpers";
+import { ABISmartToken, ethReserveAddress } from "@/api/ethConfig";
 import { EthAddress } from "@/types/bancor";
 import { fromWei } from "web3-utils";
 import { shrinkToken } from "@/api/ethBancorCalc";
@@ -86,7 +86,13 @@ export class EthereumModule extends VuexModule {
     tokenContractAddress: EthAddress;
     keepWei?: boolean;
   }) {
-    if (tokenContractAddress == "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315") {
+    if (
+      compareString(
+        tokenContractAddress,
+        "0xc0829421C1d260BD3cB3E0F06cfE2D52db2cE315"
+      ) ||
+      compareString(tokenContractAddress, ethReserveAddress)
+    ) {
       const weiBalance = await web3.eth.getBalance(accountHolder);
       return Number(fromWei(weiBalance));
     } else {

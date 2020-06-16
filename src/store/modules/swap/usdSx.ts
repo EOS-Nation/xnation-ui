@@ -1,10 +1,12 @@
 import { VuexModule, action, Module, mutation } from "vuex-class-component";
 import {
-  ProposedTransaction,
   ProposedConvertTransaction,
   TradingModule,
   ViewToken,
-  BaseToken
+  BaseToken,
+  ProposedFromTransaction,
+  ProposedToTransaction,
+  ViewAmount
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import {
@@ -17,14 +19,90 @@ import {
   Settings,
   get_tokens,
   Token,
-  Volume
+  Volume,
+  get_slippage,
+  get_fee
 } from "sxjs";
 import { rpc } from "@/api/rpc";
-import { asset_to_number, number_to_asset, symbol } from "eos-common";
-import { compareString, retryPromise, findOrThrow } from "@/api/helpers";
+import {
+  asset_to_number,
+  number_to_asset,
+  symbol,
+  Sym,
+  Asset
+} from "eos-common";
+import {
+  compareString,
+  retryPromise,
+  findOrThrow,
+  getSxContracts,
+  buildTokenId
+} from "@/api/helpers";
+import _ from "lodash";
+import wait from "waait";
+
+interface RateDetail {
+  rate: Asset;
+  slippage: number;
+  fee: Asset;
+}
+
+const getRate = (
+  asset: Asset,
+  sym: Sym,
+  tokens: Tokens,
+  settings: Settings
+): RateDetail => {
+  const rate = get_rate(asset, sym.code(), tokens, settings);
+  const slippage = get_slippage(asset, sym.code(), tokens, settings);
+  const fee = get_fee(asset, settings);
+
+  return { rate, slippage, fee };
+};
+const getInverseRate = (
+  asset: Asset,
+  sym: Sym,
+  tokens: Tokens,
+  settings: Settings
+): RateDetail => {
+  const rate = get_inverse_rate(asset, sym.code(), tokens, settings);
+  const slippage = get_slippage(asset, sym.code(), tokens, settings);
+  const fee = get_fee(asset, settings);
+
+  return { rate, slippage, fee };
+};
+
+const shortAssetString = (asset: Asset): string =>
+  `${asset_to_number(asset)} ${asset.symbol.code().to_string()}`;
+
+interface SxToken {
+  id: string;
+  symbol: string;
+  precision: number;
+  contract: string;
+  volume24h: number;
+  price: number;
+  liqDepth: number;
+}
+
+const accumulateLiq = (acc: SxToken, token: SxToken) => ({
+  ...acc,
+  liqDepth: acc.liqDepth + token.liqDepth
+});
+
+const accumulateVolume = (acc: SxToken, token: SxToken) => ({
+  ...acc,
+  volume24h: acc.volume24h + token.volume24h
+});
 
 const tokensToArray = (tokens: Tokens): Token[] =>
   Object.keys(tokens).map(key => tokens[key]);
+
+const tokenToId = (token: Token) =>
+  buildTokenId({
+    contract: token.contract.to_string(),
+    symbol: token.sym.code().to_string()
+  });
 
 interface AddedVolume extends Token {
   volume24h?: number;
@@ -32,12 +110,46 @@ interface AddedVolume extends Token {
 
 const contract = process.env.VUE_APP_USDSTABLE!;
 
+interface SXToken {
+  id: string;
+  symbol: string;
+  precision: number;
+  contract: string;
+  volume24h: number;
+  price: number;
+  liqDepth: number;
+}
+
+interface Stat {
+  tokens: Tokens;
+  volume: Volume[];
+  settings: Settings;
+  contract: string;
+}
+
+interface MiniRelay {
+  id: string;
+  tokenIds: string[];
+}
+
+interface TradeProposal {
+  fromId: string;
+  toId: string;
+  amount: Asset;
+  calculator: (token: Token, setting: Settings) => Asset;
+}
+
+interface PoolReturn {
+  id: string;
+  amount: RateDetail;
+}
+
 @Module({ namespacedPath: "usdsBancor/" })
 export class UsdBancorModule extends VuexModule implements TradingModule {
-  newTokens: any[] = [];
+  newTokens: SxToken[] = [];
   initiated: boolean = false;
-  tokensObj: Tokens | undefined = undefined;
-  settings: Settings | undefined = undefined;
+  contracts: string[] = [];
+  stats: Stat[] = [];
   lastLoaded: number = 0;
 
   get wallet() {
@@ -51,6 +163,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     return this.newTokens
       .map(token => {
         let name, logo: string;
+        const { contract, symbol } = token;
 
         try {
           const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(
@@ -65,12 +178,16 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           logo =
             "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f39c32b0-cfae-11e9-9f7d-af4705d95e66.jpeg";
         }
-        const tokenBalance = vxm.eosNetwork.balance({
-          contract: token.contract,
-          symbol: token.symbol
-        });
+
+        const baseToken: BaseToken = {
+          contract,
+          symbol
+        };
+        const tokenBalance = vxm.eosNetwork.balance(baseToken);
+
         return {
           ...token,
+          id: buildTokenId(baseToken),
           name,
           logo,
           balance: tokenBalance && tokenBalance.balance
@@ -81,28 +198,94 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
   get token() {
     return (arg0: string) => {
-      const token = this.tokens.find(token => token.symbol == arg0);
-      if (!token) throw new Error("Cannot find token");
-      return token;
+      return findOrThrow(
+        this.tokens,
+        token => compareString(token.id, arg0),
+        `getter: token ${arg0}`
+      );
     };
+  }
+
+  @mutation setContracts(contracts: string[]) {
+    this.contracts = contracts;
   }
 
   @mutation moduleInitiated() {
     this.initiated = true;
   }
 
-  @action async init() {
-
+  @action async fetchContract(contract: string): Promise<Stat> {
     const [tokens, volume, settings] = await Promise.all([
       retryPromise(() => get_tokens(rpc, contract), 4, 500),
       retryPromise(() => get_volume(rpc, contract, 1), 4, 500),
       retryPromise(() => get_settings(rpc, contract), 4, 500)
     ]);
+
+    return { tokens, volume, settings, contract };
+  }
+
+  @action async init() {
+    const registryData = await getSxContracts();
+    vxm.eosNetwork.getBalances({
+      tokens: registryData.flatMap(data => data.tokens),
+      slow: true
+    });
+
+    const contracts = registryData.map(x => x.contract);
+    this.setContracts(contracts);
+    const allTokens = await Promise.all(contracts.map(this.fetchContract));
+    this.setStats(allTokens);
+
     retryPromise(() => this.updateStats(), 4, 1000);
-    console.log(tokens, volume, settings);
-    await this.buildTokens({ tokens, settings, volume: volume[0] });
-    this.moduleInitiated();
+
+    const all = await Promise.all(
+      allTokens.flatMap(token =>
+        this.buildTokens({
+          tokens: token.tokens,
+          volume: token.volume[0],
+          settings: token.settings
+        })
+      )
+    );
+
     setInterval(() => this.checkRefresh(), 20000);
+
+    const allWithId: SxToken[] = all.flatMap(x =>
+      x.map(token => ({
+        ...token,
+        id: buildTokenId(token)
+      }))
+    );
+
+    const uniqTokens = _.uniqBy(allWithId, "id").map(x => x.id);
+
+    const newTokens = uniqTokens.map(
+      (id): SxToken => {
+        const allTokensOfId = allWithId.filter(token =>
+          compareString(id, token.id)
+        );
+
+        const { precision, price, contract, symbol } = allTokensOfId[0];
+
+        const totalVolumeInToken = allTokensOfId.reduce(accumulateVolume)
+          .volume24h;
+        const volumeInPrice = price * totalVolumeInToken;
+
+        return {
+          precision,
+          price,
+          contract,
+          id,
+          liqDepth: allTokensOfId.reduce(accumulateLiq).liqDepth,
+          symbol,
+          volume24h: volumeInPrice
+        };
+      }
+    );
+
+    this.setNewTokens(newTokens);
+    await wait(100);
+    this.moduleInitiated();
   }
 
   @action async buildTokens({
@@ -137,6 +320,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
               (await get_price("1.0000 USDT", symbolName, tokens, settings));
 
         return {
+          id: buildTokenId({ contract, symbol: symbolName }),
           symbol: symbolName,
           precision,
           contract,
@@ -146,18 +330,27 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         };
       })
     );
-    vxm.eosNetwork.getBalances({
-      tokens: newTokens.map(token => ({
-        contract: token.contract,
-        symbol: token.symbol
-      })),
-      slow: true
-    });
-    this.setNewTokens(newTokens);
+    return newTokens;
   }
 
   @mutation setNewTokens(tokens: any[]) {
     this.newTokens = tokens;
+  }
+
+  @action async tokenById(id: string) {
+    return findOrThrow(
+      this.newTokens,
+      token => compareString(token.id, id),
+      `failed to find ${id} in sx tokenById`
+    );
+  }
+
+  @action async viewAmountToAsset(amount: ViewAmount) {
+    const token = await this.tokenById(amount.id);
+    return number_to_asset(
+      Number(amount.amount),
+      new Sym(token.symbol, token.precision)
+    );
   }
 
   @action async focusSymbol(symbolName: string) {
@@ -182,29 +375,18 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   @action async convert(propose: ProposedConvertTransaction) {
     const accountName = this.isAuthenticated;
 
-    const fromToken = this.newTokens.find(token =>
-      compareString(token.symbol, propose.fromSymbol)
-    );
+    const fromToken = await this.tokenById(propose.from.id);
+    const toToken = await this.tokenById(propose.to.id);
+    const tokens = [fromToken, toToken];
+
+    const amountAsset = await this.viewAmountToAsset(propose.from);
 
     const tokenContract = fromToken.contract;
-    const precision = fromToken.precision;
-    const amountAsset = number_to_asset(
-      propose.fromAmount,
-      symbol(propose.fromSymbol, precision)
-    );
 
-    const tokenContractsAndSymbols = [
-      {
-        contract: tokenContract,
-        symbol: propose.fromSymbol
-      },
-      {
-        contract: this.newTokens.find(token =>
-          compareString(token.symbol, propose.toSymbol)
-        )!.contract,
-        symbol: propose.toSymbol
-      }
-    ];
+    const poolReward = await this.bestFromReturn({
+      from: propose.from,
+      toId: propose.to.id
+    });
 
     const [txRes, originalBalances] = await Promise.all([
       this.triggerTx([
@@ -213,14 +395,14 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           name: "transfer",
           data: {
             from: accountName,
-            to: process.env.VUE_APP_USDSTABLE!,
-            memo: propose.toSymbol,
+            to: poolReward.id,
+            memo: toToken.symbol,
             quantity: amountAsset.to_string()
           }
         }
       ]),
       vxm.eosNetwork.getBalances({
-        tokens: tokenContractsAndSymbols
+        tokens
       })
     ]);
     vxm.eosNetwork.pingTillChange({ originalBalances });
@@ -242,87 +424,134 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   }
 
   @action async getTradeData({
-    propose,
-    useFrom
+    propose
   }: {
-    propose: ProposedTransaction;
-    useFrom: boolean;
+    propose: ProposedFromTransaction | ProposedToTransaction;
   }) {
-    const { fromSymbol, amount, toSymbol } = propose;
+    if (Object.keys(propose).includes("from")) {
+      const data = propose as ProposedFromTransaction;
 
-    const tokens = tokensToArray(this.tokensObj!);
+      const toToken = await this.tokenById(data.toId);
 
-    const fromPrecision = findOrThrow(tokens, token =>
-      compareString(token.sym.code().to_string(), fromSymbol)
-    ).sym.precision();
+      const amountAsset = await this.viewAmountToAsset(data.from);
+      const opposingSymbol = symbol(toToken.symbol, toToken.precision);
 
-    const toPrecision = findOrThrow(tokens, token =>
-      compareString(token.sym.code().to_string(), toSymbol)
-    ).sym.precision();
+      return {
+        opposingSymbol,
+        amountAsset
+      };
+    } else {
+      const data = propose as ProposedToTransaction;
 
-    const assetSymbol = useFrom
-      ? symbol(fromSymbol, fromPrecision)
-      : symbol(toSymbol, toPrecision);
+      const fromToken = await this.tokenById(data.fromId);
 
-    const amountAsset = number_to_asset(amount, assetSymbol);
-    const opposingSymbol = useFrom
-      ? symbol(toSymbol, toPrecision)
-      : symbol(fromSymbol, fromPrecision);
+      const amountAsset = await this.viewAmountToAsset(data.to);
+      const opposingSymbol = symbol(fromToken.symbol, fromToken.precision);
+
+      return {
+        opposingSymbol,
+        amountAsset
+      };
+    }
+  }
+
+  @action async returnAcrossPools({
+    calculator,
+    tokenIds
+  }: {
+    calculator: (tokens: Tokens, settings: Settings) => RateDetail;
+    tokenIds: string[];
+  }): Promise<PoolReturn[]> {
+    if (tokenIds.length !== 2)
+      throw new Error("Can only trade between two tokens");
+
+    const miniRelays: MiniRelay[] = this.stats.map(
+      (stat): MiniRelay => ({
+        id: stat.contract,
+        tokenIds: tokensToArray(stat.tokens).map(tokenToId)
+      })
+    );
+
+    const [fromId, toId] = tokenIds;
+
+    const poolCandidates = miniRelays.filter(
+      relay => relay.tokenIds.includes(fromId) && relay.tokenIds.includes(toId)
+    );
+
+    if (poolCandidates.length == 0)
+      throw new Error(
+        "Failed to find pool to facilitate trade, please convert to EOS or USDT first"
+      );
+
+    const hydratedPools = this.stats.filter(stat =>
+      poolCandidates.some(pool => compareString(stat.contract, pool.id))
+    );
+
+    return hydratedPools.map(pool => ({
+      id: pool.contract,
+      amount: calculator(pool.tokens, pool.settings)
+    }));
+  }
+
+  @action async bestFromReturn(
+    propose: ProposedFromTransaction
+  ): Promise<PoolReturn> {
+    const { opposingSymbol, amountAsset } = await this.getTradeData({
+      propose
+    });
+
+    const poolResults = await this.returnAcrossPools({
+      calculator: (tokens, settings) =>
+        getRate(amountAsset, opposingSymbol, tokens, settings),
+      tokenIds: [propose.from.id, propose.toId]
+    });
+
+    const sortedByAmount = poolResults.sort((a, b) =>
+      b.amount.rate.isLessThan(a.amount.rate) ? -1 : 1
+    );
+
+    return sortedByAmount[0];
+  }
+
+  @action async bestToReturn(propose: ProposedToTransaction) {
+    const { opposingSymbol, amountAsset } = await this.getTradeData({
+      propose
+    });
+
+    const poolResults = await this.returnAcrossPools({
+      calculator: (tokens, settings) =>
+        getInverseRate(amountAsset, opposingSymbol, tokens, settings),
+      tokenIds: [propose.fromId, propose.to.id]
+    });
+
+    const sortedByAmount = poolResults.sort((a, b) =>
+      b.amount.rate.isGreaterThan(a.amount.rate) ? -1 : 1
+    );
+
+    return sortedByAmount[0];
+  }
+
+  @action async getReturn(propose: ProposedFromTransaction) {
+    this.checkRefresh();
+
+    const bestReturn = await this.bestFromReturn(propose);
 
     return {
-      opposingSymbol,
-      amountAsset,
-      fromPrecision,
-      toPrecision
+      amount: String(asset_to_number(bestReturn.amount.rate)),
+      fee: shortAssetString(bestReturn.amount.fee),
+      slippage: bestReturn.amount.slippage
     };
   }
 
-  @action async getReturn(propose: ProposedTransaction) {
+  @action async getCost(propose: ProposedToTransaction) {
     this.checkRefresh();
-    const { opposingSymbol, amountAsset } = await this.getTradeData({
-      propose,
-      useFrom: true
-    });
 
-    const pools = this.tokensObj!;
-    const settings = this.settings!;
-
-    const { out, slippage } = get_rate(
-      amountAsset,
-      opposingSymbol.code(),
-      pools,
-      settings
-    );
+    const cheapestCost = await this.bestToReturn(propose);
 
     return {
-      amount: String(asset_to_number(out)),
-      slippage
-    };
-  }
-
-  @action async getCost(propose: ProposedTransaction) {
-    this.checkRefresh();
-    const { opposingSymbol, amountAsset } = await this.getTradeData({
-      propose,
-      useFrom: false
-    });
-
-    const pools = this.tokensObj!;
-    const settings = this.settings!;
-
-    const expectedReward = amountAsset;
-    const offering = opposingSymbol;
-
-    const { quantity, slippage } = get_inverse_rate(
-      expectedReward,
-      offering.code(),
-      pools,
-      settings
-    );
-
-    return {
-      amount: String(asset_to_number(quantity)),
-      slippage
+      amount: String(asset_to_number(cheapestCost.amount.rate)),
+      fee: shortAssetString(cheapestCost.amount.fee),
+      slippage: cheapestCost.amount.slippage
     };
   }
 
@@ -332,23 +561,14 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
   @action async updateStats() {
     this.resetTimer();
-    const [tokens, settings] = await Promise.all([
-      get_tokens(rpc, contract),
-      get_settings(rpc, contract)
-    ]);
-    this.setStats({ tokens, settings });
-    return { tokens, settings };
+    const contracts = this.contracts;
+    const allTokens = await Promise.all(contracts.map(this.fetchContract));
+
+    this.setStats(allTokens);
   }
 
-  @mutation setStats({
-    tokens,
-    settings
-  }: {
-    tokens: Tokens;
-    settings: Settings;
-  }) {
-    this.tokensObj = tokens;
-    this.settings = settings;
+  @mutation setStats(stats: Stat[]) {
+    this.stats = stats;
     this.lastLoaded = new Date().getTime();
   }
 }

@@ -5,7 +5,7 @@
       mode="out-in"
     >
       <token-amount-input
-        :key="symbol"
+        :key="currentId"
         :amount.sync="tokenAmount"
         :balance="balance"
         :img="img"
@@ -48,7 +48,7 @@ import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 })
 export default class TokenField extends Vue {
   @PropSync("amount", { type: String }) tokenAmount!: string;
-  @PropSync("symbol", { type: String }) currentSymbol!: string;
+  @PropSync("tokenId", { type: String }) currentId!: string;
   @Prop({ default: 0 }) balance!: number;
   @Prop(Boolean) loading?: boolean;
   @Prop({ default: "Available:" }) readonly label!: string;
@@ -68,9 +68,9 @@ export default class TokenField extends Vue {
     this.modal = true;
   }
 
-  selectChoice(symbolName: string) {
+  selectChoice(id: string) {
     this.modal = false;
-    this.currentSymbol = symbolName;
+    this.currentId = id;
   }
 }
 </script>

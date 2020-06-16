@@ -1,18 +1,15 @@
 <template>
   <hero-wrapper>
     <two-token-hero
-      :tokenOneSymbol="token1Symbol"
-      :tokenOneError="token1Error"
-      :tokenTwoError="token2Error"
+      :tokenOneId.sync="token1Id"
+      :tokenTwoId.sync="token2Id"
+      :tokenOneMeta="token1Meta"
+      :tokenTwoMeta="token2Meta"
       :tokenOneAmount.sync="token1Amount"
+      :tokenTwoAmount.sync="token2Amount"
+      :warnBalance="true"
       @update:tokenOneAmount="tokenOneChanged"
       @update:tokenTwoAmount="tokenTwoChanged"
-      :tokenOneBalance="displayedToken1Balance"
-      :tokenOneImg="token1Img"
-      :tokenTwoSymbol="token2Symbol"
-      :tokenTwoAmount.sync="token2Amount"
-      :tokenTwoBalance="displayedToken2Balance"
-      :tokenTwoImg="token2Img"
       :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
     >
       <div>
@@ -27,7 +24,9 @@
           />
           <div class="mb-3 mt-3">
             <div class="text-white font-size-sm">
-              {{ `Your balance: ${smartUserBalance} ${focusedSymbol}` }}
+              {{
+                `Your balance: ${smartUserBalance} ${focusedRelay.smartTokenSymbol}`
+              }}
               <span v-if="rateLoading">
                 <font-awesome-icon icon="circle-notch" spin />
               </span>
@@ -71,11 +70,11 @@
             :error="error"
             :success="success"
             :leftHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
-            :leftImg="token1Img"
-            :leftTitle="`${token1Symbol} ${token1Amount}`"
+            :leftImg="token1Meta.img"
+            :leftTitle="`${token1Meta.symbol} ${token1Amount}`"
             leftSubtitle=""
-            :rightImg="token2Img"
-            :rightTitle="`${token2Symbol} ${token2Amount}`"
+            :rightImg="token2Meta.img"
+            :rightTitle="`${token2Meta.symbol} ${token2Amount}`"
             :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
             rightSubtitle=""
           >
@@ -118,6 +117,7 @@ import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
 import TxModalFooter from "@/components/common/TxModalFooter.vue";
 import Stepper from "@/components/modals/Stepper.vue";
 import wait from "waait";
+import { compareString } from "../../../api/helpers";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
@@ -192,8 +192,9 @@ export default class HeroRelay extends Vue {
       ["changeOwner", "Change Owner", "handshake", "info"],
       ["deleteRelay", "Delete Pool", "trash-alt", "warning"]
     ];
-    if (!this.supportedFeatures) return [baseMenus[0]];
-    const features = this.supportedFeatures(this.focusedSymbol)
+
+    if (!this.supportedFeatures) return [baseMenus[1]];
+    const features = this.supportedFeatures(this.focusedId)
       .map(feature => baseMenus.find(([name]) => name == feature)!)
       .filter(Boolean);
     return features;
@@ -209,35 +210,45 @@ export default class HeroRelay extends Vue {
   }
 
   get focusedRelay() {
-    return this.relay(this.focusedSymbol);
+    return this.relay(this.focusedId);
   }
 
   get owner() {
     return this.focusedRelay.owner;
   }
 
-  get token1Img() {
-    return this.token1!.logo;
+  get token1Meta() {
+    return {
+      ...this.token1,
+      img: this.token1.logo,
+      balance: this.displayedToken1Balance,
+      errors: [this.token1Error]
+    };
   }
 
-  get token2Img() {
-    return this.token2!.logo;
+  get token2Meta() {
+    return {
+      ...this.token2,
+      img: this.token2.logo,
+      balance: this.displayedToken2Balance,
+      errors: [this.token1Error]
+    };
   }
 
-  get token1Symbol() {
-    return this.token1.symbol;
+  get token1Id() {
+    return this.token1!.id;
   }
 
-  get token2Symbol() {
-    return this.token2.symbol;
+  get token2Id() {
+    return this.token2!.id;
   }
 
   get token1() {
-    return this.token(this.focusedRelay.reserves[0].symbol)!;
+    return this.token(this.focusedRelay.reserves[0].id)!;
   }
 
   get token2() {
-    return this.token(this.focusedRelay.reserves[1].symbol)!;
+    return this.token(this.focusedRelay.reserves[1].id)!;
   }
 
   get fee() {
@@ -288,14 +299,6 @@ export default class HeroRelay extends Vue {
       : this.token2UserBalance;
   }
 
-  selectedToken(account: string) {
-    this.modal = false;
-    this.$router.push({
-      name: "Relay",
-      params: { account }
-    });
-  }
-
   modalClosed() {
     this.error = "";
     this.success = "";
@@ -305,7 +308,7 @@ export default class HeroRelay extends Vue {
 
   async setOwner() {
     this.updateOwner!({
-      smartTokenSymbol: this.focusedSymbol,
+      id: this.focusedId,
       newOwner: this.newOwner
     });
   }
@@ -318,9 +321,8 @@ export default class HeroRelay extends Vue {
           ? "calculateOpposingWithdraw"
           : "calculateOpposingDeposit"
       ]({
-        smartTokenSymbol: this.focusedSymbol,
-        tokenAmount,
-        tokenSymbol: this.token1Symbol
+        id: this.focusedId,
+        reserve: { id: this.token1Id, amount: tokenAmount }
       });
       this.token2Amount = opposingAmount;
       this.token1Error = "";
@@ -340,9 +342,8 @@ export default class HeroRelay extends Vue {
           ? "calculateOpposingWithdraw"
           : "calculateOpposingDeposit"
       ]({
-        smartTokenSymbol: this.focusedSymbol,
-        tokenAmount,
-        tokenSymbol: this.token2Symbol
+        id: this.focusedId,
+        reserve: { id: this.token2Id, amount: tokenAmount }
       });
       this.token1Amount = opposingAmount;
       this.token2Error = "";
@@ -368,13 +369,13 @@ export default class HeroRelay extends Vue {
   }
 
   async deleteRelay() {
-    await this.removeRelay!(this.focusedSymbol);
+    await this.removeRelay!(this.focusedId);
     this.$router.push({ name: "Relays" });
   }
 
   async setFee() {
     const feeDec = this.feeAmount / 100;
-    this.updateFee!({ fee: feeDec, smartTokenSymbol: this.focusedSymbol });
+    this.updateFee!({ fee: feeDec, id: this.focusedId });
   }
 
   async remove() {
@@ -386,11 +387,12 @@ export default class HeroRelay extends Vue {
     try {
       this.txBusy = true;
       const txResult = await this.removeLiquidity({
-        smartTokenSymbol: this.focusedSymbol,
+        id: this.focusedId,
         reserves: [
-          { id: this.token1Symbol, amount: this.token1Amount },
-          { id: this.token2Symbol, amount: this.token2Amount }
-        ]
+          { id: this.token1Id, amount: this.token1Amount },
+          { id: this.token2Id, amount: this.token2Amount }
+        ],
+        onUpdate: this.onUpdate
       });
       this.fetchBalances();
       wait(7000).then(() => this.fetchBalances());
@@ -415,10 +417,10 @@ export default class HeroRelay extends Vue {
     try {
       this.txBusy = true;
       const txResult = await this.addLiquidity({
-        smartTokenSymbol: this.focusedSymbol,
+        id: this.focusedId,
         reserves: [
-          { id: this.token1Symbol, amount: this.token1Amount },
-          { id: this.token2Symbol, amount: this.token2Amount }
+          { id: this.token1Id, amount: this.token1Amount },
+          { id: this.token2Id, amount: this.token2Amount }
         ],
         onUpdate: this.onUpdate
       });
@@ -431,19 +433,20 @@ export default class HeroRelay extends Vue {
       this.error = e.message;
       // @ts-ignore
       this.$analytics.logEvent("exception", {
-        description: `${this.isAuthenticated} recieved error ${e.message} while attempting a fund action, ${this.token1Amount} ${this.token1Symbol} + ${this.token2Amount} ${this.token2Symbol}`
+        description: `${this.isAuthenticated} recieved error ${e.message} while attempting a fund action, ${this.token1Amount} ${this.token1Id} + ${this.token2Amount} ${this.token2Id}`
       });
     }
     this.txBusy = false;
   }
 
-  get defaultFocusedSymbol() {
-    return this.relays.find(relay => relay.addRemoveLiquiditySupported)!
-      .smartTokenSymbol;
+  get defaultFocusedId() {
+    return this.relays.find(
+      relay => relay.addLiquiditySupported && relay.removeLiquiditySupported
+    )!.id;
   }
 
-  get focusedSymbol() {
-    return this.$route.params.account || this.defaultFocusedSymbol;
+  get focusedId() {
+    return this.$route.params.account || this.defaultFocusedId;
   }
 
   @Watch("isAuthenticated")
@@ -465,15 +468,16 @@ export default class HeroRelay extends Vue {
     this.withdrawLiquidity = to.params.mode == "liquidate";
   }
 
-  @Watch("token1Symbol")
-  @Watch("token2Symbol")
-  reserveChange(symbol: string) {
-    this.focusSymbol(symbol);
+  @Watch("focusedId")
+  reserveChange(id: string) {
+    this.relay(id).reserves.forEach(reserve =>
+      this.focusSymbol(reserve.id)
+    );
   }
 
   updateMaxBalances(balances: ViewAmount[]) {
     const [firstBalance, secondBalance] = balances;
-    if (firstBalance.id == this.token1Symbol) {
+    if (compareString(firstBalance.id, this.token1Id)) {
       this.token1MaxWithdraw = Number(firstBalance.amount);
       this.token2MaxWithdraw = Number(secondBalance.amount);
     } else {
@@ -485,8 +489,9 @@ export default class HeroRelay extends Vue {
   async fetchBalances() {
     if (!this.isAuthenticated) return;
     const { maxWithdrawals, smartTokenBalance } = await this.getUserBalances(
-      this.focusedSymbol
+      this.focusedId
     );
+    console.log(smartTokenBalance, "is smart token balance");
 
     this.updateMaxBalances(maxWithdrawals);
 
@@ -495,6 +500,8 @@ export default class HeroRelay extends Vue {
 
   async created() {
     this.fetchBalances();
+    this.focusSymbol(this.token1Id);
+    this.focusSymbol(this.token2Id);
   }
 }
 </script>

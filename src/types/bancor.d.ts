@@ -53,10 +53,14 @@ export interface TokenBalances {
   tokens: TokenBalance[];
 }
 
-export interface ProposedTransaction {
-  fromSymbol: string;
-  toSymbol: string;
-  amount: FloatAmount;
+export interface ProposedFromTransaction {
+  from: ViewAmount;
+  toId: string;
+}
+
+export interface ProposedToTransaction {
+  to: ViewAmount;
+  fromId: string;
 }
 
 export interface ViewAmount {
@@ -71,20 +75,18 @@ export interface ViewAmount {
 // TODO
 
 export interface LiquidityParams {
-  smartTokenSymbol: string;
+  id: string;
   reserves: ViewAmount[];
   onUpdate?: (index: number, sections: Section[]) => void;
 }
 
 export interface OpposingLiquidParams {
-  smartTokenSymbol: string;
-  tokenSymbol: string;
-  tokenAmount: string;
+  id: string;
+  reserve: ViewAmount;
 }
 
 export interface OpposingLiquid {
   opposingAmount: string;
-  smartTokenAmount: string;
 }
 
 export interface Section {
@@ -93,10 +95,8 @@ export interface Section {
 }
 
 export interface ProposedConvertTransaction {
-  fromSymbol: string;
-  toSymbol: string;
-  fromAmount: FloatAmount;
-  toAmount: FloatAmount;
+  from: ViewAmount;
+  to: ViewAmount;
   onUpdate?: (index: number, sections: Section[]) => void;
 }
 
@@ -168,10 +168,11 @@ export interface Converter {
 export interface ConvertReturn {
   amount: string;
   slippage?: number;
+  fee?: string;
 }
 
 export interface ViewToken {
-  id?: string;
+  id: string;
   symbol: string;
   name: string;
   price?: number;
@@ -189,6 +190,7 @@ interface TokenWithLogo extends AgnosticToken {
 
 export interface ViewReserve {
   reserveId: string;
+  id: string;
   smartTokenSymbol: string;
   logo: string[];
   symbol: string;
@@ -204,7 +206,8 @@ export interface ViewRelay {
   reserves: ViewReserve[];
   fee: number;
   owner: string;
-  addRemoveLiquiditySupported: boolean;
+  addLiquiditySupported: boolean;
+  removeLiquiditySupported: boolean;
   focusAvailable?: boolean;
 }
 
@@ -231,11 +234,12 @@ export interface TradingModule {
   refreshBalances: (symbols?: BaseToken[]) => Promise<void>;
   convert: (propose: ProposedConvertTransaction) => Promise<string>;
   focusSymbol: (symbolName: string) => Promise<void>;
-  getReturn: (propose: ProposedTransaction) => Promise<ConvertReturn>;
-  getCost: (propose: ProposedTransaction) => Promise<ConvertReturn>;
+  getReturn: (propose: ProposedFromTransaction) => Promise<ConvertReturn>;
+  getCost: (propose: ProposedToTransaction) => Promise<ConvertReturn>;
 }
 
 export interface TokenMeta {
+  id: string;
   name: string;
   logo: string;
   logo_lg: string;
@@ -245,6 +249,7 @@ export interface TokenMeta {
 }
 
 export interface AgnosticToken {
+  id: string;
   contract: string;
   precision: number;
   symbol: string;
@@ -253,6 +258,7 @@ export interface AgnosticToken {
 }
 
 export interface EosMultiRelay {
+  id: string;
   reserves: AgnosticToken[];
   contract: string;
   owner: string;
@@ -262,6 +268,7 @@ export interface EosMultiRelay {
 }
 
 export interface ModalChoice {
+  id: string;
   symbol: string;
   contract: string;
   balance?: number;
@@ -297,19 +304,18 @@ export interface HistoryModule {
 
 export interface FeeParams {
   fee: number;
-  smartTokenSymbol: string;
+  id: string;
 }
 
 export interface NewOwnerParams {
   newOwner: string;
-  smartTokenSymbol: string;
+  id: string;
 }
 
 export interface BaseToken {
   contract: string;
   symbol: string;
 }
-
 export interface PromiseEvent {
   name: string;
   description: string;
@@ -335,7 +341,7 @@ export interface LiquidityModule {
     opposingWithdraw: OpposingLiquidParams
   ) => Promise<OpposingLiquid>;
   getUserBalances: (
-    symbolName: string
+    relayId: string
   ) => Promise<{
     maxWithdrawals: ViewAmount[];
     smartTokenBalance: string;
