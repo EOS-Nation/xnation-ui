@@ -8,7 +8,8 @@ import {
   TokenBalances,
   EosMultiRelay,
   Converter,
-  TokenMeta
+  TokenMeta,
+  BaseToken
 } from "@/types/bancor";
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
@@ -23,6 +24,37 @@ interface TraditionalStat {
   supply: Asset;
   max_supply: Asset;
 }
+
+const symbolDictionary = [
+  { symbol: "EOS", contract: "eosio.token" },
+  { symbol: "USDB", contract: "usdbusdbusdb" },
+  { symbol: "PBTC", contract: "btc.ptokens" },
+  { symbol: "VIGOR", contract: "vigortoken11" },
+  { symbol: "USDT", contract: "tethertether" },
+  { symbol: "EOSDT", contract: "eosdtsttoken" },
+  { symbol: "CHEX", contract: "chexchexchex" },
+  { symbol: "BNT", contract: "bntbntbntbnt" },
+  { symbol: "DAPP", contract: "dappservices" },
+  { symbol: "BOID", contract: "boidcomtoken" },
+  { symbol: "DAPP", contract: "dappservices" }
+];
+
+export const getSxContracts = async () => {
+  const res = (await rpc.get_table_rows({
+    code: "registry.sx",
+    table: "swap",
+    scope: "registry.sx"
+  })) as { rows: { contract: string; tokens: string[] }[] };
+  return res.rows.map(tokenSet => ({
+    ...tokenSet,
+    tokens: tokenSet.tokens
+      .map(
+        token =>
+          symbolDictionary.find(symbol => compareString(token, symbol.symbol))!
+      )
+      .filter(Boolean)
+  }));
+};
 
 export const findOrThrow = <T>(
   arr: T[],
@@ -3424,6 +3456,7 @@ export const getEthRelays = (): Relay[] => {
         : relay.symbol
     }))
     .map(relay => ({
+      id: relay.smartTokenAddress,
       reserves: [
         {
           symbol: relay.symbol,
@@ -3469,6 +3502,7 @@ export interface Token {
 }
 
 export interface Relay {
+  id: string;
   reserves: Token[];
   smartToken: Token;
   contract: ContractAccount;
@@ -3584,15 +3618,24 @@ const assetStringtoBaseSymbol = (assetString: string): BaseSymbol => {
   return symToBaseSymbol(asset.symbol);
 };
 
+export const buildTokenId = ({ contract, symbol }: BaseToken): string =>
+  contract + symbol;
+
 export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
 
-  const rawRelays: { rows: ConverterV2Row[] } = await rpc.get_table_rows({
+  const rawRelays: {
+    rows: ConverterV2Row[];
+    more: boolean;
+  } = await rpc.get_table_rows({
     code: process.env.VUE_APP_MULTICONTRACT,
     table: "converter.v2",
     scope: process.env.VUE_APP_MULTICONTRACT,
-    limit: 90
+    limit: 99
   });
+  if (rawRelays.more) {
+    console.warn("Warning, there are more than 99 multi relays!");
+  }
   const parsedRelays = rawRelays.rows;
   const passedRelays = parsedRelays
     .filter(
@@ -3604,9 +3647,19 @@ export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
     )
     .filter(relay => relay.reserve_balances.length == 2);
 
+  const smartTokenContract = process.env.VUE_APP_SMARTTOKENCONTRACT!;
+
   const relays: EosMultiRelay[] = passedRelays.map(relay => ({
+    id: buildTokenId({
+      contract: smartTokenContract,
+      symbol: symToBaseSymbol(new Sym(relay.currency)).symbol
+    }),
     reserves: relay.reserve_balances.map(({ value }) => ({
       ...assetStringtoBaseSymbol(value.quantity),
+      id: buildTokenId({
+        contract: value.contract,
+        symbol: assetStringtoBaseSymbol(value.quantity).symbol
+      }),
       contract: value.contract,
       network: "eos",
       amount: asset_to_number(new Asset(value.quantity))
@@ -3616,7 +3669,11 @@ export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
     isMultiContract: true,
     smartToken: {
       ...symToBaseSymbol(new Sym(relay.currency)),
-      contract: process.env.VUE_APP_SMARTTOKENCONTRACT!,
+      id: buildTokenId({
+        contract: smartTokenContract,
+        symbol: symToBaseSymbol(new Sym(relay.currency)).symbol
+      }),
+      contract: smartTokenContract!,
       amount: 0,
       network: "eos"
     },
@@ -3655,7 +3712,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/359b8290-0767-11e8-8744-97748b632eaf.png",
     symbol: "EOS",
     account: "eosio.token",
-    chain: "eos"
+    chain: "eos",
+    id: "eosio.tokenEOS"
   },
   {
     name: "Prochain",
@@ -3665,7 +3723,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/EPRA.png",
     symbol: "EPRA",
     account: "epraofficial",
-    chain: "eos"
+    chain: "eos",
+    id: "epraofficialEPRA"
   },
   {
     name: "Gold Tael",
@@ -3675,7 +3734,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f146c8c0-1e6c-11e9-96e6-590b33725e90.jpeg",
     symbol: "TAEL",
     account: "realgoldtael",
-    chain: "eos"
+    chain: "eos",
+    id: "realgoldtaelTAEL"
   },
   {
     name: "ZOS",
@@ -3685,7 +3745,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/636a3e10-328f-11e9-99c6-21750f32c67e.jpeg",
     symbol: "ZOS",
     account: "zosdiscounts",
-    chain: "eos"
+    chain: "eos",
+    id: "zosdiscountsZOS"
   },
   {
     name: "EQUA",
@@ -3695,7 +3756,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/d03d3120-cd5b-11e9-923a-f50a5610b222.jpeg",
     symbol: "EQUA",
     account: "equacasheos1",
-    chain: "eos"
+    chain: "eos",
+    id: "equacasheos1EQUA"
   },
   {
     name: "FINX",
@@ -3705,7 +3767,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/77c385a0-6675-11e9-9f0e-7591708e99af.jpeg",
     symbol: "FINX",
     account: "finxtokenvci",
-    chain: "eos"
+    chain: "eos",
+    id: "finxtokenvciFINX"
   }
 ];
 
@@ -3713,9 +3776,12 @@ export const getTokenMeta = async (): Promise<TokenMeta[]> => {
   const res: AxiosResponse<TokenMeta[]> = await axios.get(
     tokenMetaDataEndpoint
   );
-  return [...res.data, ...hardCoded].filter(token =>
-    compareString(token.chain, "eos")
-  );
+  return [...res.data, ...hardCoded]
+    .filter(token => compareString(token.chain, "eos"))
+    .map(token => ({
+      ...token,
+      id: buildTokenId({ contract: token.account, symbol: token.symbol })
+    }));
 };
 
 export interface TickerPrice {

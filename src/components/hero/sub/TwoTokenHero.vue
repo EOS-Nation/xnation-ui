@@ -3,16 +3,16 @@
     <b-row>
       <b-col md="4">
         <token-field
-          :symbol.sync="symbolOne"
+          :tokenId.sync="idOne"
+          :symbol="tokenOneMeta.symbol"
           :amount.sync="amountOne"
           :clickable="tokenOneClickable"
           @clicked="tokenOneClicked"
-          :balance="tokenOneBalance"
-          :img="tokenOneImg"
-          :choices="tokenOneChoices || choices"
+          :balance="tokenOneMeta.balance"
+          :img="tokenOneMeta.img"
+          :choices="tokenOneMeta.choices"
           :label="label"
-          :error="tokenOneError"
-          :errors="tokenOneErrors"
+          :errors="tokenOneMeta.errors"
           :warnBalance="warnBalance"
         />
       </b-col>
@@ -25,16 +25,16 @@
       </b-col>
       <b-col md="4">
         <token-field
-          :symbol.sync="symbolTwo"
+          :tokenId.sync="idTwo"
+          :symbol="tokenTwoMeta.symbol"
           :amount.sync="amountTwo"
           :clickable="tokenTwoClickable"
           @clicked="tokenTwoClicked"
-          :balance="tokenTwoBalance"
-          :img="tokenTwoImg"
-          :choices="tokenTwoChoices || choices"
+          :balance="tokenTwoMeta.balance"
+          :img="tokenTwoMeta.img"
+          :choices="tokenTwoMeta.choices"
           :label="label"
-          :error="tokenTwoError"
-          :errors="tokenTwoErrors"
+          :errors="tokenTwoMeta.errors"
           :warnBalance="warnBalance"
         />
       </b-col>
@@ -53,29 +53,30 @@ import {
 import { vxm } from "@/store";
 import TokenField from "@/components/convert/TokenField.vue";
 
+interface TokenMeta {
+  balance?: number;
+  symbol: string;
+  errors?: string[];
+  img: string;
+  choices?: any[];
+}
+
 @Component({
   components: {
     TokenField
   }
 })
 export default class HeroConvert extends Vue {
-  @PropSync("tokenOneSymbol", { type: String }) symbolOne!: string;
+  @PropSync("tokenOneId", { type: String }) idOne!: string;
   @PropSync("tokenOneAmount", { type: String }) amountOne!: string;
-  @Prop(Number) tokenOneBalance?: number;
-  @Prop(String) tokenOneImg!: string;
-  @Prop(String) tokenOneError?: string;
-  @Prop(Array) tokenOneErrors?: string[];
-  @PropSync("tokenTwoSymbol", { type: String }) symbolTwo!: string;
-  @PropSync("tokenTwoAmount", { type: String }) amountTwo!: string;
-  @Prop(Number) tokenTwoBalance?: number;
-  @Prop(String) tokenTwoImg!: string;
-  @Prop(String) label?: string;
-  @Prop(String) tokenTwoError?: string;
-  @Prop(Array) tokenTwoErrors?: string[];
+  @Prop(Object) tokenOneMeta!: TokenMeta;
 
+  @PropSync("tokenTwoId", { type: String }) idTwo!: string;
+  @PropSync("tokenTwoAmount", { type: String }) amountTwo!: string;
+  @Prop(Object) tokenTwoMeta!: TokenMeta;
+
+  @Prop(String) label?: string;
   @Prop(Array) choices?: any[];
-  @Prop(Array) tokenOneChoices?: any[];
-  @Prop(Array) tokenTwoChoices?: any[];
   @Prop({ default: false }) warnBalance?: boolean;
 
   modal = false;
@@ -85,6 +86,14 @@ export default class HeroConvert extends Vue {
 
   @Emit()
   tokenTwoClicked() {}
+
+  get tokenOneChoices() {
+    return this.tokenOneMeta.choices;
+  }
+
+  get tokenTwoChoices() {
+    return this.tokenTwoMeta.choices;
+  }
 
   get tokenOneClickable() {
     return (

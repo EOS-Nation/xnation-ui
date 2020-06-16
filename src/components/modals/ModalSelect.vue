@@ -44,10 +44,10 @@
           cols="6"
           md="6"
           lg="4"
-          v-for="(token, index) in searchedTokens"
-          :key="index"
+          v-for="token in searchedTokens"
+          :key="token.id"
           class="text-center mb-2"
-          @click="setToken(token.symbol)"
+          @click="setToken(token.id)"
         >
           <token-balance-block
             :symbol="token.symbol"
@@ -104,8 +104,8 @@ export default class ModalSelect extends Vue {
   }
 
   @Emit("onSelect")
-  setToken(symbol: string) {
-    return symbol;
+  setToken(id: string) {
+    return id;
   }
 
   searchTokens() {
