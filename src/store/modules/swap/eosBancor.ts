@@ -1800,7 +1800,9 @@ export class EosBancorModule extends VuexModule
       );
     const openActions = await multiContract.openActions(
       contract,
-      symbol.toString(true),
+      contract == "bntbntbntbnt"
+        ? symbol.code().to_string()
+        : symbol.toString(true),
       this.isAuthenticated
     );
     return openActions;
