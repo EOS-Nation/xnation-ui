@@ -48,8 +48,9 @@ export const getSxContracts = async () => {
   return res.rows.map(tokenSet => ({
     ...tokenSet,
     tokens: tokenSet.tokens
-      .map(token =>
-        symbolDictionary.find(symbol => compareString(token, symbol.symbol))!
+      .map(
+        token =>
+          symbolDictionary.find(symbol => compareString(token, symbol.symbol))!
       )
       .filter(Boolean)
   }));
@@ -3702,7 +3703,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/359b8290-0767-11e8-8744-97748b632eaf.png",
     symbol: "EOS",
     account: "eosio.token",
-    chain: "eos"
+    chain: "eos",
+    id: "eosio.tokenEOS"
   },
   {
     name: "Prochain",
@@ -3712,7 +3714,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/EPRA.png",
     symbol: "EPRA",
     account: "epraofficial",
-    chain: "eos"
+    chain: "eos",
+    id: "epraofficialEPRA"
   },
   {
     name: "Gold Tael",
@@ -3722,7 +3725,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/f146c8c0-1e6c-11e9-96e6-590b33725e90.jpeg",
     symbol: "TAEL",
     account: "realgoldtael",
-    chain: "eos"
+    chain: "eos",
+    id: "realgoldtaelTAEL"
   },
   {
     name: "ZOS",
@@ -3732,7 +3736,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/636a3e10-328f-11e9-99c6-21750f32c67e.jpeg",
     symbol: "ZOS",
     account: "zosdiscounts",
-    chain: "eos"
+    chain: "eos",
+    id: "zosdiscountsZOS"
   },
   {
     name: "EQUA",
@@ -3742,7 +3747,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/d03d3120-cd5b-11e9-923a-f50a5610b222.jpeg",
     symbol: "EQUA",
     account: "equacasheos1",
-    chain: "eos"
+    chain: "eos",
+    id: "equacasheos1EQUA"
   },
   {
     name: "FINX",
@@ -3752,7 +3758,8 @@ const hardCoded: TokenMeta[] = [
       "https://storage.googleapis.com/bancor-prod-file-store/images/communities/77c385a0-6675-11e9-9f0e-7591708e99af.jpeg",
     symbol: "FINX",
     account: "finxtokenvci",
-    chain: "eos"
+    chain: "eos",
+    id: "finxtokenvciFINX"
   }
 ];
 
@@ -3760,9 +3767,12 @@ export const getTokenMeta = async (): Promise<TokenMeta[]> => {
   const res: AxiosResponse<TokenMeta[]> = await axios.get(
     tokenMetaDataEndpoint
   );
-  return [...res.data, ...hardCoded].filter(token =>
-    compareString(token.chain, "eos")
-  );
+  return [...res.data, ...hardCoded]
+    .filter(token => compareString(token.chain, "eos"))
+    .map(token => ({
+      ...token,
+      id: buildTokenId({ contract: token.account, symbol: token.symbol })
+    }));
 };
 
 export interface TickerPrice {

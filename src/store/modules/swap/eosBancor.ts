@@ -520,13 +520,15 @@ export class EosBancorModule extends VuexModule
       return (
         this.tokenMeta
           .map(tokenMeta => {
+            const { symbol, account: contract } = tokenMeta;
             const balance = this.balance({
-              contract: tokenMeta.account,
-              symbol: tokenMeta.symbol
+              contract,
+              symbol
             });
             return {
-              symbol: tokenMeta.symbol,
-              contract: tokenMeta.account,
+              id: buildTokenId({ contract, symbol }),
+              symbol,
+              contract,
               balance: balance && balance.balance,
               img: tokenMeta.logo
             };
@@ -561,21 +563,31 @@ export class EosBancorModule extends VuexModule
   }
 
   get newNetworkTokenChoices(): NetworkChoice[] {
+    const bnt: BaseToken = {
+      symbol: "BNT",
+      contract: "bntbntbntbnt"
+    };
+
+    const usdb: BaseToken = {
+      symbol: "USDB",
+      contract: "usdbusdbusdb"
+    };
+
     return [
       {
-        symbol: "BNT",
-        contract: "bntbntbntbnt",
+        ...bnt,
+        id: buildTokenId(bnt),
         usdValue: this.usdPriceOfBnt
       },
       {
-        symbol: "USDB",
-        contract: "usdbusdbusdb",
+        ...usdb,
+        id: buildTokenId(usdb),
         usdValue: 1
       }
     ].map(choice => ({
       ...choice,
       balance: this.balance(choice) && this.balance(choice)!.balance,
-      img: this.tokenMetaObj(choice.symbol).logo
+      img: this.tokenMetaObj(choice.id).logo
     }));
   }
 
@@ -589,11 +601,11 @@ export class EosBancorModule extends VuexModule
     return txRes.transaction_id as string;
   }
 
-  @action async removeRelay(symbolName: string) {
-    const relay = this.relay(symbolName);
+  @action async removeRelay(id: string) {
+    const relay = await this.relayById(id);
     const reserves = relay.reserves.map(reserve => reserve.symbol);
     const nukeRelayActions = multiContract.nukeRelayAction(
-      symbolName,
+      relay.smartToken.symbol,
       reserves
     );
     const txRes = await this.triggerTx(nukeRelayActions);
@@ -656,13 +668,12 @@ export class EosBancorModule extends VuexModule
   }
 
   get tokenMetaObj() {
-    return (symbolName: string) => {
-      const tokenMetaObj = this.tokenMeta.find(
-        token => token.symbol == symbolName
+    return (id: string) => {
+      return findOrThrow(
+        this.tokenMeta,
+        meta => compareString(meta.id, id),
+        `Failed to find token meta for ${id}`
       );
-      if (!tokenMetaObj)
-        throw new Error(`Failed to find token meta for ${symbolName}`);
-      return tokenMetaObj;
     };
   }
 
@@ -801,7 +812,7 @@ export class EosBancorModule extends VuexModule
           `Failed to find token ${id} in this.token on EOS`
         );
 
-        const meta = this.tokenMetaObj(token.symbol);
+        const meta = this.tokenMetaObj(token.id);
 
         return {
           ...token,
@@ -963,7 +974,7 @@ export class EosBancorModule extends VuexModule
         allRelays.flatMap(relay => relay.reserves),
         "id"
       );
-      console.log('eosNetwork.getBalances should be called with', uniqueTokens);
+      console.log("eosNetwork.getBalances should be called with", uniqueTokens);
       vxm.eosNetwork.getBalances({ tokens: uniqueTokens, slow: true });
     } catch (e) {
       throw new Error(`Threw inside eosBancor: ${e.message}`);

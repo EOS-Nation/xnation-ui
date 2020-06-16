@@ -239,6 +239,7 @@ export interface TradingModule {
 }
 
 export interface TokenMeta {
+  id: string;
   name: string;
   logo: string;
   logo_lg: string;
@@ -267,6 +268,7 @@ export interface EosMultiRelay {
 }
 
 export interface ModalChoice {
+  id: string;
   symbol: string;
   contract: string;
   balance?: number;

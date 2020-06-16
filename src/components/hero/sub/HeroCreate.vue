@@ -2,18 +2,14 @@
   <hero-wrapper>
     <two-token-hero
       v-if="loaded"
-      :tokenOneSymbol.sync="token1Symbol"
-      @update:tokenOneSymbol="networkTokenChange"
-      @update:tokenTwoSymbol="tokenChange"
-      :tokenOneAmount.sync="token1Amount"
-      :tokenOneBalance="displayedToken1Balance"
-      :tokenOneImg="selectedNetworkToken.img"
-      :tokenTwoSymbol.sync="token2Symbol"
-      :tokenTwoAmount.sync="token2Amount"
-      :tokenTwoBalance="displayedToken2Balance"
-      :tokenTwoImg="selectedToken.img"
-      :tokenOneChoices="networkChoices"
-      :tokenTwoChoices="tokenChoices"
+      :tokenOneId.sync="networkId"
+      :tokenTwoId.sync="tokenId"
+      :tokenOneMeta="networkMeta"
+      :tokenTwoMeta="tokenMeta"
+      @update:tokenOneId="networkTokenChange"
+      @update:tokenTwoId="tokenChange"
+      :tokenOneAmount.sync="networkAmount"
+      :tokenTwoAmount.sync="tokenAmount"
       :warnBalance="true"
     >
       <div>
@@ -65,12 +61,12 @@
               :success="success"
               leftHeader="Network Token"
               :leftImg="selectedNetworkToken.img"
-              :leftTitle="token1Symbol"
-              :leftSubtitle="token1Amount"
+              :leftTitle="selectedNetworkToken.symbol"
+              :leftSubtitle="networkAmount"
               rightHeader="Listing token"
               :rightImg="selectedToken.img"
-              :rightTitle="token2Symbol"
-              :rightSubtitle="token2Amount"
+              :rightTitle="selectedToken.symbol"
+              :rightSubtitle="tokenAmount"
             >
               <template v-slot:footer>
                 <TxModalFooter
@@ -102,12 +98,18 @@ import { State, Getter, Action, namespace } from "vuex-class";
 import {
   LiquidityModule,
   TradingModule,
-  CreatePoolModule
+  CreatePoolModule,
+  NetworkChoice,
+  ModalChoice
 } from "../../../types/bancor";
 import wait from "waait";
 import TxModalFooter from "@/components/common/TxModalFooter.vue";
+import { compareString } from "../../../api/helpers";
 
 const bancor = namespace("bancor");
+
+const choiceById = (id: string) => (choice: NetworkChoice | ModalChoice) =>
+  compareString(choice.id, id);
 
 @Component({
   components: {
@@ -121,10 +123,10 @@ const bancor = namespace("bancor");
   }
 })
 export default class HeroConvert extends Vue {
-  token1Symbol = "";
-  token2Symbol = "";
-  token1Amount = "";
-  token2Amount = "";
+  networkId = "";
+  tokenId = "";
+  networkAmount = "";
+  tokenAmount = "";
   loaded = false;
   fee = null;
 
@@ -144,30 +146,30 @@ export default class HeroConvert extends Vue {
     return `${fee} %`;
   }
 
-  networkTokenChange(symbolName: string) {
+  networkTokenChange(id: string) {
     console.log("network token change was hit");
-    this.focusSymbol(symbolName);
+    this.focusSymbol(id);
     const optionAvailable = vxm.bancor
-      .newPoolTokenChoices(symbolName)
-      .some(x => x.symbol == this.token2Symbol);
+      .newPoolTokenChoices(id)
+      .some(x => compareString(x.id, this.selectedToken.id));
     if (!optionAvailable) {
-      const listingToken = vxm.bancor.newPoolTokenChoices(symbolName)[0].symbol;
-      this.token2Symbol = listingToken;
+      const listingToken = vxm.bancor.newPoolTokenChoices(id)[0].id;
+      this.tokenId = listingToken;
       this.focusSymbol(listingToken);
     }
   }
 
-  tokenChange(symbolName: string) {
-    this.focusSymbol(symbolName);
+  tokenChange(id: string) {
+    this.focusSymbol(id);
   }
 
   cleanUpAfterTx() {
     if (this.success) {
       this.$router.push({ name: "Relays" });
       const newToken = this.tokenChoices.find(
-        choice => choice.symbol !== this.token2Symbol
-      )!.symbol;
-      this.token2Symbol = newToken;
+        choice => choice.id !== this.selectedToken.id
+      )!.id;
+      this.tokenId = newToken;
     }
     this.error = "";
     this.success = "";
@@ -186,27 +188,27 @@ export default class HeroConvert extends Vue {
   }
 
   get tokenOneSufficient() {
-    return Number(this.token1Amount) <= this.displayedToken1Balance;
+    return Number(this.networkAmount) <= this.displayedNetworkBalance;
   }
 
   get tokenTwoSufficient() {
-    return Number(this.token2Amount) <= this.displayedToken2Balance;
+    return Number(this.tokenAmount) <= this.displayedTokenBalance;
   }
 
   get networkTokenReward() {
-    return `1 ${this.token1Symbol} = ${(
-      Number(this.token2Amount) / Number(this.token1Amount)
-    ).toFixed(8)} ${this.token2Symbol}`;
+    return `1 ${this.selectedNetworkToken.symbol} = ${(
+      Number(this.tokenAmount) / Number(this.networkAmount)
+    ).toFixed(8)} ${this.selectedToken.symbol}`;
   }
 
   get tokenReward() {
-    return `1 ${this.token2Symbol} = ${(
-      Number(this.token1Amount) / Number(this.token2Amount)
-    ).toFixed(8)} ${this.token1Symbol}`;
+    return `1 ${this.selectedToken.symbol} = ${(
+      Number(this.networkAmount) / Number(this.tokenAmount)
+    ).toFixed(8)} ${this.selectedNetworkToken.symbol}`;
   }
 
   get calculationsAvailable() {
-    return Number(this.token1Amount) && Number(this.token2Amount);
+    return Number(this.networkAmount) && Number(this.tokenAmount);
   }
 
   get currentNetwork() {
@@ -238,20 +240,36 @@ export default class HeroConvert extends Vue {
   }
 
   get networkTokenUsdReward() {
-    return `1 ${this.token2Symbol} = ${(
-      (Number(this.token1Amount) / Number(this.token2Amount)) *
+    return `1 ${this.selectedToken.symbol} = ${(
+      (Number(this.networkAmount) / Number(this.tokenAmount)) *
       this.selectedNetworkToken.usdValue
     ).toFixed(4)} USD`;
   }
 
   get selectedNetworkToken() {
-    return vxm.bancor.newNetworkTokenChoices.find(
-      x => x.symbol == this.token1Symbol
-    )!;
+    return vxm.bancor.newNetworkTokenChoices.find(choiceById(this.networkId))!;
   }
 
   get selectedToken() {
-    return this.tokenChoices.find(x => x.symbol == this.token2Symbol)!;
+    return this.tokenChoices.find(choiceById(this.tokenId))!;
+  }
+
+  get networkMeta() {
+    console.log('network meta is', {
+      ...this.selectedNetworkToken,
+      choices: this.networkChoices
+    })
+    return {
+      ...this.selectedNetworkToken,
+      choices: this.networkChoices
+    };
+  }
+
+  get tokenMeta() {
+    return {
+      ...this.selectedToken,
+      choices: this.tokenChoices
+    };
   }
 
   get networkChoices() {
@@ -259,16 +277,16 @@ export default class HeroConvert extends Vue {
   }
 
   get tokenChoices() {
-    return vxm.bancor.newPoolTokenChoices(this.token1Symbol);
+    return vxm.bancor.newPoolTokenChoices(this.networkId);
   }
 
-  get displayedToken1Balance() {
+  get displayedNetworkBalance() {
     if (this.selectedNetworkToken.balance) {
       return this.selectedNetworkToken.balance;
     } else return 0;
   }
 
-  get displayedToken2Balance() {
+  get displayedTokenBalance() {
     if (this.selectedToken.balance) return this.selectedToken.balance;
     else return 0;
   }
@@ -289,15 +307,15 @@ export default class HeroConvert extends Vue {
     try {
       const txId = await this.createPool({
         reserves: [
-          { id: this.token1Symbol, amount: this.token1Amount },
-          { id: this.token2Symbol, amount: this.token2Amount }
+          { id: this.networkId, amount: this.networkAmount },
+          { id: this.tokenId, amount: this.tokenAmount }
         ],
         fee: fee / 100,
         onUpdate: this.onUpdate
       });
       this.success = txId;
-      this.token1Amount = "";
-      this.token2Amount = "";
+      this.networkAmount = "";
+      this.tokenAmount = "";
       this.txBusy = false;
     } catch (e) {
       this.error = e.message;
@@ -308,17 +326,16 @@ export default class HeroConvert extends Vue {
   @Watch("tokenChoices")
   availableInsurance() {
     const tokenChoiceStillExists = this.tokenChoices.some(
-      tokenChoice => tokenChoice.symbol == this.token2Symbol
+      choiceById(this.tokenId)
     );
-    if (!tokenChoiceStillExists)
-      this.token2Symbol = this.tokenChoices[0].symbol;
+    if (!tokenChoiceStillExists) this.tokenId = this.tokenChoices[0].id;
   }
 
   created() {
-    const networkTokenSymbol = vxm.bancor.newNetworkTokenChoices[0].symbol;
-    const listingTokenSymbol = this.tokenChoices[0].symbol;
-    this.token1Symbol = networkTokenSymbol;
-    this.token2Symbol = listingTokenSymbol;
+    const networkTokenSymbol = vxm.bancor.newNetworkTokenChoices[0].id;
+    const listingTokenSymbol = this.tokenChoices[0].id;
+    this.networkId = networkTokenSymbol;
+    this.tokenId = listingTokenSymbol;
     this.focusSymbol(networkTokenSymbol);
     this.focusSymbol(listingTokenSymbol);
     this.loaded = true;
