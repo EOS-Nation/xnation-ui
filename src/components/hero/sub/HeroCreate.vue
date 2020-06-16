@@ -332,12 +332,12 @@ export default class HeroConvert extends Vue {
   }
 
   created() {
-    const networkTokenSymbol = vxm.bancor.newNetworkTokenChoices[0].id;
-    const listingTokenSymbol = this.tokenChoices[0].id;
-    this.networkId = networkTokenSymbol;
-    this.tokenId = listingTokenSymbol;
-    this.focusSymbol(networkTokenSymbol);
-    this.focusSymbol(listingTokenSymbol);
+    const networkId = vxm.bancor.newNetworkTokenChoices[0].id;
+    const tokenId = this.tokenChoices[0].id;
+    this.networkId = networkId;
+    this.tokenId = tokenId;
+    this.focusSymbol(networkId);
+    this.focusSymbol(tokenId);
     this.loaded = true;
   }
 }
