@@ -4,16 +4,15 @@
       <b-col md="4">
         <token-field
           :tokenId.sync="idOne"
-          :symbol="tokenOneSymbol"
+          :symbol="tokenOneMeta.symbol"
           :amount.sync="amountOne"
           :clickable="tokenOneClickable"
           @clicked="tokenOneClicked"
-          :balance="tokenOneBalance"
-          :img="tokenOneImg"
-          :choices="tokenOneChoices || choices"
+          :balance="tokenOneMeta.balance"
+          :img="tokenOneMeta.img"
+          :choices="tokenOneMeta.choices"
           :label="label"
-          :error="tokenOneError"
-          :errors="tokenOneErrors"
+          :errors="tokenOneMeta.errors"
           :warnBalance="warnBalance"
         />
       </b-col>
@@ -27,16 +26,15 @@
       <b-col md="4">
         <token-field
           :tokenId.sync="idTwo"
-          :symbol="tokenTwoSymbol"
+          :symbol="tokenTwoMeta.symbol"
           :amount.sync="amountTwo"
           :clickable="tokenTwoClickable"
           @clicked="tokenTwoClicked"
-          :balance="tokenTwoBalance"
-          :img="tokenTwoImg"
-          :choices="tokenTwoChoices || choices"
+          :balance="tokenTwoMeta.balance"
+          :img="tokenTwoMeta.img"
+          :choices="tokenTwoMeta.choices"
           :label="label"
-          :error="tokenTwoError"
-          :errors="tokenTwoErrors"
+          :errors="tokenTwoMeta.errors"
           :warnBalance="warnBalance"
         />
       </b-col>
@@ -59,7 +57,6 @@ interface TokenMeta {
   balance?: number;
   symbol: string;
   errors?: string[];
-  error?: string;
   img: string;
   choices?: any[];
 }
@@ -71,13 +68,14 @@ interface TokenMeta {
 })
 export default class HeroConvert extends Vue {
   @PropSync("tokenOneId", { type: String }) idOne!: string;
-  @Prop(Object) tokenOneMeta!: TokenMeta;
-  @Prop(Object) tokenTwoMeta!: TokenMeta;
   @PropSync("tokenOneAmount", { type: String }) amountOne!: string;
+  @Prop(Object) tokenOneMeta!: TokenMeta;
+
   @PropSync("tokenTwoId", { type: String }) idTwo!: string;
   @PropSync("tokenTwoAmount", { type: String }) amountTwo!: string;
-  @Prop(String) label?: string;
+  @Prop(Object) tokenTwoMeta!: TokenMeta;
 
+  @Prop(String) label?: string;
   @Prop(Array) choices?: any[];
   @Prop({ default: false }) warnBalance?: boolean;
 

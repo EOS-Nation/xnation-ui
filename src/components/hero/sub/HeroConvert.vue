@@ -3,19 +3,12 @@
     <two-token-hero
       :tokenOneId.sync="fromTokenId"
       :tokenTwoId.sync="toTokenId"
-      :tokenOneSymbol="fromToken.symbol"
+      :tokenOneMeta="fromTokenMeta"
+      :tokenTwoMeta="toTokenMeta"
       :tokenOneAmount.sync="fromTokenAmount"
-      :tokenOneErrors="fromTokenErrors"
+      :tokenTwoAmount.sync="toTokenAmount"
       @update:tokenOneAmount="updatePriceReturn"
       @update:tokenTwoAmount="updatePriceCost"
-      :tokenOneBalance="fromToken.balance"
-      :tokenOneImg="fromToken.logo"
-      :tokenTwoSymbol="toToken.symbol"
-      :tokenTwoAmount.sync="toTokenAmount"
-      :tokenTwoBalance="toToken.balance"
-      :tokenTwoImg="toToken.logo"
-      :tokenTwoErrors="toTokenErrors"
-      :choices="choices"
     >
       <div>
         <transition name="fade" mode="out-in">
@@ -227,6 +220,24 @@ export default class HeroConvert extends Vue {
   @bancor.Action
   calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
 
+  get fromTokenMeta() {
+    return {
+      ...this.fromToken,
+      img: this.fromToken.logo,
+      errors: this.fromTokenErrors,
+      choices: this.choices
+    };
+  }
+
+  get toTokenMeta() {
+    return {
+      ...this.toToken,
+      img: this.toToken.logo,
+      errors: this.fromTokenErrors,
+      choices: this.choices
+    };
+  }
+
   get fromTokenErrors() {
     return [
       ...(this.fromTokenError ? [this.fromTokenError] : []),
@@ -396,14 +407,18 @@ export default class HeroConvert extends Vue {
 
       this.error = "";
     } catch (e) {
-      this.error = e.message;
+      this.displayError(e.message);
       // @ts-ignore
       this.$analytics.logEvent("exception", {
         description: `${this.isAuthenticated} receievd error ${e.message}`
       });
-      this.success = "";
     }
     this.txBusy = false;
+  }
+
+  displayError(message: string) {
+    this.error = message;
+    this.success = "";
   }
 
   closeTxModal() {
