@@ -13954,10 +13954,10 @@ swarm-js@0.1.39:
     tar "^4.0.2"
     xhr-request-promise "^0.1.2"
 
-sxjs@^2.2.1:
-  version "2.2.1"
-  resolved "https://registry.yarnpkg.com/sxjs/-/sxjs-2.2.1.tgz#ce7b67671db92c224bc12e6300af405e5841b6f6"
-  integrity sha512-6Oln8LnuosS4AkqqMjU101reI25GdXTaIRMbWMAPuXiuHRWm1+gpdDAeZ/n7e0iGhf65BLJD/Ap+5nt59Z2LcA==
+sxjs@^2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/sxjs/-/sxjs-2.2.2.tgz#a36e1fe22d8a25b97c5bb84cfd1da76d8671c5a5"
+  integrity sha512-s2/VC/ueifQNPwthGlk32o8nYFfQAHa8v9agIHGGZenz4wOz+wtOsfEkD4zl2//QyvNvNDtLVnrV5ufAlEtgbw==
   dependencies:
     eos-common "^0.7.9"
 

@@ -236,7 +236,6 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const allTokens = await Promise.all(contracts.map(this.fetchContract));
     this.setStats(allTokens);
 
-
     retryPromise(() => this.updateStats(), 4, 1000);
 
     const all = await Promise.all(
@@ -268,6 +267,10 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
 
         const { precision, price, contract, symbol } = allTokensOfId[0];
 
+        const totalVolumeInToken = allTokensOfId.reduce(accumulateVolume)
+          .volume24h;
+        const volumeInPrice = price * totalVolumeInToken;
+
         return {
           precision,
           price,
@@ -275,7 +278,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           id,
           liqDepth: allTokensOfId.reduce(accumulateLiq).liqDepth,
           symbol,
-          volume24h: allTokensOfId.reduce(accumulateVolume).volume24h
+          volume24h: volumeInPrice
         };
       }
     );
@@ -470,7 +473,6 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     );
 
     const [fromId, toId] = tokenIds;
-    console.log({ fromId, toId, miniRelays})
 
     const poolCandidates = miniRelays.filter(
       relay => relay.tokenIds.includes(fromId) && relay.tokenIds.includes(toId)
