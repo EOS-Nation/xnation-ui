@@ -465,13 +465,13 @@ export default class HeroRelay extends Vue {
 
   @Watch("$route")
   listen(to: any) {
-    this.fetchBalances();
     this.withdrawLiquidity = to.params.mode == "liquidate";
   }
 
   @Watch("focusedId")
   reserveChange(id: string) {
     this.relay(id).reserves.forEach(reserve => this.focusSymbol(reserve.id));
+    this.fetchBalances();
   }
 
   updateMaxBalances(balances: ViewAmount[]) {

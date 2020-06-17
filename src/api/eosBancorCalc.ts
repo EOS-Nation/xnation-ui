@@ -411,12 +411,6 @@ export const findReturn = (amount: Asset, relaysPath: HydratedRelay[]) =>
 export const findCost = (amount: Asset, relaysPath: HydratedRelay[]) =>
   relaysPath.reverse().reduce(
     ({ amount, highestSlippage }, relay) => {
-      console.log(
-        "trying to find",
-        amount.to_string(),
-        "in",
-        relay.reserves.map(reserve => reserve.amount.to_string())
-      );
       const [toReserve, fromReserve] = sortReservesByAsset(
         amount,
         relay.reserves

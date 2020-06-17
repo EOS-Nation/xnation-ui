@@ -1564,7 +1564,7 @@ export class EthBancorModule extends VuexModule
         contractAddresses.BancorConverterRegistry
       );
 
-      const isDev = process.env.NODE_ENV == "development" && false;
+      const isDev = process.env.NODE_ENV == "development"
       const registeredSmartTokenAddresses = isDev
         ? [
             "0xb1CD6e4153B2a390Cf00A6556b0fC1458C4A5533",

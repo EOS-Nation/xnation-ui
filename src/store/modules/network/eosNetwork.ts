@@ -26,10 +26,13 @@ const compareToken = (
   b: TokenBalanceParam | TokenBalanceReturn
 ) => compareString(a.contract, b.contract) && compareString(a.symbol, b.symbol);
 
+const requiredProps = ["balance", "contract", "symbol"];
+
 const pickBalanceReturn = (data: any): TokenBalanceReturn => {
-  const res = _.pick(data, ["balance", "contract", "symbol"]);
+  const res = _.pick(data, requiredProps);
   if (!res.contract || !res.symbol)
     throw new Error("Failed to parse contract or symbol in pickBalanceReturn");
+  // @ts-ignore
   return res;
 };
 

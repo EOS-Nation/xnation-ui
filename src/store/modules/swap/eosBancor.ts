@@ -421,7 +421,6 @@ const generateSmartTokenSymbol = async (
   multiTokenContract: string
 ) => {
   for (const strat in tokenStrategies) {
-    console.log({ symbolOne, symbolTwo });
     const draftedToken = tokenStrategies[strat](symbolOne, symbolTwo);
     try {
       await getEosioTokenPrecision(draftedToken, multiTokenContract);
@@ -1555,6 +1554,11 @@ export class EosBancorModule extends VuexModule
       this.fetchRelayReservesAsAssets(relayId),
       fetchTokenStats(relay.smartToken.contract, relay.smartToken.symbol)
     ]);
+
+    console.log(smartTokenBalance, reserves, supply, 'asked for',           {
+      contract: relay.smartToken.contract,
+      symbol: relay.smartToken.symbol
+    })
 
     const smartSupply = asset_to_number(supply.supply);
     const percent = smartTokenBalance.balance / smartSupply;

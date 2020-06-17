@@ -14,7 +14,11 @@ import {
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
 import wait from "waait";
-import { buildConverterContract, shrinkToken, buildV28ConverterContract } from "./ethBancorCalc";
+import {
+  buildConverterContract,
+  shrinkToken,
+  buildV28ConverterContract
+} from "./ethBancorCalc";
 
 export const networkTokens = ["BNT", "USDB"];
 
@@ -120,7 +124,7 @@ export const fetchReserveBalance = async (
     const res = await converterContract.methods[
       Number(versionNumber) >= 17 ? "getConnectorBalance" : "getReserveBalance"
     ](reserveTokenAddress).call();
-    console.log('res', res, reserveTokenAddress, 'first try')
+    console.log("res", res, reserveTokenAddress, "first try");
     return res;
   } catch (e) {
     try {
@@ -129,7 +133,7 @@ export const fetchReserveBalance = async (
           ? "getReserveBalance"
           : "getConnectorBalance"
       ](reserveTokenAddress).call();
-      console.log('res', res, reserveTokenAddress, 'second try')
+      console.log("res", res, reserveTokenAddress, "second try");
       return res;
     } catch (e) {
       throw new Error("Failed getting reserve balance" + e);
@@ -145,10 +149,14 @@ export const getBalance = async (
   const res: { rows: { balance: string }[] } = await rpc.get_table_rows({
     code: contract,
     scope: account,
-    table: "accounts"
+    table: "accounts",
+    limit: 99
   });
   const balance = res.rows.find(balance =>
-    compareString(balance.balance.split(" ")[1], symbolName)
+    compareString(
+      new Asset(balance.balance).symbol.code().to_string(),
+      symbolName
+    )
   );
   if (!balance) return `0.0000 ${symbolName}`;
   return balance.balance;
