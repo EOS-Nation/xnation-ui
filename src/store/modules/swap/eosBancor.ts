@@ -84,8 +84,7 @@ const relayHasReserveBalances = (relay: EosMultiRelay) =>
 
 const reservesIncludeTokenMeta = (tokenMeta: TokenMeta[]) => (
   relay: EosMultiRelay
-) =>{
-  
+) => {
   const status = relay.reserves.every(reserve =>
     tokenMeta.some(
       meta =>
@@ -93,9 +92,14 @@ const reservesIncludeTokenMeta = (tokenMeta: TokenMeta[]) => (
         compareString(reserve.symbol, meta.symbol)
     )
   );
-  if (!status) console.warn('Dropping relay', relay.reserves.map(x => x.symbol), 'because it does not exist in tokenMeta');
+  if (!status)
+    console.warn(
+      "Dropping relay",
+      relay.reserves.map(x => x.symbol),
+      "because it does not exist in tokenMeta"
+    );
   return status;
-}
+};
 const reservesIncludeTokenMetaDry = (tokenMeta: TokenMeta[]) => (
   relay: DryRelay
 ) => {
@@ -112,7 +116,7 @@ const reservesIncludeTokenMetaDry = (tokenMeta: TokenMeta[]) => (
       relay.reserves.map(x => x.symbol),
       "because they are not included in reserves"
     );
-    return status;
+  return status;
 };
 
 const compareEosMultiToDry = (multi: EosMultiRelay, dry: DryRelay) =>
@@ -267,6 +271,11 @@ const agnosticToAsset = (agnostic: AgnosticToken): Asset =>
     agnostic.amount,
     new Sym(agnostic.symbol, agnostic.precision)
   );
+
+const agnosticToTokenAmount = (agnostic: AgnosticToken): TokenAmount => ({
+  contract: agnostic.contract,
+  amount: agnosticToAsset(agnostic)
+});
 
 const simpleReturn = (from: Asset, to: Asset) =>
   asset_to_number(to) / asset_to_number(from);
@@ -1235,20 +1244,7 @@ export class EosBancorModule extends VuexModule
     ];
 
     const relay = await this.relayById(relayId);
-    const deposits = reserves.map(({ id, amount }) => ({ symbol: id, amount }));
-
-    const tokenAmounts = deposits.map(deposit => {
-      const { precision, contract, symbol } = relay.reserves.find(
-        reserve => reserve.symbol == deposit.symbol
-      )!;
-      return {
-        contract,
-        amount: number_to_asset(
-          Number(deposit.amount),
-          new Symbol(symbol, precision)
-        )
-      };
-    });
+    const tokenAmounts = await this.viewAmountToTokenAmounts(reserves);
 
     onUpdate!(0, steps);
 
@@ -1356,20 +1352,23 @@ export class EosBancorModule extends VuexModule
     );
   }
 
-  @action async viewAmountsToAssets(amounts: ViewAmount[]) {
-    return amounts.map(amount => {
-      const existingReserve = this.relaysList
-        .find(relay =>
-          relay.reserves.find(reserve =>
-            compareString(amount.id, reserve.symbol)
-          )
-        )!
-        .reserves.find(reserve => compareString(amount.id, reserve.symbol))!;
-      return number_to_asset(
-        Number(amount.amount),
-        agnosticToAsset(existingReserve).symbol
-      );
-    });
+  @action async viewAmountToTokenAmounts(
+    amounts: ViewAmount[]
+  ): Promise<TokenAmount[]> {
+    return Promise.all(
+      amounts.map(
+        async (amount): Promise<TokenAmount> => {
+          const token = await this.tokenById(amount.id);
+          return {
+            contract: token.contract,
+            amount: number_to_asset(
+              Number(amount.amount),
+              await this.idToSymbol(token.id)
+            )
+          };
+        }
+      )
+    );
   }
 
   @action async doubleLiquidateActions({
@@ -1422,7 +1421,7 @@ export class EosBancorModule extends VuexModule
         "This trade makes more than 30% of the pools liquidity, it makes sense use another method for withdrawing liquidity manually due to potential slippage. Please engage us on the Telegram channel for more information."
       );
 
-    const reserveAssets = await this.viewAmountsToAssets(reserves);
+    const reserveAssets = await this.viewAmountToTokenAmounts(reserves);
     if (reserveAssets.length !== 2)
       throw new Error("Anything other than 2 reserves not supported");
 
@@ -1447,7 +1446,7 @@ export class EosBancorModule extends VuexModule
       let txRes = await this.triggerTx(
         await this.doubleLiquidateActions({
           relay,
-          reserveAssets,
+          reserveAssets: reserveAssets.map(asset => asset.amount),
           smartTokenAmount: pureTimesAsset(smartTokenAmount, 1 / suggestTxs)
         })
       );
@@ -1529,16 +1528,16 @@ export class EosBancorModule extends VuexModule
     }
   }
 
-  @action async fetchRelayReservesAsAssets(id: string) {
+  @action async fetchRelayReservesAsAssets(id: string): Promise<TokenAmount[]> {
     const relay = await this.relayById(id);
 
     if (relay.isMultiContract) {
       const hydratedRelay = await fetchMultiRelay(relay.smartToken.symbol);
-      return hydratedRelay.reserves.map(agnosticToAsset);
+      return hydratedRelay.reserves.map(agnosticToTokenAmount);
     } else {
       const [dryRelay] = eosMultiToDryRelays([relay]);
       const [hydrated] = await this.hydrateOldRelays([dryRelay]);
-      return hydrated.reserves.map(agnosticToAsset);
+      return hydrated.reserves.map(agnosticToTokenAmount);
     }
   }
 
@@ -1561,8 +1560,11 @@ export class EosBancorModule extends VuexModule
     const percent = smartTokenBalance.balance / smartSupply;
 
     const maxWithdrawals: ViewAmount[] = reserves.map(reserve => ({
-      id: reserve.symbol.code().to_string(),
-      amount: String(asset_to_number(reserve) * percent)
+      id: buildTokenId({
+        contract: reserve.contract,
+        symbol: reserve.amount.symbol.code().to_string()
+      }),
+      amount: String(asset_to_number(reserve.amount) * percent)
     }));
 
     return {
@@ -1599,7 +1601,7 @@ export class EosBancorModule extends VuexModule
     const tokenAmount = suggestedDeposit.reserve.amount;
 
     const [sameReserve, opposingReserve] = sortByNetworkTokens(
-      reserves,
+      reserves.map(reserve => reserve.amount),
       assetToSymbolName,
       [assetToSymbolName(sameAsset)]
     );
@@ -1670,7 +1672,7 @@ export class EosBancorModule extends VuexModule
     const smartSupply = asset_to_number(supply.supply);
 
     const [sameReserve, opposingReserve] = sortByNetworkTokens(
-      reserves,
+      reserves.map(reserve => reserve.amount),
       assetToSymbolName,
       [assetToSymbolName(sameAmountAsset)]
     );

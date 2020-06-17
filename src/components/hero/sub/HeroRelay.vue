@@ -118,6 +118,7 @@ import TxModalFooter from "@/components/common/TxModalFooter.vue";
 import Stepper from "@/components/modals/Stepper.vue";
 import wait from "waait";
 import { compareString } from "../../../api/helpers";
+import { sortByNetworkTokens } from "../../../api/sortByNetworkTokens";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
@@ -470,20 +471,17 @@ export default class HeroRelay extends Vue {
 
   @Watch("focusedId")
   reserveChange(id: string) {
-    this.relay(id).reserves.forEach(reserve =>
-      this.focusSymbol(reserve.id)
-    );
+    this.relay(id).reserves.forEach(reserve => this.focusSymbol(reserve.id));
   }
 
   updateMaxBalances(balances: ViewAmount[]) {
-    const [firstBalance, secondBalance] = balances;
-    if (compareString(firstBalance.id, this.token1Id)) {
-      this.token1MaxWithdraw = Number(firstBalance.amount);
-      this.token2MaxWithdraw = Number(secondBalance.amount);
-    } else {
-      this.token1MaxWithdraw = Number(secondBalance.amount);
-      this.token2MaxWithdraw = Number(firstBalance.amount);
-    }
+    const [token1Balance, token2Balance] = sortByNetworkTokens(
+      balances,
+      balance => balance.id,
+      [this.token1Id]
+    );
+    this.token1MaxWithdraw = Number(token1Balance.amount);
+    this.token2MaxWithdraw = Number(token2Balance.amount);
   }
 
   async fetchBalances() {
@@ -491,8 +489,6 @@ export default class HeroRelay extends Vue {
     const { maxWithdrawals, smartTokenBalance } = await this.getUserBalances(
       this.focusedId
     );
-    console.log(smartTokenBalance, "is smart token balance");
-
     this.updateMaxBalances(maxWithdrawals);
 
     this.smartUserBalance = smartTokenBalance;
