@@ -135,11 +135,11 @@ export const router = new Router({
     },
     {
       path: "*",
-      redirect: "/eth"
+      redirect: "/eos"
     },
     {
       path: "/",
-      redirect: "/eth"
+      redirect: "/eos"
     }
   ]
 });

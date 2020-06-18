@@ -43,7 +43,7 @@ export class BancorModule extends VuexModule {
       // @ts-ignore
       return store.state.routeModule.params.service;
     } else {
-      return "eth";
+      return "eos";
     }
   }
 
