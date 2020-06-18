@@ -21,7 +21,8 @@ import {
   Token,
   Volume,
   get_slippage,
-  get_fee
+  get_fee,
+  get_spot_price
 } from "sxjs";
 import { rpc } from "@/api/rpc";
 import {
@@ -226,6 +227,28 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     return { tokens, volume, settings, contract };
   }
 
+  @action async checkPrices(contracts: string[]) {
+    console.log(contracts);
+
+    const prices = await Promise.all(
+      contracts.map(async contract => {
+        const res = await rpc.get_table_rows({
+          code: contract,
+          table: "spotprices",
+          scope: contract
+        });
+
+        const data = res.rows[0];
+        return {
+          contract,
+          ...data
+        };
+      })
+    );
+
+    console.log(prices, "are prices");
+  }
+
   @action async init() {
     const registryData = await getSxContracts();
     vxm.eosNetwork.getBalances({
@@ -234,6 +257,8 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     });
 
     const contracts = registryData.map(x => x.contract);
+
+    this.checkPrices(contracts);
     this.setContracts(contracts);
     const allTokens = await Promise.all(contracts.map(this.fetchContract));
     this.setStats(allTokens);
@@ -279,7 +304,9 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           .map(token => token.volume24h)
           .reduce(addNumbers, 0);
 
-        const liqDepth = allTokensOfId.map(token => token.liqDepth).reduce(addNumbers, 0)
+        const liqDepth = allTokensOfId
+          .map(token => token.liqDepth)
+          .reduce(addNumbers, 0);
 
         const volumeInPrice = price * totalVolumeInToken;
 
@@ -325,10 +352,14 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         const contract = token.contract.to_string();
         const volume24h = token.volume24h || 0;
 
-        const price = compareString(symbolName, "USDT")
-            ? 1
-            : 1 /
-              (await get_price("1.0000 USDT", symbolName, tokens, settings));
+        const rate = await get_spot_price(
+          "USDT",
+          token.sym.code(),
+          tokens,
+          settings
+        );
+
+        const price = compareString(symbolName, "USDT") ? 1 : rate;
 
         return {
           id: buildTokenId({ contract, symbol: symbolName }),
