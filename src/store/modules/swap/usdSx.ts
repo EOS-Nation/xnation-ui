@@ -85,6 +85,8 @@ interface SxToken {
   liqDepth: number;
 }
 
+const addNumbers = (acc: number, num: number) => acc + num;
+
 const accumulateLiq = (acc: SxToken, token: SxToken) => ({
   ...acc,
   liqDepth: acc.liqDepth + token.liqDepth
@@ -265,10 +267,20 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           compareString(id, token.id)
         );
 
-        const { precision, price, contract, symbol } = allTokensOfId[0];
+        const { precision, contract, symbol } = allTokensOfId[0];
 
-        const totalVolumeInToken = allTokensOfId.reduce(accumulateVolume)
-          .volume24h;
+        const [highestLiquidityToken] = allTokensOfId.sort(
+          (a, b) => b.liqDepth - a.liqDepth
+        );
+
+        const { price } = highestLiquidityToken;
+
+        const totalVolumeInToken = allTokensOfId
+          .map(token => token.volume24h)
+          .reduce(addNumbers, 0);
+
+        const liqDepth = allTokensOfId.map(token => token.liqDepth).reduce(addNumbers, 0)
+
         const volumeInPrice = price * totalVolumeInToken;
 
         return {
@@ -276,7 +288,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
           price,
           contract,
           id,
-          liqDepth: allTokensOfId.reduce(accumulateLiq).liqDepth,
+          liqDepth,
           symbol,
           volume24h: volumeInPrice
         };
@@ -313,8 +325,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
         const contract = token.contract.to_string();
         const volume24h = token.volume24h || 0;
 
-        const price =
-          symbolName == "USDT"
+        const price = compareString(symbolName, "USDT")
             ? 1
             : 1 /
               (await get_price("1.0000 USDT", symbolName, tokens, settings));
