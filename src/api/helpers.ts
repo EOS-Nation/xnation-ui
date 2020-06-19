@@ -3,7 +3,6 @@ import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
 import { Asset, asset_to_number, Sym } from "eos-common";
 import { rpc } from "./rpc";
-import { client } from "./dFuse";
 import {
   TokenBalances,
   EosMultiRelay,
