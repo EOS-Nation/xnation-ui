@@ -6,7 +6,7 @@ import { eosWallet, EosTransitModule } from "./modules/wallet/eosWallet";
 import { ethWallet, EthereumModule } from "./modules/wallet/ethWallet";
 import { eosBancor, EosBancorModule } from "./modules/swap/eosBancor";
 import { ethBancor, EthBancorModule } from "./modules/swap/ethBancor";
-import { usdsBancor, UsdBancorModule } from "./modules/swap/usdSx";
+import { UsdBancorModule } from "./modules/swap/usdSx";
 import { bancor, BancorModule } from "./modules/swap/index";
 import { wallet, WalletModule } from "./modules/wallet/index";
 import { network, NetworkModule } from './modules/network/index';

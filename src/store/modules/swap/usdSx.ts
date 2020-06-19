@@ -624,5 +624,3 @@ export class UsdBancorModule
     this.lastLoaded = new Date().getTime();
   }
 }
-
-export const usdsBancor = extractVuexModule(UsdBancorModule);
