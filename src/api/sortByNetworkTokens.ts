@@ -1,4 +1,4 @@
-import { networkTokens } from "./helpers";
+import { networkTokens, compareString } from "./helpers";
 
 export const sortByNetworkTokens = <T>(
   arr: T[],
@@ -23,8 +23,12 @@ export const sortByNetworkTokens = <T>(
     const aSymbol = selector(a);
     const bSymbol = selector(b);
 
-    const aSymbolRank = order.findIndex(symbol => symbol == aSymbol);
-    const bSymbolRank = order.findIndex(symbol => symbol == bSymbol);
+    const aSymbolRank = order.findIndex(symbol =>
+      compareString(symbol, aSymbol)
+    );
+    const bSymbolRank = order.findIndex(symbol =>
+      compareString(symbol, bSymbol)
+    );
 
     return bSymbolRank - aSymbolRank;
   });
