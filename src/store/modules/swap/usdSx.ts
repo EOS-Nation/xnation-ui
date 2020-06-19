@@ -1,4 +1,9 @@
-import { VuexModule, action, Module, mutation } from "vuex-class-component";
+import {
+  createModule,
+  mutation,
+  action,
+  extractVuexModule
+} from "vuex-class-component";
 import {
   ProposedConvertTransaction,
   TradingModule,
@@ -147,8 +152,13 @@ interface PoolReturn {
   amount: RateDetail;
 }
 
-@Module({ namespacedPath: "usdsBancor/" })
-export class UsdBancorModule extends VuexModule implements TradingModule {
+const VuexModule = createModule({
+  strict: false
+})
+
+export class UsdBancorModule
+  extends VuexModule.With({ namespaced: "usdsBancor/" })
+  implements TradingModule {
   newTokens: SxToken[] = [];
   initiated: boolean = false;
   contracts: string[] = [];
@@ -615,4 +625,4 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
   }
 }
 
-export const usdsBancor = UsdBancorModule.ExtractVuexModule(UsdBancorModule);
+export const usdsBancor = extractVuexModule(UsdBancorModule);
