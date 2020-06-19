@@ -995,8 +995,7 @@ export class EosBancorModule extends VuexModule
         allRelays.flatMap(relay => relay.reserves),
         "id"
       );
-      console.log("eosNetwork.getBalances should be called with", uniqueTokens);
-      vxm.eosNetwork.getBalances({ tokens: uniqueTokens, slow: true });
+      vxm.eosNetwork.getBalances({ tokens: uniqueTokens, slow: false });
     } catch (e) {
       throw new Error(`Threw inside eosBancor: ${e.message}`);
     }

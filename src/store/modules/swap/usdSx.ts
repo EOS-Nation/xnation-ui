@@ -253,7 +253,7 @@ export class UsdBancorModule extends VuexModule implements TradingModule {
     const registryData = await getSxContracts();
     vxm.eosNetwork.getBalances({
       tokens: registryData.flatMap(data => data.tokens),
-      slow: true
+      slow: false
     });
 
     const contracts = registryData.map(x => x.contract);
