@@ -67,7 +67,7 @@ const getInverseRate = (
   settings: Settings
 ): RateDetail => {
   const rate = get_inverse_rate(asset, sym.code(), tokens, settings);
-  const slippage = get_slippage(asset, sym.code(), tokens, settings);
+  const slippage = get_slippage(rate, sym.code(), tokens, settings);
   const fee = get_fee(rate, settings);
 
   return { rate, slippage, fee };
