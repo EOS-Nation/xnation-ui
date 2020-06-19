@@ -4,8 +4,8 @@ import Vuex from "vuex";
 import { general, GeneralModule } from "./modules/general";
 import { eosWallet, EosTransitModule } from "./modules/wallet/eosWallet";
 import { ethWallet, EthereumModule } from "./modules/wallet/ethWallet";
-import { eosBancor, EosBancorModule } from "./modules/swap/eosBancor";
-import { ethBancor, EthBancorModule } from "./modules/swap/ethBancor";
+import { EosBancorModule } from "./modules/swap/eosBancor";
+import { EthBancorModule } from "./modules/swap/ethBancor";
 import { UsdBancorModule } from "./modules/swap/usdSx";
 import { bancor, BancorModule } from "./modules/swap/index";
 import { wallet, WalletModule } from "./modules/wallet/index";
@@ -18,12 +18,12 @@ Vue.use(Vuex);
 export const store = new Vuex.Store({
   modules: {
     ...extractVuexModule(UsdBancorModule),
+    ...extractVuexModule(EosBancorModule),
+    ...extractVuexModule(EthBancorModule),
     general,
     wallet,
     eosWallet,
     ethWallet,
-    eosBancor,
-    ethBancor,
     network,
     bancor,
     eosNetwork
@@ -42,14 +42,8 @@ export const vxm = {
     store,
     EthereumModule
   ) as EthereumModule,
-  eosBancor: EosBancorModule.CreateProxy(
-    store,
-    EosBancorModule
-  ) as EosBancorModule,
-  ethBancor: EthBancorModule.CreateProxy(
-    store,
-    EthBancorModule
-  ) as EthBancorModule,
+  eosBancor: createProxy(store, EosBancorModule),
+  ethBancor: createProxy(store, EthBancorModule),
   usdsBancor: createProxy(store, UsdBancorModule),
   bancor: BancorModule.CreateProxy(store, BancorModule) as BancorModule,
   eosNetwork: EosNetworkModule.CreateProxy(

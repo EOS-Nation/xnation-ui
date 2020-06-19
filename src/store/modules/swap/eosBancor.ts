@@ -1,4 +1,4 @@
-import { VuexModule, action, Module, mutation } from "vuex-class-component";
+import { createModule, mutation, action } from "vuex-class-component";
 import {
   ProposedConvertTransaction,
   TokenPrice,
@@ -485,8 +485,12 @@ interface RelayFeed {
   volume24H?: number;
 }
 
-@Module({ namespacedPath: "eosBancor/" })
-export class EosBancorModule extends VuexModule
+const VuexModule = createModule({
+  strict: false
+});
+
+export class EosBancorModule
+  extends VuexModule.With({ namespaced: "eosBancor/" })
   implements TradingModule, LiquidityModule, CreatePoolModule {
   relaysList: EosMultiRelay[] = [];
   relayFeed: RelayFeed[] = [];
@@ -1554,10 +1558,10 @@ export class EosBancorModule extends VuexModule
       fetchTokenStats(relay.smartToken.contract, relay.smartToken.symbol)
     ]);
 
-    console.log(smartTokenBalance, reserves, supply, 'asked for',           {
+    console.log(smartTokenBalance, reserves, supply, "asked for", {
       contract: relay.smartToken.contract,
       symbol: relay.smartToken.symbol
-    })
+    });
 
     const smartSupply = asset_to_number(supply.supply);
     const percent = smartTokenBalance.balance / smartSupply;
@@ -1946,5 +1950,3 @@ export class EosBancorModule extends VuexModule
     this.tokenMeta = tokens.filter(token => token.chain == "eos");
   }
 }
-
-export const eosBancor = EosBancorModule.ExtractVuexModule(EosBancorModule);

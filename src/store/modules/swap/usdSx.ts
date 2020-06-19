@@ -1,9 +1,4 @@
-import {
-  createModule,
-  mutation,
-  action,
-  extractVuexModule
-} from "vuex-class-component";
+import { createModule, mutation, action } from "vuex-class-component";
 import {
   ProposedConvertTransaction,
   TradingModule,
@@ -154,7 +149,7 @@ interface PoolReturn {
 
 const VuexModule = createModule({
   strict: false
-})
+});
 
 export class UsdBancorModule
   extends VuexModule.With({ namespaced: "usdsBancor/" })

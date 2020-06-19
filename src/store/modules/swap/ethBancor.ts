@@ -1,4 +1,4 @@
-import { VuexModule, mutation, action, Module } from "vuex-class-component";
+import { createModule, mutation, action } from "vuex-class-component";
 import {
   ProposedFromTransaction,
   ProposedToTransaction,
@@ -228,8 +228,12 @@ interface RelayFeed {
   volume24H?: number;
 }
 
-@Module({ namespacedPath: "ethBancor/" })
-export class EthBancorModule extends VuexModule
+const VuexModule = createModule({
+  strict: false
+});
+
+export class EthBancorModule
+  extends VuexModule.With({ namespaced: "ethBancor/" })
   implements TradingModule, LiquidityModule, CreatePoolModule, HistoryModule {
   tokensList: any[] = [];
   relayFeed: RelayFeed[] = [];
@@ -1564,7 +1568,7 @@ export class EthBancorModule extends VuexModule
         contractAddresses.BancorConverterRegistry
       );
 
-      const isDev = process.env.NODE_ENV == "development"
+      const isDev = process.env.NODE_ENV == "development";
       const registeredSmartTokenAddresses = isDev
         ? [
             "0xb1CD6e4153B2a390Cf00A6556b0fC1458C4A5533",
@@ -2174,5 +2178,3 @@ export class EthBancorModule extends VuexModule
     );
   }
 }
-
-export const ethBancor = EthBancorModule.ExtractVuexModule(EthBancorModule);
