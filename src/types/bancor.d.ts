@@ -333,6 +333,7 @@ export interface LiquidityModule {
   readonly relays: ViewRelay[];
   readonly supportedFeatures: (arg0: string) => string[];
   readonly morePoolsAvailable: boolean;
+  readonly loadingPools: boolean;
   loadMorePools: () => Promise<void>;
   calculateOpposingDeposit: (
     opposingDeposit: OpposingLiquidParams

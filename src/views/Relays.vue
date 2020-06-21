@@ -27,9 +27,16 @@
             sort-by="liqDepth"
             :sort-desc="true"
             primary-key="id"
+            :table-busy="loadingPools"
             :tbody-transition-props="transProps"
             :tbody-transition-handlers="transHandler"
           >
+            <template v-slot:table-busy>
+              <div class="text-center my-2">
+                <b-spinner class="align-middle"></b-spinner>
+                <strong>Loading...</strong>
+              </div>
+            </template>
             <template v-if="morePoolsAvailable" v-slot:custom-foot>
               <b-button @click="loadMorePools">Load more</b-button>
             </template>
@@ -131,6 +138,7 @@ export default class Relays extends Vue {
   small = false;
   @bancor.Action loadMorePools!: LiquidityModule["loadMorePools"];
   @bancor.Getter morePoolsAvailable!: LiquidityModule["morePoolsAvailable"];
+  @bancor.Getter loadingPools!: LiquidityModule["loadingPools"];
 
   fields = [
     {

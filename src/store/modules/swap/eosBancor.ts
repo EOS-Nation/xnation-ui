@@ -494,13 +494,18 @@ export class EosBancorModule
   implements TradingModule, LiquidityModule, CreatePoolModule {
   relaysList: EosMultiRelay[] = [];
   relayFeed: RelayFeed[] = [];
+  loadingPools: boolean = true;
   usdPrice = 0;
   usdPriceOfBnt = 0;
   tokenMeta: TokenMeta[] = [];
   morePoolsAvailable = false;
 
+  @mutation setLoadingPools(status: boolean) {
+    this.loadingPools = status;
+  }
+
   @action async loadMorePools() {
-    
+
   }
 
   get supportedFeatures() {
@@ -1006,6 +1011,7 @@ export class EosBancorModule
         "id"
       );
       vxm.eosNetwork.getBalances({ tokens: uniqueTokens, slow: false });
+      this.setLoadingPools(false);
       console.timeEnd("eos");
     } catch (e) {
       throw new Error(`Threw inside eosBancor: ${e.message}`);
