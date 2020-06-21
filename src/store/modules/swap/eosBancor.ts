@@ -937,6 +937,7 @@ export class EosBancorModule
   }
 
   @action async init() {
+    console.time("eos");
     try {
       const [usdPriceOfBnt, v2Relays, tokenMeta] = await Promise.all([
         vxm.bancor.fetchUsdPriceOfBnt(),
@@ -1000,6 +1001,7 @@ export class EosBancorModule
         "id"
       );
       vxm.eosNetwork.getBalances({ tokens: uniqueTokens, slow: false });
+      console.timeEnd("eos");
     } catch (e) {
       throw new Error(`Threw inside eosBancor: ${e.message}`);
     }

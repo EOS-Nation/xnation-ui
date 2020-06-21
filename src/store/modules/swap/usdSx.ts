@@ -255,6 +255,7 @@ export class UsdBancorModule
   }
 
   @action async init() {
+    console.time('sx')
     const registryData = await getSxContracts();
     vxm.eosNetwork.getBalances({
       tokens: registryData.flatMap(data => data.tokens),
@@ -330,6 +331,7 @@ export class UsdBancorModule
     this.setNewTokens(newTokens);
     await wait(100);
     this.moduleInitiated();
+    console.timeEnd('sx')
   }
 
   @action async buildTokens({

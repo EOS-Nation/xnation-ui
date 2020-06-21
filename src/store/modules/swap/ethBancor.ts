@@ -1547,6 +1547,7 @@ export class EthBancorModule
   }
 
   @action async init() {
+    console.time('eth')
     try {
       const [
         tokenMeta,
@@ -1610,6 +1611,7 @@ export class EthBancorModule
           .filter(relayReservesIncludedInTokenMeta(tokenMeta))
           .filter(relayIncludesAtLeastOneNetworkToken)
       );
+      console.timeEnd('eth')
     } catch (e) {
       throw new Error(`Threw inside ethBancor ${e.message}`);
     }

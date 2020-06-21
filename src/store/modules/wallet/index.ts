@@ -2,13 +2,11 @@ import { createModule, mutation, action } from "vuex-class-component";
 import { vxm } from "@/store/index";
 import { store } from "../../../store";
 
-
 const VuexModule = createModule({
   strict: false
 });
 
 export class WalletModule extends VuexModule.With({ namespaced: "wallet/" }) {
-
   get currentWallet() {
     return vxm.bancor.wallet;
   }
@@ -36,7 +34,6 @@ export class WalletModule extends VuexModule.With({ namespaced: "wallet/" }) {
   }
 
   @action async dispatcher(methodName: string, params: any = null) {
-    console.log(`to dispatch: ${this.currentWallet}/${methodName}`);
     return params
       ? this.$store.dispatch(`${this.currentWallet}/${methodName}`, params)
       : this.$store.dispatch(`${this.currentWallet}/${methodName}`);
@@ -54,4 +51,3 @@ export class WalletModule extends VuexModule.With({ namespaced: "wallet/" }) {
     return this.dispatcher("logout");
   }
 }
-
