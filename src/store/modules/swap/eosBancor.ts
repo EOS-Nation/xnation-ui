@@ -1333,7 +1333,7 @@ export class EosBancorModule
       scope: accountHolder,
       table: "accounts"
     });
-    return res.rows.filter(row => row.symbl == smartTokenSymbol);
+    return res.rows.filter(row => compareString(row.symbl, smartTokenSymbol));
   }
 
   @action async relayById(id: string) {
@@ -1547,11 +1547,6 @@ export class EosBancorModule
       this.fetchRelayReservesAsAssets(relayId),
       fetchTokenStats(relay.smartToken.contract, relay.smartToken.symbol)
     ]);
-
-    console.log(smartTokenBalance, reserves, supply, "asked for", {
-      contract: relay.smartToken.contract,
-      symbol: relay.smartToken.symbol
-    });
 
     const smartSupply = asset_to_number(supply.supply);
     const percent = smartTokenBalance.balance / smartSupply;
