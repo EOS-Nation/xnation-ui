@@ -1,10 +1,4 @@
-import {
-  VuexModule,
-  mutation,
-  action,
-  getter,
-  Module
-} from "vuex-class-component";
+import { createModule, mutation, action } from "vuex-class-component";
 import {
   NetworkModule,
   TokenBalanceReturn,
@@ -40,8 +34,13 @@ const tokenBalanceToTokenBalanceReturn = (
   token: TokenBalance
 ): TokenBalanceReturn => ({ ...token, balance: token.amount });
 
-@Module({ namespacedPath: "eosNetwork/" })
-export class EosNetworkModule extends VuexModule implements NetworkModule {
+const VuexModule = createModule({
+  strict: false
+});
+
+export class EosNetworkModule
+  extends VuexModule.With({ namespaced: "eosNetwork/" })
+  implements NetworkModule {
   tokenBalances: TokenBalanceReturn[] = [];
 
   get balances() {
@@ -206,5 +205,3 @@ export class EosNetworkModule extends VuexModule implements NetworkModule {
     );
   }
 }
-
-export const eosNetwork = EosNetworkModule.ExtractVuexModule(EosNetworkModule);

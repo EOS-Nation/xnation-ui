@@ -1,4 +1,4 @@
-import { VuexModule, action, Module, mutation } from "vuex-class-component";
+import { createModule, action, mutation } from "vuex-class-component";
 import {
   ProposedConvertTransaction,
   LiquidityParams,
@@ -22,8 +22,13 @@ interface BntPrice {
   lastChecked: number;
 }
 
-@Module({ namespacedPath: "bancor/" })
-export class BancorModule extends VuexModule {
+const VuexModule = createModule({
+  strict: false
+});
+
+export class BancorModule extends VuexModule.With({
+  namespaced: "bancor/"
+}) {
   chains = ["eos", "eth", "usds"];
   usdPriceOfBnt: BntPrice = {
     price: null,
@@ -230,5 +235,3 @@ export class BancorModule extends VuexModule {
     }
   }
 }
-
-export const bancor = BancorModule.ExtractVuexModule(BancorModule);

@@ -1,4 +1,4 @@
-import { VuexModule, action, Module } from "vuex-class-component";
+import { createModule, action } from "vuex-class-component";
 import {
   GetBalanceParam,
   TokenBalanceReturn,
@@ -7,8 +7,11 @@ import {
 import { vxm } from "@/store";
 import { store } from "../../../store";
 
-@Module({ namespacedPath: "network/" })
-export class NetworkModule extends VuexModule {
+const VuexModule = createModule({
+  strict: false
+});
+
+export class NetworkModule extends VuexModule.With({ namespaced: "network/" }) {
   chains = ["eos", "eth", "usds"];
 
   get currentNetwork() {
@@ -66,5 +69,3 @@ export class NetworkModule extends VuexModule {
     );
   }
 }
-
-export const network = NetworkModule.ExtractVuexModule(NetworkModule);

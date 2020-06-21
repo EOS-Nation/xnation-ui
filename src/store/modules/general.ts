@@ -1,9 +1,12 @@
-import { VuexModule, mutation, getter, Module } from "vuex-class-component";
+import { createModule, mutation } from "vuex-class-component";
 import i18n from "@/i18n";
 
-@Module({ namespacedPath: "general/" })
-export class GeneralModule extends VuexModule {
-  @getter language: string = "en";
+const VuexModule = createModule({
+  strict: false
+});
+
+export class GeneralModule extends VuexModule.With({ namespaced: "general/" }) {
+  language: string = "en";
 
   @mutation setLanguage(lang?: string) {
     if (lang) {
@@ -21,5 +24,3 @@ export class GeneralModule extends VuexModule {
     }
   }
 }
-
-export const general = GeneralModule.ExtractVuexModule(GeneralModule);

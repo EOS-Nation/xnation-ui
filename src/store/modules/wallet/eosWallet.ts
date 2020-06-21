@@ -1,10 +1,5 @@
-import {
-  VuexModule,
-  mutation,
-  action,
-  getter,
-  Module
-} from "vuex-class-component";
+import { createModule, mutation, action } from "vuex-class-component";
+
 import {
   initAccessContext,
   WalletProvider,
@@ -32,10 +27,14 @@ interface EosWalletAction {
 
 const appName = "XNation";
 
+const VuexModule = createModule({
+  strict: false
+});
 
-@Module({ namespacedPath: "eosWallet/" })
-export class EosTransitModule extends VuexModule {
-  @getter accessContext = initAccessContext({
+export class EosTransitModule extends VuexModule.With({
+  namespaced: "eosWallet/"
+}) {
+  accessContext = initAccessContext({
     appName,
     network: {
       host: "nodes.get-scatter.com",
@@ -57,9 +56,7 @@ export class EosTransitModule extends VuexModule {
   });
   isMobile = false;
 
-  @getter
   walletProviders: WalletProvider[] = this.accessContext.getWalletProviders();
-
 
   selectedProvider: WalletProvider | "" = "";
 
@@ -189,4 +186,3 @@ export class EosTransitModule extends VuexModule {
     this.walletState = state;
   }
 }
-export const eosWallet = EosTransitModule.ExtractVuexModule(EosTransitModule);

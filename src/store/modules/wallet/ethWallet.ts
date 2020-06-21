@@ -1,4 +1,4 @@
-import { VuexModule, mutation, action, Module } from "vuex-class-component";
+import { createModule, mutation, action } from "vuex-class-component";
 import { web3, compareString } from "@/api/helpers";
 import { ABISmartToken, ethReserveAddress } from "@/api/ethConfig";
 import { EthAddress } from "@/types/bancor";
@@ -23,8 +23,13 @@ const tx = (data: any) =>
       .on("error", error => reject(error));
   });
 
-@Module({ namespacedPath: "ethWallet/" })
-export class EthereumModule extends VuexModule {
+const VuexModule = createModule({
+  strict: false
+});
+
+export class EthereumModule extends VuexModule.With({
+  namespaced: "ethWallet/"
+}) {
   loggedInAccount: string = "";
 
   @mutation setLoggedInAccount(account: string) {
@@ -139,5 +144,3 @@ export class EthereumModule extends VuexModule {
     return this.tx(params);
   }
 }
-
-export const ethWallet = EthereumModule.ExtractVuexModule(EthereumModule);

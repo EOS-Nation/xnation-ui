@@ -1,9 +1,13 @@
-import { VuexModule, action, Module } from "vuex-class-component";
+import { createModule, mutation, action } from "vuex-class-component";
 import { vxm } from "@/store/index";
 import { store } from "../../../store";
 
-@Module({ namespacedPath: "wallet/" })
-export class WalletModule extends VuexModule {
+
+const VuexModule = createModule({
+  strict: false
+});
+
+export class WalletModule extends VuexModule.With({ namespaced: "wallet/" }) {
 
   get currentWallet() {
     return vxm.bancor.wallet;
@@ -51,4 +55,3 @@ export class WalletModule extends VuexModule {
   }
 }
 
-export const wallet = WalletModule.ExtractVuexModule(WalletModule);
