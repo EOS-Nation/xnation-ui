@@ -1117,19 +1117,7 @@ export class EosBancorModule
     return Promise.all(
       relays.map(
         async (relay): Promise<EosMultiRelay> => {
-          const [reserves, settings, reserveBalances] = await Promise.all([
-            rpc.get_table_rows({
-              code: relay.contract,
-              scope: relay.contract,
-              table: "reserves"
-            }) as Promise<{
-              rows: {
-                contract: string;
-                currency: string;
-                ratio: number;
-                p_enabled: boolean;
-              }[];
-            }>,
+          const [settings, reserveBalances] = await Promise.all([
             rpc.get_table_rows({
               code: relay.contract,
               scope: relay.contract,
