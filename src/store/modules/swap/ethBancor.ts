@@ -241,6 +241,7 @@ export class EthBancorModule
   tokenBalances: { id: string; balance: number }[] = [];
   bntUsdPrice: number = 0;
   tokenMeta: TokenMeta[] = [];
+  morePoolsAvailable: boolean = true;
   availableHistories: string[] = [];
   bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
   bancorNetworkPathFinder = "0x6F0cD8C4f6F06eAB664C7E3031909452b4B72861";
@@ -250,6 +251,12 @@ export class EthBancorModule
     BancorX: "",
     BancorConverterFactory: ""
   };
+
+
+  @action async loadMorePools() {
+    console.log('loading more pools')
+    await wait(3000);
+  }
 
   get newNetworkTokenChoices(): ModalChoice[] {
     const bntTokenMeta = this.tokenMeta.find(token => token.symbol == "BNT")!;
@@ -1018,7 +1025,7 @@ export class EthBancorModule
     );
 
     const maxWithdrawals: ViewAmount[] = reserves.map(reserve => ({
-      id: reserve.symbol,
+      id: reserve.contract,
       amount: shrinkToken(
         percent.times(reserve.weiAmount).toString(),
         reserve.decimals
@@ -1814,13 +1821,13 @@ export class EthBancorModule
   }
 
   @action async focusSymbol(id: string) {
-    if (!this.isAuthenticated) return;
     console.log(
       id,
       "was passed to focusSymbol",
       this.tokenMeta.filter(meta => meta.id),
       "is token meta"
     );
+    if (!this.isAuthenticated) return;
     const tokenContractAddress = findOrThrow(this.tokenMeta, meta =>
       compareString(meta.id, id)
     ).contract;

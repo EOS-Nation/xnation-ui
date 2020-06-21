@@ -497,6 +497,11 @@ export class EosBancorModule
   usdPrice = 0;
   usdPriceOfBnt = 0;
   tokenMeta: TokenMeta[] = [];
+  morePoolsAvailable = false;
+
+  @action async loadMorePools() {
+    
+  }
 
   get supportedFeatures() {
     return (id: string) => {
