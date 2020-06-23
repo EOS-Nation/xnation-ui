@@ -115,7 +115,6 @@ export const fetchReserveBalance = async (
     const res = await converterContract.methods[
       Number(versionNumber) >= 17 ? "getConnectorBalance" : "getReserveBalance"
     ](reserveTokenAddress).call();
-    console.log("res", res, reserveTokenAddress, "first try");
     return res;
   } catch (e) {
     try {
@@ -124,7 +123,6 @@ export const fetchReserveBalance = async (
           ? "getReserveBalance"
           : "getConnectorBalance"
       ](reserveTokenAddress).call();
-      console.log("res", res, reserveTokenAddress, "second try");
       return res;
     } catch (e) {
       throw new Error("Failed getting reserve balance" + e);

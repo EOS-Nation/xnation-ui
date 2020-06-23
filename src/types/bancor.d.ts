@@ -227,8 +227,16 @@ export interface TokenPriceDecimal extends TokenPrice {
   decimals: number;
 }
 
+export interface TradeQuery {
+  base: string;
+  quote: string;
+}
+export interface InitParam {
+  tradeQuery?: TradeQuery;
+}
+
 export interface TradingModule {
-  init: () => Promise<void>;
+  init: (param: InitParam) => Promise<void>;
   readonly token: (arg0: string) => ViewToken;
   readonly tokens: ViewToken[];
   refreshBalances: (symbols?: BaseToken[]) => Promise<void>;
@@ -292,7 +300,7 @@ export interface CreatePoolParams {
 }
 
 export interface CreatePoolModule {
-  init: () => Promise<void>;
+  init: (param: InitParam) => Promise<void>;
   readonly newPoolTokenChoices: (networkToken: string) => ModalChoice[];
   readonly newNetworkTokenChoices: ModalChoice[];
   createPool: (param: CreatePoolParams) => Promise<string>;
@@ -328,7 +336,7 @@ export interface PromiseSequence {
 }
 
 export interface LiquidityModule {
-  init: () => Promise<void>;
+  init: (param: InitParam) => Promise<void>;
   readonly relay: (arg0: string) => ViewRelay;
   readonly relays: ViewRelay[];
   readonly supportedFeatures: (arg0: string) => string[];

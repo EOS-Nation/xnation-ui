@@ -6,7 +6,8 @@ import {
   BaseToken,
   ProposedFromTransaction,
   ProposedToTransaction,
-  ViewAmount
+  ViewAmount,
+  InitParam
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import {
@@ -254,7 +255,7 @@ export class UsdBancorModule
     console.log(prices, "are prices");
   }
 
-  @action async init() {
+  @action async init(params: InitParam) {
     console.time('sx')
     const registryData = await getSxContracts();
     vxm.eosNetwork.getBalances({

@@ -18,7 +18,8 @@ import {
   Section,
   Step,
   HistoryModule,
-  ViewAmount
+  ViewAmount,
+  InitParam
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -1546,7 +1547,8 @@ export class EthBancorModule
     this.availableHistories = smartTokenNames;
   }
 
-  @action async init() {
+  @action async init(params: InitParam) {
+    console.log(params, 'was init param on eth')
     console.time('eth')
     try {
       const [

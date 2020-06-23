@@ -9,7 +9,8 @@ import {
   NewOwnerParams,
   HistoryRow,
   ProposedToTransaction,
-  ProposedFromTransaction
+  ProposedFromTransaction,
+  InitParam
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -25,6 +26,11 @@ interface BntPrice {
 const VuexModule = createModule({
   strict: false
 });
+
+interface RootParam {
+  initialModuleParam: InitParam;
+  initialChain?: string;
+}
 
 export class BancorModule extends VuexModule.With({
   namespaced: "bancor/"
@@ -92,11 +98,12 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["wallet"];
   }
 
-  @action async init(initialChain?: string) {
+  @action async init(param: RootParam) {
+    const { initialChain, initialModuleParam } = param;
     if (initialChain) {
       return new Promise((resolve, reject) => {
         this.$store
-          .dispatch(`${initialChain}Bancor/init`, null, {
+          .dispatch(`${initialChain}Bancor/init`, initialModuleParam || null, {
             root: true
           })
           .then(() => resolve())
@@ -106,7 +113,9 @@ export class BancorModule extends VuexModule.With({
         );
         remainingChains.forEach(chain =>
           this.$store
-            .dispatch(`${chain}Bancor/init`, null, { root: true })
+            .dispatch(`${chain}Bancor/init`, initialModuleParam || null, {
+              root: true
+            })
             .catch(e => reject(e))
         );
       });
