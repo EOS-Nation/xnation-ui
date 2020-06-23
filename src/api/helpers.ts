@@ -29,34 +29,25 @@ interface TraditionalStat {
   max_supply: Asset;
 }
 
-const symbolDictionary = [
-  { symbol: "EOS", contract: "eosio.token" },
-  { symbol: "USDB", contract: "usdbusdbusdb" },
-  { symbol: "PBTC", contract: "btc.ptokens" },
-  { symbol: "VIGOR", contract: "vigortoken11" },
-  { symbol: "USDT", contract: "tethertether" },
-  { symbol: "EOSDT", contract: "eosdtsttoken" },
-  { symbol: "CHEX", contract: "chexchexchex" },
-  { symbol: "BNT", contract: "bntbntbntbnt" },
-  { symbol: "DAPP", contract: "dappservices" },
-  { symbol: "BOID", contract: "boidcomtoken" },
-  { symbol: "DAPP", contract: "dappservices" }
-];
+
 
 export const getSxContracts = async () => {
   const res = (await rpc.get_table_rows({
     code: "registry.sx",
     table: "swap",
     scope: "registry.sx"
-  })) as { rows: { contract: string; tokens: string[] }[] };
-  return res.rows.map(tokenSet => ({
-    ...tokenSet,
-    tokens: tokenSet.tokens
-      .map(
-        token =>
-          symbolDictionary.find(symbol => compareString(token, symbol.symbol))!
-      )
-      .filter(Boolean)
+  })) as {
+    rows: {
+      contract: string;
+      ext_tokens: { sym: string; contract: string }[];
+    }[];
+  };
+  return res.rows.map(set => ({
+    contract: set.contract,
+    tokens: set.ext_tokens.map(token => ({
+      contract: token.contract,
+      symbol: new Sym(token.sym).code().to_string()
+    }))
   }));
 };
 
