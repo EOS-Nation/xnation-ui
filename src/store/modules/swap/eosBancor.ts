@@ -449,19 +449,18 @@ const generateSmartTokenSymbol = async (
   throw new Error("Failed to find a new SmartTokenSymbol!");
 };
 
-const eosMultiToDryRelays = (relays: EosMultiRelay[]): DryRelay[] =>
-  relays.map(relay => ({
-    reserves: relay.reserves.map(reserve => ({
-      contract: reserve.contract,
-      symbol: new Symbol(reserve.symbol, reserve.precision)
-    })),
-    contract: relay.contract,
-    smartToken: {
-      symbol: new Symbol(relay.smartToken.symbol, relay.smartToken.precision),
-      contract: relay.smartToken.contract
-    },
-    isMultiContract: relay.isMultiContract
-  }));
+const multiToDry = (relay: EosMultiRelay): DryRelay => ({
+  reserves: relay.reserves.map(reserve => ({
+    contract: reserve.contract,
+    symbol: new Symbol(reserve.symbol, reserve.precision)
+  })),
+  contract: relay.contract,
+  smartToken: {
+    symbol: new Symbol(relay.smartToken.symbol, relay.smartToken.precision),
+    contract: relay.smartToken.contract
+  },
+  isMultiContract: relay.isMultiContract
+});
 
 const eosMultiToHydrated = (relay: EosMultiRelay): HydratedRelay => ({
   reserves: relay.reserves.map(
@@ -1039,7 +1038,7 @@ export class EosBancorModule
           ? [param.tradeQuery.base, param.tradeQuery.quote]
           : [];
 
-      const allDry = [...v1Relays, ...eosMultiToDryRelays(v2Relays)];
+      const allDry = [...v1Relays, ...v2Relays.map(multiToDry)];
 
       const [fromId, toId] = askedTokenIds;
 
@@ -1639,7 +1638,7 @@ export class EosBancorModule
       const hydratedRelay = await fetchMultiRelay(relay.smartToken.symbol);
       return hydratedRelay.reserves.map(agnosticToTokenAmount);
     } else {
-      const [dryRelay] = eosMultiToDryRelays([relay]);
+      const dryRelay = multiToDry(relay);
       const [hydrated] = await this.hydrateOldRelays([dryRelay]);
       return hydrated.reserves.map(agnosticToTokenAmount);
     }
@@ -1860,7 +1859,7 @@ export class EosBancorModule
     const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
     const assetAmount = number_to_asset(Number(fromAmount), fromSymbolInit);
 
-    const allRelays = eosMultiToDryRelays(this.convertableRelays);
+    const allRelays = this.convertableRelays.map(multiToDry);
     const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
     const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
 
@@ -2002,7 +2001,7 @@ export class EosBancorModule
     const toToken = await this.tokenById(toId);
     const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
 
-    const allRelays = eosMultiToDryRelays(this.convertableRelays);
+    const allRelays = this.convertableRelays.map(multiToDry)
     const path = createPath(assetAmount.symbol, toSymbolInit, allRelays);
     const hydratedRelays = await this.hydrateRelays(path);
     const calculatedReturn = findReturn(assetAmount, hydratedRelays);
@@ -2019,7 +2018,7 @@ export class EosBancorModule
     const fromToken = await this.tokenById(fromId);
     const fromSymbolInit = new Symbol(fromToken.symbol, fromToken.precision);
 
-    const allRelays = eosMultiToDryRelays(this.convertableRelays);
+    const allRelays = this.convertableRelays.map(multiToDry)
     const path = createPath(fromSymbolInit, assetAmount.symbol, allRelays);
     const hydratedRelays = await this.hydrateRelays(path);
     const calculatedCost = findCost(assetAmount, hydratedRelays);
