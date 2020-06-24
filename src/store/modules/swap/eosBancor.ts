@@ -176,22 +176,6 @@ const appendVersionToSmartTokenSymbol = (appendedString: string) => (
   };
 };
 
-const appendVersionToSmartTokenSymbolDry = (appendedString: string) => (
-  relay: DryRelay
-): DryRelay => {
-  const orgSym = relay.smartToken.symbol;
-  return {
-    ...relay,
-    smartToken: {
-      ...relay.smartToken,
-      symbol: new Sym(
-        orgSym.code().to_string() + appendedString,
-        orgSym.precision()
-      )
-    }
-  };
-};
-
 const noBlackListedReservesDry = (blackListedTokens: BaseToken[]) => (
   relay: DryRelay
 ) =>
@@ -305,7 +289,6 @@ const compareTokenSymbol = (t1: TokenSymbol, t2: TokenSymbol) =>
   compareString(t1.contract, t2.contract) &&
   compareString(t1.symbol.code().to_string(), t2.symbol.code().to_string());
 
-const compareDryRelay = (r1: DryRelay, r2: DryRelay) => r1.smartToken;
 
 const compareEosMultiRelay = (r1: EosMultiRelay, r2: EosMultiRelay) =>
   compareString(r1.id, r2.id);
