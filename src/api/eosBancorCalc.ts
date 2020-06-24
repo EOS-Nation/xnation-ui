@@ -333,11 +333,12 @@ export async function findNewPath<T>(
   const nodes: Node[] = _.uniqWith(edges.flat(1), compareString);
 
   const adjacencyList = buildAdjacencyList(edges, nodes);
+  console.log(fromId, toId, adjacencyList)
   const startExists = adjacencyList.get(fromId);
   const goalExists = adjacencyList.get(toId);
 
   if (!(startExists && goalExists))
-    throw new Error("Start or goal does not exist in adjacency list");
+    throw new Error(`Start ${fromId} or goal ${toId} does not exist in adjacency list`);
 
   const dfsResult = await dfs(fromId, toId, adjacencyList)!;
   if (!dfsResult || dfsResult.length == 0)
@@ -362,59 +363,6 @@ export async function findNewPath<T>(
     path: dfsResult,
     hops
   };
-}
-
-export function findPath(
-  from: Symbol,
-  to: Symbol,
-  relays: ChoppedRelay[],
-  attemptNumber: number = 0,
-  path: ChoppedRelay[] = [],
-  attempt: Symbol = from
-): ChoppedRelay[] {
-  const finalRelay = relays.find(relayHasBothSymbols(to, attempt));
-  if (finalRelay) return [...path, finalRelay];
-  if (attemptNumber >= 1000)
-    throw new Error("Unable to find path in decent time");
-
-  const searchScope =
-    path.length == 0
-      ? relays
-      : removeChoppedRelay(relays, path[path.length - 1]);
-  const potentialHopRelay = searchScope.find((relay: ChoppedRelay) =>
-    relay.reserves.some(token => token.symbol.isEqual(attempt))
-  )!;
-
-  if (!potentialHopRelay)
-    return findPath(from, to, searchScope, attemptNumber + 1, []);
-
-  const oppositeSymbol = getOppositeSymbol(potentialHopRelay, attempt);
-  return findPath(
-    from,
-    to,
-    searchScope,
-    attemptNumber + 1,
-    [...path, potentialHopRelay],
-    oppositeSymbol
-  );
-}
-
-export function createPath(
-  from: Symbol,
-  to: Symbol,
-  relays: DryRelay[]
-): DryRelay[] {
-  const choppedRelays = chopRelays(
-    relays.sort(relay =>
-      relay.reserves.some(reserve => reserve.symbol.isEqual(to)) ? -1 : 1
-    )
-  );
-  const choppedRelaysPath: ChoppedRelay[] = findPath(from, to, choppedRelays);
-  const wholeRelaysPath: DryRelay[] = unChopRelays(
-    choppedRelaysPath,
-    relays
-  ) as DryRelay[];
-  return wholeRelaysPath;
 }
 
 export function chargeFee(

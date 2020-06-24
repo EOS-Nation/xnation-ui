@@ -71,6 +71,7 @@ import {
   fetchSmartTokenHistory
 } from "@/api/zumZoom";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
+import { findNewPath } from "@/api/eosBancorCalc";
 
 interface EthOpposingLiquid extends OpposingLiquid {
   smartTokenAmount: string;
@@ -1548,8 +1549,8 @@ export class EthBancorModule
   }
 
   @action async init(params: InitParam) {
-    console.log(params, 'was init param on eth')
-    console.time('eth')
+    console.log(params, "was init param on eth");
+    console.time("eth");
     try {
       const [
         tokenMeta,
@@ -1613,7 +1614,7 @@ export class EthBancorModule
           .filter(relayReservesIncludedInTokenMeta(tokenMeta))
           .filter(relayIncludesAtLeastOneNetworkToken)
       );
-      console.timeEnd('eth')
+      console.timeEnd("eth");
     } catch (e) {
       throw new Error(`Threw inside ethBancor ${e.message}`);
     }
@@ -1880,6 +1881,35 @@ export class EthBancorModule
     return Promise.all(ids.map(id => this.tokenById(id)));
   }
 
+  @action async findPath({
+    fromId,
+    toId,
+    relays
+  }: {
+    relays: DryRelay[];
+    fromId: string;
+    toId: string;
+  }) {
+    const lowerCased = relays.map(relay => ({
+      ...relay,
+      reserves: relay.reserves.map(reserve => ({
+        ...reserve,
+        contract: reserve.contract.toLowerCase()
+      }))
+    }));
+    const path = await findNewPath(
+      fromId.toLowerCase(),
+      toId.toLowerCase(),
+      lowerCased,
+      relay => [relay.reserves[0].contract, relay.reserves[1].contract]
+    );
+
+    const flattened = path.hops.flatMap(hop => hop[0]);
+    return relays.filter(relay =>
+      flattened.some(flat => compareString(relay.contract, flat.contract))
+    );
+  }
+
   @action async convert({ from, to, onUpdate }: ProposedConvertTransaction) {
     const [fromToken, toToken] = await this.tokensById([from.id, to.id]);
     const fromIsEth = compareString(fromToken.symbol, "eth");
@@ -1914,22 +1944,24 @@ export class EthBancorModule
     );
     const toTokenDecimals = await this.getDecimalsByTokenAddress(toToken.id);
 
-    const { dryRelays } = createPath(
-      fromToken.symbol,
-      toToken.symbol,
-      this.relaysList.map(
-        (relay): DryRelay => ({
-          contract: relay.contract,
-          reserves: relay.reserves.map(
-            (reserve): TokenSymbol => ({
-              contract: reserve.contract,
-              symbol: reserve.symbol
-            })
-          ),
-          smartToken: relay.smartToken
-        })
-      )
+    const dryRelays = this.relaysList.map(
+      (relay): DryRelay => ({
+        contract: relay.contract,
+        reserves: relay.reserves.map(
+          (reserve): TokenSymbol => ({
+            contract: reserve.contract,
+            symbol: reserve.symbol
+          })
+        ),
+        smartToken: relay.smartToken
+      })
     );
+
+    const path = await this.findPath({
+      relays: dryRelays,
+      fromId: from.id,
+      toId: to.id
+    });
 
     const fromAmount = from.amount;
     const toAmount = Number(to.amount);
@@ -1937,7 +1969,7 @@ export class EthBancorModule
     const fromTokenContract = fromToken.id;
     const toTokenContract = toToken.id;
 
-    const path = generateEthPath(fromSymbol, dryRelays);
+    const ethPath = generateEthPath(fromSymbol, path);
 
     const fromWei = expandToken(fromAmount, fromTokenDecimals);
 
@@ -1957,7 +1989,7 @@ export class EthBancorModule
 
     const confirmedHash = await this.resolveTxOnConfirmation({
       tx: networkContract.methods.convertByPath(
-        path,
+        ethPath,
         fromWei,
         expandToken(toAmount * 0.9, toTokenDecimals),
         "0x0000000000000000000000000000000000000000",

@@ -44,8 +44,7 @@ import {
   Asset,
   asset_to_number,
   number_to_asset,
-  Sym,
-  symbol
+  Sym
 } from "eos-common";
 import { multiContract } from "@/api/multiContractTx";
 import { multiContractAction } from "@/contracts/multi";
@@ -55,13 +54,11 @@ import {
   findCost,
   relaysToConvertPaths,
   composeMemo,
-  createPath,
   DryRelay,
   HydratedRelay,
   findReturn,
   calculateFundReturn,
   TokenAmount,
-  TokenSymbol,
   findNewPath
 } from "@/api/eosBancorCalc";
 import _ from "lodash";
@@ -174,18 +171,6 @@ interface EosOpposingLiquid extends OpposingLiquid {
 const blackListedTokens: BaseToken[] = [
   { contract: "therealkarma", symbol: "KARMA" }
 ];
-
-const appendVersionToSmartTokenSymbol = (appendedString: string) => (
-  relay: EosMultiRelay
-): EosMultiRelay => {
-  return {
-    ...relay,
-    smartToken: {
-      ...relay.smartToken,
-      symbol: relay.smartToken.symbol + appendedString
-    }
-  };
-};
 
 const noBlackListedReservesDry = (blackListedTokens: BaseToken[]) => (
   relay: DryRelay
@@ -1585,6 +1570,7 @@ export class EosBancorModule
 
   @action async waitAndUpdate(time: number = 4000) {
     await wait(time);
+    // @ts-ignore
     return this.init();
   }
 
@@ -1614,12 +1600,6 @@ export class EosBancorModule
     const meshedRelays = _.uniqWith(
       [...relays, ...this.relaysList],
       compareEosMultiRelay
-    );
-    console.log(
-      "should be adding relays...",
-      relays,
-      "final amount is",
-      meshedRelays
     );
     this.relaysList = meshedRelays;
   }
