@@ -1,5 +1,7 @@
 import { Decimal } from "decimal.js";
 import { Asset, asset_to_number, Sym as Symbol, Sym, asset } from "eos-common";
+import _ from "lodash";
+import { compareString } from "./helpers";
 
 export type EosAccount = string;
 
@@ -272,6 +274,80 @@ export function unChopRelays(
     },
     []
   );
+}
+
+type Node = string;
+type Edge = [string, string];
+type AdjacencyList = Map<string, string[]>;
+
+const buildAdjacencyList = (edges: Edge[], nodes: Node[]): AdjacencyList => {
+  const adjacencyList = new Map();
+  nodes.forEach(node => adjacencyList.set(node, []));
+  edges.forEach(([from, to]) => adjacencyList.get(from).push(to));
+  edges.forEach(([from, to]) => adjacencyList.get(to).push(from));
+  return adjacencyList;
+};
+
+const compareEdge = (edge1: Edge, edge2: Edge) =>
+  edge1.every(edge => edge2.some(e => compareString(edge, e)));
+
+const dfs = (
+  start: string,
+  goal: string,
+  adjacencyList: AdjacencyList,
+  visited = new Set(),
+  path: string[] = [start]
+): string[] | undefined => {
+  visited.add(start);
+  const destinations = adjacencyList.get(start)!;
+  console.count("dfs");
+  for (const destination of destinations) {
+    if (destination === goal) {
+      console.log("RETURNING!", [...path, goal]);
+      return [...path, goal];
+    }
+
+    if (!visited.has(destination)) {
+      dfs(destination, goal, adjacencyList, visited, [...path, destination]);
+    }
+  }
+};
+
+export function findNewPath<T>(
+  fromId: string,
+  toId: string,
+  pools: T[],
+  identifier: (pool: T) => Edge
+) {
+  const edges = _.uniqWith(pools.map(identifier), compareEdge);
+  const nodes: Node[] = _.uniqWith(edges.flat(1), compareString);
+
+  const adjacencyList = buildAdjacencyList(edges, nodes);
+  const startExists = adjacencyList.get(fromId);
+  const goalExists = adjacencyList.get(toId);
+
+  if (!(startExists && goalExists))
+    throw new Error("Start or goal does not exist in adjacency list");
+
+  console.log(adjacencyList, "was the list");
+  const dfsResult = dfs(fromId, toId, adjacencyList)!;
+  if (!dfsResult || dfsResult.length == 0)
+    throw new Error("Failed to find path");
+
+  // const poolsPath = _.chunk(dfsResult, 2).map(tokenIds => {
+  //   if (tokenIds.length < 2) return;
+
+  //   const accomodatingRelays = pools.filter(pool => {
+  //     const ids = identifier(pool);
+  //     return ids.every(id => tokenIds.some(i => id == i));
+  //   });
+
+  //   return accomodatingRelays;
+  // });
+
+  return {
+    path: dfsResult
+  };
 }
 
 export function findPath(

@@ -74,17 +74,17 @@ export default class App extends Vue {
       });
       this.loading = false;
     } catch (e) {
-      await wait(1000);
-      try {
-        await vxm.bancor.init({
-          initialChain: this.$route.params.service,
-          initialModuleParam: this.$route.query
-        });
-      } catch (e) {
-        this.loading = false;
-        this.error = e.message;
-        throw new Error(e);
-      }
+      // await wait(1000);
+      // try {
+      //   await vxm.bancor.init({
+      //     initialChain: this.$route.params.service,
+      //     initialModuleParam: this.$route.query
+      //   });
+      // } catch (e) {
+      //   this.loading = false;
+      //   this.error = e.message;
+      //   throw new Error(e);
+      // }
     }
   }
 
