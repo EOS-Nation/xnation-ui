@@ -70,6 +70,17 @@ import { getHardCodedRelays } from "./staticRelays";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { liquidateAction } from "@/api/singleContractTx";
 
+const dryToTraditionalEdge = (relay: DryRelay): [string, string] => [
+  buildTokenId({
+    contract: relay.reserves[0].contract,
+    symbol: relay.reserves[0].symbol.code().to_string()
+  }),
+  buildTokenId({
+    contract: relay.reserves[1].contract,
+    symbol: relay.reserves[1].symbol.code().to_string()
+  })
+];
+
 const pureTimesAsset = (asset: Asset, multiplier: number) => {
   const newAsset = new Asset(asset.to_string());
   return newAsset.times(multiplier);
@@ -288,7 +299,6 @@ export interface TokenSymbol {
 const compareTokenSymbol = (t1: TokenSymbol, t2: TokenSymbol) =>
   compareString(t1.contract, t2.contract) &&
   compareString(t1.symbol.code().to_string(), t2.symbol.code().to_string());
-
 
 const compareEosMultiRelay = (r1: EosMultiRelay, r2: EosMultiRelay) =>
   compareString(r1.id, r2.id);
@@ -1842,8 +1852,14 @@ export class EosBancorModule
     const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
     const assetAmount = number_to_asset(Number(fromAmount), fromSymbolInit);
 
-    const allRelays = this.convertableRelays.map(multiToDry);
-    const relaysPath = createPath(fromSymbolInit, toSymbolInit, allRelays);
+    const allRelays = this.convertableRelays;
+    const path = await findNewPath(
+      fromToken.id,
+      toToken.id,
+      allRelays,
+      relay => [relay.reserves[0].id, relay.reserves[1].id]
+    );
+    const relaysPath = path.hops.flatMap(hop => hop[0]).map(multiToDry);
     const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
 
     const isAuthenticated = this.isAuthenticated;
@@ -1907,8 +1923,6 @@ export class EosBancorModule
     return openActions;
   }
 
-  // Todo
-  // just change this to a promise instead.
   @action async triggerTxAndWatchBalances({
     actions,
     tokenIds
@@ -1976,16 +1990,33 @@ export class EosBancorModule
     return result;
   }
 
+  @action async findPath({
+    fromId,
+    toId,
+    relays
+  }: {
+    fromId: string;
+    toId: string;
+    relays: DryRelay[];
+  }): Promise<DryRelay[]> {
+    const path = await findNewPath(fromId, toId, relays, dryToTraditionalEdge);
+    return path.hops.flatMap(hop => hop[0]);
+  }
+
   @action async getReturn({
     from,
     toId
   }: ProposedFromTransaction): Promise<ConvertReturn> {
     const assetAmount = await this.viewAmountToAsset(from);
     const toToken = await this.tokenById(toId);
-    const toSymbolInit = new Symbol(toToken.symbol, toToken.precision);
 
-    const allRelays = this.convertableRelays.map(multiToDry)
-    const path = createPath(assetAmount.symbol, toSymbolInit, allRelays);
+    const allRelays = this.convertableRelays.map(multiToDry);
+    const path = await this.findPath({
+      fromId: from.id,
+      toId: toId,
+      relays: allRelays
+    });
+
     const hydratedRelays = await this.hydrateRelays(path);
     const calculatedReturn = findReturn(assetAmount, hydratedRelays);
 
@@ -1998,11 +2029,12 @@ export class EosBancorModule
   @action async getCost({ fromId, to }: ProposedToTransaction) {
     const assetAmount = await this.viewAmountToAsset(to);
 
-    const fromToken = await this.tokenById(fromId);
-    const fromSymbolInit = new Symbol(fromToken.symbol, fromToken.precision);
-
-    const allRelays = this.convertableRelays.map(multiToDry)
-    const path = createPath(fromSymbolInit, assetAmount.symbol, allRelays);
+    const allRelays = this.convertableRelays.map(multiToDry);
+    const path = await this.findPath({
+      fromId,
+      toId: to.id,
+      relays: allRelays
+    });
     const hydratedRelays = await this.hydrateRelays(path);
     const calculatedCost = findCost(assetAmount, hydratedRelays);
 
