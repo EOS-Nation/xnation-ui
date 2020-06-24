@@ -292,28 +292,38 @@ const compareEdge = (edge1: Edge, edge2: Edge) =>
   edge1.every(edge => edge2.some(e => compareString(edge, e)));
 
 const dfs = (
+  fromId: string,
+  toId: string,
+  adjacencyList: AdjacencyList
+): Promise<string[]> =>
+  new Promise(resolve => callbackDfs(fromId, toId, adjacencyList, resolve));
+
+const callbackDfs = (
   start: string,
   goal: string,
   adjacencyList: AdjacencyList,
+  callBack: (stuff: any) => void,
   visited = new Set(),
   path: string[] = [start]
-): string[] | undefined => {
+) => {
   visited.add(start);
   const destinations = adjacencyList.get(start)!;
   console.count("dfs");
   for (const destination of destinations) {
     if (destination === goal) {
-      console.log("RETURNING!", [...path, goal]);
-      return [...path, goal];
+      callBack([...path, goal]);
     }
 
     if (!visited.has(destination)) {
-      dfs(destination, goal, adjacencyList, visited, [...path, destination]);
+      callbackDfs(destination, goal, adjacencyList, callBack, visited, [
+        ...path,
+        destination
+      ]);
     }
   }
 };
 
-export function findNewPath<T>(
+export async function findNewPath<T>(
   fromId: string,
   toId: string,
   pools: T[],
@@ -329,24 +339,28 @@ export function findNewPath<T>(
   if (!(startExists && goalExists))
     throw new Error("Start or goal does not exist in adjacency list");
 
-  console.log(adjacencyList, "was the list");
-  const dfsResult = dfs(fromId, toId, adjacencyList)!;
+  const dfsResult = await dfs(fromId, toId, adjacencyList)!;
   if (!dfsResult || dfsResult.length == 0)
     throw new Error("Failed to find path");
 
-  // const poolsPath = _.chunk(dfsResult, 2).map(tokenIds => {
-  //   if (tokenIds.length < 2) return;
+  const hops = _.chunk(dfsResult, 2).map((tokenIds, index, arr) => {
+    let searchAbleIds: string[];
 
-  //   const accomodatingRelays = pools.filter(pool => {
-  //     const ids = identifier(pool);
-  //     return ids.every(id => tokenIds.some(i => id == i));
-  //   });
+    if (tokenIds.length < 2) {
+      searchAbleIds = [arr[index - 1][1], tokenIds[0]];
+    } else searchAbleIds = tokenIds;
 
-  //   return accomodatingRelays;
-  // });
+    const accomodatingRelays = pools.filter(pool => {
+      const ids = identifier(pool);
+      return ids.every(id => searchAbleIds.some(i => id == i));
+    });
+
+    return accomodatingRelays;
+  });
 
   return {
-    path: dfsResult
+    path: dfsResult,
+    hops
   };
 }
 

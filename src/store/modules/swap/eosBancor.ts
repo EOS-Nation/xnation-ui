@@ -1020,8 +1020,8 @@ export class EosBancorModule
   }
 
   @action async init(param: InitParam) {
-    console.count('eosInit')
-    console.log('eosInit', param)
+    console.count("eosInit");
+    console.log("eosInit", param);
     console.time("eos");
     try {
       const [usdPriceOfBnt, v2Relays, tokenMeta] = await Promise.all([
@@ -1041,12 +1041,9 @@ export class EosBancorModule
 
       const allDry = [...v1Relays, ...eosMultiToDryRelays(v2Relays)];
 
-      console.log(askedTokenIds, 'are asked token ids')
       const [fromId, toId] = askedTokenIds;
-      
-      console.count('findNewPath')
-      
-      const x = findNewPath(fromId, toId, allDry, dry => {
+
+      const foundPath = await findNewPath(fromId, toId, allDry, dry => {
         const [from, to] = dry.reserves.map(r =>
           buildTokenId({
             contract: r.contract,
@@ -1055,30 +1052,23 @@ export class EosBancorModule
         );
         return [from, to];
       });
-      console.log("findNewPath returned");
-      console.log(x, "was thunderstruck");
 
-      // const relaysPath = createPath(askedTokenIds[0], toSymbolInit, allRelays);
+      const relaysInvolved = foundPath.hops.flat(1);
 
-      const accomodatingV1Relays = v1Relays.filter(relay =>
-        relay.reserves.every(reserve =>
-          askedTokenIds.some(id =>
-            compareString(
-              id,
-              buildTokenId({
-                contract: reserve.contract,
-                symbol: reserve.symbol.code().to_string()
-              })
-            )
-          )
-        )
+      const requiredV1s = relaysInvolved.filter(
+        relay => !relay.isMultiContract
       );
 
+      const accomodatingV1Relays = requiredV1s;
+
+      console.log("adding pools...");
       await this.addPools({
         multiRelays: v2Relays,
         dryDelays: accomodatingV1Relays,
         tokenMeta
       });
+
+      console.log("removing pools");
 
       const remainingV1Relays = v1Relays.filter(
         relay =>
