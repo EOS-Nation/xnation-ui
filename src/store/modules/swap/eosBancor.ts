@@ -737,22 +737,11 @@ export class EosBancorModule
             contract: reserve.contract,
             symbol: reserve.symbol
           });
-          console.log(this.relayFeed, 'was relay feed')
           const feed = this.relayFeed.find(
             feed =>
               compareString(feed.smartTokenId, relayId) &&
               compareString(feed.tokenId, reserveId)
           );
-          if (!feed)
-            console.warn(
-              `Failed finding a feed for ${reserve.symbol} ${
-                reserve.contract
-              } ${relay.smartToken.symbol} ${
-                relay.isMultiContract
-                  ? "is a multi contract"
-                  : "is NOT a multiContract"
-              }`
-            );
           return feed;
         })
       );
@@ -762,28 +751,20 @@ export class EosBancorModule
     return this.relaysWithFeeds
       .flatMap(relay =>
         relay.reserves.map(reserve => {
-          const relayId = buildTokenId({
-            contract: relay.smartToken.contract,
-            symbol: relay.smartToken.symbol
-          });
-          const reserveId = buildTokenId({
+          const reserveTokenId = buildTokenId({
             contract: reserve.contract,
             symbol: reserve.symbol
           });
 
-          const x = (feed: RelayFeed) =>
-            compareString(feed.smartTokenId, relayId) &&
-            compareString(feed.tokenId, reserveId);
           const feed = findOrThrow(
             this.relayFeed,
-            x,
-            `failed finding relay feed for ${relayId} ${reserveId}`
+            (feed: RelayFeed) =>
+              compareString(feed.smartTokenId, relay.id) &&
+              compareString(feed.tokenId, reserveTokenId),
+            `failed finding relay feed for ${relay.id} ${reserveTokenId}`
           );
           return {
-            id: buildTokenId({
-              contract: reserve.contract,
-              symbol: reserve.symbol
-            }),
+            id: reserveTokenId,
             symbol: reserve.symbol,
             price: feed.costByNetworkUsd,
             change24h: feed.change24H,
@@ -816,13 +797,14 @@ export class EosBancorModule
           : [...acc, item];
       }, [])
       .map(token => {
-        const { symbol, contract } = token;
+        const id = token.id as string;
+        const contract = token.contract as string;
+        const symbol = token.symbol as string;
 
         const tokenMeta = findOrThrow(
           this.tokenMeta,
           token =>
-            compareString(token.symbol, symbol) &&
-            compareString(token.account, contract)
+            compareString(token.id, id) 
         );
         const tokenBalance = vxm.eosNetwork.balance({
           contract,
@@ -962,49 +944,45 @@ export class EosBancorModule
     dryDelays: DryRelay[];
     tokenMeta: TokenMeta[];
   }) {
-    console.log("add pools called", [...multiRelays, ...dryDelays], "***");
     const passedMultiRelays = multiRelays
       .filter(reservesIncludeTokenMeta(tokenMeta))
-      .filter(noBlackListedReserves(blackListedTokens))
-      .filter(relayHasReserveBalances);
+      .filter(noBlackListedReserves(blackListedTokens));
 
     this.updateMultiRelays(passedMultiRelays);
-    await this.buildPossibleRelayFeedsFromHydrated(passedMultiRelays);
+    await this.buildPossibleRelayFeedsFromHydrated(
+      passedMultiRelays.filter(relayHasReserveBalances)
+    );
 
     const passedDryPools = dryDelays
       .filter(noBlackListedReservesDry(blackListedTokens))
       .filter(reservesIncludeTokenMetaDry(tokenMeta));
+
+    const hydratedV1Relays = await this.hydrateOldRelays(passedDryPools);
+    this.updateMultiRelays(hydratedV1Relays);
 
     const bancorApiFeeds = await this.buildPossibleRelayFeedsFromBancorApi({
       relays: passedDryPools
     });
 
     const relaysNotFulfilled = _.differenceWith(
-      passedDryPools,
+      hydratedV1Relays,
       bancorApiFeeds,
       (a, b) =>
         compareString(
           buildTokenId({
             contract: a.smartToken.contract,
-            symbol: a.smartToken.symbol.code().to_string()
+            symbol: a.smartToken.symbol
           }),
           b.smartTokenId
         )
     );
 
-    // for some reason hydrate old relays is not sent
-
-    const hydratedRelays = await this.hydrateOldRelays(relaysNotFulfilled);
-    console.log(hydratedRelays, 'should be hydrated relays')
-
-    this.updateMultiRelays(hydratedRelays);
     await this.buildPossibleRelayFeedsFromHydrated(
-      hydratedRelays.filter(relayHasReserveBalances)
+      relaysNotFulfilled.filter(relayHasReserveBalances)
     );
   }
 
   @action async init(param: InitParam) {
-    console.log(param, "was on eos");
     console.time("eos");
     try {
       const [usdPriceOfBnt, v2Relays, tokenMeta] = await Promise.all([
@@ -1016,22 +994,13 @@ export class EosBancorModule
       this.setBntPrice(usdPriceOfBnt);
 
       const v1Relays = getHardCodedRelays();
-      const passedV1Relays = v1Relays.filter(
-        noBlackListedReservesDry(blackListedTokens)
-      );
 
       const askedTokenIds =
         param.tradeQuery && param.tradeQuery.base && param.tradeQuery.quote
           ? [param.tradeQuery.base, param.tradeQuery.quote]
           : [];
 
-      const accomodatingV2Relays = v2Relays.filter(relay =>
-        relay.reserves.every(reserve =>
-          askedTokenIds.some(id => compareString(id, reserve.id))
-        )
-      );
-
-      const accomodatingV1Relays = passedV1Relays.filter(relay =>
+      const accomodatingV1Relays = v1Relays.filter(relay =>
         relay.reserves.every(reserve =>
           askedTokenIds.some(id =>
             compareString(
@@ -1046,19 +1015,12 @@ export class EosBancorModule
       );
 
       await this.addPools({
-        multiRelays: accomodatingV2Relays,
+        multiRelays: v2Relays,
         dryDelays: accomodatingV1Relays,
         tokenMeta
       });
 
-      const remainingV2Relays = v2Relays.filter(
-        relay => !accomodatingV2Relays.some(r => compareString(r.id, relay.id))
-      );
-      console.log(
-        { v2Relays, remainingV2Relays, accomodatingV2Relays },
-        "does he know?"
-      );
-      const remainingV1Relays = passedV1Relays.filter(
+      const remainingV1Relays = v1Relays.filter(
         relay =>
           !accomodatingV1Relays.some(r =>
             compareTokenSymbol(relay.smartToken, r.smartToken)
@@ -1066,12 +1028,12 @@ export class EosBancorModule
       );
 
       this.addPools({
-        multiRelays: remainingV2Relays,
+        multiRelays: [],
         tokenMeta,
         dryDelays: remainingV1Relays
       });
 
-      const v1Tokens = passedV1Relays
+      const v1Tokens = v1Relays
         .flatMap(relay => relay.reserves)
         .map(tokenSymbol => ({
           contract: tokenSymbol.contract,
@@ -1201,7 +1163,7 @@ export class EosBancorModule
   }
 
   @action async hydrateOldRelays(relays: DryRelay[]) {
-    console.log('hydrateOldRelays received', relays)
+    console.log("hydrateOldRelays received", relays);
     return Promise.all(
       relays.map(
         async (relay): Promise<EosMultiRelay> => {
@@ -1609,10 +1571,15 @@ export class EosBancorModule
   }
 
   @mutation updateMultiRelays(relays: EosMultiRelay[]) {
-    console.log('should be adding relays...', relays)
     const meshedRelays = _.uniqWith(
       [...relays, ...this.relaysList],
       compareEosMultiRelay
+    );
+    console.log(
+      "should be adding relays...",
+      relays,
+      "final amount is",
+      meshedRelays
     );
     this.relaysList = meshedRelays;
   }
