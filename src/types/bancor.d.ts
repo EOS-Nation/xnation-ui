@@ -231,12 +231,12 @@ export interface TradeQuery {
   base: string;
   quote: string;
 }
-export interface InitParam {
+export interface ModuleParam {
   tradeQuery?: TradeQuery;
 }
 
 export interface TradingModule {
-  init: (param: InitParam) => Promise<void>;
+  init: (param?: ModuleParam) => Promise<void>;
   readonly token: (arg0: string) => ViewToken;
   readonly tokens: ViewToken[];
   refreshBalances: (symbols?: BaseToken[]) => Promise<void>;
@@ -300,7 +300,7 @@ export interface CreatePoolParams {
 }
 
 export interface CreatePoolModule {
-  init: (param: InitParam) => Promise<void>;
+  init: (param: ModuleParam) => Promise<void>;
   readonly newPoolTokenChoices: (networkToken: string) => ModalChoice[];
   readonly newNetworkTokenChoices: ModalChoice[];
   createPool: (param: CreatePoolParams) => Promise<string>;
@@ -336,7 +336,7 @@ export interface PromiseSequence {
 }
 
 export interface LiquidityModule {
-  init: (param: InitParam) => Promise<void>;
+  init: (param: ModuleParam) => Promise<void>;
   readonly relay: (arg0: string) => ViewRelay;
   readonly relays: ViewRelay[];
   readonly supportedFeatures: (arg0: string) => string[];

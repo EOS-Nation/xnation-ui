@@ -19,7 +19,7 @@ import {
   Step,
   HistoryModule,
   ViewAmount,
-  InitParam
+  ModuleParam
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -252,6 +252,7 @@ export class EthBancorModule
     BancorX: "",
     BancorConverterFactory: ""
   };
+  initiated: boolean = false;
 
   get newNetworkTokenChoices(): ModalChoice[] {
     const bntTokenMeta = this.tokenMeta.find(token => token.symbol == "BNT")!;
@@ -314,6 +315,10 @@ export class EthBancorModule
 
   get isAuthenticated() {
     return vxm.wallet.isAuthenticated;
+  }
+
+  @mutation moduleInitiated() {
+    this.initiated = true;
   }
 
   @action async fetchNewConverterAddressFromHash(
@@ -1548,9 +1553,16 @@ export class EthBancorModule
     this.availableHistories = smartTokenNames;
   }
 
-  @action async init(params: InitParam) {
+  @action async refresh() {
+    console.log("refresh called on eth bancor, doing nothing");
+  }
+
+  @action async init(params?: ModuleParam) {
     console.log(params, "was init param on eth");
     console.time("eth");
+    if (this.initiated) {
+      return this.refresh();
+    }
     try {
       const [
         tokenMeta,
@@ -1614,6 +1626,7 @@ export class EthBancorModule
           .filter(relayReservesIncludedInTokenMeta(tokenMeta))
           .filter(relayIncludesAtLeastOneNetworkToken)
       );
+      this.moduleInitiated();
       console.timeEnd("eth");
     } catch (e) {
       throw new Error(`Threw inside ethBancor ${e.message}`);

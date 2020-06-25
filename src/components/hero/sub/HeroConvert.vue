@@ -125,7 +125,7 @@ import { LiquidityModule, TradingModule, Step } from "../../../types/bancor";
 import numeral from "numeral";
 import { vxm } from "@/store";
 import { buildTokenId } from "../../../api/helpers";
-import { ethReserveAddress } from '../../../api/ethConfig';
+import { ethReserveAddress } from "../../../api/ethConfig";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
   return {
@@ -162,8 +162,10 @@ const addDefaultQueryParams = (to: Route): any => {
 
 const queryParamsCheck = (to: Route, next: any) => {
   if (!to.query.base || !to.query.quote) {
+    console.log("added query params");
     next(addDefaultQueryParams(to));
   } else {
+    console.log("did nothing");
     next();
   }
 };

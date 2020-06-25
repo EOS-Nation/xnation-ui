@@ -332,7 +332,6 @@ export async function findNewPath<T>(
   const nodes: Node[] = _.uniqWith(edges.flat(1), compareString);
 
   const adjacencyList = buildAdjacencyList(edges, nodes);
-  console.log(fromId, toId, adjacencyList);
   const startExists = adjacencyList.get(fromId);
   const goalExists = adjacencyList.get(toId);
 

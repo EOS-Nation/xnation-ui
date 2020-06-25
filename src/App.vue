@@ -62,29 +62,38 @@ export default class App extends Vue {
   error = false;
 
   async loadBancor() {
-    try {
-      console.log(this.$route, "was route details");
-      await vxm.bancor.init({
-        initialChain: this.$route.params.service,
+    console.log("feature:", this.$route.meta.feature);
+    console.log("service:", this.$route.params.service);
+    console.log("query:", this.$route.query);
+
+    const service = this.$route.params && this.$route.params.service;
+    const feature = this.$route.params && this.$route.params.feature;
+    const query = this.$route.query;
+
+    const paramsSatisfied = service && feature && query;
+
+    const initParams = {
+      initialChain: this.$route.params.service,
+      ...(paramsSatisfied && {
         initialModuleParam: {
           [this.$route.meta.feature == "Trade"
             ? "tradeQuery"
             : "poolQuery"]: this.$route.query
         }
-      });
+      })
+    };
+    try {
+      await vxm.bancor.init(initParams);
       this.loading = false;
     } catch (e) {
-      // await wait(1000);
-      // try {
-      //   await vxm.bancor.init({
-      //     initialChain: this.$route.params.service,
-      //     initialModuleParam: this.$route.query
-      //   });
-      // } catch (e) {
-      //   this.loading = false;
-      //   this.error = e.message;
-      //   throw new Error(e);
-      // }
+      await wait(1000);
+      try {
+        await vxm.bancor.init(initParams);
+      } catch (e) {
+        this.loading = false;
+        this.error = e.message;
+        throw new Error(e);
+      }
     }
   }
 

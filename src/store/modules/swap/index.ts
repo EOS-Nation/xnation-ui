@@ -10,11 +10,15 @@ import {
   HistoryRow,
   ProposedToTransaction,
   ProposedFromTransaction,
-  InitParam
+  ModuleParam
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
-import { compareString, fetchUsdPriceOfBntViaRelay } from "@/api/helpers";
+import {
+  compareString,
+  fetchUsdPriceOfBntViaRelay,
+  updateArray
+} from "@/api/helpers";
 import { fetchBinanceUsdPriceOfBnt } from "@/api/helpers";
 import wait from "waait";
 
@@ -28,18 +32,45 @@ const VuexModule = createModule({
 });
 
 interface RootParam {
-  initialModuleParam: InitParam;
+  initialModuleParam?: ModuleParam;
   initialChain?: string;
+}
+
+const moduleIds: { label: string; id: string }[] = [
+  {
+    label: "EOS",
+    id: "eos"
+  },
+  {
+    label: "ETH",
+    id: "eth"
+  },
+  {
+    label: "USDⓈ",
+    id: "usds"
+  }
+];
+
+interface Module {
+  id: string;
+  loading: boolean;
+  loaded: boolean;
+  label: string;
 }
 
 export class BancorModule extends VuexModule.With({
   namespaced: "bancor/"
 }) {
-  chains = ["eos", "eth", "usds"];
   usdPriceOfBnt: BntPrice = {
     price: null,
     lastChecked: 0
   };
+  modules: Module[] = moduleIds.map(({ id, label }) => ({
+    id,
+    label,
+    loading: false,
+    loaded: false
+  }));
 
   get currentNetwork() {
     // @ts-ignore
@@ -98,32 +129,74 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["wallet"];
   }
 
+  @mutation updateModule({
+    id,
+    updater
+  }: {
+    id: string;
+    updater: (module: Module) => Module;
+  }) {
+    const newModules = updateArray(
+      this.modules,
+      module => compareString(id, module.id),
+      updater
+    );
+    this.modules = newModules;
+  }
+
+  @action async moduleInitialised(id: string) {
+    this.updateModule({
+      id,
+      updater: module => ({ ...module, loaded: true, loading: false })
+    });
+  }
+
+  @action async moduleInitalising(id: string) {
+    this.updateModule({
+      id,
+      updater: module => ({ ...module, loading: true })
+    });
+  }
+
+  @action async initialiseModule({
+    moduleId,
+    params,
+    resolveWhenFinished = false
+  }: {
+    moduleId: string;
+    params?: ModuleParam;
+    resolveWhenFinished: boolean;
+  }) {
+    this.moduleInitalising(moduleId);
+    if (resolveWhenFinished) {
+      await this.$store.dispatch(`${moduleId}Bancor/init`, params || null, {
+        root: true
+      });
+      this.moduleInitialised(moduleId);
+    } else {
+      this.$store
+        .dispatch(`${moduleId}Bancor/init`, params || null, {
+          root: true
+        })
+        .then(() => this.moduleInitialised(moduleId));
+    }
+  }
+
   @action async init(param: RootParam) {
     const { initialChain, initialModuleParam } = param;
-    if (initialChain) {
-      return new Promise((resolve, reject) => {
-        this.$store
-          .dispatch(`${initialChain}Bancor/init`, initialModuleParam || null, {
-            root: true
-          })
-          .then(() => resolve())
-          .catch(e => reject(e));
-        const remainingChains = this.chains.filter(
-          chain => !compareString(chain, initialChain)
-        );
-        remainingChains.forEach(chain =>
-          this.$store
-            .dispatch(`${chain}Bancor/init`, initialModuleParam || null, {
-              root: true
-            })
-            .catch(e => reject(e))
-        );
+    if (initialChain && initialModuleParam) {
+      return this.initialiseModule({
+        moduleId: initialChain,
+        params: initialModuleParam,
+        resolveWhenFinished: true
       });
     } else {
       return Promise.all(
-        this.chains.map(chain =>
-          this.$store.dispatch(`${chain}Bancor/init`, null, { root: true })
-        )
+        this.modules
+          .map(module => module.id)
+          .map(moduleId =>
+            this.initialiseModule({ moduleId, resolveWhenFinished: true })
+          )
       );
     }
   }
@@ -141,7 +214,6 @@ export class BancorModule extends VuexModule.With({
           wait(500).then(() => resolve(fetchUsdPriceOfBntViaRelay()));
         })
       ]);
-      console.log(res, "was res!");
       const usdPrice = res as number;
       this.setUsdPriceOfBnt({
         price: usdPrice,

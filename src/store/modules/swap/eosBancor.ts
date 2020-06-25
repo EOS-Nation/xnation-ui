@@ -24,7 +24,7 @@ import {
   ViewAmount,
   ProposedFromTransaction,
   ProposedToTransaction,
-  InitParam
+  ModuleParam
 } from "@/types/bancor";
 import { bancorApi, ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -112,6 +112,12 @@ const reservesIncludeTokenMeta = (tokenMeta: TokenMeta[]) => (
     );
   return status;
 };
+
+const compareEosTokenSymbol = (
+  a: DryRelay["smartToken"],
+  b: DryRelay["smartToken"]
+) => compareString(a.contract, b.contract) && a.symbol.isEqual(b.symbol);
+
 const reservesIncludeTokenMetaDry = (tokenMeta: TokenMeta[]) => (
   relay: DryRelay
 ) => {
@@ -486,6 +492,7 @@ const VuexModule = createModule({
 export class EosBancorModule
   extends VuexModule.With({ namespaced: "eosBancor/" })
   implements TradingModule, LiquidityModule, CreatePoolModule {
+  initialised: boolean = false;
   relaysList: EosMultiRelay[] = [];
   relayFeed: RelayFeed[] = [];
   usdPrice = 0;
@@ -996,10 +1003,83 @@ export class EosBancorModule
     });
   }
 
-  @action async init(param: InitParam) {
+  @mutation setInitialised(status: boolean) {
+    this.initialised = status;
+  }
+
+  @action async refresh() {
+    console.log("refresh called, nothing");
+    return;
+  }
+
+  @action async fetchBalancesFromReserves(relays: DryRelay[]) {
+    return vxm.eosNetwork.getBalances({
+      tokens: _.uniqWith(
+        relays.flatMap(relay => relay.reserves),
+        compareEosTokenSymbol
+      ).map(reserve => ({
+        contract: reserve.contract,
+        symbol: reserve.symbol.code().to_string()
+      })),
+      slow: false
+    });
+  }
+
+  @action async bareMinimumForTrade({
+    fromId,
+    toId,
+    v1Relays,
+    v2Relays,
+    tokenMeta
+  }: {
+    fromId: string;
+    toId: string;
+    v1Relays: DryRelay[];
+    v2Relays: EosMultiRelay[];
+    tokenMeta: TokenMeta[];
+  }) {
+    const allDry = [...v1Relays, ...v2Relays.map(multiToDry)];
+    const foundPath = await findNewPath(fromId, toId, allDry, dry => {
+      const [from, to] = dry.reserves.map(r =>
+        buildTokenId({
+          contract: r.contract,
+          symbol: r.symbol.code().to_string()
+        })
+      );
+      return [from, to];
+    });
+
+    const relaysInvolved = foundPath.hops.flat(1);
+    const requiredV1s = relaysInvolved.filter(relay => !relay.isMultiContract);
+    const accomodatingV1Relays = requiredV1s;
+    await this.addPools({
+      multiRelays: v2Relays,
+      dryDelays: accomodatingV1Relays,
+      tokenMeta
+    });
+
+    const remainingV1Relays = v1Relays.filter(
+      relay =>
+        !accomodatingV1Relays.some(r =>
+          compareTokenSymbol(relay.smartToken, r.smartToken)
+        )
+    );
+
+    this.addPools({
+      multiRelays: [],
+      tokenMeta,
+      dryDelays: remainingV1Relays
+    });
+  }
+
+  @action async init(param?: ModuleParam) {
     console.count("eosInit");
-    console.log("eosInit", param);
     console.time("eos");
+    console.log("eosInit received", param);
+    if (this.initialised) {
+      console.log("eos refreshing instead");
+      return this.refresh();
+    }
     try {
       const [usdPriceOfBnt, v2Relays, tokenMeta] = await Promise.all([
         vxm.bancor.fetchUsdPriceOfBnt(),
@@ -1010,72 +1090,34 @@ export class EosBancorModule
       this.setBntPrice(usdPriceOfBnt);
 
       const v1Relays = getHardCodedRelays();
-
-      const askedTokenIds =
-        param.tradeQuery && param.tradeQuery.base && param.tradeQuery.quote
-          ? [param.tradeQuery.base, param.tradeQuery.quote]
-          : [];
-
       const allDry = [...v1Relays, ...v2Relays.map(multiToDry)];
 
-      const [fromId, toId] = askedTokenIds;
+      this.fetchBalancesFromReserves(allDry);
 
-      const foundPath = await findNewPath(fromId, toId, allDry, dry => {
-        const [from, to] = dry.reserves.map(r =>
-          buildTokenId({
-            contract: r.contract,
-            symbol: r.symbol.code().to_string()
-          })
-        );
-        return [from, to];
-      });
+      const quickTrade =
+        param &&
+        param.tradeQuery &&
+        param.tradeQuery.base &&
+        param.tradeQuery.quote;
 
-      const relaysInvolved = foundPath.hops.flat(1);
+      if (quickTrade) {
+        const { base: fromId, quote: toId } = param!.tradeQuery!;
+        await this.bareMinimumForTrade({
+          fromId,
+          toId,
+          v1Relays,
+          v2Relays,
+          tokenMeta
+        });
+      } else {
+        await this.addPools({
+          multiRelays: v2Relays,
+          dryDelays: v1Relays,
+          tokenMeta
+        });
+      }
 
-      const requiredV1s = relaysInvolved.filter(
-        relay => !relay.isMultiContract
-      );
-
-      const accomodatingV1Relays = requiredV1s;
-
-      console.log("adding pools...");
-      await this.addPools({
-        multiRelays: v2Relays,
-        dryDelays: accomodatingV1Relays,
-        tokenMeta
-      });
-
-      console.log("removing pools");
-
-      const remainingV1Relays = v1Relays.filter(
-        relay =>
-          !accomodatingV1Relays.some(r =>
-            compareTokenSymbol(relay.smartToken, r.smartToken)
-          )
-      );
-
-      this.addPools({
-        multiRelays: [],
-        tokenMeta,
-        dryDelays: remainingV1Relays
-      });
-
-      const v1Tokens = v1Relays
-        .flatMap(relay => relay.reserves)
-        .map(tokenSymbol => ({
-          contract: tokenSymbol.contract,
-          symbol: tokenSymbol.symbol.code().to_string()
-        }));
-
-      const v2Tokens = v2Relays.flatMap(relay => relay.reserves);
-
-      const uniqueTokens = _.uniqWith(
-        [...v2Tokens, ...v1Tokens],
-        (a, b) =>
-          compareString(a.contract, b.contract) &&
-          compareString(a.symbol, b.symbol)
-      );
-      vxm.eosNetwork.getBalances({ tokens: uniqueTokens, slow: false });
+      this.setInitialised(true);
       console.timeEnd("eos");
     } catch (e) {
       throw new Error(`Threw inside eosBancor: ${e.message}`);
