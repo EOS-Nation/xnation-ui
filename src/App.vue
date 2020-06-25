@@ -67,7 +67,7 @@ export default class App extends Vue {
     console.log("query:", this.$route.query);
 
     const service = this.$route.params && this.$route.params.service;
-    const feature = this.$route.params && this.$route.params.feature;
+    const feature = this.$route.meta && this.$route.meta.feature;
     const query = this.$route.query;
 
     const paramsSatisfied = service && feature && query;
