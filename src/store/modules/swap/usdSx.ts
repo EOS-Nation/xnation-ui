@@ -383,7 +383,7 @@ export class UsdBancorModule
           contract,
           volume24h,
           price,
-          liqDepth: asset_to_number(token.depth) * price
+          liqDepth: asset_to_number(token.balance) * price
         };
       })
     );
