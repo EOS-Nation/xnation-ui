@@ -182,12 +182,11 @@ export class BancorModule extends VuexModule.With({
     }
   }
 
-  @action async init(param: RootParam) {
-    const { initialChain, initialModuleParam } = param;
-    if (initialChain && initialModuleParam) {
+  @action async init(param?: RootParam) {
+    if (param && param.initialChain && param.initialModuleParam) {
       return this.initialiseModule({
-        moduleId: initialChain,
-        params: initialModuleParam,
+        moduleId: param.initialChain,
+        params: param.initialModuleParam,
         resolveWhenFinished: true
       });
     } else {
