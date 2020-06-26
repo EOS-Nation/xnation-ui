@@ -168,17 +168,31 @@ export class EosNetworkModule
   }
 
   @action public async getBalances(params?: GetBalanceParam) {
-    if (!this.isAuthenticated && params && params.tokens) {
+    if (params && params.tokens.length) {
       this.updateTrackableTokens(params.tokens);
-      return [];
     }
-    if (!params) {
-      const tokenBalances = await getTokenBalances(this.isAuthenticated);
-      const equalisedBalances: TokenBalanceReturn[] = tokenBalances.tokens.map(
+    if (!this.isAuthenticated) return;
+
+    if (!params || params.tokens.length == 0) {
+      const pickedUp = await this.tokensNotTracked();
+      const tokensToFetch = pickedUp;
+
+      const [directTokens, bonusTokens] = await Promise.all([
+        this.fetchBulkBalances(tokensToFetch),
+        getTokenBalances(this.isAuthenticated).catch(() => ({
+          tokens: [] as TokenBalance[]
+        }))
+      ]);
+
+      const equalisedBalances: TokenBalanceReturn[] = bonusTokens.tokens.map(
         tokenBalanceToTokenBalanceReturn
       );
-      this.updateTokenBalances(equalisedBalances);
-      return equalisedBalances;
+      const merged = _.uniqWith(
+        [...directTokens, ...equalisedBalances],
+        compareToken
+      );
+      this.updateTokenBalances(merged);
+      return;
     }
 
     const tokensAskedFor = params.tokens;
@@ -214,6 +228,16 @@ export class EosNetworkModule
       }))
     ]);
 
+    const allTokensReceived = tokensToFetch.every(fetchableToken =>
+      directTokens.some(fetchedToken =>
+        compareToken(fetchableToken, fetchedToken)
+      )
+    );
+    console.assert(
+      allTokensReceived,
+      "fetch bulk balances failed to return all tokens asked for!"
+    );
+
     const equalisedBalances: TokenBalanceReturn[] = bonusTokens.tokens.map(
       tokenBalanceToTokenBalanceReturn
     );
@@ -228,9 +252,10 @@ export class EosNetworkModule
   }
 
   @mutation updateTokenBalances(tokens: TokenBalanceReturn[]) {
-    this.tokenBalances = _.uniqWith(
+    const toSet = _.uniqWith(
       [...tokens.map(pickBalanceReturn), ...this.tokenBalances],
       compareToken
     );
+    this.tokenBalances = toSet;
   }
 }

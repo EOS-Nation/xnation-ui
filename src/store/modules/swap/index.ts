@@ -53,9 +53,10 @@ const moduleIds: { label: string; id: string }[] = [
 
 interface Module {
   id: string;
+  label: string;
   loading: boolean;
   loaded: boolean;
-  label: string;
+  error: boolean;
 }
 
 export class BancorModule extends VuexModule.With({
@@ -69,7 +70,8 @@ export class BancorModule extends VuexModule.With({
     id,
     label,
     loading: false,
-    loaded: false
+    loaded: false,
+    error: false
   }));
 
   get currentNetwork() {
@@ -147,7 +149,24 @@ export class BancorModule extends VuexModule.With({
   @action async moduleInitialised(id: string) {
     this.updateModule({
       id,
-      updater: module => ({ ...module, loaded: true, loading: false })
+      updater: module => ({
+        ...module,
+        loaded: true,
+        loading: false,
+        error: false
+      })
+    });
+  }
+
+  @action async moduleThrown(id: string) {
+    this.updateModule({
+      id,
+      updater: module => ({
+        ...module,
+        loaded: false,
+        loading: false,
+        error: true
+      })
     });
   }
 
@@ -169,16 +188,24 @@ export class BancorModule extends VuexModule.With({
   }) {
     this.moduleInitalising(moduleId);
     if (resolveWhenFinished) {
-      await this.$store.dispatch(`${moduleId}Bancor/init`, params || null, {
-        root: true
-      });
-      this.moduleInitialised(moduleId);
-    } else {
-      this.$store
-        .dispatch(`${moduleId}Bancor/init`, params || null, {
+      try {
+        await this.$store.dispatch(`${moduleId}Bancor/init`, params || null, {
           root: true
-        })
-        .then(() => this.moduleInitialised(moduleId));
+        });
+        this.moduleInitialised(moduleId);
+      } catch (e) {
+        this.moduleThrown(moduleId);
+      }
+    } else {
+      try {
+        this.$store
+          .dispatch(`${moduleId}Bancor/init`, params || null, {
+            root: true
+          })
+          .then(() => this.moduleInitialised(moduleId));
+      } catch (e) {
+        this.moduleThrown(moduleId);
+      }
     }
   }
 

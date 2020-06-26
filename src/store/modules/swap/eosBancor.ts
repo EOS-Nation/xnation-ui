@@ -1013,14 +1013,22 @@ export class EosBancorModule
   }
 
   @action async fetchBalancesFromReserves(relays: DryRelay[]) {
-    return vxm.eosNetwork.getBalances({
-      tokens: _.uniqWith(
-        relays.flatMap(relay => relay.reserves),
-        compareEosTokenSymbol
-      ).map(reserve => ({
+    const tokens = relays
+      .flatMap(relay => relay.reserves)
+      .map(reserve => ({
         contract: reserve.contract,
         symbol: reserve.symbol.code().to_string()
-      })),
+      }));
+
+    const uniqueTokens = _.uniqWith(
+      tokens,
+      (a, b) =>
+        compareString(a.symbol, b.symbol) &&
+        compareString(a.contract, b.contract)
+    );
+
+    return vxm.eosNetwork.getBalances({
+      tokens: uniqueTokens,
       slow: false
     });
   }
