@@ -1440,6 +1440,7 @@ export class EosBancorModule
       await this.triggerTx(withdrawActions);
     }
     onUpdate!(5, steps);
+    // @ts-ignore
     vxm.eosNetwork.pingTillChange({ originalBalances });
     return txRes.transaction_id as string;
   }

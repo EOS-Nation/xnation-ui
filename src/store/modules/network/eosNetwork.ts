@@ -91,16 +91,16 @@ export class EosNetworkModule
         });
         const allBalancesDifferent = originalBalances.every(
           balance =>
-            newBalanceArray.find(b => compareString(b.symbol, balance.symbol))!
+            newBalanceArray!.find(b => compareString(b.symbol, balance.symbol))!
               .balance !== balance.balance
         );
         if (allBalancesDifferent) {
           console.log(
-            newBalanceArray.map(x => [x.balance, x.symbol].join(" ")),
+            newBalanceArray!.map(x => [x.balance, x.symbol].join(" ")),
             "balance has changed!",
             originalBalances.map(x => [x.balance, x.symbol].join(" "))
           );
-          this.updateTokenBalances(newBalanceArray);
+          this.updateTokenBalances(newBalanceArray!);
           break;
         } else {
           console.log(
@@ -136,7 +136,7 @@ export class EosNetworkModule
 
     const originalBalances = await this.getBalances({
       tokens: [{ contract, symbol }]
-    });
+    }) as TokenBalanceReturn[]
     await vxm.eosWallet.tx(actions);
     this.pingTillChange({ originalBalances });
   }
@@ -167,6 +167,7 @@ export class EosNetworkModule
     return res;
   }
 
+  // @ts-ignore
   @action public async getBalances(params?: GetBalanceParam) {
     if (params && params.tokens.length) {
       this.updateTrackableTokens(params.tokens);
