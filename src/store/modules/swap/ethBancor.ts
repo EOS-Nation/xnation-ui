@@ -248,7 +248,7 @@ export class EthBancorModule
   tokenBalances: { id: string; balance: number }[] = [];
   bntUsdPrice: number = 0;
   tokenMeta: TokenMeta[] = [];
-  morePoolsAvailable: boolean = true;
+  morePoolsAvailableProp: boolean = true;
   availableHistories: string[] = [];
   bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
   bancorNetworkPathFinder = "0x6F0cD8C4f6F06eAB664C7E3031909452b4B72861";
@@ -259,6 +259,10 @@ export class EthBancorModule
     BancorConverterFactory: ""
   };
   initiated: boolean = false;
+
+  get morePoolsAvailable() {
+    return this.morePoolsAvailableProp;
+  }
 
   @action async addPoolsInChunks({
     smartTokenAddresses,
@@ -272,6 +276,10 @@ export class EthBancorModule
       await this.addPools(chunked[chunk]);
     }
     this.setLoadingPools(false);
+  }
+
+  @mutation setPoolsAvailable(status: boolean) {
+    this.morePoolsAvailableProp = status;
   }
 
   @mutation setLoadingPools(status: boolean) {
@@ -303,6 +311,7 @@ export class EthBancorModule
       .filter(relayIncludesAtLeastOneNetworkToken);
     this.updateRelays(passedRelays);
     await this.fetchAndUpdateRelayFeeds(passedRelays);
+    return passedRelays;
   }
 
   get newNetworkTokenChoices(): ModalChoice[] {
@@ -1413,6 +1422,7 @@ export class EthBancorModule
   ): Promise<RelayFeed[]> {
     try {
       const tokens = await ethBancorApi.getTokens();
+      console.log({ tokens })
       if (!tokens || tokens.length == 0) {
         throw new Error("Bad response from bancorAPI");
       }
@@ -1487,13 +1497,15 @@ export class EthBancorModule
       relays,
       bancorApiFeeds,
       (relay, feed) =>
-        compareString(relay.smartToken.contract, feed.smartTokenContract)
-    );
+      compareString(relay.smartToken.contract, feed.smartTokenContract)
+      );
+    console.log({ bancorApiFeeds, remainingRelays, relays })
     const feeds = await this.buildRelayFeeds(remainingRelays);
     const passedFeeds = feeds.filter(Boolean);
     const failedFeeds = feeds.filter(x => !x);
     console.log(failedFeeds.length, "relays failed to fetch balances for");
     this.updateRelayFeeds([...bancorApiFeeds, ...passedFeeds]);
+    await wait();
   }
 
   @mutation updateRelayFeeds(feeds: RelayFeed[]) {
@@ -1620,6 +1632,9 @@ export class EthBancorModule
   @mutation setConvertibleTokenAddresses(addresses: string[]) {
     this.convertibleTokenAddresses = addresses;
   }
+
+  @action async loadBareMinimumPools() {}
+
   @action async init(params?: ModuleParam) {
     console.log(params, "was init param on eth");
     console.time("eth");
@@ -1656,20 +1671,21 @@ export class EthBancorModule
       this.setRegisteredSmartTokenAddresses(registeredSmartTokenAddresses);
       this.setConvertibleTokenAddresses(convertibleTokens);
 
-      const initialBatch = registeredSmartTokenAddresses.filter(
-        registeredSmartTokenAddress =>
-          priorityEthPools.some(pool =>
-            compareString(pool, registeredSmartTokenAddress)
-          )
+      const approvedPriority = priorityEthPools.filter(address =>
+        registeredSmartTokenAddresses.some(registered =>
+          compareString(address, registered)
+        )
       );
 
-      const initialLoad = initialBatch.slice(0, 5);
-      const remainingLoad = initialBatch.slice(5, 99);
+      const isDev = process.env.NODE_ENV == "development";
+      const initialLoad = approvedPriority.slice(0, 5);
+      const remainingLoad = approvedPriority.slice(5, isDev ? 10 : 30);
 
       await this.addPools(initialLoad);
+
       this.addPoolsInChunks({
         smartTokenAddresses: remainingLoad,
-        chunkSize: 5
+        chunkSize: 3
       });
 
       this.moduleInitiated();

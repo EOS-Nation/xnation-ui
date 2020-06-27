@@ -513,7 +513,7 @@ export class EosBancorModule
   usdPrice = 0;
   usdPriceOfBnt = 0;
   tokenMeta: TokenMeta[] = [];
-  morePoolsAvailable = false;
+  morePoolsAvailableProp = false;
 
   @mutation setLoadingPools(status: boolean) {
     this.loadingPools = status;
