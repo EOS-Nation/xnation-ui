@@ -24,7 +24,9 @@ import {
   ViewAmount,
   ProposedFromTransaction,
   ProposedToTransaction,
-  ModuleParam
+  ModuleParam,
+  TokenBalanceParam,
+  TokenBalanceReturn
 } from "@/types/bancor";
 import { bancorApi, ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -37,7 +39,8 @@ import {
   updateArray,
   fetchMultiRelay,
   buildTokenId,
-  EosAccount
+  EosAccount,
+  compareToken
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -66,6 +69,20 @@ import wait from "waait";
 import { getHardCodedRelays } from "./staticRelays";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { liquidateAction } from "@/api/singleContractTx";
+
+const compareAgnosticToBalanceParam = (
+  agnostic: AgnosticToken,
+  balance: TokenBalanceReturn,
+) =>
+  compareString(balance.contract, agnostic.contract) &&
+  compareString(agnostic.symbol, balance.symbol);
+
+const agnosticToTokenBalanceParam = (
+  agnostic: AgnosticToken
+): TokenBalanceParam => ({
+  contract: agnostic.contract,
+  symbol: agnostic.symbol
+});
 
 const dryToTraditionalEdge = (relay: DryRelay): [string, string] => [
   buildTokenId({
@@ -175,32 +192,29 @@ interface EosOpposingLiquid extends OpposingLiquid {
 }
 
 const blackListedTokens: BaseToken[] = [
-  { contract: "therealkarma", symbol: "KARMA" }
+  { contract: "therealkarma", symbol: "KARMA" },
+  { contract: "wizznetwork1", symbol: "WIZZ" }
 ];
 
 const noBlackListedReservesDry = (blackListedTokens: BaseToken[]) => (
   relay: DryRelay
 ) =>
-  relay.reserves.every(reserve =>
+  !relay.reserves.some(reserve =>
     blackListedTokens.some(
       token =>
-        !(
-          compareString(reserve.contract, token.contract) &&
-          compareString(reserve.symbol.code().to_string(), token.symbol)
-        )
+        compareString(reserve.contract, token.contract) &&
+        compareString(reserve.symbol.code().to_string(), token.symbol)
     )
   );
 
 const noBlackListedReserves = (blackListedTokens: BaseToken[]) => (
   relay: EosMultiRelay
 ): boolean =>
-  relay.reserves.every(reserve =>
+  !relay.reserves.some(reserve =>
     blackListedTokens.some(
       token =>
-        !(
-          compareString(reserve.contract, token.contract) &&
-          compareString(reserve.symbol, reserve.symbol)
-        )
+        compareString(reserve.contract, token.contract) &&
+        compareString(reserve.symbol, reserve.symbol)
     )
   );
 
@@ -613,6 +627,34 @@ export class EosBancorModule
       balance: this.balance(choice) && this.balance(choice)!.balance,
       img: this.tokenMetaObj(choice.id).logo
     }));
+  }
+
+  get currentUserBalances(): TokenBalanceReturn[] {
+    return vxm.eosNetwork.balances;
+  }
+
+  @action async fetchTokenBalancesIfPossible(tokens: TokenBalanceParam[]) {
+    if (!this.isAuthenticated) return;
+    const tokensFetched = this.currentUserBalances;
+    const allTokens = _.uniqBy(
+      this.relaysList.flatMap(relay => relay.reserves),
+      "id"
+    );
+    const tokenBalancesNotYetFetched = _.differenceWith(
+      allTokens,
+      tokensFetched,
+      compareAgnosticToBalanceParam
+    );
+
+    const tokensToAskFor = _.uniqWith(
+      [
+        ...tokens,
+        ...tokenBalancesNotYetFetched.map(agnosticToTokenBalanceParam)
+      ],
+      compareToken
+    );
+
+    return vxm.eosNetwork.getBalances({ tokens: tokensToAskFor, slow: false });
   }
 
   @action async updateFee({ fee, id }: FeeParams) {
@@ -1098,9 +1140,18 @@ export class EosBancorModule
       this.setBntPrice(usdPriceOfBnt);
 
       const v1Relays = getHardCodedRelays();
-      const allDry = [...v1Relays, ...v2Relays.map(multiToDry)];
+      const allDry = [...v1Relays, ...v2Relays.map(multiToDry)].filter(
+        noBlackListedReservesDry(blackListedTokens)
+      );
 
-      this.fetchBalancesFromReserves(allDry);
+      this.fetchTokenBalancesIfPossible(
+        _.uniqWith(
+          allDry.flatMap(x =>
+            x.reserves.map(x => ({ ...x, symbol: x.symbol.code().to_string() }))
+          ),
+          compareToken
+        )
+      );
 
       const quickTrade =
         param &&
@@ -1826,14 +1877,27 @@ export class EosBancorModule
     };
   }
 
-  @action async focusSymbol(symbolName: string) {
-    console.log(symbolName, "focus symbol called on EOS");
-    const tokens = this.tokenMeta.filter(token =>
-      compareString(token.symbol, symbolName)
-    );
-    await vxm.eosNetwork.getBalances({
-      tokens: tokens.map(token => ({ ...token, contract: token.account }))
-    });
+  @action async focusSymbol(id: string) {
+    const reserveToken = this.tokens.find(token => compareString(token.id, id));
+
+    if (reserveToken) {
+      const tokens: TokenBalanceParam[] = [
+        {
+          contract: reserveToken.contract,
+          symbol: reserveToken.symbol,
+          precision: reserveToken.precision
+        }
+      ];
+      await this.fetchTokenBalancesIfPossible(tokens);
+    } else {
+      const token = findOrThrow(this.tokenMeta, meta =>
+        compareString(meta.id, id)
+      );
+      const tokens: TokenBalanceParam[] = [
+        { contract: token.account, symbol: token.symbol }
+      ];
+      await this.fetchTokenBalancesIfPossible(tokens);
+    }
   }
 
   @action async hasExistingBalance({

@@ -706,7 +706,7 @@ export class EthBancorModule
               token => compareString(token.id!, item.id),
               token => ({ ...token, liqDepth: token.liqDepth! + item.liqDepth })
             )
-          : [...acc, item];
+          : [...acc, item as ViewToken];
       }, [])
       .filter(
         (token, index, arr) =>

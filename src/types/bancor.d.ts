@@ -173,6 +173,7 @@ export interface ConvertReturn {
 
 export interface ViewToken {
   id: string;
+  contract: string;
   symbol: string;
   name: string;
   price?: number;
@@ -378,7 +379,7 @@ interface TransferParam {
   memo?: string;
 }
 
-interface TokenBalanceReturn extends TokenBalanceParam {
+export interface TokenBalanceReturn extends TokenBalanceParam {
   balance: number;
 }
 
