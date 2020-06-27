@@ -72,6 +72,7 @@ import {
 } from "@/api/zumZoom";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { findNewPath } from "@/api/eosBancorCalc";
+import { priorityEthPools } from "./staticRelays";
 
 interface EthOpposingLiquid extends OpposingLiquid {
   smartTokenAmount: string;
@@ -237,12 +238,17 @@ const VuexModule = createModule({
 export class EthBancorModule
   extends VuexModule.With({ namespaced: "ethBancor/" })
   implements TradingModule, LiquidityModule, CreatePoolModule, HistoryModule {
+  registeredSmartTokenAddresses: string[] = [];
+  convertibleTokenAddresses: string[] = [];
+  loadingPools: boolean = true;
+
   tokensList: any[] = [];
   relayFeed: RelayFeed[] = [];
   relaysList: Relay[] = [];
   tokenBalances: { id: string; balance: number }[] = [];
   bntUsdPrice: number = 0;
   tokenMeta: TokenMeta[] = [];
+  morePoolsAvailable: boolean = true;
   availableHistories: string[] = [];
   bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
   bancorNetworkPathFinder = "0x6F0cD8C4f6F06eAB664C7E3031909452b4B72861";
@@ -253,6 +259,51 @@ export class EthBancorModule
     BancorConverterFactory: ""
   };
   initiated: boolean = false;
+
+  @action async addPoolsInChunks({
+    smartTokenAddresses,
+    chunkSize
+  }: {
+    smartTokenAddresses: string[];
+    chunkSize: number;
+  }) {
+    const chunked = _.chunk(smartTokenAddresses, chunkSize);
+    for (const chunk in chunked) {
+      await this.addPools(chunked[chunk]);
+    }
+    this.setLoadingPools(false);
+  }
+
+  @mutation setLoadingPools(status: boolean) {
+    this.loadingPools = status;
+  }
+
+  @action async loadMorePools() {
+    this.setLoadingPools(true);
+    const remainingPools = this.registeredSmartTokenAddresses.filter(
+      address =>
+        !this.relaysList.some(relay =>
+          compareString(relay.smartToken.contract, address)
+        )
+    );
+
+    return this.addPoolsInChunks({
+      smartTokenAddresses: remainingPools,
+      chunkSize: 5
+    });
+  }
+
+  @action async addPools(smartTokenAddresses: string[]) {
+    const relays = await this.buildRelaysFromSmartTokenAddresses(
+      smartTokenAddresses
+    );
+
+    const passedRelays = relays
+      .filter(relayReservesIncludedInTokenMeta(this.tokenMeta))
+      .filter(relayIncludesAtLeastOneNetworkToken);
+    this.updateRelays(passedRelays);
+    await this.fetchAndUpdateRelayFeeds(passedRelays);
+  }
 
   get newNetworkTokenChoices(): ModalChoice[] {
     const bntTokenMeta = this.tokenMeta.find(token => token.symbol == "BNT")!;
@@ -1025,7 +1076,7 @@ export class EthBancorModule
     );
 
     const maxWithdrawals: ViewAmount[] = reserves.map(reserve => ({
-      id: reserve.symbol,
+      id: reserve.contract,
       amount: shrinkToken(
         percent.times(reserve.weiAmount).toString(),
         reserve.decimals
@@ -1557,12 +1608,25 @@ export class EthBancorModule
     console.log("refresh called on eth bancor, doing nothing");
   }
 
+  @action async fetchConvertibleTokens(networkContract: string) {
+    const contract = await buildRegistryContract(networkContract);
+    return contract.methods.getConvertibleTokens().call();
+  }
+
+  @mutation setRegisteredSmartTokenAddresses(addresses: string[]) {
+    this.registeredSmartTokenAddresses = addresses;
+  }
+
+  @mutation setConvertibleTokenAddresses(addresses: string[]) {
+    this.convertibleTokenAddresses = addresses;
+  }
   @action async init(params?: ModuleParam) {
     console.log(params, "was init param on eth");
     console.time("eth");
     if (this.initiated) {
       return this.refresh();
     }
+
     try {
       const [
         tokenMeta,
@@ -1577,55 +1641,37 @@ export class EthBancorModule
       this.setAvailableHistories(
         availableSmartTokenHistories.map(history => history.id)
       );
-
       this.setTokenMeta(tokenMeta);
 
-      const shortCircuitRegisteredSmartTokenAddresses = await this.fetchSmartTokenAddresses(
-        contractAddresses.BancorConverterRegistry
+      const [
+        registeredSmartTokenAddresses,
+        convertibleTokens
+      ] = await Promise.all([
+        this.fetchSmartTokenAddresses(
+          contractAddresses.BancorConverterRegistry
+        ),
+        this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry)
+      ]);
+
+      this.setRegisteredSmartTokenAddresses(registeredSmartTokenAddresses);
+      this.setConvertibleTokenAddresses(convertibleTokens);
+
+      const initialBatch = registeredSmartTokenAddresses.filter(
+        registeredSmartTokenAddress =>
+          priorityEthPools.some(pool =>
+            compareString(pool, registeredSmartTokenAddress)
+          )
       );
 
-      const isDev = process.env.NODE_ENV == "development";
-      const registeredSmartTokenAddresses = isDev
-        ? [
-            "0xb1CD6e4153B2a390Cf00A6556b0fC1458C4A5533",
-            ...shortCircuitRegisteredSmartTokenAddresses.slice(0, 10)
-          ]
-        : shortCircuitRegisteredSmartTokenAddresses;
+      const initialLoad = initialBatch.slice(0, 5);
+      const remainingLoad = initialBatch.slice(5, 99);
 
-      // const hardCodedRelays = getEthRelays();
-      const hardCodedRelays: Relay[] = [];
+      await this.addPools(initialLoad);
+      this.addPoolsInChunks({
+        smartTokenAddresses: remainingLoad,
+        chunkSize: 5
+      });
 
-      const passedHardCodedRelays = hardCodedRelays
-        .filter(relayReservesIncludedInTokenMeta(tokenMeta))
-        .filter(relay =>
-          registeredSmartTokenAddresses.includes(relay.smartToken.contract)
-        )
-        .filter(relayIncludesAtLeastOneNetworkToken);
-
-      this.updateRelays(passedHardCodedRelays);
-      await this.fetchAndUpdateRelayFeeds(passedHardCodedRelays);
-
-      const hardCodedSmartTokenAddresses = passedHardCodedRelays.map(
-        relay => relay.smartToken.contract
-      );
-
-      const nonHardCodedSmartTokenAddresses = registeredSmartTokenAddresses.filter(
-        smartTokenAddress =>
-          !hardCodedSmartTokenAddresses.includes(smartTokenAddress)
-      );
-
-      const nonHardCodedRelays = await this.buildRelaysFromSmartTokenAddresses(
-        nonHardCodedSmartTokenAddresses
-      );
-
-      this.updateRelays(
-        nonHardCodedRelays.filter(relayReservesIncludedInTokenMeta(tokenMeta))
-      );
-      await this.fetchAndUpdateRelayFeeds(
-        nonHardCodedRelays
-          .filter(relayReservesIncludedInTokenMeta(tokenMeta))
-          .filter(relayIncludesAtLeastOneNetworkToken)
-      );
       this.moduleInitiated();
       console.timeEnd("eth");
     } catch (e) {
@@ -1830,13 +1876,13 @@ export class EthBancorModule
   }
 
   @action async focusSymbol(id: string) {
-    if (!this.isAuthenticated) return;
     console.log(
       id,
       "was passed to focusSymbol",
       this.tokenMeta.filter(meta => meta.id),
       "is token meta"
     );
+    if (!this.isAuthenticated) return;
     const tokenContractAddress = findOrThrow(this.tokenMeta, meta =>
       compareString(meta.id, id)
     ).contract;

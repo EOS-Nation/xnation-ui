@@ -509,9 +509,19 @@ export class EosBancorModule
   initialised: boolean = false;
   relaysList: EosMultiRelay[] = [];
   relayFeed: RelayFeed[] = [];
+  loadingPools: boolean = true;
   usdPrice = 0;
   usdPriceOfBnt = 0;
   tokenMeta: TokenMeta[] = [];
+  morePoolsAvailable = false;
+
+  @mutation setLoadingPools(status: boolean) {
+    this.loadingPools = status;
+  }
+
+  @action async loadMorePools() {
+
+  }
 
   get supportedFeatures() {
     return (id: string) => {
@@ -1177,6 +1187,7 @@ export class EosBancorModule
       }
 
       this.setInitialised(true);
+      this.setLoadingPools(false);
       console.timeEnd("eos");
     } catch (e) {
       throw new Error(`Threw inside eosBancor: ${e.message}`);

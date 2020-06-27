@@ -126,6 +126,11 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["relay"];
   }
 
+  get morePoolsAvailable() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["morePoolsAvailable"];
+  }
+
   get wallet() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["wallet"];
@@ -280,6 +285,10 @@ export class BancorModule extends VuexModule.With({
     return this.dispatcher(["updateFee", fee]);
   }
 
+  @action async loadMorePools() {
+    return this.dispatcher(["loadMorePools"]);
+  }
+
   @action async removeRelay(symbolName: string) {
     return this.dispatcher(["removeRelay", symbolName]);
   }
@@ -329,11 +338,17 @@ export class BancorModule extends VuexModule.With({
   }
 
   @action async dispatcher([methodName, params]: [string, any?]) {
-    return this.$store.dispatch(
-      `${this.currentNetwork}Bancor/${methodName}`,
-      params,
-      { root: true }
-    );
+    return params
+      ? this.$store.dispatch(
+          `${this.currentNetwork}Bancor/${methodName}`,
+          params,
+          { root: true }
+        )
+      : this.$store.dispatch(
+          `${this.currentNetwork}Bancor/${methodName}`,
+          null,
+          { root: true }
+        );
   }
 
   @action async refreshBalances(symbols: string[] = []) {
