@@ -1685,7 +1685,7 @@ export class EthBancorModule
 
       this.addPoolsInChunks({
         smartTokenAddresses: remainingLoad,
-        chunkSize: 3
+        chunkSize: 1
       });
 
       this.moduleInitiated();

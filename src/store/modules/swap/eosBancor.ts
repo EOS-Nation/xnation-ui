@@ -72,7 +72,7 @@ import { liquidateAction } from "@/api/singleContractTx";
 
 const compareAgnosticToBalanceParam = (
   agnostic: AgnosticToken,
-  balance: TokenBalanceReturn,
+  balance: TokenBalanceReturn
 ) =>
   compareString(balance.contract, agnostic.contract) &&
   compareString(agnostic.symbol, balance.symbol);
@@ -522,9 +522,7 @@ export class EosBancorModule
     this.loadingPools = status;
   }
 
-  @action async loadMorePools() {
-
-  }
+  @action async loadMorePools() {}
 
   get supportedFeatures() {
     return (id: string) => {
