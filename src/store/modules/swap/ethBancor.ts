@@ -42,7 +42,9 @@ import {
   ABIConverterRegistry,
   ABINetworkPathFinder,
   ethErc20WrapperContract,
-  ethReserveAddress
+  ethReserveAddress,
+  ABIConverterV28,
+  ABIConverter
 } from "@/api/ethConfig";
 import { toWei, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
@@ -61,7 +63,8 @@ import {
   shrinkToken,
   buildRegistryContract,
   buildV28ConverterContract,
-  buildNetworkContract
+  buildNetworkContract,
+  makeBatchRequest
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
 import BigNumber from "bignumber.js";
@@ -73,6 +76,7 @@ import {
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { findNewPath } from "@/api/eosBancorCalc";
 import { priorityEthPools } from "./staticRelays";
+import Web3 from "web3";
 
 interface EthOpposingLiquid extends OpposingLiquid {
   smartTokenAmount: string;
@@ -1422,7 +1426,7 @@ export class EthBancorModule
   ): Promise<RelayFeed[]> {
     try {
       const tokens = await ethBancorApi.getTokens();
-      console.log({ tokens })
+      console.log({ tokens });
       if (!tokens || tokens.length == 0) {
         throw new Error("Bad response from bancorAPI");
       }
@@ -1497,9 +1501,9 @@ export class EthBancorModule
       relays,
       bancorApiFeeds,
       (relay, feed) =>
-      compareString(relay.smartToken.contract, feed.smartTokenContract)
-      );
-    console.log({ bancorApiFeeds, remainingRelays, relays })
+        compareString(relay.smartToken.contract, feed.smartTokenContract)
+    );
+    console.log({ bancorApiFeeds, remainingRelays, relays });
     const feeds = await this.buildRelayFeeds(remainingRelays);
     const passedFeeds = feeds.filter(Boolean);
     const failedFeeds = feeds.filter(x => !x);
@@ -1636,6 +1640,25 @@ export class EthBancorModule
   @action async loadBareMinimumPools() {}
 
   @action async init(params?: ModuleParam) {
+    const contractAddress = "0x47d9151a09af10b905176c2b6395f86d4bed2baf";
+
+    // var contract = new web3.eth.Contract(ABIConverterV28, contractAddress);
+    const contract = buildV28ConverterContract(contractAddress);
+
+    // Usage
+    let [ownerr, version, count, fee] = await makeBatchRequest(
+      [
+        contract.methods.owner().call,
+        contract.methods.version().call,
+        contract.methods.connectorTokenCount().call,
+        contract.methods.conversionFee().call
+      ],
+      "0x9771f62c1E657bFe51e36A22D700aC6B15bE8e2e"
+    );
+
+    console.log({ ownerr, version, count, fee });
+    // end
+
     console.log(params, "was init param on eth");
     console.time("eth");
     if (this.initiated) {

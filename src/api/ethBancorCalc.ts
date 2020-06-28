@@ -329,3 +329,24 @@ export const buildRegistryContract = (
     reserveWeights: number[]
   ) => ContractSendMethod;
 }> => buildContract(ABIConverterRegistry, contractAddress);
+
+export const makeBatchRequest = (calls: any[], from: string) => {
+  let batch = new web3.BatchRequest();
+  let promises = calls.map(
+    call =>
+      new Promise((resolve, reject) => {
+        let request = call.request({ from }, (error: any, data: any) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(data);
+          }
+        });
+        batch.add(request);
+      })
+  );
+
+  batch.execute();
+
+  return Promise.all(promises);
+};
