@@ -32,7 +32,8 @@ import {
   findOrThrow,
   updateArray,
   networkTokens,
-  identifyVersionBySha3ByteCodeHash
+  identifyVersionBySha3ByteCodeHash,
+  isOdd
 } from "@/api/helpers";
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import {
@@ -75,7 +76,7 @@ import {
 } from "@/api/zumZoom";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { findNewPath } from "@/api/eosBancorCalc";
-import { priorityEthPools } from "./staticRelays";
+import { priorityEthPools, getHardCodedRelays } from "./staticRelays";
 import Web3 from "web3";
 
 interface EthOpposingLiquid extends OpposingLiquid {
@@ -198,6 +199,7 @@ interface TokenMeta {
   contract: string;
   symbol: string;
   name: string;
+  precision?: number;
 }
 
 const getTokenMeta = async () => {
@@ -1639,6 +1641,38 @@ export class EthBancorModule
 
   @action async loadBareMinimumPools() {}
 
+  @action async conversionPathFromNetworkContract({
+    from,
+    to,
+    networkContractAddress
+  }: {
+    from: string;
+    to: string;
+    networkContractAddress: string;
+  }) {
+    const networkContract = buildNetworkContract(networkContractAddress);
+    const path = await networkContract.methods.conversionPath(from, to).call();
+    return path;
+  }
+
+  @action async relaysRequiredForTrade({
+    from,
+    to,
+    networkContractAddress
+  }: {
+    from: string;
+    to: string;
+    networkContractAddress: string;
+  }) {
+    const path = await this.conversionPathFromNetworkContract({
+      from,
+      to,
+      networkContractAddress
+    });
+    const smartTokenAddresses = path.filter((_, index) => isOdd(index));
+    return smartTokenAddresses;
+  }
+
   @action async init(params?: ModuleParam) {
     const contractAddress = "0x47d9151a09af10b905176c2b6395f86d4bed2baf";
 
@@ -1646,18 +1680,6 @@ export class EthBancorModule
     const contract = buildV28ConverterContract(contractAddress);
 
     // Usage
-    let [ownerr, version, count, fee] = await makeBatchRequest(
-      [
-        contract.methods.owner().call,
-        contract.methods.version().call,
-        contract.methods.connectorTokenCount().call,
-        contract.methods.conversionFee().call
-      ],
-      "0x9771f62c1E657bFe51e36A22D700aC6B15bE8e2e"
-    );
-
-    console.log({ ownerr, version, count, fee });
-    // end
 
     console.log(params, "was init param on eth");
     console.time("eth");
@@ -1666,6 +1688,11 @@ export class EthBancorModule
     }
 
     try {
+      const fromToken =
+        params! && params!.tradeQuery! && params!.tradeQuery!.base!;
+      const toToken =
+        params! && params!.tradeQuery! && params!.tradeQuery!.quote!;
+
       const [
         tokenMeta,
         contractAddresses,
@@ -1683,12 +1710,18 @@ export class EthBancorModule
 
       const [
         registeredSmartTokenAddresses,
-        convertibleTokens
+        convertibleTokens,
+        bareMinimumSmartTokenAddresses
       ] = await Promise.all([
         this.fetchSmartTokenAddresses(
           contractAddresses.BancorConverterRegistry
         ),
-        this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry)
+        this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry),
+        this.relaysRequiredForTrade({
+          from: fromToken,
+          to: toToken,
+          networkContractAddress: contractAddresses.BancorNetwork
+        })
       ]);
 
       this.setRegisteredSmartTokenAddresses(registeredSmartTokenAddresses);
@@ -1701,8 +1734,12 @@ export class EthBancorModule
       );
 
       const isDev = process.env.NODE_ENV == "development";
-      const initialLoad = approvedPriority.slice(0, 5);
-      const remainingLoad = approvedPriority.slice(5, isDev ? 10 : 30);
+      const initialLoad = bareMinimumSmartTokenAddresses;
+      const remainingLoad = _.differenceWith(
+        approvedPriority,
+        initialLoad,
+        compareString
+      ).slice(0, isDev ? 99999 : 100000);
 
       await this.addPools(initialLoad);
 
@@ -1761,14 +1798,20 @@ export class EthBancorModule
       reserve1Address,
       reserve2Address,
       fee
-    ] = await Promise.all([
-      converterContract.methods.owner().call(),
-      converterContract.methods.version().call(),
-      converterContract.methods.connectorTokenCount().call(),
-      converterContract.methods.connectorTokens(0).call(),
-      converterContract.methods.connectorTokens(1).call(),
-      converterContract.methods.conversionFee().call()
-    ]);
+    ] = await makeBatchRequest(
+      [
+        (converterContract.methods.owner().call as unknown) as string,
+        (converterContract.methods.version().call as unknown) as string,
+        (converterContract.methods.connectorTokenCount()
+          .call as unknown) as string,
+        (converterContract.methods.connectorTokens(0)
+          .call as unknown) as string,
+        (converterContract.methods.connectorTokens(1)
+          .call as unknown) as string,
+        (converterContract.methods.conversionFee().call as unknown) as string
+      ],
+      "0x0D8775F648430679A709E98d2b0Cb6250d2887EF"
+    );
 
     if (connectorCount !== "2")
       throw new Error(
@@ -1782,15 +1825,17 @@ export class EthBancorModule
     ];
 
     const [reserve1, reserve2, smartToken] = await Promise.all(
-      tokenAddresses.map(address => this.buildTokenByTokenAddress(address))
+      tokenAddresses.map(address =>
+        this.buildTokenByTokenAddress(address as string)
+      )
     );
 
     return {
       id: relayAddresses.smartTokenAddress,
       fee: Number(fee) / 10000,
-      owner,
+      owner: owner as string,
       network: "ETH",
-      version,
+      version: version as string,
       contract: relayAddresses.converterAddress,
       smartToken,
       reserves: [reserve1, reserve2],
@@ -1819,12 +1864,31 @@ export class EthBancorModule
       compareString(token.contract, address)
     );
 
-    if (existingToken) return existingToken;
+    if (existingToken) {
+      return existingToken;
+    }
 
+    const tokenMetaObj = this.tokenMeta.find(meta =>
+      compareString(meta.contract, address)
+    );
+
+    if (tokenMetaObj && typeof tokenMetaObj.precision == "number") {
+      console.count("SavedByTokenMeta");
+      return {
+        contract: address,
+        decimals: tokenMetaObj.precision!,
+        network: "ETH",
+        symbol: tokenMetaObj.symbol
+      };
+    }
+
+    console.count('Fetching');
+    
     const [symbol, decimals] = await Promise.all([
       tokenContract.methods.symbol().call(),
       tokenContract.methods.decimals().call()
     ]);
+    console.log('Had to fetch', symbol, address)
 
     return {
       contract: address,
@@ -2204,6 +2268,30 @@ export class EthBancorModule
   }
 
   @action async getReturn({ from, toId }: ProposedFromTransaction) {
+    const allReserves = this.relaysList.flatMap(relay => relay.reserves);
+    const uniqueReserves = _.uniqWith(allReserves, (a, b) =>
+      compareString(a.contract, b.contract)
+    );
+    const tokenMeta = this.tokenMeta;
+
+    const newTokenMeta = updateArray(
+      tokenMeta,
+      meta =>
+        uniqueReserves.some(reserve =>
+          compareString(meta.contract, reserve.contract)
+        ),
+      meta => {
+        const token = findOrThrow(uniqueReserves, reserve =>
+          compareString(meta.contract, reserve.contract)
+        );
+        return {
+          ...meta,
+          precision: token.decimals
+        };
+      }
+    );
+    console.log(newTokenMeta, "is the new token meta");
+
     const [fromToken, toToken] = await this.tokensById([from.id, toId]);
 
     const [fromTokenContract, toTokenContract] = [fromToken.id, toToken.id];

@@ -313,6 +313,10 @@ export const buildNetworkContract = (
     affiliateAccount: string,
     affiliateFee: number
   ) => ContractSendMethod;
+  conversionPath: (
+    sourceToken: string,
+    destinationToken: string
+  ) => CallReturn<string[]>;
 }> => buildContract(ABINetworkContract, contractAddress);
 
 export const buildRegistryContract = (

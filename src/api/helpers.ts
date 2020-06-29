@@ -30,6 +30,8 @@ import { sortByNetworkTokens } from "./sortByNetworkTokens";
 
 export const networkTokens = ["BNT", "USDB"];
 
+export const isOdd = (num: number) => num % 2 == 1;
+
 const eosRpc: JsonRpc = rpc;
 
 interface TraditionalStat {
