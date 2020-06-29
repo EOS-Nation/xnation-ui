@@ -248,6 +248,7 @@ export class EthBancorModule
   convertibleTokenAddresses: string[] = [];
   loadingPools: boolean = true;
 
+  bancorApiTokens: TokenPrice[] = [];
   tokensList: any[] = [];
   relayFeed: RelayFeed[] = [];
   relaysList: Relay[] = [];
@@ -265,6 +266,10 @@ export class EthBancorModule
     BancorConverterFactory: ""
   };
   initiated: boolean = false;
+
+  @mutation setBancorApiTokens(tokens: TokenPrice[]) {
+    this.bancorApiTokens = tokens;
+  }
 
   get morePoolsAvailable() {
     return this.morePoolsAvailableProp;
@@ -303,7 +308,7 @@ export class EthBancorModule
 
     return this.addPoolsInChunks({
       smartTokenAddresses: remainingPools,
-      chunkSize: 5
+      chunkSize: 1
     });
   }
 
@@ -312,12 +317,30 @@ export class EthBancorModule
       smartTokenAddresses
     );
 
-    const passedRelays = relays
-      .filter(relayReservesIncludedInTokenMeta(this.tokenMeta))
-      .filter(relayIncludesAtLeastOneNetworkToken);
-    this.updateRelays(passedRelays);
-    await this.fetchAndUpdateRelayFeeds(passedRelays);
-    return passedRelays;
+    return relays;
+  }
+
+  @action async addPool({ relay }: { relay: Relay }) {
+    if (
+      relayIncludesAtLeastOneNetworkToken(relay) &&
+      relayReservesIncludedInTokenMeta(this.tokenMeta)(relay)
+    ) {
+      this.updateRelays([relay]);
+
+      const feed = await this.possibleRelayFeedsFromBancorApi([relay]);
+      if (feed.length > 0) {
+        this.updateRelayFeeds(feed);
+      } else {
+        const feed = await this.buildRelayFeed({
+          relay,
+          usdPriceOfBnt: this.bntUsdPrice
+        });
+        this.updateRelayFeeds(feed);
+      }
+      await wait(1);
+    } else {
+      console.log("Refusing to add pool as it failed tests", relay);
+    }
   }
 
   get newNetworkTokenChoices(): ModalChoice[] {
@@ -1423,14 +1446,18 @@ export class EthBancorModule
     this.contracts = contracts;
   }
 
+  @action async warmEthApi() {
+    const tokens = await ethBancorApi.getTokens();
+    this.setBancorApiTokens(tokens);
+  }
+
   @action async possibleRelayFeedsFromBancorApi(
     relays: Relay[]
   ): Promise<RelayFeed[]> {
     try {
-      const tokens = await ethBancorApi.getTokens();
-      console.log({ tokens });
+      const tokens = this.bancorApiTokens;
       if (!tokens || tokens.length == 0) {
-        throw new Error("Bad response from bancorAPI");
+        throw new Error("No bancor tokens available...");
       }
       const ethUsdPrice = findOrThrow(
         tokens,
@@ -1497,23 +1524,6 @@ export class EthBancorModule
     }
   }
 
-  @action async fetchAndUpdateRelayFeeds(relays: Relay[]) {
-    const bancorApiFeeds = await this.possibleRelayFeedsFromBancorApi(relays);
-    const remainingRelays = _.differenceWith(
-      relays,
-      bancorApiFeeds,
-      (relay, feed) =>
-        compareString(relay.smartToken.contract, feed.smartTokenContract)
-    );
-    console.log({ bancorApiFeeds, remainingRelays, relays });
-    const feeds = await this.buildRelayFeeds(remainingRelays);
-    const passedFeeds = feeds.filter(Boolean);
-    const failedFeeds = feeds.filter(x => !x);
-    console.log(failedFeeds.length, "relays failed to fetch balances for");
-    this.updateRelayFeeds([...bancorApiFeeds, ...passedFeeds]);
-    await wait();
-  }
-
   @mutation updateRelayFeeds(feeds: RelayFeed[]) {
     const allFeeds = [...feeds, ...this.relayFeed];
     this.relayFeed = _.uniqWith(allFeeds, compareRelayFeed);
@@ -1561,61 +1571,58 @@ export class EthBancorModule
   @action async fetchUsdPriceOfBnt() {
     const price = await vxm.bancor.fetchUsdPriceOfBnt();
     this.setBntUsdPrice(price);
-    return price;
   }
 
   @mutation setBntUsdPrice(usdPrice: number) {
     this.bntUsdPrice = usdPrice;
   }
 
-  @action async buildRelayFeeds(relays: Relay[]): Promise<RelayFeed[]> {
-    const usdPriceOfBnt = await this.fetchUsdPriceOfBnt();
-    const relayFeeds = await Promise.all(
-      relays.map(
-        async (relay): Promise<RelayFeed[]> => {
-          const reservesBalances = await Promise.all(
-            relay.reserves.map(reserve =>
-              this.fetchReserveBalance({
-                relay,
-                reserveContract: reserve.contract
-              })
-            )
-          );
-          const [
-            [networkReserve, networkReserveAmount],
-            [tokenReserve, tokenAmount]
-          ] = sortByNetworkTokens(reservesBalances, balance =>
-            balance[0].symbol.toUpperCase()
-          );
-
-          const networkReserveIsUsd = networkReserve.symbol == "USDB";
-          const dec = networkReserveAmount / tokenAmount;
-          const reverse = tokenAmount / networkReserveAmount;
-          const main = networkReserveIsUsd ? dec : dec * usdPriceOfBnt;
-
-          const liqDepth =
-            (networkReserveIsUsd
-              ? networkReserveAmount
-              : networkReserveAmount * usdPriceOfBnt) * 2;
-
-          return [
-            {
-              tokenId: tokenReserve.contract,
-              smartTokenContract: relay.smartToken.contract,
-              costByNetworkUsd: main,
-              liqDepth
-            },
-            {
-              tokenId: networkReserve.contract,
-              smartTokenContract: relay.smartToken.contract,
-              liqDepth,
-              costByNetworkUsd: reverse * main
-            }
-          ];
-        }
+  @action async buildRelayFeed({
+    relay,
+    usdPriceOfBnt
+  }: {
+    relay: Relay;
+    usdPriceOfBnt: number;
+  }): Promise<RelayFeed[]> {
+    const reservesBalances = await Promise.all(
+      relay.reserves.map(reserve =>
+        this.fetchReserveBalance({
+          relay,
+          reserveContract: reserve.contract
+        })
       )
     );
-    return relayFeeds.flat(1);
+    const [
+      [networkReserve, networkReserveAmount],
+      [tokenReserve, tokenAmount]
+    ] = sortByNetworkTokens(reservesBalances, balance =>
+      balance[0].symbol.toUpperCase()
+    );
+
+    const networkReserveIsUsd = networkReserve.symbol == "USDB";
+    const dec = networkReserveAmount / tokenAmount;
+    const reverse = tokenAmount / networkReserveAmount;
+    const main = networkReserveIsUsd ? dec : dec * usdPriceOfBnt;
+
+    const liqDepth =
+      (networkReserveIsUsd
+        ? networkReserveAmount
+        : networkReserveAmount * usdPriceOfBnt) * 2;
+
+    return [
+      {
+        tokenId: tokenReserve.contract,
+        smartTokenContract: relay.smartToken.contract,
+        costByNetworkUsd: main,
+        liqDepth
+      },
+      {
+        tokenId: networkReserve.contract,
+        smartTokenContract: relay.smartToken.contract,
+        liqDepth,
+        costByNetworkUsd: reverse * main
+      }
+    ];
   }
 
   @mutation setAvailableHistories(smartTokenNames: string[]) {
@@ -1700,7 +1707,9 @@ export class EthBancorModule
       ] = await Promise.all([
         getTokenMeta(),
         this.fetchContractAddresses(),
-        fetchSmartTokens()
+        fetchSmartTokens(),
+        this.warmEthApi(),
+        this.fetchUsdPriceOfBnt()
       ]);
 
       this.setAvailableHistories(
@@ -1739,14 +1748,10 @@ export class EthBancorModule
         approvedPriority,
         initialLoad,
         compareString
-      ).slice(0, isDev ? 99999 : 100000);
+      ).slice(0, isDev ? 50 : 1000000);
 
       await this.addPools(initialLoad);
-
-      this.addPoolsInChunks({
-        smartTokenAddresses: remainingLoad,
-        chunkSize: 1
-      });
+      this.addPools(remainingLoad);
 
       this.moduleInitiated();
       console.timeEnd("eth");
@@ -1772,15 +1777,21 @@ export class EthBancorModule
       smartTokenAddresses
     ) as string[][];
 
-    const builtRelays = await Promise.all(
-      combined.map(([converterAddress, smartTokenAddress]) =>
-        this.buildRelay({ smartTokenAddress, converterAddress }).catch(e => {
+    const relays = await Promise.all(
+      combined.map(async ([converterAddress, smartTokenAddress]) => {
+        try {
+          const relay = await this.buildRelay({
+            smartTokenAddress,
+            converterAddress
+          });
+          this.addPool({ relay });
+          return relay;
+        } catch (e) {
           console.log(`Failed building relay ${converterAddress} ${e.message}`);
-          return false;
-        })
-      )
+        }
+      })
     );
-    return builtRelays.filter(Boolean) as Relay[];
+    return relays.filter(Boolean) as Relay[];
   }
 
   @action async buildRelay(relayAddresses: {
@@ -1882,13 +1893,13 @@ export class EthBancorModule
       };
     }
 
-    console.count('Fetching');
-    
+    console.count("Fetching");
+
     const [symbol, decimals] = await Promise.all([
       tokenContract.methods.symbol().call(),
       tokenContract.methods.decimals().call()
     ]);
-    console.log('Had to fetch', symbol, address)
+    console.log("Had to fetch", symbol, address);
 
     return {
       contract: address,
