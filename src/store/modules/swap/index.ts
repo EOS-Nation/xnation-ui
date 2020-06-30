@@ -131,6 +131,11 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["morePoolsAvailable"];
   }
 
+  get loadingPools() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["loadingPools"];
+  }
+
   get wallet() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["wallet"];

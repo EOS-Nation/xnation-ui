@@ -72,12 +72,65 @@ import BigNumber from "bignumber.js";
 import {
   getSmartTokenHistory,
   fetchSmartTokens,
+  HistoryItem,
   fetchSmartTokenHistory
 } from "@/api/zumZoom";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { findNewPath } from "@/api/eosBancorCalc";
 import { priorityEthPools, getHardCodedRelays } from "./staticRelays";
-import Web3 from "web3";
+
+const sortSmartTokenAddressesByHighestLiquidity = (
+  tokens: TokenPrice[],
+  smartTokenAddresses: string[]
+): string[] => {
+  const sortedTokens = tokens
+    .slice()
+    .sort((a, b) => b.liquidityDepth - a.liquidityDepth);
+
+  const sortedDictionary = sortedTokens
+    .map(
+      token =>
+        ethBancorApiDictionary.find(dic =>
+          compareString(token.id, dic.tokenId)
+        )!
+    )
+    .filter(Boolean);
+
+  const res = sortAlongSide(
+    smartTokenAddresses,
+    pool => pool,
+    sortedDictionary.map(x => x.smartTokenAddress)
+  );
+
+  const isSame = res.every((item, index) => smartTokenAddresses[index] == item);
+  if (isSame)
+    console.warn(
+      "Sorted by Highest liquidity sorter is returning the same array passed"
+    );
+  return res;
+};
+
+const sortAlongSide = <T>(
+  arr: T[],
+  selector: (item: T) => string,
+  sortedArr: string[]
+): T[] => {
+  const res = arr.slice().sort((a, b) => {
+    const aIndex = sortedArr.findIndex(sort =>
+      compareString(sort, selector(a))
+    );
+    const bIndex = sortedArr.findIndex(sort =>
+      compareString(sort, selector(b))
+    );
+
+    if (aIndex == -1 && bIndex == -1) return 0;
+    if (aIndex == -1) return 1;
+    if (bIndex == -1) return -1;
+    return aIndex - bIndex;
+  });
+
+  return res;
+};
 
 interface EthOpposingLiquid extends OpposingLiquid {
   smartTokenAmount: string;
@@ -275,20 +328,6 @@ export class EthBancorModule
     return this.morePoolsAvailableProp;
   }
 
-  @action async addPoolsInChunks({
-    smartTokenAddresses,
-    chunkSize
-  }: {
-    smartTokenAddresses: string[];
-    chunkSize: number;
-  }) {
-    const chunked = _.chunk(smartTokenAddresses, chunkSize);
-    for (const chunk in chunked) {
-      await this.addPools(chunked[chunk]);
-    }
-    this.setLoadingPools(false);
-  }
-
   @mutation setPoolsAvailable(status: boolean) {
     this.morePoolsAvailableProp = status;
   }
@@ -299,23 +338,26 @@ export class EthBancorModule
 
   @action async loadMorePools() {
     this.setLoadingPools(true);
-    const remainingPools = this.registeredSmartTokenAddresses.filter(
+    const newPoolsAvailable = this.registeredSmartTokenAddresses.filter(
       address =>
         !this.relaysList.some(relay =>
           compareString(relay.smartToken.contract, address)
         )
     );
-
-    return this.addPoolsInChunks({
-      smartTokenAddresses: remainingPools,
-      chunkSize: 1
+    const sortedPools = await this.poolsByPriority({
+      smartTokenAddresses: newPoolsAvailable,
+      tokenPrices: this.bancorApiTokens
     });
+    await this.addPools(sortedPools.slice(0, 5));
+    this.setLoadingPools(false);
   }
 
   @action async addPools(smartTokenAddresses: string[]) {
+    this.setLoadingPools(true);
     const relays = await this.buildRelaysFromSmartTokenAddresses(
       smartTokenAddresses
     );
+    this.setLoadingPools(false);
 
     return relays;
   }
@@ -902,20 +944,17 @@ export class EthBancorModule
 
         return {
           id: relay.smartToken.contract,
-          reserves: sortByNetworkTokens(
-            relay.reserves.map(reserve => {
-              const meta = this.tokenMetaObj(reserve.contract);
-              return {
-                id: reserve.contract,
-                reserveId: relay.smartToken.contract + reserve.contract,
-                logo: [meta.image],
-                symbol: reserve.symbol,
-                contract: reserve.contract,
-                smartTokenSymbol: relay.smartToken.contract
-              };
-            }),
-            reserve => reserve.symbol
-          ).reverse(),
+          reserves: [networkReserve, tokenReserve].map(reserve => {
+            const meta = this.tokenMetaObj(reserve.contract);
+            return {
+              id: reserve.contract,
+              reserveId: relay.smartToken.contract + reserve.contract,
+              logo: [meta.image],
+              symbol: reserve.symbol,
+              contract: reserve.contract,
+              smartTokenSymbol: relay.smartToken.contract
+            };
+          }),
           smartTokenSymbol,
           fee: relay.fee / 100,
           liqDepth: relayFeed.liqDepth,
@@ -1449,6 +1488,7 @@ export class EthBancorModule
   @action async warmEthApi() {
     const tokens = await ethBancorApi.getTokens();
     this.setBancorApiTokens(tokens);
+    return tokens;
   }
 
   @action async possibleRelayFeedsFromBancorApi(
@@ -1680,16 +1720,27 @@ export class EthBancorModule
     return smartTokenAddresses;
   }
 
+  @action async poolsByPriority({
+    smartTokenAddresses,
+    tokenPrices
+  }: {
+    smartTokenAddresses: string[];
+    tokenPrices?: TokenPrice[];
+  }) {
+    if (tokenPrices && tokenPrices.length > 0) {
+      return sortSmartTokenAddressesByHighestLiquidity(
+        tokenPrices,
+        smartTokenAddresses
+      );
+    } else {
+      return sortAlongSide(smartTokenAddresses, x => x, priorityEthPools);
+    }
+  }
+
   @action async init(params?: ModuleParam) {
-    const contractAddress = "0x47d9151a09af10b905176c2b6395f86d4bed2baf";
-
-    // var contract = new web3.eth.Contract(ABIConverterV28, contractAddress);
-    const contract = buildV28ConverterContract(contractAddress);
-
-    // Usage
-
     console.log(params, "was init param on eth");
     console.time("eth");
+
     if (this.initiated) {
       return this.refresh();
     }
@@ -1703,12 +1754,13 @@ export class EthBancorModule
       const [
         tokenMeta,
         contractAddresses,
-        availableSmartTokenHistories
+        availableSmartTokenHistories,
+        bancorApiTokens
       ] = await Promise.all([
         getTokenMeta(),
         this.fetchContractAddresses(),
-        fetchSmartTokens(),
-        this.warmEthApi(),
+        fetchSmartTokens().catch(e => [] as HistoryItem[]),
+        this.warmEthApi().catch(e => false),
         this.fetchUsdPriceOfBnt()
       ]);
 
@@ -1736,11 +1788,10 @@ export class EthBancorModule
       this.setRegisteredSmartTokenAddresses(registeredSmartTokenAddresses);
       this.setConvertibleTokenAddresses(convertibleTokens);
 
-      const approvedPriority = priorityEthPools.filter(address =>
-        registeredSmartTokenAddresses.some(registered =>
-          compareString(address, registered)
-        )
-      );
+      const approvedPriority = await this.poolsByPriority({
+        smartTokenAddresses: registeredSmartTokenAddresses,
+        ...(bancorApiTokens && { tokenPrices: bancorApiTokens as TokenPrice[] })
+      });
 
       const isDev = process.env.NODE_ENV == "development";
       const initialLoad = bareMinimumSmartTokenAddresses;
@@ -1748,7 +1799,7 @@ export class EthBancorModule
         approvedPriority,
         initialLoad,
         compareString
-      ).slice(0, isDev ? 50 : 1000000);
+      ).slice(0, isDev ? 5 : 1000000);
 
       await this.addPools(initialLoad);
       this.addPools(remainingLoad);
@@ -1884,7 +1935,6 @@ export class EthBancorModule
     );
 
     if (tokenMetaObj && typeof tokenMetaObj.precision == "number") {
-      console.count("SavedByTokenMeta");
       return {
         contract: address,
         decimals: tokenMetaObj.precision!,
@@ -1892,8 +1942,6 @@ export class EthBancorModule
         symbol: tokenMetaObj.symbol
       };
     }
-
-    console.count("Fetching");
 
     const [symbol, decimals] = await Promise.all([
       tokenContract.methods.symbol().call(),
