@@ -423,23 +423,23 @@ export class EthBancorModule
             this.tokenBalance(meta.contract) &&
             this.tokenBalance(meta.contract)!.balance
         }))
-        .filter(
-          (meta, index, arr) => arr.findIndex(m => m.id == meta.id) == index
-        )
         .filter(meta =>
           this.newNetworkTokenChoices.some(
-            networkChoice => networkChoice.symbol !== meta.symbol
+            networkChoice => !compareString(networkChoice.id, meta.id)
           )
         )
-        .filter(tokenChoice => tokenChoice.symbol !== networkToken)
+        .filter(tokenChoice => tokenChoice.id !== networkToken)
         .filter(meta => {
-          if (!(meta.symbol && networkToken)) return true;
-          return !this.relaysList.some(relay => {
-            const reserves = relay.reserves.map(reserve => reserve.symbol);
-            const suggested = [meta.symbol, networkToken];
-            return _.isEqual(_.sortBy(reserves), _.sortBy(suggested));
+          const suggestedReserveIds = [meta.id, networkToken];
+          const existingRelayWithSameReserves = this.relaysList.some(relay => {
+            const reserves = relay.reserves.map(reserve => reserve.contract);
+            return suggestedReserveIds.every(id =>
+              reserves.some(r => compareString(id, r))
+            );
           });
+          return !existingRelayWithSameReserves;
         })
+        .filter((_, index) => index < 200)
         .sort((a, b) => Number(b.balance) - Number(a.balance));
     };
   }
@@ -1694,6 +1694,7 @@ export class EthBancorModule
   }
 
   @action async loadMoreTokens(tokenIds?: string[]) {
+    console.log("load more triggered at", new Date().getTime());
     console.log("load more tokens received", tokenIds);
     if (tokenIds && tokenIds.length > 0) {
       const smartTokenAddresses = await Promise.all(
@@ -1702,7 +1703,10 @@ export class EthBancorModule
       const addresses = smartTokenAddresses.flat(1);
       console.log(addresses, "is gonna get loaded...");
       await this.addPools(addresses);
+      await wait(1);
+      console.log("should be resolving loadMore at", new Date().getTime());
     } else {
+      console.log("just loading random pools...");
       await this.loadMorePools();
     }
   }
@@ -1863,11 +1867,8 @@ export class EthBancorModule
         this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry)
       ]);
 
-      console.count("wtf");
-
       this.setRegisteredSmartTokenAddresses(registeredSmartTokenAddresses);
       this.setConvertibleTokenAddresses(convertibleTokens);
-      console.count("wtf");
 
       const bareMinimumSmartTokenAddresses = await this.bareMinimumPools({
         params,
@@ -1876,17 +1877,14 @@ export class EthBancorModule
         ...(bancorApiTokens && { tokenPrices: bancorApiTokens })
       });
       console.log("did you get here?");
-      console.count("wtf");
 
       const isDev = process.env.NODE_ENV == "development";
       const initialLoad = bareMinimumSmartTokenAddresses;
-      console.count("wtf");
 
       const approvedPriority = await this.poolsByPriority({
         smartTokenAddresses: registeredSmartTokenAddresses,
         ...(bancorApiTokens && { tokenPrices: bancorApiTokens as TokenPrice[] })
       });
-      console.count("wtf");
 
       const remainingLoad = _.differenceWith(
         approvedPriority,
@@ -1894,12 +1892,6 @@ export class EthBancorModule
         compareString
       ).slice(0, isDev ? 5 : 20);
 
-      console.count("wtf");
-      console.log({
-        initialLoad,
-        remainingLoad,
-        bareMinimumSmartTokenAddresses
-      });
       await this.addPools(initialLoad);
       await wait(1);
       this.addPools(remainingLoad);
@@ -2138,12 +2130,6 @@ export class EthBancorModule
   }
 
   @action async focusSymbol(id: string) {
-    console.log(
-      id,
-      "was passed to focusSymbol",
-      this.tokenMeta.filter(meta => meta.id),
-      "is token meta"
-    );
     if (!this.isAuthenticated) return;
     const tokenContractAddress = findOrThrow(this.tokenMeta, meta =>
       compareString(meta.id, id)
@@ -2153,6 +2139,11 @@ export class EthBancorModule
       tokenContractAddress
     });
     this.updateBalance([id!, Number(balance)]);
+
+    const tokenTracked = this.tokens.find(token => compareString(token.id, id));
+    if (!tokenTracked) {
+      this.loadMoreTokens([id]);
+    }
   }
 
   @mutation updateBalance([id, balance]: [string, number]) {

@@ -278,6 +278,8 @@ export class UsdBancorModule
       return this.refresh();
     }
     console.time("sx");
+    vxm.eosBancor.init();
+
     const registryData = await getSxContracts();
     vxm.eosNetwork.getBalances({
       tokens: registryData.flatMap(data => data.tokens),

@@ -162,10 +162,8 @@ const addDefaultQueryParams = (to: Route): any => {
 
 const queryParamsCheck = (to: Route, next: any) => {
   if (!to.query.base || !to.query.quote) {
-    console.log("added query params");
     next(addDefaultQueryParams(to));
   } else {
-    console.log("did nothing");
     next();
   }
 };
@@ -315,10 +313,14 @@ export default class HeroConvert extends Vue {
   }
 
   set fromTokenId(id: string) {
-    this.loadNewToken(id);
+    this.loadFromToken(id);
   }
 
-  navToken(id: string) {
+  set toTokenId(id: string) {
+    this.loadToToken(id);
+  }
+
+  changeFromToken(id: string) {
     this.$router.push({
       name: "Tokens",
       query: {
@@ -328,20 +330,7 @@ export default class HeroConvert extends Vue {
     });
   }
 
-  async loadNewToken(id: string) {
-    console.log('load new token triggered on view layer', id)
-    const tokenExists = this.tokens.find(x => compareString(x.id, id));
-    if (tokenExists) {
-      console.log("dont need to load token");
-      this.navToken(id);
-    } else {
-      console.log("loading token...");
-      await this.loadMoreTokens([id]);
-      this.navToken(id);
-    }
-  }
-
-  set toTokenId(id: string) {
+  changeToToken(id: string) {
     this.$router.push({
       name: "Tokens",
       query: {
@@ -349,6 +338,30 @@ export default class HeroConvert extends Vue {
         quote: id
       }
     });
+  }
+
+  async loadFromToken(id: string) {
+    const tokenExists = this.tokens.find(x => compareString(x.id, id));
+    if (tokenExists) {
+      this.changeFromToken(id);
+    } else {
+      await this.loadMoreTokens([id]);
+      await wait(1);
+      console.log("should be changing the token at", new Date().getTime());
+      this.changeFromToken(id);
+    }
+  }
+
+  async loadToToken(id: string) {
+    const tokenExists = this.tokens.find(x => compareString(x.id, id));
+    if (tokenExists) {
+      this.changeToToken(id);
+    } else {
+      await this.loadMoreTokens([id]);
+      await wait(1);
+      console.log("should be changing the token at", new Date().getTime());
+      this.changeToToken(id);
+    }
   }
 
   get displayedSlippage() {

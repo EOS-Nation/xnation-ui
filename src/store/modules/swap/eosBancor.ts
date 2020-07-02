@@ -402,7 +402,7 @@ const getEosioTokenPrecision = async (
     scope: symbol
   });
   if (res.rows.length == 0) throw new Error("Failed to find token");
-  return res.rows[0].supply.split(" ")[0].split(".")[1].length;
+  return new Asset(res.rows[0].supply).symbol.precision();
 };
 
 const chopSecondSymbol = (one: string, two: string, maxLength = 7) =>
@@ -412,7 +412,7 @@ const chopSecondLastChar = (text: string, backUp: number) => {
   const secondLastIndex = text.length - backUp - 1;
   return text
     .split("")
-    .filter((value, index) => index !== secondLastIndex)
+    .filter((_, index) => index !== secondLastIndex)
     .join("");
 };
 
@@ -568,48 +568,50 @@ export class EosBancorModule
 
   get newPoolTokenChoices() {
     return (networkToken: string): ModalChoice[] => {
-      return (
-        this.tokenMeta
-          .map(tokenMeta => {
-            const { symbol, account: contract } = tokenMeta;
-            const balance = this.balance({
-              contract,
-              symbol
-            });
-            return {
-              id: buildTokenId({ contract, symbol }),
-              symbol,
-              contract,
-              balance: balance && balance.balance,
-              img: tokenMeta.logo
-            };
-          })
-          .filter(
-            (value, index, array) =>
-              array.findIndex(token => value.symbol == token.symbol) == index
-          )
-          // .filter(
-          //   tokenMeta =>
-          //     !this.relaysList.find(relay =>
-          //       relay.reserves.every(
-          //         reserve =>
-          //           reserve.symbol == tokenMeta.symbol ||
-          //           reserve.symbol == networkToken
-          //       )
-          //     )
+      return this.tokenMeta
+        .map(tokenMeta => {
+          const { symbol, account: contract } = tokenMeta;
+          const balance = this.balance({
+            contract,
+            symbol
+          });
+          return {
+            id: buildTokenId({ contract, symbol }),
+            symbol,
+            contract,
+            balance: balance && balance.balance,
+            img: tokenMeta.logo
+          };
+        })
+        .filter(
+          (value, index, array) =>
+            array.findIndex(token => value.symbol == token.symbol) == index
+        )
+        .filter(tokenMeta => {
+          // currently been asked to allow new relays of the same reserve.
+          return true;
+
+          // const suggestedReserves = [tokenMeta.id, networkToken];
+          // const existingReserveExists = this.relays.some(relay =>
+          // relay.reserves.every(existingReserve =>
+          // suggestedReserves.some(suggestedReserve =>
+          // compareString(existingReserve.id, suggestedReserve)
           // )
-          .filter(
-            token =>
-              !mandatoryNetworkTokens.some(
-                networkToken => token.symbol == networkToken.symbol
-              )
-          )
-          .sort((a, b) => {
-            const second = isNaN(b.balance) ? 0 : Number(b.balance);
-            const first = isNaN(a.balance) ? 0 : Number(a.balance);
-            return second - first;
-          })
-      );
+          // )
+          // );
+          // return !existingReserveExists;
+        })
+        .filter(
+          token =>
+            !mandatoryNetworkTokens.some(
+              networkToken => token.symbol == networkToken.symbol
+            )
+        )
+        .sort((a, b) => {
+          const second = isNaN(b.balance) ? 0 : Number(b.balance);
+          const first = isNaN(a.balance) ? 0 : Number(a.balance);
+          return second - first;
+        });
     };
   }
 
@@ -1968,14 +1970,12 @@ export class EosBancorModule
     const assetAmount = number_to_asset(Number(fromAmount), fromSymbolInit);
 
     const allRelays = this.convertableRelays;
-    const path = await findNewPath(
-      fromToken.id,
-      toToken.id,
-      allRelays,
-      relay => [relay.reserves[0].id, relay.reserves[1].id]
-    );
-    const relaysPath = path.hops.flatMap(hop => hop[0]).map(multiToDry);
-    const convertPath = relaysToConvertPaths(fromSymbolInit, relaysPath);
+    const path = await this.findPath({
+      fromId: fromToken.id,
+      toId: toToken.id,
+      relays: allRelays.map(multiToDry)
+    });
+    const convertPath = relaysToConvertPaths(fromSymbolInit, path);
 
     const isAuthenticated = this.isAuthenticated;
 
@@ -2173,6 +2173,6 @@ export class EosBancorModule
   }
 
   @mutation setTokenMeta(tokens: TokenMeta[]) {
-    this.tokenMeta = tokens.filter(token => token.chain == "eos");
+    this.tokenMeta = tokens.filter(token => compareString(token.chain, "eos"));
   }
 }
