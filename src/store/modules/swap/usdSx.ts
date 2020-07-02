@@ -165,6 +165,20 @@ export class UsdBancorModule
     return "eos";
   }
 
+  get moreTokensAvailable() {
+    return false;
+  }
+
+  get loadingTokens() {
+    return !this.initiated;
+  }
+
+  get convertibleTokens() {
+    return this.tokens.map(token => ({ ...token, img: token.logo }));
+  }
+
+  @action async loadMoreTokens() {}
+
   get tokens(): ViewToken[] {
     if (!this.initiated) {
       return [];

@@ -124,7 +124,7 @@ import { State, Getter, Action, Mutation, namespace } from "vuex-class";
 import { LiquidityModule, TradingModule, Step } from "../../../types/bancor";
 import numeral from "numeral";
 import { vxm } from "@/store";
-import { buildTokenId } from "../../../api/helpers";
+import { buildTokenId, compareString } from "../../../api/helpers";
 import { ethReserveAddress } from "../../../api/ethConfig";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
@@ -214,10 +214,12 @@ export default class HeroConvert extends Vue {
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter tokens!: TradingModule["tokens"];
+  @bancor.Getter convertibleTokens!: TradingModule["convertibleTokens"];
   @bancor.Action convert!: TradingModule["convert"];
   @bancor.Action focusSymbol!: TradingModule["focusSymbol"];
   @bancor.Action getReturn!: TradingModule["getReturn"];
   @bancor.Action getCost!: TradingModule["getCost"];
+  @bancor.Action loadMoreTokens!: TradingModule["loadMoreTokens"];
   @bancor.Getter relay!: LiquidityModule["relay"];
   @wallet.Getter isAuthenticated!: string | boolean;
   @bancor.Action
@@ -305,12 +307,7 @@ export default class HeroConvert extends Vue {
   }
 
   get choices() {
-    return this.tokens.map(token => ({
-      id: token.id,
-      symbol: token.symbol,
-      balance: token.balance,
-      img: token.logo
-    }));
+    return this.convertibleTokens;
   }
 
   get fromTokenId() {
@@ -318,6 +315,10 @@ export default class HeroConvert extends Vue {
   }
 
   set fromTokenId(id: string) {
+    this.loadNewToken(id);
+  }
+
+  navToken(id: string) {
     this.$router.push({
       name: "Tokens",
       query: {
@@ -325,6 +326,19 @@ export default class HeroConvert extends Vue {
         quote: this.toTokenId
       }
     });
+  }
+
+  async loadNewToken(id: string) {
+    console.log('load new token triggered on view layer', id)
+    const tokenExists = this.tokens.find(x => compareString(x.id, id));
+    if (tokenExists) {
+      console.log("dont need to load token");
+      this.navToken(id);
+    } else {
+      console.log("loading token...");
+      await this.loadMoreTokens([id]);
+      this.navToken(id);
+    }
   }
 
   set toTokenId(id: string) {

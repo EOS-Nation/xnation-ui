@@ -111,6 +111,21 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["relays"];
   }
 
+  get convertibleTokens() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["convertibleTokens"];
+  }
+
+  get moreTokensAvailable() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["moreTokensAvailable"];
+  }
+
+  get loadingTokens() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["loadingTokens"];
+  }
+
   get newPoolTokenChoices(): (networkTokenSymbol: string) => ModalChoice[] {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["newPoolTokenChoices"];
@@ -276,6 +291,10 @@ export class BancorModule extends VuexModule.With({
 
   @mutation setUsdPriceOfBnt(usdPriceOfBnt: BntPrice) {
     this.usdPriceOfBnt = usdPriceOfBnt;
+  }
+
+  @action async loadMoreTokens(tokenIds?: string[]) {
+    return this.dispatcher(["loadMoreTokens", tokenIds]);
   }
 
   @action async fetchHistoryData(relayId: string): Promise<HistoryRow[]> {

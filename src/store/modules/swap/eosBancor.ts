@@ -513,6 +513,8 @@ export class EosBancorModule
   usdPrice = 0;
   usdPriceOfBnt = 0;
   tokenMeta: TokenMeta[] = [];
+  moreTokensAvailable = false;
+  loadingTokens = false;
 
   get morePoolsAvailable() {
     return false;
@@ -1131,6 +1133,12 @@ export class EosBancorModule
       tokenMeta,
       dryDelays: remainingV1Relays
     });
+  }
+
+  @action async loadMoreTokens(tokenIds?: string[]) {}
+
+  get convertibleTokens() {
+    return this.tokens.map(token => ({ ...token, img: token.logo }));
   }
 
   @action async init(param?: ModuleParam) {

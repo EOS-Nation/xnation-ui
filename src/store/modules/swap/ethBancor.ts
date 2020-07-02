@@ -275,7 +275,7 @@ const getTokenMeta = async () => {
     contract: ethReserveAddress
   };
   const final = [addedEth, existingEth, ...withoutEth];
-  return final;
+  return _.uniqWith(final, (a, b) => compareString(a.id, b.id));
 };
 
 const compareRelayBySmartTokenAddress = (a: Relay, b: Relay) =>
@@ -1665,6 +1665,48 @@ export class EthBancorModule
     ];
   }
 
+  get loadingTokens() {
+    return this.loadingPools;
+  }
+
+  get moreTokensAvailable() {
+    return this.morePoolsAvailable;
+  }
+
+  @action async relaysContainingToken(tokenId: string): Promise<string[]> {
+    return this.relaysRequiredForTrade({
+      from: tokenId,
+      to: "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
+      networkContractAddress: this.contracts.BancorNetwork
+    });
+  }
+
+  get convertibleTokens() {
+    return this.convertibleTokenAddresses
+      .map(
+        convertibleToken =>
+          this.tokenMeta.find(meta =>
+            compareString(convertibleToken, meta.contract)
+          )!
+      )
+      .filter(Boolean)
+      .map(meta => ({ ...meta, img: meta.image }));
+  }
+
+  @action async loadMoreTokens(tokenIds?: string[]) {
+    console.log("load more tokens received", tokenIds);
+    if (tokenIds && tokenIds.length > 0) {
+      const smartTokenAddresses = await Promise.all(
+        tokenIds.map(id => this.relaysContainingToken(id))
+      );
+      const addresses = smartTokenAddresses.flat(1);
+      console.log(addresses, "is gonna get loaded...");
+      await this.addPools(addresses);
+    } else {
+      await this.loadMorePools();
+    }
+  }
+
   @mutation setAvailableHistories(smartTokenNames: string[]) {
     this.availableHistories = smartTokenNames;
   }
@@ -1685,8 +1727,6 @@ export class EthBancorModule
   @mutation setConvertibleTokenAddresses(addresses: string[]) {
     this.convertibleTokenAddresses = addresses;
   }
-
-  @action async loadBareMinimumPools() {}
 
   @action async conversionPathFromNetworkContract({
     from,
@@ -1711,13 +1751,20 @@ export class EthBancorModule
     to: string;
     networkContractAddress: string;
   }) {
-    const path = await this.conversionPathFromNetworkContract({
-      from,
-      to,
-      networkContractAddress
-    });
-    const smartTokenAddresses = path.filter((_, index) => isOdd(index));
-    return smartTokenAddresses;
+    try {
+      const path = await this.conversionPathFromNetworkContract({
+        from,
+        to,
+        networkContractAddress
+      });
+      const smartTokenAddresses = path.filter((_, index) => isOdd(index));
+      if (smartTokenAddresses.length == 0)
+        throw new Error("Failed to find any smart token addresses for path.");
+      return smartTokenAddresses;
+    } catch (e) {
+      console.error(`relays required for trade failed ${e.message}`);
+      throw new Error(`relays required for trade failed ${e.message}`);
+    }
   }
 
   @action async poolsByPriority({
@@ -1757,16 +1804,22 @@ export class EthBancorModule
     const poolIncluded = params && params.poolQuery;
 
     if (tradeIncluded) {
+      console.log("trade included...");
       return this.relaysRequiredForTrade({
         from: fromToken,
         to: toToken,
         networkContractAddress
       });
     } else if (poolIncluded) {
+      console.log("pool included...");
       return [poolIncluded];
     } else {
-      const allPools = await this.poolsByPriority({ smartTokenAddresses, tokenPrices })
-      return allPools.slice(0, 3)
+      console.log("should be loading first 5");
+      const allPools = await this.poolsByPriority({
+        smartTokenAddresses,
+        tokenPrices
+      });
+      return allPools.slice(0, 3);
     }
   }
 
@@ -1775,6 +1828,7 @@ export class EthBancorModule
     console.time("eth");
 
     if (this.initiated) {
+      console.log("returning already");
       return this.refresh();
     }
 
@@ -1792,6 +1846,8 @@ export class EthBancorModule
         this.fetchUsdPriceOfBnt()
       ]);
 
+      console.log({ contractAddresses });
+
       this.setAvailableHistories(
         availableSmartTokenHistories.map(history => history.id)
       );
@@ -1807,8 +1863,11 @@ export class EthBancorModule
         this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry)
       ]);
 
+      console.count("wtf");
+
       this.setRegisteredSmartTokenAddresses(registeredSmartTokenAddresses);
       this.setConvertibleTokenAddresses(convertibleTokens);
+      console.count("wtf");
 
       const bareMinimumSmartTokenAddresses = await this.bareMinimumPools({
         params,
@@ -1816,14 +1875,18 @@ export class EthBancorModule
         smartTokenAddresses: registeredSmartTokenAddresses,
         ...(bancorApiTokens && { tokenPrices: bancorApiTokens })
       });
+      console.log("did you get here?");
+      console.count("wtf");
 
       const isDev = process.env.NODE_ENV == "development";
       const initialLoad = bareMinimumSmartTokenAddresses;
+      console.count("wtf");
 
       const approvedPriority = await this.poolsByPriority({
         smartTokenAddresses: registeredSmartTokenAddresses,
         ...(bancorApiTokens && { tokenPrices: bancorApiTokens as TokenPrice[] })
       });
+      console.count("wtf");
 
       const remainingLoad = _.differenceWith(
         approvedPriority,
@@ -1831,7 +1894,14 @@ export class EthBancorModule
         compareString
       ).slice(0, isDev ? 5 : 20);
 
+      console.count("wtf");
+      console.log({
+        initialLoad,
+        remainingLoad,
+        bareMinimumSmartTokenAddresses
+      });
       await this.addPools(initialLoad);
+      await wait(1);
       this.addPools(remainingLoad);
 
       this.moduleInitiated();
@@ -2357,30 +2427,6 @@ export class EthBancorModule
   }
 
   @action async getReturn({ from, toId }: ProposedFromTransaction) {
-    const allReserves = this.relaysList.flatMap(relay => relay.reserves);
-    const uniqueReserves = _.uniqWith(allReserves, (a, b) =>
-      compareString(a.contract, b.contract)
-    );
-    const tokenMeta = this.tokenMeta;
-
-    const newTokenMeta = updateArray(
-      tokenMeta,
-      meta =>
-        uniqueReserves.some(reserve =>
-          compareString(meta.contract, reserve.contract)
-        ),
-      meta => {
-        const token = findOrThrow(uniqueReserves, reserve =>
-          compareString(meta.contract, reserve.contract)
-        );
-        return {
-          ...meta,
-          precision: token.decimals
-        };
-      }
-    );
-    console.log(newTokenMeta, "is the new token meta");
-
     const [fromToken, toToken] = await this.tokensById([from.id, toId]);
 
     const [fromTokenContract, toTokenContract] = [fromToken.id, toToken.id];

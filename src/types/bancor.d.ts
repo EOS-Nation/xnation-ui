@@ -240,15 +240,53 @@ export interface ModuleParam {
   poolQuery?: PoolQuery;
 }
 
+export interface ViewModalToken {
+  id: string;
+  symbol: string;
+  img: string;
+  balance?: number;
+}
+
 export interface TradingModule {
   init: (param?: ModuleParam) => Promise<void>;
   readonly token: (arg0: string) => ViewToken;
   readonly tokens: ViewToken[];
+  readonly convertibleTokens: ViewModalToken[];
+  readonly moreTokensAvailable: boolean;
+  readonly loadingTokens: boolean;
   refreshBalances: (symbols?: BaseToken[]) => Promise<void>;
   convert: (propose: ProposedConvertTransaction) => Promise<string>;
   focusSymbol: (symbolName: string) => Promise<void>;
   getReturn: (propose: ProposedFromTransaction) => Promise<ConvertReturn>;
   getCost: (propose: ProposedToTransaction) => Promise<ConvertReturn>;
+  loadMoreTokens: (tokenIds?: string[]) => Promise<void>;
+}
+
+export interface LiquidityModule {
+  init: (param: ModuleParam) => Promise<void>;
+  readonly relay: (arg0: string) => ViewRelay;
+  readonly relays: ViewRelay[];
+  readonly supportedFeatures: (arg0: string) => string[];
+  readonly morePoolsAvailable: boolean;
+  readonly loadingPools: boolean;
+  loadMorePools: () => Promise<void>;
+  calculateOpposingDeposit: (
+    opposingDeposit: OpposingLiquidParams
+  ) => Promise<OpposingLiquid>;
+  updateFee?: (fee: FeeParams) => Promise<string>;
+  updateOwner?: (fee: NewOwnerParams) => Promise<string>;
+  calculateOpposingWithdraw: (
+    opposingWithdraw: OpposingLiquidParams
+  ) => Promise<OpposingLiquid>;
+  getUserBalances: (
+    relayId: string
+  ) => Promise<{
+    maxWithdrawals: ViewAmount[];
+    smartTokenBalance: string;
+  }>;
+  removeLiquidity: (params: LiquidityParams) => Promise<string>;
+  addLiquidity: (params: LiquidityParams) => Promise<string>;
+  removeRelay?: (symbolName: string) => Promise<string>;
 }
 
 export interface TokenMeta {
@@ -338,33 +376,6 @@ export interface PromiseEvent {
 export interface PromiseSequence {
   promises: PromiseEvent[];
   title: string;
-}
-
-export interface LiquidityModule {
-  init: (param: ModuleParam) => Promise<void>;
-  readonly relay: (arg0: string) => ViewRelay;
-  readonly relays: ViewRelay[];
-  readonly supportedFeatures: (arg0: string) => string[];
-  readonly morePoolsAvailable: boolean;
-  readonly loadingPools: boolean;
-  loadMorePools: () => Promise<void>;
-  calculateOpposingDeposit: (
-    opposingDeposit: OpposingLiquidParams
-  ) => Promise<OpposingLiquid>;
-  updateFee?: (fee: FeeParams) => Promise<string>;
-  updateOwner?: (fee: NewOwnerParams) => Promise<string>;
-  calculateOpposingWithdraw: (
-    opposingWithdraw: OpposingLiquidParams
-  ) => Promise<OpposingLiquid>;
-  getUserBalances: (
-    relayId: string
-  ) => Promise<{
-    maxWithdrawals: ViewAmount[];
-    smartTokenBalance: string;
-  }>;
-  removeLiquidity: (params: LiquidityParams) => Promise<string>;
-  addLiquidity: (params: LiquidityParams) => Promise<string>;
-  removeRelay?: (symbolName: string) => Promise<string>;
 }
 
 interface GetBalanceParam {
