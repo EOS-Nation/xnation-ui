@@ -1,5 +1,7 @@
 import { Decimal } from "decimal.js";
 import { Asset, asset_to_number, Sym as Symbol, Sym, asset } from "eos-common";
+import _ from "lodash";
+import { compareString } from "./helpers";
 
 export type EosAccount = string;
 
@@ -274,57 +276,93 @@ export function unChopRelays(
   );
 }
 
-export function findPath(
-  from: Symbol,
-  to: Symbol,
-  relays: ChoppedRelay[],
-  attemptNumber: number = 0,
-  path: ChoppedRelay[] = [],
-  attempt: Symbol = from
-): ChoppedRelay[] {
-  const finalRelay = relays.find(relayHasBothSymbols(to, attempt));
-  if (finalRelay) return [...path, finalRelay];
-  if (attemptNumber >= 1000)
-    throw new Error("Unable to find path in decent time");
+type Node = string;
+type Edge = [string, string];
+type AdjacencyList = Map<string, string[]>;
 
-  const searchScope =
-    path.length == 0
-      ? relays
-      : removeChoppedRelay(relays, path[path.length - 1]);
-  const potentialHopRelay = searchScope.find((relay: ChoppedRelay) =>
-    relay.reserves.some(token => token.symbol.isEqual(attempt))
-  )!;
+const buildAdjacencyList = (edges: Edge[], nodes: Node[]): AdjacencyList => {
+  const adjacencyList = new Map();
+  nodes.forEach(node => adjacencyList.set(node, []));
+  edges.forEach(([from, to]) => adjacencyList.get(from).push(to));
+  edges.forEach(([from, to]) => adjacencyList.get(to).push(from));
+  return adjacencyList;
+};
 
-  if (!potentialHopRelay)
-    return findPath(from, to, searchScope, attemptNumber + 1, []);
+const compareEdge = (edge1: Edge, edge2: Edge) =>
+  edge1.every(edge => edge2.some(e => compareString(edge, e)));
 
-  const oppositeSymbol = getOppositeSymbol(potentialHopRelay, attempt);
-  return findPath(
-    from,
-    to,
-    searchScope,
-    attemptNumber + 1,
-    [...path, potentialHopRelay],
-    oppositeSymbol
-  );
-}
+const dfs = (
+  fromId: string,
+  toId: string,
+  adjacencyList: AdjacencyList
+): Promise<string[]> =>
+  new Promise(resolve => callbackDfs(fromId, toId, adjacencyList, resolve));
 
-export function createPath(
-  from: Symbol,
-  to: Symbol,
-  relays: DryRelay[]
-): DryRelay[] {
-  const choppedRelays = chopRelays(
-    relays.sort(relay =>
-      relay.reserves.some(reserve => reserve.symbol.isEqual(to)) ? -1 : 1
-    )
-  );
-  const choppedRelaysPath: ChoppedRelay[] = findPath(from, to, choppedRelays);
-  const wholeRelaysPath: DryRelay[] = unChopRelays(
-    choppedRelaysPath,
-    relays
-  ) as DryRelay[];
-  return wholeRelaysPath;
+const callbackDfs = (
+  start: string,
+  goal: string,
+  adjacencyList: AdjacencyList,
+  callBack: (stuff: any) => void,
+  visited = new Set(),
+  path: string[] = [start]
+) => {
+  visited.add(start);
+  const destinations = adjacencyList.get(start)!;
+  for (const destination of destinations) {
+    if (destination === goal) {
+      callBack([...path, goal]);
+    }
+
+    if (!visited.has(destination)) {
+      callbackDfs(destination, goal, adjacencyList, callBack, visited, [
+        ...path,
+        destination
+      ]);
+    }
+  }
+};
+
+export async function findNewPath<T>(
+  fromId: string,
+  toId: string,
+  pools: T[],
+  identifier: (pool: T) => Edge
+) {
+  const edges = _.uniqWith(pools.map(identifier), compareEdge);
+  const nodes: Node[] = _.uniqWith(edges.flat(1), compareString);
+
+  const adjacencyList = buildAdjacencyList(edges, nodes);
+  const startExists = adjacencyList.get(fromId);
+  const goalExists = adjacencyList.get(toId);
+
+  if (!(startExists && goalExists))
+    throw new Error(
+      `Start ${fromId} or goal ${toId} does not exist in adjacency list`
+    );
+
+  const dfsResult = await dfs(fromId, toId, adjacencyList)!;
+  if (!dfsResult || dfsResult.length == 0)
+    throw new Error("Failed to find path");
+
+  const hops = _.chunk(dfsResult, 2).map((tokenIds, index, arr) => {
+    let searchAbleIds: string[];
+
+    if (tokenIds.length < 2) {
+      searchAbleIds = [arr[index - 1][1], tokenIds[0]];
+    } else searchAbleIds = tokenIds;
+
+    const accomodatingRelays = pools.filter(pool => {
+      const ids = identifier(pool);
+      return ids.every(id => searchAbleIds.some(i => id == i));
+    });
+
+    return accomodatingRelays;
+  });
+
+  return {
+    path: dfsResult,
+    hops
+  };
 }
 
 export function chargeFee(

@@ -9,11 +9,16 @@ import {
   NewOwnerParams,
   HistoryRow,
   ProposedToTransaction,
-  ProposedFromTransaction
+  ProposedFromTransaction,
+  ModuleParam
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
-import { compareString, fetchUsdPriceOfBntViaRelay } from "@/api/helpers";
+import {
+  compareString,
+  fetchUsdPriceOfBntViaRelay,
+  updateArray
+} from "@/api/helpers";
 import { fetchBinanceUsdPriceOfBnt } from "@/api/helpers";
 import wait from "waait";
 
@@ -26,14 +31,48 @@ const VuexModule = createModule({
   strict: false
 });
 
+interface RootParam {
+  initialModuleParam?: ModuleParam;
+  initialChain?: string;
+}
+
+const moduleIds: { label: string; id: string }[] = [
+  {
+    label: "EOS",
+    id: "eos"
+  },
+  {
+    label: "ETH",
+    id: "eth"
+  },
+  {
+    label: "USDⓈ",
+    id: "usds"
+  }
+];
+
+interface Module {
+  id: string;
+  label: string;
+  loading: boolean;
+  loaded: boolean;
+  error: boolean;
+}
+
 export class BancorModule extends VuexModule.With({
   namespaced: "bancor/"
 }) {
-  chains = ["eos", "eth", "usds"];
   usdPriceOfBnt: BntPrice = {
     price: null,
     lastChecked: 0
   };
+  modules: Module[] = moduleIds.map(({ id, label }) => ({
+    id,
+    label,
+    loading: false,
+    loaded: false,
+    error: false
+  }));
 
   get currentNetwork() {
     // @ts-ignore
@@ -48,7 +87,7 @@ export class BancorModule extends VuexModule.With({
       // @ts-ignore
       return store.state.routeModule.params.service;
     } else {
-      return "eos";
+      return "eth";
     }
   }
 
@@ -72,6 +111,21 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["relays"];
   }
 
+  get convertibleTokens() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["convertibleTokens"];
+  }
+
+  get moreTokensAvailable() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["moreTokensAvailable"];
+  }
+
+  get loadingTokens() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["loadingTokens"];
+  }
+
   get newPoolTokenChoices(): (networkTokenSymbol: string) => ModalChoice[] {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["newPoolTokenChoices"];
@@ -87,34 +141,113 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["relay"];
   }
 
+  get morePoolsAvailable() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["morePoolsAvailable"];
+  }
+
+  get loadingPools() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["loadingPools"];
+  }
+
   get wallet() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["wallet"];
   }
 
-  @action async init(initialChain?: string) {
-    if (initialChain) {
-      return new Promise((resolve, reject) => {
+  @mutation updateModule({
+    id,
+    updater
+  }: {
+    id: string;
+    updater: (module: Module) => Module;
+  }) {
+    const newModules = updateArray(
+      this.modules,
+      module => compareString(id, module.id),
+      updater
+    );
+    this.modules = newModules;
+  }
+
+  @action async moduleInitialised(id: string) {
+    this.updateModule({
+      id,
+      updater: module => ({
+        ...module,
+        loaded: true,
+        loading: false,
+        error: false
+      })
+    });
+  }
+
+  @action async moduleThrown(id: string) {
+    this.updateModule({
+      id,
+      updater: module => ({
+        ...module,
+        loaded: false,
+        loading: false,
+        error: true
+      })
+    });
+  }
+
+  @action async moduleInitalising(id: string) {
+    this.updateModule({
+      id,
+      updater: module => ({ ...module, loading: true })
+    });
+  }
+
+  @action async initialiseModule({
+    moduleId,
+    params,
+    resolveWhenFinished = false
+  }: {
+    moduleId: string;
+    params?: ModuleParam;
+    resolveWhenFinished: boolean;
+  }) {
+    this.moduleInitalising(moduleId);
+    if (resolveWhenFinished) {
+      try {
+        await this.$store.dispatch(`${moduleId}Bancor/init`, params || null, {
+          root: true
+        });
+        this.moduleInitialised(moduleId);
+      } catch (e) {
+        this.moduleThrown(moduleId);
+      }
+    } else {
+      try {
         this.$store
-          .dispatch(`${initialChain}Bancor/init`, null, {
+          .dispatch(`${moduleId}Bancor/init`, params || null, {
             root: true
           })
-          .then(() => resolve())
-          .catch(e => reject(e));
-        const remainingChains = this.chains.filter(
-          chain => !compareString(chain, initialChain)
-        );
-        remainingChains.forEach(chain =>
-          this.$store
-            .dispatch(`${chain}Bancor/init`, null, { root: true })
-            .catch(e => reject(e))
-        );
+          .then(() => this.moduleInitialised(moduleId));
+      } catch (e) {
+        this.moduleThrown(moduleId);
+      }
+    }
+  }
+
+  @action async init(param?: RootParam) {
+    if (param && param.initialChain && param.initialModuleParam) {
+      return this.initialiseModule({
+        moduleId: param.initialChain,
+        params: param.initialModuleParam,
+        resolveWhenFinished: true
       });
     } else {
       return Promise.all(
-        this.chains.map(chain =>
-          this.$store.dispatch(`${chain}Bancor/init`, null, { root: true })
-        )
+        this.modules
+          .map(module => module.id)
+          .map(moduleId =>
+            this.initialiseModule({ moduleId, resolveWhenFinished: true })
+          )
       );
     }
   }
@@ -132,7 +265,6 @@ export class BancorModule extends VuexModule.With({
           wait(500).then(() => resolve(fetchUsdPriceOfBntViaRelay()));
         })
       ]);
-      console.log(res, "was res!");
       const usdPrice = res as number;
       this.setUsdPriceOfBnt({
         price: usdPrice,
@@ -161,6 +293,10 @@ export class BancorModule extends VuexModule.With({
     this.usdPriceOfBnt = usdPriceOfBnt;
   }
 
+  @action async loadMoreTokens(tokenIds?: string[]) {
+    return this.dispatcher(["loadMoreTokens", tokenIds]);
+  }
+
   @action async fetchHistoryData(relayId: string): Promise<HistoryRow[]> {
     return this.dispatcher(["fetchHistoryData", relayId]);
   }
@@ -171,6 +307,10 @@ export class BancorModule extends VuexModule.With({
 
   @action async updateFee(fee: FeeParams) {
     return this.dispatcher(["updateFee", fee]);
+  }
+
+  @action async loadMorePools() {
+    return this.dispatcher(["loadMorePools"]);
   }
 
   @action async removeRelay(symbolName: string) {
@@ -222,11 +362,17 @@ export class BancorModule extends VuexModule.With({
   }
 
   @action async dispatcher([methodName, params]: [string, any?]) {
-    return this.$store.dispatch(
-      `${this.currentNetwork}Bancor/${methodName}`,
-      params,
-      { root: true }
-    );
+    return params
+      ? this.$store.dispatch(
+          `${this.currentNetwork}Bancor/${methodName}`,
+          params,
+          { root: true }
+        )
+      : this.$store.dispatch(
+          `${this.currentNetwork}Bancor/${methodName}`,
+          null,
+          { root: true }
+        );
   }
 
   @action async refreshBalances(symbols: string[] = []) {

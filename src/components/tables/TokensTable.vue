@@ -22,7 +22,7 @@
           :items="tokens"
           :fields="filteredFields"
           :filter="filter"
-          primary-key="symbol"
+          primary-key="id"
           :tbody-transition-props="transProps"
           :tbody-transition-handlers="transHandler"
         >

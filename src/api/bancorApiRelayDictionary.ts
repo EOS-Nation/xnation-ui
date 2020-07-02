@@ -1,3 +1,5 @@
+import { ethReserveAddress } from './ethConfig';
+
 export const ethBancorApiDictionary = [
   {
     smartTokenAddress: "0x7f8c53072d9b809a108b1a9d677bcc3b7b3f844e",
@@ -497,7 +499,7 @@ export const ethBancorApiDictionary = [
   {
     smartTokenAddress: "0xb1cd6e4153b2a390cf00a6556b0fc1458c4a5533",
     tokenId: "5937d635231e97001f744267",
-    tokenAddress: "0xc0829421c1d260bd3cb3e0f06cfe2d52db2ce315"
+    tokenAddress: ethReserveAddress
   },
   {
     smartTokenAddress: "0x38838b895cbf02048455fb7f649d97c564fc18a8",

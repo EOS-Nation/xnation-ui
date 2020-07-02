@@ -6,7 +6,8 @@ import {
   BaseToken,
   ProposedFromTransaction,
   ProposedToTransaction,
-  ViewAmount
+  ViewAmount,
+  ModuleParam
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import {
@@ -164,6 +165,20 @@ export class UsdBancorModule
     return "eos";
   }
 
+  get moreTokensAvailable() {
+    return false;
+  }
+
+  get loadingTokens() {
+    return !this.initiated;
+  }
+
+  get convertibleTokens() {
+    return this.tokens.map(token => ({ ...token, img: token.logo }));
+  }
+
+  @action async loadMoreTokens() {}
+
   get tokens(): ViewToken[] {
     if (!this.initiated) {
       return [];
@@ -254,8 +269,17 @@ export class UsdBancorModule
     console.log(prices, "are prices");
   }
 
-  @action async init() {
-    console.time('sx')
+  @action async refresh() {
+    console.log("refresh called on sx, doing nothing");
+  }
+
+  @action async init(params?: ModuleParam) {
+    if (this.initiated) {
+      return this.refresh();
+    }
+    console.time("sx");
+    vxm.eosBancor.init();
+
     const registryData = await getSxContracts();
     vxm.eosNetwork.getBalances({
       tokens: registryData.flatMap(data => data.tokens),
@@ -331,7 +355,7 @@ export class UsdBancorModule
     this.setNewTokens(newTokens);
     await wait(100);
     this.moduleInitiated();
-    console.timeEnd('sx')
+    console.timeEnd("sx");
   }
 
   @action async buildTokens({

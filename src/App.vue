@@ -48,8 +48,7 @@ import ModalTx from "@/components/modals/ModalTx.vue";
 import MyFooter from "@/components/common/MyFooter.vue";
 import { vxm } from "@/store/";
 import { WalletProvider } from "eos-transit";
-import wait from 'waait'
-
+import wait from "waait";
 
 @Component({
   components: {
@@ -63,17 +62,39 @@ export default class App extends Vue {
   error = false;
 
   async loadBancor() {
+    console.log("feature:", this.$route.meta.feature);
+    console.log("service:", this.$route.params.service);
+    console.log("query:", this.$route.query);
+
+    const trade = this.$route.meta.feature == "Trade";
+
+    const service = this.$route.params && this.$route.params.service;
+    const pool = this.$route.params && this.$route.params.account;
+    const feature = this.$route.meta && this.$route.meta.feature;
+    const query = this.$route.query;
+    const paramsSatisfied = service && feature && query;
+
+    const initParams = {
+      initialChain: this.$route.params.service,
+      ...(paramsSatisfied && {
+        initialModuleParam: {
+          [trade ? "tradeQuery" : "poolQuery"]: trade ? this.$route.query : pool
+        }
+      })
+    };
+
+    console.log({ service, feature, query, initParams, paramsSatisfied });
     try {
-      await vxm.bancor.init(this.$route.params.service);
+      await vxm.bancor.init(initParams);
       this.loading = false;
     } catch (e) {
       await wait(1000);
       try {
-        await vxm.bancor.init(this.$route.params.service);
+        await vxm.bancor.init(initParams);
       } catch (e) {
         this.loading = false;
         this.error = e.message;
-        throw new Error(e)
+        throw new Error(e);
       }
     }
   }

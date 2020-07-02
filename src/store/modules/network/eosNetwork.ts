@@ -7,7 +7,7 @@ import {
   TransferParam,
   TokenBalance
 } from "@/types/bancor";
-import { getBalance, getTokenBalances, compareString } from "@/api/helpers";
+import { getBalance, getTokenBalances, compareString, compareToken } from "@/api/helpers";
 import { vxm } from "@/store";
 
 import _ from "lodash";
@@ -15,10 +15,6 @@ import { multiContract } from "@/api/multiContractTx";
 import wait from "waait";
 import { Asset, asset_to_number, number_to_asset, Sym } from "eos-common";
 
-const compareToken = (
-  a: TokenBalanceParam | TokenBalanceReturn,
-  b: TokenBalanceParam | TokenBalanceReturn
-) => compareString(a.contract, b.contract) && compareString(a.symbol, b.symbol);
 
 const requiredProps = ["balance", "contract", "symbol"];
 
@@ -38,6 +34,10 @@ const VuexModule = createModule({
   strict: false
 });
 
+const includedInTokens = (tokens: TokenBalanceParam[]) => (
+  token: TokenBalanceReturn
+) => tokens.some(t => compareToken(token, t));
+
 export class EosNetworkModule
   extends VuexModule.With({ namespaced: "eosNetwork/" })
   implements NetworkModule {
@@ -50,7 +50,8 @@ export class EosNetworkModule
   get balance() {
     return ({ contract, symbol }: { contract: string; symbol: string }) => {
       return this.balances.find(
-        x => x.symbol == symbol && x.contract == contract
+        x =>
+          compareString(x.symbol, symbol) && compareString(x.contract, contract)
       );
     };
   }
@@ -83,27 +84,15 @@ export class EosNetworkModule
           tokens: originalBalances,
           disableSetting: true
         });
+        if (!newBalanceArray) return [];
         const allBalancesDifferent = originalBalances.every(
           balance =>
-            newBalanceArray.find(b => compareString(b.symbol, balance.symbol))!
-              .balance !== balance.balance
+            newBalanceArray.find(b => compareString(b.symbol, balance.symbol))?.balance !== balance.balance
         );
         if (allBalancesDifferent) {
-          console.log(
-            newBalanceArray.map(x => [x.balance, x.symbol].join(" ")),
-            "balance has changed!",
-            originalBalances.map(x => [x.balance, x.symbol].join(" "))
-          );
           this.updateTokenBalances(newBalanceArray);
           break;
         } else {
-          console.log(
-            "Balance has not updated yet, trying again in",
-            interval,
-            "milliseconds",
-            "as attempt #",
-            i
-          );
           await wait(interval);
         }
       }
@@ -112,6 +101,7 @@ export class EosNetworkModule
   }
 
   @action async transfer({ to, amount, id, memo }: TransferParam) {
+    if (!this.isAuthenticated) throw new Error("Not authenticated!")
     const symbol = id;
     const dirtyReserve = vxm.eosBancor.relaysList
       .flatMap(relay => relay.reserves)
@@ -140,50 +130,74 @@ export class EosNetworkModule
   ): Promise<TokenBalanceReturn[]> {
     const balances = await Promise.all(
       tokens.map(async token => {
-        const balance = await getBalance(token.contract, token.symbol);
+        const balance = await getBalance(token.contract, token.symbol, token.precision);
         return { ...token, balance: asset_to_number(new Asset(balance)) };
       })
     );
     return balances;
   }
 
+
   @action public async getBalances(params?: GetBalanceParam) {
-    if (!this.isAuthenticated) return [];
-    if (!params) {
-      const tokenBalances = await getTokenBalances(this.isAuthenticated);
-      const equalisedBalances: TokenBalanceReturn[] = tokenBalances.tokens.map(
+    if (!this.isAuthenticated) throw new Error("Not logged in.");
+
+    if (!params || params?.tokens?.length == 0) {
+      const tokensToFetch = this.balances;
+
+      const [directTokens, bonusTokens] = await Promise.all([
+        this.fetchBulkBalances(tokensToFetch),
+        getTokenBalances(this.isAuthenticated).catch(() => ({
+          tokens: [] as TokenBalance[]
+        }))
+      ]);
+
+      const equalisedBalances = bonusTokens.tokens.map(
         tokenBalanceToTokenBalanceReturn
       );
-      this.updateTokenBalances(equalisedBalances);
-      return equalisedBalances;
+      const merged = _.uniqWith(
+        [...directTokens, ...equalisedBalances],
+        compareToken
+      );
+      this.updateTokenBalances(merged);
+      return merged
     }
 
-    const tokens = _.uniqWith(params.tokens, compareToken);
+    const tokensAskedFor = params!.tokens;
 
-    if (params.slow) {
+    if (params?.slow) {
       const bulkTokens = await getTokenBalances(this.isAuthenticated);
       const equalisedBalances = bulkTokens.tokens.map(
         tokenBalanceToTokenBalanceReturn
       );
       this.updateTokenBalances(equalisedBalances);
       const missedTokens = _.differenceWith(
-        tokens,
+        tokensAskedFor,
         equalisedBalances,
         compareToken
       );
       const remainingBalances = await this.fetchBulkBalances(missedTokens);
       this.updateTokenBalances(remainingBalances);
-      return [...equalisedBalances, ...remainingBalances].filter(balance =>
-        tokens.some(token => compareToken(balance, token))
+      return [...equalisedBalances, ...remainingBalances].filter(
+        includedInTokens(tokensAskedFor)
       );
     }
 
     const [directTokens, bonusTokens] = await Promise.all([
-      this.fetchBulkBalances(tokens),
+      this.fetchBulkBalances(tokensAskedFor),
       getTokenBalances(this.isAuthenticated).catch(() => ({
         tokens: [] as TokenBalance[]
       }))
     ]);
+
+    const allTokensReceived = tokensAskedFor.every(fetchableToken =>
+      directTokens.some(fetchedToken =>
+        compareToken(fetchableToken, fetchedToken)
+      )
+    );
+    console.assert(
+      allTokensReceived,
+      "fetch bulk balances failed to return all tokens asked for!"
+    );
 
     const equalisedBalances: TokenBalanceReturn[] = bonusTokens.tokens.map(
       tokenBalanceToTokenBalanceReturn
@@ -195,13 +209,14 @@ export class EosNetworkModule
     if (!params.disableSetting) {
       this.updateTokenBalances(merged);
     }
-    return directTokens;
+    return directTokens.filter(includedInTokens(tokensAskedFor));
   }
 
   @mutation updateTokenBalances(tokens: TokenBalanceReturn[]) {
-    this.tokenBalances = _.uniqWith(
+    const toSet = _.uniqWith(
       [...tokens.map(pickBalanceReturn), ...this.tokenBalances],
       compareToken
     );
+    this.tokenBalances = toSet;
   }
 }

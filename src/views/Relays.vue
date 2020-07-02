@@ -27,9 +27,21 @@
             sort-by="liqDepth"
             :sort-desc="true"
             primary-key="id"
+            :table-busy="loadingPools"
             :tbody-transition-props="transProps"
             :tbody-transition-handlers="transHandler"
           >
+            <template v-slot:table-busy>
+              <div class="text-center my-2">
+                <b-spinner class="align-middle"></b-spinner>
+                <strong>Loading...</strong>
+              </div>
+            </template>
+            <template v-if="morePoolsAvailable" v-slot:custom-foot>
+              <b-button :disabled="loadingPools" @click="loadMorePools"
+                >Load more...
+              </b-button>
+            </template>
             <template v-slot:table-colgroup>
               <col key="index" style="width: 46px;" />
               <col key="symbol" style="width: 260px;" />
@@ -107,11 +119,13 @@
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
-import axios from "axios";
 import SortIcons from "@/components/common/SortIcons.vue";
-import { TokenPrice } from "@/types/bancor";
+import { TokenPrice, TradingModule, LiquidityModule } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
 import Velocity from "velocity-animate";
+import { State, Getter, Action, namespace } from "vuex-class";
+
+const bancor = namespace("bancor");
 
 const numeral = require("numeral");
 
@@ -124,6 +138,9 @@ export default class Relays extends Vue {
   numeral = numeral;
   private filter: string = "";
   small = false;
+  @bancor.Action loadMorePools!: LiquidityModule["loadMorePools"];
+  @bancor.Getter morePoolsAvailable!: LiquidityModule["morePoolsAvailable"];
+  @bancor.Getter loadingPools!: LiquidityModule["loadingPools"];
 
   fields = [
     {

@@ -124,8 +124,8 @@ import { State, Getter, Action, Mutation, namespace } from "vuex-class";
 import { LiquidityModule, TradingModule, Step } from "../../../types/bancor";
 import numeral from "numeral";
 import { vxm } from "@/store";
-import { buildTokenId } from "../../../api/helpers";
-import { ethReserveAddress } from '../../../api/ethConfig';
+import { buildTokenId, compareString } from "../../../api/helpers";
+import { ethReserveAddress } from "../../../api/ethConfig";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
   return {
@@ -212,10 +212,12 @@ export default class HeroConvert extends Vue {
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter tokens!: TradingModule["tokens"];
+  @bancor.Getter convertibleTokens!: TradingModule["convertibleTokens"];
   @bancor.Action convert!: TradingModule["convert"];
   @bancor.Action focusSymbol!: TradingModule["focusSymbol"];
   @bancor.Action getReturn!: TradingModule["getReturn"];
   @bancor.Action getCost!: TradingModule["getCost"];
+  @bancor.Action loadMoreTokens!: TradingModule["loadMoreTokens"];
   @bancor.Getter relay!: LiquidityModule["relay"];
   @wallet.Getter isAuthenticated!: string | boolean;
   @bancor.Action
@@ -303,12 +305,7 @@ export default class HeroConvert extends Vue {
   }
 
   get choices() {
-    return this.tokens.map(token => ({
-      id: token.id,
-      symbol: token.symbol,
-      balance: token.balance,
-      img: token.logo
-    }));
+    return this.convertibleTokens;
   }
 
   get fromTokenId() {
@@ -316,6 +313,14 @@ export default class HeroConvert extends Vue {
   }
 
   set fromTokenId(id: string) {
+    this.loadFromToken(id);
+  }
+
+  set toTokenId(id: string) {
+    this.loadToToken(id);
+  }
+
+  changeFromToken(id: string) {
     this.$router.push({
       name: "Tokens",
       query: {
@@ -325,7 +330,7 @@ export default class HeroConvert extends Vue {
     });
   }
 
-  set toTokenId(id: string) {
+  changeToToken(id: string) {
     this.$router.push({
       name: "Tokens",
       query: {
@@ -333,6 +338,30 @@ export default class HeroConvert extends Vue {
         quote: id
       }
     });
+  }
+
+  async loadFromToken(id: string) {
+    const tokenExists = this.tokens.find(x => compareString(x.id, id));
+    if (tokenExists) {
+      this.changeFromToken(id);
+    } else {
+      await this.loadMoreTokens([id]);
+      await wait(1);
+      console.log("should be changing the token at", new Date().getTime());
+      this.changeFromToken(id);
+    }
+  }
+
+  async loadToToken(id: string) {
+    const tokenExists = this.tokens.find(x => compareString(x.id, id));
+    if (tokenExists) {
+      this.changeToToken(id);
+    } else {
+      await this.loadMoreTokens([id]);
+      await wait(1);
+      console.log("should be changing the token at", new Date().getTime());
+      this.changeToToken(id);
+    }
   }
 
   get displayedSlippage() {

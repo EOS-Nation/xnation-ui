@@ -13,7 +13,8 @@
         <div class="networks">
           <b-form-radio-group
             size="sm"
-            v-model="selected"
+            :checked="selected"
+            @input="loadNewModule"
             :options="options"
             button-variant="branded"
             buttons
@@ -60,8 +61,84 @@ import { vxm } from "@/store/";
 import wait from "waait";
 import { router } from "@/router";
 import { sync } from "vuex-router-sync";
-import { services, Feature } from "@/api/helpers";
+import {
+  services,
+  Feature,
+  buildTokenId,
+  compareString,
+  findOrThrow
+} from "@/api/helpers";
 import { store } from "../../store";
+import { ModuleParam } from "../../types/bancor";
+import { ethReserveAddress } from "../../api/ethConfig";
+import { Route } from "vue-router";
+
+const defaultPaths = [
+  {
+    moduleId: "eos",
+    base: buildTokenId({ contract: "bntbntbntbnt", symbol: "BNT" }),
+    quote: buildTokenId({ contract: "eosio.token", symbol: "EOS" })
+  },
+  {
+    moduleId: "eth",
+    base: ethReserveAddress,
+    quote: "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c"
+  },
+  {
+    moduleId: "usds",
+    base: buildTokenId({ contract: "eosdtsttoken", symbol: "EOSDT" }),
+    quote: buildTokenId({ contract: "tethertether", symbol: "USDT" })
+  }
+];
+
+const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => ({
+  name: route.name,
+  params: route.params,
+  query: { base, quote }
+});
+
+const extendRouter = (moduleId: string) => {
+  const path = findOrThrow(
+    defaultPaths,
+    path => compareString(moduleId, path.moduleId),
+    `failed to find default path for unknown service`
+  );
+
+  return {
+    query: {
+      base: path.base,
+      quote: path.quote
+    },
+    params: {
+      service: moduleId
+    }
+  };
+};
+
+const addDefaultQueryParams = (to: Route): any => {
+  const path = findOrThrow(
+    defaultPaths,
+    path => compareString(to.params.service, path.moduleId),
+    `failed to find default path for unknown service`
+  );
+
+  return appendBaseQuoteQuery(path.base, path.quote, to);
+};
+
+const defaultModuleParams = (moduleId: string): ModuleParam => {
+  const path = findOrThrow(
+    defaultPaths,
+    path => compareString(moduleId, path.moduleId),
+    `failed to find default path for unknown service`
+  );
+
+  return {
+    tradeQuery: {
+      base: path.base,
+      quote: path.quote
+    }
+  };
+};
 
 const createDirectRoute = (name: string, params?: any) => ({
   name,
@@ -136,23 +213,30 @@ export default class Navigation extends Vue {
   }
 
   set selected(newSelection: string) {
-    this.$router.replace(`/${newSelection}`);
+    this.loadNewModule(newSelection);
   }
 
-  options = [
-    {
-      text: "EOS",
-      value: "eos"
-    },
-    {
-      text: "ETH",
-      value: "eth"
-    },
-    {
-      text: "USDⓈ",
-      value: "usds"
-    }
-  ];
+  async loadNewModule(moduleId: string) {
+    const module = findOrThrow(vxm.bancor.modules, module =>
+      compareString(module.id, moduleId)
+    );
+    const moduleAlreadyLoaded = module.loaded;
+
+    await vxm.bancor.initialiseModule({
+      moduleId,
+      resolveWhenFinished: !moduleAlreadyLoaded,
+      params: defaultModuleParams(moduleId)
+    });
+    this.$router.push({ name: "Tokens", ...extendRouter(moduleId) });
+  }
+
+  get options() {
+    return vxm.bancor.modules.map(module => ({
+      text: module.label,
+      value: module.id,
+      disabled: module.loading
+    }));
+  }
 
   get selectedService() {
     return services.find(service => service.namespace == this.selectedNetwork);

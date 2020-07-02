@@ -18,9 +18,10 @@ import {
   Section,
   Step,
   HistoryModule,
-  ViewAmount
+  ViewAmount,
+  ModuleParam
 } from "@/types/bancor";
-import { ethBancorApi } from "@/api/bancorApiWrapper";
+import { ethBancorApi, bancorApi } from "@/api/bancorApiWrapper";
 import {
   getEthRelays,
   web3,
@@ -31,7 +32,8 @@ import {
   findOrThrow,
   updateArray,
   networkTokens,
-  identifyVersionBySha3ByteCodeHash
+  identifyVersionBySha3ByteCodeHash,
+  isOdd
 } from "@/api/helpers";
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import {
@@ -41,7 +43,9 @@ import {
   ABIConverterRegistry,
   ABINetworkPathFinder,
   ethErc20WrapperContract,
-  ethReserveAddress
+  ethReserveAddress,
+  ABIConverterV28,
+  ABIConverter
 } from "@/api/ethConfig";
 import { toWei, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
@@ -60,16 +64,73 @@ import {
   shrinkToken,
   buildRegistryContract,
   buildV28ConverterContract,
-  buildNetworkContract
+  buildNetworkContract,
+  makeBatchRequest
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
 import BigNumber from "bignumber.js";
 import {
   getSmartTokenHistory,
   fetchSmartTokens,
+  HistoryItem,
   fetchSmartTokenHistory
 } from "@/api/zumZoom";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
+import { findNewPath } from "@/api/eosBancorCalc";
+import { priorityEthPools, getHardCodedRelays } from "./staticRelays";
+
+const sortSmartTokenAddressesByHighestLiquidity = (
+  tokens: TokenPrice[],
+  smartTokenAddresses: string[]
+): string[] => {
+  const sortedTokens = tokens
+    .slice()
+    .sort((a, b) => b.liquidityDepth - a.liquidityDepth);
+
+  const sortedDictionary = sortedTokens
+    .map(
+      token =>
+        ethBancorApiDictionary.find(dic =>
+          compareString(token.id, dic.tokenId)
+        )!
+    )
+    .filter(Boolean);
+
+  const res = sortAlongSide(
+    smartTokenAddresses,
+    pool => pool,
+    sortedDictionary.map(x => x.smartTokenAddress)
+  );
+
+  const isSame = res.every((item, index) => smartTokenAddresses[index] == item);
+  if (isSame)
+    console.warn(
+      "Sorted by Highest liquidity sorter is returning the same array passed"
+    );
+  return res;
+};
+
+const sortAlongSide = <T>(
+  arr: T[],
+  selector: (item: T) => string,
+  sortedArr: string[]
+): T[] => {
+  const res = arr.slice().sort((a, b) => {
+    const aIndex = sortedArr.findIndex(sort =>
+      compareString(sort, selector(a))
+    );
+    const bIndex = sortedArr.findIndex(sort =>
+      compareString(sort, selector(b))
+    );
+
+    if (aIndex == -1 && bIndex == -1) return 0;
+    if (aIndex == -1) return 1;
+    if (bIndex == -1) return -1;
+    return aIndex - bIndex;
+  });
+
+  return res;
+};
 
 interface EthOpposingLiquid extends OpposingLiquid {
   smartTokenAmount: string;
@@ -191,6 +252,7 @@ interface TokenMeta {
   contract: string;
   symbol: string;
   name: string;
+  precision?: number;
 }
 
 const getTokenMeta = async () => {
@@ -213,7 +275,7 @@ const getTokenMeta = async () => {
     contract: ethReserveAddress
   };
   const final = [addedEth, existingEth, ...withoutEth];
-  return final;
+  return _.uniqWith(final, (a, b) => compareString(a.id, b.id));
 };
 
 const compareRelayBySmartTokenAddress = (a: Relay, b: Relay) =>
@@ -235,12 +297,18 @@ const VuexModule = createModule({
 export class EthBancorModule
   extends VuexModule.With({ namespaced: "ethBancor/" })
   implements TradingModule, LiquidityModule, CreatePoolModule, HistoryModule {
+  registeredSmartTokenAddresses: string[] = [];
+  convertibleTokenAddresses: string[] = [];
+  loadingPools: boolean = true;
+
+  bancorApiTokens: TokenPrice[] = [];
   tokensList: any[] = [];
   relayFeed: RelayFeed[] = [];
   relaysList: Relay[] = [];
   tokenBalances: { id: string; balance: number }[] = [];
   bntUsdPrice: number = 0;
   tokenMeta: TokenMeta[] = [];
+  morePoolsAvailableProp: boolean = true;
   availableHistories: string[] = [];
   bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
   bancorNetworkPathFinder = "0x6F0cD8C4f6F06eAB664C7E3031909452b4B72861";
@@ -250,6 +318,72 @@ export class EthBancorModule
     BancorX: "",
     BancorConverterFactory: ""
   };
+  initiated: boolean = false;
+
+  @mutation setBancorApiTokens(tokens: TokenPrice[]) {
+    this.bancorApiTokens = tokens;
+  }
+
+  get morePoolsAvailable() {
+    return this.morePoolsAvailableProp;
+  }
+
+  @mutation setPoolsAvailable(status: boolean) {
+    this.morePoolsAvailableProp = status;
+  }
+
+  @mutation setLoadingPools(status: boolean) {
+    this.loadingPools = status;
+  }
+
+  @action async loadMorePools() {
+    this.setLoadingPools(true);
+    const newPoolsAvailable = this.registeredSmartTokenAddresses.filter(
+      address =>
+        !this.relaysList.some(relay =>
+          compareString(relay.smartToken.contract, address)
+        )
+    );
+    const sortedPools = await this.poolsByPriority({
+      smartTokenAddresses: newPoolsAvailable,
+      tokenPrices: this.bancorApiTokens
+    });
+    await this.addPools(sortedPools.slice(0, 10));
+    this.setLoadingPools(false);
+  }
+
+  @action async addPools(smartTokenAddresses: string[]) {
+    this.setLoadingPools(true);
+    const relays = await this.buildRelaysFromSmartTokenAddresses(
+      smartTokenAddresses
+    );
+    this.setLoadingPools(false);
+
+    return relays;
+  }
+
+  @action async addPool({ relay }: { relay: Relay }) {
+    if (
+      relayIncludesAtLeastOneNetworkToken(relay) &&
+      relayReservesIncludedInTokenMeta(this.tokenMeta)(relay)
+    ) {
+      this.updateRelays([relay]);
+
+      const feed = await this.possibleRelayFeedsFromBancorApi([relay]);
+      if (feed.length > 0) {
+        this.updateRelayFeeds(feed);
+      } else {
+        const feed = await this.buildRelayFeed({
+          relay,
+          usdPriceOfBnt: this.bntUsdPrice
+        });
+        this.updateRelayFeeds(feed);
+      }
+      await wait(1);
+    } else {
+      console.log("Refusing to add pool as it failed tests", relay);
+    }
+  }
 
   get newNetworkTokenChoices(): ModalChoice[] {
     const bntTokenMeta = this.tokenMeta.find(token => token.symbol == "BNT")!;
@@ -289,29 +423,33 @@ export class EthBancorModule
             this.tokenBalance(meta.contract) &&
             this.tokenBalance(meta.contract)!.balance
         }))
-        .filter(
-          (meta, index, arr) => arr.findIndex(m => m.id == meta.id) == index
-        )
         .filter(meta =>
           this.newNetworkTokenChoices.some(
-            networkChoice => networkChoice.symbol !== meta.symbol
+            networkChoice => !compareString(networkChoice.id, meta.id)
           )
         )
-        .filter(tokenChoice => tokenChoice.symbol !== networkToken)
+        .filter(tokenChoice => tokenChoice.id !== networkToken)
         .filter(meta => {
-          if (!(meta.symbol && networkToken)) return true;
-          return !this.relaysList.some(relay => {
-            const reserves = relay.reserves.map(reserve => reserve.symbol);
-            const suggested = [meta.symbol, networkToken];
-            return _.isEqual(_.sortBy(reserves), _.sortBy(suggested));
+          const suggestedReserveIds = [meta.id, networkToken];
+          const existingRelayWithSameReserves = this.relaysList.some(relay => {
+            const reserves = relay.reserves.map(reserve => reserve.contract);
+            return suggestedReserveIds.every(id =>
+              reserves.some(r => compareString(id, r))
+            );
           });
+          return !existingRelayWithSameReserves;
         })
+        .filter((_, index) => index < 200)
         .sort((a, b) => Number(b.balance) - Number(a.balance));
     };
   }
 
   get isAuthenticated() {
     return vxm.wallet.isAuthenticated;
+  }
+
+  @mutation moduleInitiated() {
+    this.initiated = true;
   }
 
   @action async fetchNewConverterAddressFromHash(
@@ -699,7 +837,7 @@ export class EthBancorModule
               token => compareString(token.id!, item.id),
               token => ({ ...token, liqDepth: token.liqDepth! + item.liqDepth })
             )
-          : [...acc, item];
+          : [...acc, item as ViewToken];
       }, [])
       .filter(
         (token, index, arr) =>
@@ -806,20 +944,17 @@ export class EthBancorModule
 
         return {
           id: relay.smartToken.contract,
-          reserves: sortByNetworkTokens(
-            relay.reserves.map(reserve => {
-              const meta = this.tokenMetaObj(reserve.contract);
-              return {
-                id: reserve.contract,
-                reserveId: relay.smartToken.contract + reserve.contract,
-                logo: [meta.image],
-                symbol: reserve.symbol,
-                contract: reserve.contract,
-                smartTokenSymbol: relay.smartToken.contract
-              };
-            }),
-            reserve => reserve.symbol
-          ).reverse(),
+          reserves: [networkReserve, tokenReserve].map(reserve => {
+            const meta = this.tokenMetaObj(reserve.contract);
+            return {
+              id: reserve.contract,
+              reserveId: relay.smartToken.contract + reserve.contract,
+              logo: [meta.image],
+              symbol: reserve.symbol,
+              contract: reserve.contract,
+              smartTokenSymbol: relay.smartToken.contract
+            };
+          }),
           smartTokenSymbol,
           fee: relay.fee / 100,
           liqDepth: relayFeed.liqDepth,
@@ -1018,7 +1153,7 @@ export class EthBancorModule
     );
 
     const maxWithdrawals: ViewAmount[] = reserves.map(reserve => ({
-      id: reserve.symbol,
+      id: reserve.contract,
       amount: shrinkToken(
         percent.times(reserve.weiAmount).toString(),
         reserve.decimals
@@ -1350,13 +1485,19 @@ export class EthBancorModule
     this.contracts = contracts;
   }
 
+  @action async warmEthApi() {
+    const tokens = await ethBancorApi.getTokens();
+    this.setBancorApiTokens(tokens);
+    return tokens;
+  }
+
   @action async possibleRelayFeedsFromBancorApi(
     relays: Relay[]
   ): Promise<RelayFeed[]> {
     try {
-      const tokens = await ethBancorApi.getTokens();
+      const tokens = this.bancorApiTokens;
       if (!tokens || tokens.length == 0) {
-        throw new Error("Bad response from bancorAPI");
+        throw new Error("No bancor tokens available...");
       }
       const ethUsdPrice = findOrThrow(
         tokens,
@@ -1423,21 +1564,6 @@ export class EthBancorModule
     }
   }
 
-  @action async fetchAndUpdateRelayFeeds(relays: Relay[]) {
-    const bancorApiFeeds = await this.possibleRelayFeedsFromBancorApi(relays);
-    const remainingRelays = _.differenceWith(
-      relays,
-      bancorApiFeeds,
-      (relay, feed) =>
-        compareString(relay.smartToken.contract, feed.smartTokenContract)
-    );
-    const feeds = await this.buildRelayFeeds(remainingRelays);
-    const passedFeeds = feeds.filter(Boolean);
-    const failedFeeds = feeds.filter(x => !x);
-    console.log(failedFeeds.length, "relays failed to fetch balances for");
-    this.updateRelayFeeds([...bancorApiFeeds, ...passedFeeds]);
-  }
-
   @mutation updateRelayFeeds(feeds: RelayFeed[]) {
     const allFeeds = [...feeds, ...this.relayFeed];
     this.relayFeed = _.uniqWith(allFeeds, compareRelayFeed);
@@ -1485,133 +1611,293 @@ export class EthBancorModule
   @action async fetchUsdPriceOfBnt() {
     const price = await vxm.bancor.fetchUsdPriceOfBnt();
     this.setBntUsdPrice(price);
-    return price;
   }
 
   @mutation setBntUsdPrice(usdPrice: number) {
     this.bntUsdPrice = usdPrice;
   }
 
-  @action async buildRelayFeeds(relays: Relay[]): Promise<RelayFeed[]> {
-    const usdPriceOfBnt = await this.fetchUsdPriceOfBnt();
-    const relayFeeds = await Promise.all(
-      relays.map(
-        async (relay): Promise<RelayFeed[]> => {
-          const reservesBalances = await Promise.all(
-            relay.reserves.map(reserve =>
-              this.fetchReserveBalance({
-                relay,
-                reserveContract: reserve.contract
-              })
-            )
-          );
-          const [
-            [networkReserve, networkReserveAmount],
-            [tokenReserve, tokenAmount]
-          ] = sortByNetworkTokens(reservesBalances, balance =>
-            balance[0].symbol.toUpperCase()
-          );
-
-          const networkReserveIsUsd = networkReserve.symbol == "USDB";
-          const dec = networkReserveAmount / tokenAmount;
-          const reverse = tokenAmount / networkReserveAmount;
-          const main = networkReserveIsUsd ? dec : dec * usdPriceOfBnt;
-
-          const liqDepth =
-            (networkReserveIsUsd
-              ? networkReserveAmount
-              : networkReserveAmount * usdPriceOfBnt) * 2;
-
-          return [
-            {
-              tokenId: tokenReserve.contract,
-              smartTokenContract: relay.smartToken.contract,
-              costByNetworkUsd: main,
-              liqDepth
-            },
-            {
-              tokenId: networkReserve.contract,
-              smartTokenContract: relay.smartToken.contract,
-              liqDepth,
-              costByNetworkUsd: reverse * main
-            }
-          ];
-        }
+  @action async buildRelayFeed({
+    relay,
+    usdPriceOfBnt
+  }: {
+    relay: Relay;
+    usdPriceOfBnt: number;
+  }): Promise<RelayFeed[]> {
+    const reservesBalances = await Promise.all(
+      relay.reserves.map(reserve =>
+        this.fetchReserveBalance({
+          relay,
+          reserveContract: reserve.contract
+        })
       )
     );
-    return relayFeeds.flat(1);
+    const [
+      [networkReserve, networkReserveAmount],
+      [tokenReserve, tokenAmount]
+    ] = sortByNetworkTokens(reservesBalances, balance =>
+      balance[0].symbol.toUpperCase()
+    );
+
+    const networkReserveIsUsd = networkReserve.symbol == "USDB";
+    const dec = networkReserveAmount / tokenAmount;
+    const reverse = tokenAmount / networkReserveAmount;
+    const main = networkReserveIsUsd ? dec : dec * usdPriceOfBnt;
+
+    const liqDepth =
+      (networkReserveIsUsd
+        ? networkReserveAmount
+        : networkReserveAmount * usdPriceOfBnt) * 2;
+
+    return [
+      {
+        tokenId: tokenReserve.contract,
+        smartTokenContract: relay.smartToken.contract,
+        costByNetworkUsd: main,
+        liqDepth
+      },
+      {
+        tokenId: networkReserve.contract,
+        smartTokenContract: relay.smartToken.contract,
+        liqDepth,
+        costByNetworkUsd: reverse * main
+      }
+    ];
+  }
+
+  get loadingTokens() {
+    return this.loadingPools;
+  }
+
+  get moreTokensAvailable() {
+    return this.morePoolsAvailable;
+  }
+
+  @action async relaysContainingToken(tokenId: string): Promise<string[]> {
+    return this.relaysRequiredForTrade({
+      from: tokenId,
+      to: "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
+      networkContractAddress: this.contracts.BancorNetwork
+    });
+  }
+
+  get convertibleTokens() {
+    return this.convertibleTokenAddresses
+      .map(
+        convertibleToken =>
+          this.tokenMeta.find(meta =>
+            compareString(convertibleToken, meta.contract)
+          )!
+      )
+      .filter(Boolean)
+      .map(meta => ({ ...meta, img: meta.image }));
+  }
+
+  @action async loadMoreTokens(tokenIds?: string[]) {
+    console.log("load more triggered at", new Date().getTime());
+    console.log("load more tokens received", tokenIds);
+    if (tokenIds && tokenIds.length > 0) {
+      const smartTokenAddresses = await Promise.all(
+        tokenIds.map(id => this.relaysContainingToken(id))
+      );
+      const addresses = smartTokenAddresses.flat(1);
+      console.log(addresses, "is gonna get loaded...");
+      await this.addPools(addresses);
+      await wait(1);
+      console.log("should be resolving loadMore at", new Date().getTime());
+    } else {
+      console.log("just loading random pools...");
+      await this.loadMorePools();
+    }
   }
 
   @mutation setAvailableHistories(smartTokenNames: string[]) {
     this.availableHistories = smartTokenNames;
   }
 
-  @action async init() {
-    console.time('eth')
+  @action async refresh() {
+    console.log("refresh called on eth bancor, doing nothing");
+  }
+
+  @action async fetchConvertibleTokens(networkContract: string) {
+    const contract = await buildRegistryContract(networkContract);
+    return contract.methods.getConvertibleTokens().call();
+  }
+
+  @mutation setRegisteredSmartTokenAddresses(addresses: string[]) {
+    this.registeredSmartTokenAddresses = addresses;
+  }
+
+  @mutation setConvertibleTokenAddresses(addresses: string[]) {
+    this.convertibleTokenAddresses = addresses;
+  }
+
+  @action async conversionPathFromNetworkContract({
+    from,
+    to,
+    networkContractAddress
+  }: {
+    from: string;
+    to: string;
+    networkContractAddress: string;
+  }) {
+    const networkContract = buildNetworkContract(networkContractAddress);
+    const path = await networkContract.methods.conversionPath(from, to).call();
+    return path;
+  }
+
+  @action async relaysRequiredForTrade({
+    from,
+    to,
+    networkContractAddress
+  }: {
+    from: string;
+    to: string;
+    networkContractAddress: string;
+  }) {
+    try {
+      const path = await this.conversionPathFromNetworkContract({
+        from,
+        to,
+        networkContractAddress
+      });
+      const smartTokenAddresses = path.filter((_, index) => isOdd(index));
+      if (smartTokenAddresses.length == 0)
+        throw new Error("Failed to find any smart token addresses for path.");
+      return smartTokenAddresses;
+    } catch (e) {
+      console.error(`relays required for trade failed ${e.message}`);
+      throw new Error(`relays required for trade failed ${e.message}`);
+    }
+  }
+
+  @action async poolsByPriority({
+    smartTokenAddresses,
+    tokenPrices
+  }: {
+    smartTokenAddresses: string[];
+    tokenPrices?: TokenPrice[];
+  }) {
+    if (tokenPrices && tokenPrices.length > 0) {
+      return sortSmartTokenAddressesByHighestLiquidity(
+        tokenPrices,
+        smartTokenAddresses
+      );
+    } else {
+      return sortAlongSide(smartTokenAddresses, x => x, priorityEthPools);
+    }
+  }
+
+  @action async bareMinimumPools({
+    params,
+    networkContractAddress,
+    smartTokenAddresses,
+    tokenPrices
+  }: {
+    params?: ModuleParam;
+    networkContractAddress: string;
+    smartTokenAddresses: string[];
+    tokenPrices?: TokenPrice[];
+  }): Promise<string[]> {
+    const fromToken =
+      params! && params!.tradeQuery! && params!.tradeQuery!.base!;
+    const toToken =
+      params! && params!.tradeQuery! && params!.tradeQuery!.quote!;
+
+    const tradeIncluded = fromToken && toToken;
+    const poolIncluded = params && params.poolQuery;
+
+    if (tradeIncluded) {
+      console.log("trade included...");
+      return this.relaysRequiredForTrade({
+        from: fromToken,
+        to: toToken,
+        networkContractAddress
+      });
+    } else if (poolIncluded) {
+      console.log("pool included...");
+      return [poolIncluded];
+    } else {
+      console.log("should be loading first 5");
+      const allPools = await this.poolsByPriority({
+        smartTokenAddresses,
+        tokenPrices
+      });
+      return allPools.slice(0, 3);
+    }
+  }
+
+  @action async init(params?: ModuleParam) {
+    console.log(params, "was init param on eth");
+    console.time("eth");
+
+    if (this.initiated) {
+      console.log("returning already");
+      return this.refresh();
+    }
+
     try {
       const [
         tokenMeta,
         contractAddresses,
-        availableSmartTokenHistories
+        availableSmartTokenHistories,
+        bancorApiTokens
       ] = await Promise.all([
         getTokenMeta(),
         this.fetchContractAddresses(),
-        fetchSmartTokens()
+        fetchSmartTokens().catch(e => [] as HistoryItem[]),
+        this.warmEthApi().catch(e => [] as TokenPrice[]),
+        this.fetchUsdPriceOfBnt()
       ]);
+
+      console.log({ contractAddresses });
 
       this.setAvailableHistories(
         availableSmartTokenHistories.map(history => history.id)
       );
-
       this.setTokenMeta(tokenMeta);
 
-      const shortCircuitRegisteredSmartTokenAddresses = await this.fetchSmartTokenAddresses(
-        contractAddresses.BancorConverterRegistry
-      );
+      const [
+        registeredSmartTokenAddresses,
+        convertibleTokens
+      ] = await Promise.all([
+        this.fetchSmartTokenAddresses(
+          contractAddresses.BancorConverterRegistry
+        ),
+        this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry)
+      ]);
+
+      this.setRegisteredSmartTokenAddresses(registeredSmartTokenAddresses);
+      this.setConvertibleTokenAddresses(convertibleTokens);
+
+      const bareMinimumSmartTokenAddresses = await this.bareMinimumPools({
+        params,
+        networkContractAddress: contractAddresses.BancorNetwork,
+        smartTokenAddresses: registeredSmartTokenAddresses,
+        ...(bancorApiTokens && { tokenPrices: bancorApiTokens })
+      });
+      console.log("did you get here?");
 
       const isDev = process.env.NODE_ENV == "development";
-      const registeredSmartTokenAddresses = isDev
-        ? [
-            "0xb1CD6e4153B2a390Cf00A6556b0fC1458C4A5533",
-            ...shortCircuitRegisteredSmartTokenAddresses.slice(0, 10)
-          ]
-        : shortCircuitRegisteredSmartTokenAddresses;
+      const initialLoad = bareMinimumSmartTokenAddresses;
 
-      // const hardCodedRelays = getEthRelays();
-      const hardCodedRelays: Relay[] = [];
+      const approvedPriority = await this.poolsByPriority({
+        smartTokenAddresses: registeredSmartTokenAddresses,
+        ...(bancorApiTokens && { tokenPrices: bancorApiTokens as TokenPrice[] })
+      });
 
-      const passedHardCodedRelays = hardCodedRelays
-        .filter(relayReservesIncludedInTokenMeta(tokenMeta))
-        .filter(relay =>
-          registeredSmartTokenAddresses.includes(relay.smartToken.contract)
-        )
-        .filter(relayIncludesAtLeastOneNetworkToken);
+      const remainingLoad = _.differenceWith(
+        approvedPriority,
+        initialLoad,
+        compareString
+      ).slice(0, isDev ? 5 : 20);
 
-      this.updateRelays(passedHardCodedRelays);
-      await this.fetchAndUpdateRelayFeeds(passedHardCodedRelays);
+      await this.addPools(initialLoad);
+      await wait(1);
+      this.addPools(remainingLoad);
 
-      const hardCodedSmartTokenAddresses = passedHardCodedRelays.map(
-        relay => relay.smartToken.contract
-      );
-
-      const nonHardCodedSmartTokenAddresses = registeredSmartTokenAddresses.filter(
-        smartTokenAddress =>
-          !hardCodedSmartTokenAddresses.includes(smartTokenAddress)
-      );
-
-      const nonHardCodedRelays = await this.buildRelaysFromSmartTokenAddresses(
-        nonHardCodedSmartTokenAddresses
-      );
-
-      this.updateRelays(
-        nonHardCodedRelays.filter(relayReservesIncludedInTokenMeta(tokenMeta))
-      );
-      await this.fetchAndUpdateRelayFeeds(
-        nonHardCodedRelays
-          .filter(relayReservesIncludedInTokenMeta(tokenMeta))
-          .filter(relayIncludesAtLeastOneNetworkToken)
-      );
-      console.timeEnd('eth')
+      this.moduleInitiated();
+      console.timeEnd("eth");
     } catch (e) {
       throw new Error(`Threw inside ethBancor ${e.message}`);
     }
@@ -1634,15 +1920,21 @@ export class EthBancorModule
       smartTokenAddresses
     ) as string[][];
 
-    const builtRelays = await Promise.all(
-      combined.map(([converterAddress, smartTokenAddress]) =>
-        this.buildRelay({ smartTokenAddress, converterAddress }).catch(e => {
+    const relays = await Promise.all(
+      combined.map(async ([converterAddress, smartTokenAddress]) => {
+        try {
+          const relay = await this.buildRelay({
+            smartTokenAddress,
+            converterAddress
+          });
+          this.addPool({ relay });
+          return relay;
+        } catch (e) {
           console.log(`Failed building relay ${converterAddress} ${e.message}`);
-          return false;
-        })
-      )
+        }
+      })
     );
-    return builtRelays.filter(Boolean) as Relay[];
+    return relays.filter(Boolean) as Relay[];
   }
 
   @action async buildRelay(relayAddresses: {
@@ -1660,14 +1952,20 @@ export class EthBancorModule
       reserve1Address,
       reserve2Address,
       fee
-    ] = await Promise.all([
-      converterContract.methods.owner().call(),
-      converterContract.methods.version().call(),
-      converterContract.methods.connectorTokenCount().call(),
-      converterContract.methods.connectorTokens(0).call(),
-      converterContract.methods.connectorTokens(1).call(),
-      converterContract.methods.conversionFee().call()
-    ]);
+    ] = await makeBatchRequest(
+      [
+        (converterContract.methods.owner().call as unknown) as string,
+        (converterContract.methods.version().call as unknown) as string,
+        (converterContract.methods.connectorTokenCount()
+          .call as unknown) as string,
+        (converterContract.methods.connectorTokens(0)
+          .call as unknown) as string,
+        (converterContract.methods.connectorTokens(1)
+          .call as unknown) as string,
+        (converterContract.methods.conversionFee().call as unknown) as string
+      ],
+      "0x0D8775F648430679A709E98d2b0Cb6250d2887EF"
+    );
 
     if (connectorCount !== "2")
       throw new Error(
@@ -1681,15 +1979,17 @@ export class EthBancorModule
     ];
 
     const [reserve1, reserve2, smartToken] = await Promise.all(
-      tokenAddresses.map(address => this.buildTokenByTokenAddress(address))
+      tokenAddresses.map(address =>
+        this.buildTokenByTokenAddress(address as string)
+      )
     );
 
     return {
       id: relayAddresses.smartTokenAddress,
       fee: Number(fee) / 10000,
-      owner,
+      owner: owner as string,
       network: "ETH",
-      version,
+      version: version as string,
       contract: relayAddresses.converterAddress,
       smartToken,
       reserves: [reserve1, reserve2],
@@ -1718,12 +2018,28 @@ export class EthBancorModule
       compareString(token.contract, address)
     );
 
-    if (existingToken) return existingToken;
+    if (existingToken) {
+      return existingToken;
+    }
+
+    const tokenMetaObj = this.tokenMeta.find(meta =>
+      compareString(meta.contract, address)
+    );
+
+    if (tokenMetaObj && typeof tokenMetaObj.precision == "number") {
+      return {
+        contract: address,
+        decimals: tokenMetaObj.precision!,
+        network: "ETH",
+        symbol: tokenMetaObj.symbol
+      };
+    }
 
     const [symbol, decimals] = await Promise.all([
       tokenContract.methods.symbol().call(),
       tokenContract.methods.decimals().call()
     ]);
+    console.log("Had to fetch", symbol, address);
 
     return {
       contract: address,
@@ -1815,12 +2131,6 @@ export class EthBancorModule
 
   @action async focusSymbol(id: string) {
     if (!this.isAuthenticated) return;
-    console.log(
-      id,
-      "was passed to focusSymbol",
-      this.tokenMeta.filter(meta => meta.id),
-      "is token meta"
-    );
     const tokenContractAddress = findOrThrow(this.tokenMeta, meta =>
       compareString(meta.id, id)
     ).contract;
@@ -1829,6 +2139,11 @@ export class EthBancorModule
       tokenContractAddress
     });
     this.updateBalance([id!, Number(balance)]);
+
+    const tokenTracked = this.tokens.find(token => compareString(token.id, id));
+    if (!tokenTracked) {
+      this.loadMoreTokens([id]);
+    }
   }
 
   @mutation updateBalance([id, balance]: [string, number]) {
@@ -1878,6 +2193,35 @@ export class EthBancorModule
     return Promise.all(ids.map(id => this.tokenById(id)));
   }
 
+  @action async findPath({
+    fromId,
+    toId,
+    relays
+  }: {
+    relays: DryRelay[];
+    fromId: string;
+    toId: string;
+  }) {
+    const lowerCased = relays.map(relay => ({
+      ...relay,
+      reserves: relay.reserves.map(reserve => ({
+        ...reserve,
+        contract: reserve.contract.toLowerCase()
+      }))
+    }));
+    const path = await findNewPath(
+      fromId.toLowerCase(),
+      toId.toLowerCase(),
+      lowerCased,
+      relay => [relay.reserves[0].contract, relay.reserves[1].contract]
+    );
+
+    const flattened = path.hops.flatMap(hop => hop[0]);
+    return relays.filter(relay =>
+      flattened.some(flat => compareString(relay.contract, flat.contract))
+    );
+  }
+
   @action async convert({ from, to, onUpdate }: ProposedConvertTransaction) {
     const [fromToken, toToken] = await this.tokensById([from.id, to.id]);
     const fromIsEth = compareString(fromToken.symbol, "eth");
@@ -1912,22 +2256,24 @@ export class EthBancorModule
     );
     const toTokenDecimals = await this.getDecimalsByTokenAddress(toToken.id);
 
-    const { dryRelays } = createPath(
-      fromToken.symbol,
-      toToken.symbol,
-      this.relaysList.map(
-        (relay): DryRelay => ({
-          contract: relay.contract,
-          reserves: relay.reserves.map(
-            (reserve): TokenSymbol => ({
-              contract: reserve.contract,
-              symbol: reserve.symbol
-            })
-          ),
-          smartToken: relay.smartToken
-        })
-      )
+    const dryRelays = this.relaysList.map(
+      (relay): DryRelay => ({
+        contract: relay.contract,
+        reserves: relay.reserves.map(
+          (reserve): TokenSymbol => ({
+            contract: reserve.contract,
+            symbol: reserve.symbol
+          })
+        ),
+        smartToken: relay.smartToken
+      })
     );
+
+    const path = await this.findPath({
+      relays: dryRelays,
+      fromId: from.id,
+      toId: to.id
+    });
 
     const fromAmount = from.amount;
     const toAmount = Number(to.amount);
@@ -1935,7 +2281,7 @@ export class EthBancorModule
     const fromTokenContract = fromToken.id;
     const toTokenContract = toToken.id;
 
-    const path = generateEthPath(fromSymbol, dryRelays);
+    const ethPath = generateEthPath(fromSymbol, path);
 
     const fromWei = expandToken(fromAmount, fromTokenDecimals);
 
@@ -1955,7 +2301,7 @@ export class EthBancorModule
 
     const confirmedHash = await this.resolveTxOnConfirmation({
       tx: networkContract.methods.convertByPath(
-        path,
+        ethPath,
         fromWei,
         expandToken(toAmount * 0.9, toTokenDecimals),
         "0x0000000000000000000000000000000000000000",

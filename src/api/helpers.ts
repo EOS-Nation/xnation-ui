@@ -1,14 +1,22 @@
 import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
-import { Asset, asset_to_number, Sym } from "eos-common";
+import {
+  Asset,
+  asset_to_number,
+  Sym,
+  symbol,
+  number_to_asset
+} from "eos-common";
 import { rpc } from "./rpc";
 import {
   TokenBalances,
   EosMultiRelay,
   Converter,
   TokenMeta,
-  BaseToken
+  BaseToken,
+  TokenBalanceReturn,
+  TokenBalanceParam
 } from "@/types/bancor";
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
@@ -22,14 +30,14 @@ import { sortByNetworkTokens } from "./sortByNetworkTokens";
 
 export const networkTokens = ["BNT", "USDB"];
 
+export const isOdd = (num: number) => num % 2 == 1;
+
 const eosRpc: JsonRpc = rpc;
 
 interface TraditionalStat {
   supply: Asset;
   max_supply: Asset;
 }
-
-
 
 export const getSxContracts = async () => {
   const res = (await rpc.get_table_rows({
@@ -61,6 +69,12 @@ export const findOrThrow = <T>(
     throw new Error(message || "Failed to find object in find or throw");
   return res;
 };
+
+export const compareToken = (
+  a: TokenBalanceParam | TokenBalanceReturn | BaseToken,
+  b: TokenBalanceParam | TokenBalanceReturn | BaseToken
+): boolean =>
+  compareString(a.contract, b.contract) && compareString(a.symbol, b.symbol);
 
 export const compareString = (stringOne: string, stringTwo: string) => {
   const strings = [stringOne, stringTwo];
@@ -115,7 +129,6 @@ export const fetchReserveBalance = async (
     const res = await converterContract.methods[
       Number(versionNumber) >= 17 ? "getConnectorBalance" : "getReserveBalance"
     ](reserveTokenAddress).call();
-    console.log("res", res, reserveTokenAddress, "first try");
     return res;
   } catch (e) {
     try {
@@ -124,7 +137,6 @@ export const fetchReserveBalance = async (
           ? "getReserveBalance"
           : "getConnectorBalance"
       ](reserveTokenAddress).call();
-      console.log("res", res, reserveTokenAddress, "second try");
       return res;
     } catch (e) {
       throw new Error("Failed getting reserve balance" + e);
@@ -132,9 +144,30 @@ export const fetchReserveBalance = async (
   }
 };
 
+export const fetchTokenSymbol = async (
+  contractName: string,
+  symbolName: string
+): Promise<Sym> => {
+  const statRes: {
+    rows: { supply: string; max_supply: string; issuer: string }[];
+  } = await rpc.get_table_rows({
+    code: contractName,
+    scope: symbolName,
+    table: "stat"
+  });
+  if (statRes.rows.length == 0)
+    throw new Error(
+      `Unexpected stats table return from tokenContract ${contractName} ${symbolName}`
+    );
+  const maxSupplyAssetString = statRes.rows[0].max_supply;
+  const maxSupplyAsset = new Asset(maxSupplyAssetString);
+  return maxSupplyAsset.symbol;
+};
+
 export const getBalance = async (
   contract: string,
-  symbolName: string
+  symbolName: string,
+  precision?: number
 ): Promise<string> => {
   const account = isAuthenticatedViaModule(vxm.eosWallet);
   const res: { rows: { balance: string }[] } = await rpc.get_table_rows({
@@ -149,7 +182,15 @@ export const getBalance = async (
       symbolName
     )
   );
-  if (!balance) return `0.0000 ${symbolName}`;
+
+  if (!balance) {
+    if (typeof precision == "number") {
+      return number_to_asset(0, new Sym(symbolName, precision)).to_string();
+    } else {
+      const symbol = await fetchTokenSymbol(contract, symbolName);
+      return number_to_asset(0, symbol).to_string();
+    }
+  }
   return balance.balance;
 };
 
