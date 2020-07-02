@@ -16,7 +16,8 @@ import { services } from "@/api/helpers";
 
 Vue.use(Router);
 
-export const defaultModule = 'eos'
+export const defaultModule = "eos";
+const PREFERRED_SERVICE = "preferredService";
 
 export const router = new Router({
   mode: "history",
@@ -141,17 +142,34 @@ export const router = new Router({
     },
     {
       path: "/",
-      redirect: `/${defaultModule}`
+      redirect: () => {
+        const preferredService = localStorage.getItem(PREFERRED_SERVICE);
+        if (preferredService) {
+          const foundService = services.find(
+            service => service.namespace == preferredService
+          );
+          if (foundService) return `/${foundService.namespace}`;
+        }
+        return `/${defaultModule}`;
+      }
     }
   ]
 });
+
+const setPreferredService = (service: string) => {
+  localStorage.setItem(PREFERRED_SERVICE, service);
+};
 
 router.beforeEach((to, from, next) => {
   if (to.meta && to.meta.feature) {
     const service = services.find(
       service => service.namespace == to.params.service
     )!;
-    if (!service) next("/404");
+    if (!service) {
+      next("/404");
+      return;
+    }
+    setPreferredService(service.namespace);
     switch (to.meta.feature) {
       case "Trade":
         if (service.features.includes(0)) next();
