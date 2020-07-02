@@ -38,7 +38,9 @@
               </div>
             </template>
             <template v-if="morePoolsAvailable" v-slot:custom-foot>
-              <b-button :disabled="loadingPools" @click="loadMorePools">Load more... {{ loadingPools ? 'loading more pools' : 'not loading' }} </b-button>
+              <b-button :disabled="loadingPools" @click="loadMorePools"
+                >Load more...
+              </b-button>
             </template>
             <template v-slot:table-colgroup>
               <col key="index" style="width: 46px;" />

@@ -348,7 +348,7 @@ export class EthBancorModule
       smartTokenAddresses: newPoolsAvailable,
       tokenPrices: this.bancorApiTokens
     });
-    await this.addPools(sortedPools.slice(0, 5));
+    await this.addPools(sortedPools.slice(0, 10));
     this.setLoadingPools(false);
   }
 
@@ -1799,7 +1799,7 @@ export class EthBancorModule
         approvedPriority,
         initialLoad,
         compareString
-      ).slice(0, isDev ? 5 : 1000000);
+      ).slice(0, isDev && false ? 5 : 20);
 
       await this.addPools(initialLoad);
       this.addPools(remainingLoad);
