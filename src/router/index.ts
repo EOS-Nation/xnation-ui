@@ -16,6 +16,8 @@ import { services } from "@/api/helpers";
 
 Vue.use(Router);
 
+export const defaultModule = 'eos'
+
 export const router = new Router({
   mode: "history",
   base: process.env.BASE_URL,
@@ -135,11 +137,11 @@ export const router = new Router({
     },
     {
       path: "*",
-      redirect: "/eth"
+      redirect: `/${defaultModule}`
     },
     {
       path: "/",
-      redirect: "/eth"
+      redirect: `/${defaultModule}`
     }
   ]
 });
