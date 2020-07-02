@@ -232,8 +232,12 @@ export interface TradeQuery {
   base: string;
   quote: string;
 }
+
+export type PoolQuery = string;
+
 export interface ModuleParam {
   tradeQuery?: TradeQuery;
+  poolQuery?: PoolQuery;
 }
 
 export interface TradingModule {

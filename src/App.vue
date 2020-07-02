@@ -66,22 +66,24 @@ export default class App extends Vue {
     console.log("service:", this.$route.params.service);
     console.log("query:", this.$route.query);
 
+    const trade = this.$route.meta.feature == "Trade";
+
     const service = this.$route.params && this.$route.params.service;
+    const pool = this.$route.params && this.$route.params.account;
     const feature = this.$route.meta && this.$route.meta.feature;
     const query = this.$route.query;
-
     const paramsSatisfied = service && feature && query;
 
     const initParams = {
       initialChain: this.$route.params.service,
       ...(paramsSatisfied && {
         initialModuleParam: {
-          [this.$route.meta.feature == "Trade"
-            ? "tradeQuery"
-            : "poolQuery"]: this.$route.query
+          [trade ? "tradeQuery" : "poolQuery"]: trade ? this.$route.query : pool
         }
       })
     };
+
+    console.log({ service, feature, query, initParams, paramsSatisfied });
     try {
       await vxm.bancor.init(initParams);
       this.loading = false;

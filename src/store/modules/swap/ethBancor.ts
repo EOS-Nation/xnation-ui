@@ -21,7 +21,7 @@ import {
   ViewAmount,
   ModuleParam
 } from "@/types/bancor";
-import { ethBancorApi } from "@/api/bancorApiWrapper";
+import { ethBancorApi, bancorApi } from "@/api/bancorApiWrapper";
 import {
   getEthRelays,
   web3,
@@ -1737,6 +1737,39 @@ export class EthBancorModule
     }
   }
 
+  @action async bareMinimumPools({
+    params,
+    networkContractAddress,
+    smartTokenAddresses,
+    tokenPrices
+  }: {
+    params?: ModuleParam;
+    networkContractAddress: string;
+    smartTokenAddresses: string[];
+    tokenPrices?: TokenPrice[];
+  }): Promise<string[]> {
+    const fromToken =
+      params! && params!.tradeQuery! && params!.tradeQuery!.base!;
+    const toToken =
+      params! && params!.tradeQuery! && params!.tradeQuery!.quote!;
+
+    const tradeIncluded = fromToken && toToken;
+    const poolIncluded = params && params.poolQuery;
+
+    if (tradeIncluded) {
+      return this.relaysRequiredForTrade({
+        from: fromToken,
+        to: toToken,
+        networkContractAddress
+      });
+    } else if (poolIncluded) {
+      return [poolIncluded];
+    } else {
+      const allPools = await this.poolsByPriority({ smartTokenAddresses, tokenPrices })
+      return allPools.slice(0, 3)
+    }
+  }
+
   @action async init(params?: ModuleParam) {
     console.log(params, "was init param on eth");
     console.time("eth");
@@ -1746,11 +1779,6 @@ export class EthBancorModule
     }
 
     try {
-      const fromToken =
-        params! && params!.tradeQuery! && params!.tradeQuery!.base!;
-      const toToken =
-        params! && params!.tradeQuery! && params!.tradeQuery!.quote!;
-
       const [
         tokenMeta,
         contractAddresses,
@@ -1760,7 +1788,7 @@ export class EthBancorModule
         getTokenMeta(),
         this.fetchContractAddresses(),
         fetchSmartTokens().catch(e => [] as HistoryItem[]),
-        this.warmEthApi().catch(e => false),
+        this.warmEthApi().catch(e => [] as TokenPrice[]),
         this.fetchUsdPriceOfBnt()
       ]);
 
@@ -1771,35 +1799,37 @@ export class EthBancorModule
 
       const [
         registeredSmartTokenAddresses,
-        convertibleTokens,
-        bareMinimumSmartTokenAddresses
+        convertibleTokens
       ] = await Promise.all([
         this.fetchSmartTokenAddresses(
           contractAddresses.BancorConverterRegistry
         ),
-        this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry),
-        this.relaysRequiredForTrade({
-          from: fromToken,
-          to: toToken,
-          networkContractAddress: contractAddresses.BancorNetwork
-        })
+        this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry)
       ]);
 
       this.setRegisteredSmartTokenAddresses(registeredSmartTokenAddresses);
       this.setConvertibleTokenAddresses(convertibleTokens);
+
+      const bareMinimumSmartTokenAddresses = await this.bareMinimumPools({
+        params,
+        networkContractAddress: contractAddresses.BancorNetwork,
+        smartTokenAddresses: registeredSmartTokenAddresses,
+        ...(bancorApiTokens && { tokenPrices: bancorApiTokens })
+      });
+
+      const isDev = process.env.NODE_ENV == "development";
+      const initialLoad = bareMinimumSmartTokenAddresses;
 
       const approvedPriority = await this.poolsByPriority({
         smartTokenAddresses: registeredSmartTokenAddresses,
         ...(bancorApiTokens && { tokenPrices: bancorApiTokens as TokenPrice[] })
       });
 
-      const isDev = process.env.NODE_ENV == "development";
-      const initialLoad = bareMinimumSmartTokenAddresses;
       const remainingLoad = _.differenceWith(
         approvedPriority,
         initialLoad,
         compareString
-      ).slice(0, isDev && false ? 5 : 20);
+      ).slice(0, isDev ? 5 : 20);
 
       await this.addPools(initialLoad);
       this.addPools(remainingLoad);
