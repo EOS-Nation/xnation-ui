@@ -406,14 +406,6 @@ export function addFee(
     asset.symbol
   );
 }
-const findReserveWithAsset = (asset: Asset) => (reserve: TokenAmount) =>
-  reserve.amount.symbol.isEqual(asset.symbol);
-
-const findReserveByAsset = (asset: Asset, relay: HydratedRelay) =>
-  relay.reserves.find(findReserveWithAsset(asset));
-
-const findReserveByOppositeAsset = (asset: Asset, relay: HydratedRelay) =>
-  relay.reserves.find(reserve => !findReserveWithAsset(asset)(reserve))!;
 
 const sortReservesByAsset = (asset: Asset, reserves: TokenAmount[]) => {
   if (!reserves.some(reserve => reserve.amount.symbol.isEqual(asset.symbol)))

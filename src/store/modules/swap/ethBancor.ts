@@ -21,9 +21,8 @@ import {
   ViewAmount,
   ModuleParam
 } from "@/types/bancor";
-import { ethBancorApi, bancorApi } from "@/api/bancorApiWrapper";
+import { ethBancorApi } from "@/api/bancorApiWrapper";
 import {
-  getEthRelays,
   web3,
   Relay,
   Token,
@@ -32,20 +31,15 @@ import {
   findOrThrow,
   updateArray,
   networkTokens,
-  identifyVersionBySha3ByteCodeHash,
   isOdd
 } from "@/api/helpers";
-import { Contract, ContractSendMethod } from "web3-eth-contract";
+import { ContractSendMethod } from "web3-eth-contract";
 import {
-  smartTokenByteCode,
   ABIContractRegistry,
-  ABINetworkContract,
   ABIConverterRegistry,
   ABINetworkPathFinder,
   ethErc20WrapperContract,
   ethReserveAddress,
-  ABIConverterV28,
-  ABIConverter
 } from "@/api/ethConfig";
 import { toWei, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
@@ -54,7 +48,6 @@ import { vxm } from "@/store";
 import wait from "waait";
 import _ from "lodash";
 import {
-  createPath,
   DryRelay,
   TokenSymbol,
   generateEthPath,
@@ -73,11 +66,21 @@ import {
   getSmartTokenHistory,
   fetchSmartTokens,
   HistoryItem,
-  fetchSmartTokenHistory
 } from "@/api/zumZoom";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { findNewPath } from "@/api/eosBancorCalc";
 import { priorityEthPools, getHardCodedRelays } from "./staticRelays";
+
+const relayToDry = (relay: Relay): DryRelay => ({
+  contract: relay.contract,
+  reserves: relay.reserves.map(
+    (reserve): TokenSymbol => ({
+      contract: reserve.contract,
+      symbol: reserve.symbol
+    })
+  ),
+  smartToken: relay.smartToken
+})
 
 const sortSmartTokenAddressesByHighestLiquidity = (
   tokens: TokenPrice[],
@@ -302,7 +305,6 @@ export class EthBancorModule
   loadingPools: boolean = true;
 
   bancorApiTokens: TokenPrice[] = [];
-  tokensList: any[] = [];
   relayFeed: RelayFeed[] = [];
   relaysList: Relay[] = [];
   tokenBalances: { id: string; balance: number }[] = [];
@@ -311,7 +313,6 @@ export class EthBancorModule
   morePoolsAvailableProp: boolean = true;
   availableHistories: string[] = [];
   bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
-  bancorNetworkPathFinder = "0x6F0cD8C4f6F06eAB664C7E3031909452b4B72861";
   contracts: RegisteredContracts = {
     BancorNetwork: "",
     BancorConverterRegistry: "",
@@ -2171,15 +2172,8 @@ export class EthBancorModule
     this.tokenBalances = newBalances;
   }
 
-  @mutation resetBalances() {
-    this.tokensList = this.tokensList.map(token => ({
-      ...token,
-      balance: undefined
-    }));
-  }
 
   @action async refreshBalances(symbols?: BaseToken[]) {
-    this.resetBalances();
     if (symbols) {
       symbols.forEach(symbol => this.focusSymbol(symbol.symbol));
     }
@@ -2276,16 +2270,7 @@ export class EthBancorModule
     const toTokenDecimals = await this.getDecimalsByTokenAddress(toToken.id);
 
     const dryRelays = this.relaysList.map(
-      (relay): DryRelay => ({
-        contract: relay.contract,
-        reserves: relay.reserves.map(
-          (reserve): TokenSymbol => ({
-            contract: reserve.contract,
-            symbol: reserve.symbol
-          })
-        ),
-        smartToken: relay.smartToken
-      })
+      relayToDry
     );
 
     const path = await this.findPath({
@@ -2388,24 +2373,6 @@ export class EthBancorModule
     return approvedFromTokenBalance;
   }
 
-  @action async getPathByContract({
-    fromTokenContract,
-    toTokenContract
-  }: {
-    fromTokenContract: string;
-    toTokenContract: string;
-  }): Promise<string[]> {
-    const contract = new web3.eth.Contract(
-      ABINetworkPathFinder,
-      this.bancorNetworkPathFinder
-    );
-
-    const res = await contract.methods
-      .generatePath(fromTokenContract, toTokenContract)
-      .call();
-    return res;
-  }
-
   @action async getReturnByPath({
     path,
     amount
@@ -2449,23 +2416,7 @@ export class EthBancorModule
       toTokenContract
     );
 
-    const { dryRelays } = createPath(
-      fromToken.symbol,
-      toToken.symbol,
-      this.relaysList.map(
-        (x): DryRelay => ({
-          contract: x.contract,
-          reserves: x.reserves.map(
-            (reserve): TokenSymbol => ({
-              contract: reserve.contract,
-              symbol: reserve.symbol
-            })
-          ),
-          smartToken: x.smartToken
-        })
-      )
-    );
-
+    const dryRelays = await this.findPath({ fromId: from.id, toId, relays: this.relaysList.map(relayToDry) });
     const path = generateEthPath(fromToken.symbol, dryRelays);
 
     const wei = await this.getReturnByPath({
@@ -2493,23 +2444,8 @@ export class EthBancorModule
       toTokenContract
     );
 
-    const { dryRelays } = createPath(
-      fromToken.symbol,
-      toToken.symbol,
-      this.relaysList.map(
-        (x): DryRelay => ({
-          contract: x.contract,
-          reserves: x.reserves.map(
-            (reserve): TokenSymbol => ({
-              contract: reserve.contract,
-              symbol: reserve.symbol
-            })
-          ),
-          smartToken: x.smartToken
-        })
-      )
-    );
-
+    const dryRelays = this.relaysList.map(relayToDry)
+    
     const smartTokenAddresses = dryRelays.map(
       relay => relay.smartToken.contract
     );
@@ -2539,9 +2475,4 @@ export class EthBancorModule
     };
   }
 
-  @mutation updateEthToken(token: any) {
-    this.tokensList = this.tokensList.map((existingToken: any) =>
-      token.id == existingToken.id ? token : existingToken
-    );
-  }
 }
