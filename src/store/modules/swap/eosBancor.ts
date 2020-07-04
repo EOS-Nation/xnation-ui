@@ -1878,8 +1878,6 @@ export class EosBancorModule
     );
 
     const reserveBalance = asset_to_number(sameReserve);
-    // todo
-    // utilise eos-common for this
     const percent = Number(tokenAmount) / reserveBalance;
 
     const smartTokenAmount = percent * smartSupply;
@@ -2123,7 +2121,6 @@ export class EosBancorModule
     toId
   }: ProposedFromTransaction): Promise<ConvertReturn> {
     const assetAmount = await this.viewAmountToAsset(from);
-    const toToken = await this.tokenById(toId);
 
     const allRelays = this.convertableRelays.map(multiToDry);
     const path = await this.findPath({
