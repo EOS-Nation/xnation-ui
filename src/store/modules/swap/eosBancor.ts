@@ -1741,6 +1741,9 @@ export class EosBancorModule
     }
   }
 
+  @action async accountChange() {}
+
+
   @action async getUserBalances(relayId: string) {
     const relay = await this.relayById(relayId);
     const [[smartTokenBalance], reserves, supply] = await Promise.all([

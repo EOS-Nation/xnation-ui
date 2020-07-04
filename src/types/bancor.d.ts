@@ -255,6 +255,7 @@ export interface TradingModule {
   readonly moreTokensAvailable: boolean;
   readonly loadingTokens: boolean;
   refreshBalances: (symbols?: BaseToken[]) => Promise<void>;
+  accountChange: (address: string) => Promise<void>;
   convert: (propose: ProposedConvertTransaction) => Promise<string>;
   focusSymbol: (symbolName: string) => Promise<void>;
   getReturn: (propose: ProposedFromTransaction) => Promise<ConvertReturn>;

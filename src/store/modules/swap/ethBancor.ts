@@ -39,7 +39,7 @@ import {
   ABIConverterRegistry,
   ABINetworkPathFinder,
   ethErc20WrapperContract,
-  ethReserveAddress,
+  ethReserveAddress
 } from "@/api/ethConfig";
 import { toWei, fromWei } from "web3-utils";
 import Decimal from "decimal.js";
@@ -65,7 +65,7 @@ import BigNumber from "bignumber.js";
 import {
   getSmartTokenHistory,
   fetchSmartTokens,
-  HistoryItem,
+  HistoryItem
 } from "@/api/zumZoom";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { findNewPath } from "@/api/eosBancorCalc";
@@ -80,7 +80,7 @@ const relayToDry = (relay: Relay): DryRelay => ({
     })
   ),
   smartToken: relay.smartToken
-})
+});
 
 const sortSmartTokenAddressesByHighestLiquidity = (
   tokens: TokenPrice[],
@@ -1942,12 +1942,12 @@ export class EthBancorModule
     const relay = this.relaysList.find(relay =>
       compareString(relay.contract, contractAddress)
     );
-    if (Number(relay?.version) < 28) {
+    if (Number(relay && relay.version) < 28) {
       throw new Error("Cannot get a converter type for a relay under v28");
     }
     const contract = buildV28ConverterContract(contractAddress);
     const converterType = await contract.methods.converterType().call();
-    return Number(converterType)
+    return Number(converterType);
   }
 
   @action async buildRelay(relayAddresses: {
@@ -1965,20 +1965,17 @@ export class EthBancorModule
       reserve1Address,
       reserve2Address,
       fee
-    ] = await makeBatchRequest(
+    ] = (await makeBatchRequest(
       [
         converterContract.methods.owner().call,
         converterContract.methods.version().call,
-        converterContract.methods.connectorTokenCount()
-          .call,
-        converterContract.methods.connectorTokens(0)
-          .call,
-        converterContract.methods.connectorTokens(1)
-          .call,
-        converterContract.methods.conversionFee().call,
+        converterContract.methods.connectorTokenCount().call,
+        converterContract.methods.connectorTokens(0).call,
+        converterContract.methods.connectorTokens(1).call,
+        converterContract.methods.conversionFee().call
       ],
       "0x0D8775F648430679A709E98d2b0Cb6250d2887EF"
-    ) as string[]
+    )) as string[];
 
     if (connectorCount !== "2")
       throw new Error(
@@ -1997,12 +1994,9 @@ export class EthBancorModule
     const [reserve1, reserve2, smartToken, converterType] = (await Promise.all([
       ...tokenAddresses.map(this.buildTokenByTokenAddress),
       ...(over28
-        ? [
-           this.getConverterType(relayAddresses.converterAddress)
-          ]
+        ? [this.getConverterType(relayAddresses.converterAddress)]
         : [])
     ])) as [Token, Token, Token, number];
-
 
     return {
       id: relayAddresses.smartTokenAddress,
@@ -2149,10 +2143,31 @@ export class EthBancorModule
     return [reserveInRelay, Number(numberReserveBalance)];
   }
 
+  @mutation wipeTokenBalances() {
+    this.tokenBalances = [];
+  }
+
+  @action async accountChange(address: string) {
+    const previousBalances = this.tokenBalances;
+    this.wipeTokenBalances();
+    previousBalances.forEach(({ id }) =>
+      vxm.ethWallet
+        .getBalance({
+          accountHolder: address,
+          tokenContractAddress: id
+        })
+        .then(balanceAmount => {
+          this.updateBalance([id, Number(balanceAmount)]);
+        })
+    );
+  }
+
   @action async focusSymbol(id: string) {
     if (!this.isAuthenticated) return;
-    const tokenContractAddress = findOrThrow(this.tokenMeta, meta =>
-      compareString(meta.id, id)
+    const tokenContractAddress = findOrThrow(
+      this.tokenMeta,
+      meta => compareString(meta.id, id),
+      "failed to find this token contract address in meta"
     ).contract;
     const balance = await vxm.ethWallet.getBalance({
       accountHolder: this.isAuthenticated,
@@ -2171,7 +2186,6 @@ export class EthBancorModule
     newBalances.push({ id, balance });
     this.tokenBalances = newBalances;
   }
-
 
   @action async refreshBalances(symbols?: BaseToken[]) {
     if (symbols) {
@@ -2269,9 +2283,7 @@ export class EthBancorModule
     );
     const toTokenDecimals = await this.getDecimalsByTokenAddress(toToken.id);
 
-    const dryRelays = this.relaysList.map(
-      relayToDry
-    );
+    const dryRelays = this.relaysList.map(relayToDry);
 
     const path = await this.findPath({
       relays: dryRelays,
@@ -2416,7 +2428,11 @@ export class EthBancorModule
       toTokenContract
     );
 
-    const dryRelays = await this.findPath({ fromId: from.id, toId, relays: this.relaysList.map(relayToDry) });
+    const dryRelays = await this.findPath({
+      fromId: from.id,
+      toId,
+      relays: this.relaysList.map(relayToDry)
+    });
     const path = generateEthPath(fromToken.symbol, dryRelays);
 
     const wei = await this.getReturnByPath({
@@ -2444,8 +2460,8 @@ export class EthBancorModule
       toTokenContract
     );
 
-    const dryRelays = this.relaysList.map(relayToDry)
-    
+    const dryRelays = this.relaysList.map(relayToDry);
+
     const smartTokenAddresses = dryRelays.map(
       relay => relay.smartToken.contract
     );
@@ -2474,5 +2490,4 @@ export class EthBancorModule
       amount: shrinkToken(result, fromTokenDecimals)
     };
   }
-
 }

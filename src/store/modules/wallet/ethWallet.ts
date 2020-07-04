@@ -4,6 +4,7 @@ import { ABISmartToken, ethReserveAddress } from "@/api/ethConfig";
 import { EthAddress } from "@/types/bancor";
 import { fromWei } from "web3-utils";
 import { shrinkToken } from "@/api/ethBancorCalc";
+import { vxm } from "@/store";
 
 const tx = (data: any) =>
   new Promise((resolve, reject) => {
@@ -26,6 +27,15 @@ const tx = (data: any) =>
 const VuexModule = createModule({
   strict: false
 });
+
+interface AccountParams {
+  isUnlocked: boolean;
+  isEnabled: boolean;
+  selectedAddress: string;
+  networkVersion: string;
+  onboardingcomplete: boolean;
+  chainId: string;
+}
 
 export class EthereumModule extends VuexModule.With({
   namespaced: "ethWallet/"
@@ -58,18 +68,18 @@ export class EthereumModule extends VuexModule.With({
     return accounts[0];
   }
 
+  @action async accountChange(params: AccountParams) {
+    const loggedInAccount = params.selectedAddress;
+    if (loggedInAccount !== this.isAuthenticated) {
+      this.setLoggedInAccount(params.selectedAddress);
+      vxm.ethBancor.accountChange(params.selectedAddress);
+    }
+  }
+
   @action async startListener() {
     // @ts-ignore
-    web3.currentProvider.publicConfigStore.on(
-      "update",
-      (x: {
-        isUnlocked: boolean;
-        isEnabled: boolean;
-        selectedAddress: string;
-        networkVersion: string;
-        onboardingcomplete: boolean;
-        chainId: string;
-      }) => this.setLoggedInAccount(x.selectedAddress)
+    web3.currentProvider.publicConfigStore.on("update", (data: AccountParams) =>
+      this.accountChange(data)
     );
   }
 
