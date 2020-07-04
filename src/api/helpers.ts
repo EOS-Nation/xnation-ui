@@ -3552,6 +3552,7 @@ export interface Relay {
   fee: number;
   network: string;
   version: string;
+  converterType?: number;
   owner: string;
 }
 

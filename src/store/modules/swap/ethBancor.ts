@@ -1937,6 +1937,18 @@ export class EthBancorModule
     return relays.filter(Boolean) as Relay[];
   }
 
+  @action async getConverterType(contractAddress: string) {
+    const relay = this.relaysList.find(relay =>
+      compareString(relay.contract, contractAddress)
+    );
+    if (Number(relay?.version) < 28) {
+      throw new Error("Cannot get a converter type for a relay under v28");
+    }
+    const contract = buildV28ConverterContract(contractAddress);
+    const converterType = await contract.methods.converterType().call();
+    return Number(converterType)
+  }
+
   @action async buildRelay(relayAddresses: {
     smartTokenAddress: string;
     converterAddress: string;
@@ -1954,46 +1966,54 @@ export class EthBancorModule
       fee
     ] = await makeBatchRequest(
       [
-        (converterContract.methods.owner().call as unknown) as string,
-        (converterContract.methods.version().call as unknown) as string,
-        (converterContract.methods.connectorTokenCount()
-          .call as unknown) as string,
-        (converterContract.methods.connectorTokens(0)
-          .call as unknown) as string,
-        (converterContract.methods.connectorTokens(1)
-          .call as unknown) as string,
-        (converterContract.methods.conversionFee().call as unknown) as string
+        converterContract.methods.owner().call,
+        converterContract.methods.version().call,
+        converterContract.methods.connectorTokenCount()
+          .call,
+        converterContract.methods.connectorTokens(0)
+          .call,
+        converterContract.methods.connectorTokens(1)
+          .call,
+        converterContract.methods.conversionFee().call,
       ],
       "0x0D8775F648430679A709E98d2b0Cb6250d2887EF"
-    );
+    ) as string[]
 
     if (connectorCount !== "2")
       throw new Error(
         "Converter not valid, does not have 2 tokens in converter"
       );
 
-    const tokenAddresses = [
-      reserve1Address,
-      reserve2Address,
+    const tokenAddresses: string[] = [
+      reserve1Address as string,
+      reserve2Address as string,
       relayAddresses.smartTokenAddress
     ];
 
-    const [reserve1, reserve2, smartToken] = await Promise.all(
-      tokenAddresses.map(address =>
-        this.buildTokenByTokenAddress(address as string)
-      )
-    );
+    const over28 = Number(version) >= 28;
+
+    // @ts-ignore
+    const [reserve1, reserve2, smartToken, converterType] = (await Promise.all([
+      ...tokenAddresses.map(this.buildTokenByTokenAddress),
+      ...(over28
+        ? [
+           this.getConverterType(relayAddresses.converterAddress)
+          ]
+        : [])
+    ])) as [Token, Token, Token, number];
+
 
     return {
       id: relayAddresses.smartTokenAddress,
       fee: Number(fee) / 10000,
-      owner: owner as string,
+      owner: owner,
       network: "ETH",
-      version: version as string,
+      version: version,
       contract: relayAddresses.converterAddress,
       smartToken,
       reserves: [reserve1, reserve2],
-      isMultiContract: false
+      isMultiContract: false,
+      ...(over28 && { converterType })
     };
   }
 
@@ -2039,7 +2059,6 @@ export class EthBancorModule
       tokenContract.methods.symbol().call(),
       tokenContract.methods.decimals().call()
     ]);
-    console.log("Had to fetch", symbol, address);
 
     return {
       contract: address,
