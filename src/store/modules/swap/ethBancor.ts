@@ -2244,8 +2244,12 @@ export class EthBancorModule
     );
 
     const flattened = path.hops.flatMap(hop => hop[0]);
-    return relays.filter(relay =>
-      flattened.some(flat => compareString(relay.contract, flat.contract))
+    return flattened.map(flat =>
+      findOrThrow(
+        relays,
+        relay => compareString(relay.contract, flat.contract),
+        "failed to find relays used in pathing"
+      )
     );
   }
 

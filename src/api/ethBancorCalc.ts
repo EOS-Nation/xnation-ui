@@ -56,8 +56,9 @@ export const chopRelays = (relays: DryRelay[]) =>
     return [...accum, relay1, relay2];
   }, []);
 
-export const generateEthPath = (from: string, relays: DryRelay[]) =>
-  relays.reduce<{ lastSymbol: string; path: string[] }>(
+export const generateEthPath = (from: string, relays: DryRelay[]) => {
+  console.log({ from, relays }, "was received on generate eth path");
+  return relays.reduce<{ lastSymbol: string; path: string[] }>(
     (acc, item) => {
       const destinationSymbol = item.reserves.find(
         reserve => reserve.symbol !== acc.lastSymbol
@@ -78,6 +79,7 @@ export const generateEthPath = (from: string, relays: DryRelay[]) =>
       ]
     }
   ).path;
+};
 
 const buildContract = (abi: AbiItem[], contractAddress?: string) =>
   contractAddress
