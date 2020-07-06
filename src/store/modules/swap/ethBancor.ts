@@ -31,7 +31,8 @@ import {
   findOrThrow,
   updateArray,
   networkTokens,
-  isOdd
+  isOdd,
+  multiSteps
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
@@ -70,6 +71,19 @@ import {
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { findNewPath } from "@/api/eosBancorCalc";
 import { priorityEthPools, getHardCodedRelays } from "./staticRelays";
+
+interface WeiExtendedAsset {
+  weiAmount: string;
+  contract: string;
+}
+
+enum PoolType {
+  Traditional = 1,
+  ChainLink = 2
+}
+
+const poolIdToPoolType = (id: string) =>
+  id == "new" ? PoolType.ChainLink : PoolType.Traditional;
 
 const relayToDry = (relay: Relay): DryRelay => ({
   contract: relay.contract,
@@ -552,104 +566,110 @@ export class EthBancorModule
 
     const hasFee = poolParams.fee > 0;
 
-    const steps = [
-      {
-        name: "Converter",
-        description: "Deploying new Pool.."
-      },
-      {
-        name: "FetchConverterAddress",
-        description: "Fetching address of new converter..."
-      },
-      {
-        name: "Claim",
-        description:
-          "Transferring ownership of pool and adding reserve allowances..."
-      },
-      {
-        name: "SetFeeAndAddLiquidity",
-        description: `Adding reserve liquidity ${
-          hasFee ? "and setting fee..." : ""
-        }`
-      },
-      {
-        name: "Finished",
-        description: "Done!"
-      }
-    ];
+    const { reserves, txId } = (await multiSteps({
+      items: [
+        {
+          description: "Deploying new Pool..",
+          task: async () => {
+            const reserves = await Promise.all(
+              poolParams.reserves.map(async ({ id, amount: decAmount }) => {
+                const token = findOrThrow(
+                  this.tokenMeta,
+                  meta => compareString(meta.id, id),
+                  `failed finding ${id} in known token meta`
+                );
+                const decimals = await this.getDecimalsByTokenAddress(
+                  token.contract
+                );
 
-    poolParams.onUpdate(0, steps);
+                const res: WeiExtendedAsset = {
+                  weiAmount: expandToken(decAmount, decimals),
+                  contract: token.contract
+                };
+                return res;
+              })
+            );
 
-    const reserves = await Promise.all(
-      poolParams.reserves.map(async ({ id, amount: decAmount }) => {
-        const token = findOrThrow(
-          this.tokenMeta,
-          meta => compareString(meta.id, id),
-          `failed finding ${id} in known token meta`
-        );
-        const decimals = await this.getDecimalsByTokenAddress(token.contract);
-        return {
-          weiAmount: expandToken(decAmount, decimals),
-          contract: token.contract
-        };
-      })
-    );
+            const converterRes = await this.deployConverter({
+              reserveTokenAddresses: reserves.map(reserve => reserve.contract),
+              smartTokenName,
+              smartTokenSymbol,
+              precision
+            });
 
-    const converterRes = await this.deployConverter({
-      reserveTokenAddresses: reserves.map(reserve => reserve.contract),
-      smartTokenName,
-      smartTokenSymbol,
-      precision
-    });
+            const converterAddress = await this.fetchNewConverterAddressFromHash(
+              converterRes
+            );
 
-    poolParams.onUpdate(1, steps);
-
-    const converterAddress = await this.fetchNewConverterAddressFromHash(
-      converterRes
-    );
-
-    poolParams.onUpdate(2, steps);
-
-    await Promise.all<any>([
-      this.claimOwnership(converterAddress),
-      ...reserves
-        .filter(reserve => !compareString(reserve.contract, ethReserveAddress))
-        .map(reserve =>
-          this.triggerApprovalIfRequired({
-            owner: this.isAuthenticated,
-            amount: reserve.weiAmount,
-            tokenAddress: reserve.contract,
-            spender: converterAddress
-          })
-        )
-    ]);
-
-    poolParams.onUpdate(3, steps);
-
-    await Promise.all<any>([
-      ...[
-        hasFee
-          ? this.setFee({
+            return {
               converterAddress,
-              decFee: Number(poolParams.fee)
-            })
-          : []
-      ],
-      this.addLiquidityV28({
-        converterAddress,
-        reserves: reserves.map(reserve => ({
-          tokenContract: reserve.contract,
-          weiAmount: reserve.weiAmount
-        }))
-      })
-    ]);
+              converterRes
+            };
+          }
+        },
+        {
+          description:
+            "Transferring ownership of pool and adding reserve allowances...",
+          task: async (state?: any) => {
+            const { converterAddress, reserves } = state as {
+              converterAddress: string;
+              reserves: WeiExtendedAsset[];
+            };
+            await Promise.all<any>([
+              this.claimOwnership(converterAddress),
+              ...reserves
+                .filter(
+                  reserve => !compareString(reserve.contract, ethReserveAddress)
+                )
+                .map(reserve =>
+                  this.triggerApprovalIfRequired({
+                    owner: this.isAuthenticated,
+                    amount: reserve.weiAmount,
+                    tokenAddress: reserve.contract,
+                    spender: converterAddress
+                  })
+                )
+            ]);
+          }
+        },
+        {
+          description: `Adding reserve liquidity ${
+            hasFee ? "and setting fee..." : ""
+          }`,
+          task: async (state?: any) => {
+            const { converterAddress, reserves } = state as {
+              converterAddress: string;
+              reserves: WeiExtendedAsset[];
+            };
 
-    poolParams.onUpdate(4, steps);
+            await Promise.all<any>([
+              ...[
+                hasFee
+                  ? this.setFee({
+                      converterAddress,
+                      decFee: Number(poolParams.fee)
+                    })
+                  : []
+              ],
+              this.addLiquidityV28({
+                converterAddress,
+                reserves: reserves.map(reserve => ({
+                  tokenContract: reserve.contract,
+                  weiAmount: reserve.weiAmount
+                }))
+              })
+            ]);
+          }
+        }
+      ],
+      onUpdate: poolParams.onUpdate
+    })) as { reserves: WeiExtendedAsset[]; txId: string };
+
     reserves.forEach(reserve => this.getUserBalance(reserve.contract));
 
     wait(5000).then(() => this.init());
 
-    return converterRes;
+    return txId;
   }
 
   @action async approveTokenWithdrawals(

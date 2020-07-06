@@ -40,7 +40,8 @@ import {
   fetchMultiRelay,
   buildTokenId,
   EosAccount,
-  compareToken
+  compareToken,
+  multiSteps
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -1406,57 +1407,8 @@ export class EosBancorModule
     reserves,
     onUpdate
   }: LiquidityParams) {
-    const steps: Step[] = [
-      {
-        name: "DepositAndFund",
-        description: "Depositing liquidity..."
-      },
-      {
-        name: "ReAttempt",
-        description: "Fund failed, trying again..."
-      },
-      {
-        name: "WaitingForNetwork",
-        description: "Success! Waiting 5 seconds for dFuse to catch up..."
-      },
-      {
-        name: "DustCollectionFetch",
-        description: "Checking for left over deposits..."
-      },
-      {
-        name: "DustCollection",
-        description: "Collecting left over deposit(s)"
-      },
-      {
-        name: "Done",
-        description: "Done!"
-      }
-    ];
-
     const relay = await this.relayById(relayId);
     const tokenAmounts = await this.viewAmountToTokenAmounts(reserves);
-
-    onUpdate!(0, steps);
-
-    const addLiquidityActions = multiContract.addLiquidityActions(
-      relay.smartToken.symbol,
-      tokenAmounts
-    );
-
-    const { smartTokenAmount } = await this.calculateOpposingDeposit({
-      id: relayId,
-      reserve: reserves[0]
-    });
-
-    const fundAmount = smartTokenAmount;
-
-    const fundAction = multiContractAction.fund(
-      this.isAuthenticated,
-      smartTokenAmount.to_string()
-    );
-
-    const actions = [...addLiquidityActions, fundAction];
-    let txRes: any;
 
     const tokenContractsAndSymbols: BaseToken[] = [
       {
@@ -1473,49 +1425,105 @@ export class EosBancorModule
       tokens: tokenContractsAndSymbols
     });
 
-    try {
-      txRes = await this.triggerTx(actions);
-    } catch (e) {
-      if (e.message !== "assertion failure with message: insufficient balance")
-        throw new Error(e);
-      onUpdate!(1, steps);
+    const finalState = await multiSteps({
+      items: [
+        {
+          description: "Depositing liquidity...",
+          task: async () => {
+            const addLiquidityActions = multiContract.addLiquidityActions(
+              relay.smartToken.symbol,
+              tokenAmounts
+            );
 
-      const backupFundAction = multiContractAction.fund(
-        vxm.wallet.isAuthenticated,
-        number_to_asset(
-          Number(fundAmount) * 0.96,
-          new Symbol(relay.smartToken.symbol, 4)
-        ).to_string()
-      );
+            const { smartTokenAmount } = await this.calculateOpposingDeposit({
+              id: relayId,
+              reserve: reserves[0]
+            });
 
-      const newActions = [...addLiquidityActions, backupFundAction];
-      txRes = await this.triggerTx(newActions);
-    }
+            const fundAmount = smartTokenAmount;
 
-    onUpdate!(2, steps);
-    await wait(5000);
-    onUpdate!(3, steps);
+            const fundAction = multiContractAction.fund(
+              this.isAuthenticated,
+              smartTokenAmount.to_string()
+            );
 
-    const bankBalances = await this.fetchBankBalances({
-      smartTokenSymbol: relay.smartToken.symbol,
-      accountHolder: this.isAuthenticated
+            const actions = [...addLiquidityActions, fundAction];
+
+            try {
+              const txRes = await this.triggerTx(actions);
+              return {
+                failedDueToBadCalculation: false,
+                txRes
+              };
+            } catch (e) {
+              if (
+                e.message !==
+                "assertion failure with message: insufficient balance"
+              )
+                throw new Error(e);
+              return {
+                failedDueToBadCalculation: true,
+                addLiquidityActions,
+                fundAmount
+              };
+            }
+          }
+        },
+        {
+          description: "Fund failed, trying again...",
+          task: async state => {
+            const {
+              failedDueToBadCalculation
+            }: { failedDueToBadCalculation: boolean } = state;
+            if (failedDueToBadCalculation) {
+              const { fundAmount, addLiquidityActions } = state;
+              const backupFundAction = multiContractAction.fund(
+                vxm.wallet.isAuthenticated,
+                number_to_asset(
+                  Number(fundAmount) * 0.96,
+                  new Symbol(relay.smartToken.symbol, 4)
+                ).to_string()
+              );
+
+              const newActions = [...addLiquidityActions, backupFundAction];
+              const txRes = await this.triggerTx(newActions);
+              return { txRes };
+            }
+          }
+        },
+        {
+          description: "Waiting for catchup...",
+          task: async () => wait(5000)
+        },
+        {
+          description: `Checking and collecting any left over dust...`,
+          task: async () => {
+            const bankBalances = await this.fetchBankBalances({
+              smartTokenSymbol: relay.smartToken.symbol,
+              accountHolder: this.isAuthenticated
+            });
+
+            const aboveZeroBalances = bankBalances
+              .map(balance => ({
+                ...balance,
+                quantity: new Asset(balance.quantity)
+              }))
+              .filter(balance => asset_to_number(balance.quantity) > 0);
+
+            const withdrawActions = aboveZeroBalances.map(balance =>
+              multiContract.withdrawAction(balance.symbl, balance.quantity)
+            );
+            if (withdrawActions.length > 0) {
+              await this.triggerTx(withdrawActions);
+            }
+          }
+        }
+      ],
+      onUpdate
     });
-    onUpdate!(4, steps);
 
-    const aboveZeroBalances = bankBalances
-      .map(balance => ({ ...balance, quantity: new Asset(balance.quantity) }))
-      .filter(balance => asset_to_number(balance.quantity) > 0);
-
-    const withdrawActions = aboveZeroBalances.map(balance =>
-      multiContract.withdrawAction(balance.symbl, balance.quantity)
-    );
-    if (withdrawActions.length > 0) {
-      await this.triggerTx(withdrawActions);
-    }
-    onUpdate!(5, steps);
-    // @ts-ignore
     vxm.eosNetwork.pingTillChange({ originalBalances });
-    return txRes.transaction_id as string;
+    return finalState.txRes.transaction_id as string;
   }
 
   @action async fetchBankBalances({

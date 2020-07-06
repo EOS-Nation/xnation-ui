@@ -16,7 +16,10 @@ import {
   TokenMeta,
   BaseToken,
   TokenBalanceReturn,
-  TokenBalanceParam
+  TokenBalanceParam,
+  Section,
+  Step,
+  OnUpdate
 } from "@/types/bancor";
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
@@ -31,6 +34,40 @@ import { sortByNetworkTokens } from "./sortByNetworkTokens";
 export const networkTokens = ["BNT", "USDB"];
 
 export const isOdd = (num: number) => num % 2 == 1;
+
+interface TaskItem {
+  description: string;
+  task: (state?: any) => Promise<any>;
+}
+
+export const multiSteps = async ({
+  items,
+  onUpdate
+}: {
+  items: TaskItem[];
+  onUpdate?: OnUpdate;
+}) => {
+  let state: any = {};
+  for (const todo in items) {
+    let steps = items.map(
+      (todo, index): Step => ({
+        name: String(index),
+        description: todo.description
+      })
+    );
+    if (typeof onUpdate == "function") {
+      onUpdate(Number(todo), steps);
+    } else if (typeof onUpdate !== "undefined") {
+      throw new Error("onUpdate should be either a function or undefined");
+    }
+
+    let newState = await items[todo].task(state);
+    if (typeof newState !== "undefined") {
+      state = newState;
+    }
+  }
+  return state;
+};
 
 const eosRpc: JsonRpc = rpc;
 

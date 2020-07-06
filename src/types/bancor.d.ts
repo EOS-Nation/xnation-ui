@@ -74,10 +74,12 @@ export interface ViewAmount {
 // Utilise ID over symbol more
 // TODO
 
+type OnUpdate = (index: number, sections: Section[]) => void;
+
 export interface LiquidityParams {
   id: string;
   reserves: ViewAmount[];
-  onUpdate?: (index: number, sections: Section[]) => void;
+  onUpdate?: OnUpdate;
 }
 
 export interface OpposingLiquidParams {
@@ -97,7 +99,7 @@ export interface Section {
 export interface ProposedConvertTransaction {
   from: ViewAmount;
   to: ViewAmount;
-  onUpdate?: (index: number, sections: Section[]) => void;
+  onUpdate?: OnUpdate;
 }
 
 export interface TokenDetail {
@@ -340,7 +342,8 @@ export interface Step {
 export interface CreatePoolParams {
   reserves: ViewAmount[];
   fee: number;
-  onUpdate: (stepIndex: number, steps: Step[]) => void;
+  onUpdate: OnUpdate;
+  poolTypeId: string;
 }
 
 export interface CreatePoolModule {
