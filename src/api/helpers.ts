@@ -266,6 +266,11 @@ export const retryPromise = async <T>(
     }
   });
 };
+const isValidBalance = (data: any): boolean =>
+  typeof data.contract == "string" &&
+  typeof data.symbol == "string" &&
+  data.contract.length > 0 &&
+  data.symbol.length > 0;
 
 export const getTokenBalances = async (
   accountName: string
@@ -273,7 +278,10 @@ export const getTokenBalances = async (
   const res = await axios.get<TokenBalances>(
     `https://eos.eosn.io/v2/state/get_tokens?account=${accountName}`
   );
-  return res.data;
+  return {
+    ...res.data,
+    tokens: res.data.tokens.filter(isValidBalance)
+  };
 };
 
 export const identifyVersionBySha3ByteCodeHash = (sha3Hash: string): string => {
