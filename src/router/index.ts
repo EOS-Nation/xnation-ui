@@ -16,7 +16,7 @@ import { services } from "@/api/helpers";
 
 Vue.use(Router);
 
-export const defaultModule = "eos";
+export const defaultModule = "eth";
 const PREFERRED_SERVICE = "preferredService";
 
 export const router = new Router({
