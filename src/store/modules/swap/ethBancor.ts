@@ -652,34 +652,6 @@ export class EthBancorModule
     return converterRes;
   }
 
-  @action async sendTokens(
-    tokens: { tokenContract: string; toAddress: string; amount: string }[]
-  ) {
-    return Promise.all(
-      tokens.map(async token => {
-        const tokenContract = buildTokenContract(token.tokenContract);
-
-        const [decimals, currentBalance] = await Promise.all([
-          tokenContract.methods.decimals().call(),
-          tokenContract.methods.balanceOf(this.isAuthenticated).call()
-        ]);
-        let weiAmount = expandToken(token.amount, Number(decimals));
-        if (
-          new BigNumber(weiAmount).isGreaterThan(new BigNumber(currentBalance))
-        ) {
-          weiAmount = currentBalance;
-        }
-
-        return this.resolveTxOnConfirmation({
-          tx: tokenContract.methods.transfer(
-            token.toAddress,
-            web3.utils.toHex(weiAmount)
-          )
-        });
-      })
-    );
-  }
-
   @action async approveTokenWithdrawals(
     approvals: {
       approvedAddress: string;
