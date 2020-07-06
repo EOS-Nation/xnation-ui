@@ -343,7 +343,6 @@ export interface CreatePoolParams {
   reserves: ViewAmount[];
   fee: number;
   onUpdate: OnUpdate;
-  poolTypeId: string;
 }
 
 export interface CreatePoolModule {

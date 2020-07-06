@@ -194,6 +194,9 @@ export const buildRegistryContract = (
   contractAddress: string
 ): ContractMethods<{
   getConvertibleTokens: () => CallReturn<string[]>;
+  getConvertibleTokenAnchors: (
+    convertibleToken: string
+  ) => CallReturn<string[]>;
   newConverter: (
     type: number,
     smartTokenName: string,

@@ -1667,11 +1667,10 @@ export class EthBancorModule
   }
 
   @action async relaysContainingToken(tokenId: string): Promise<string[]> {
-    return this.relaysRequiredForTrade({
-      from: tokenId,
-      to: "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
-      networkContractAddress: this.contracts.BancorNetwork
-    });
+    const converterRegistry = buildRegistryContract(
+      this.contracts.BancorConverterRegistry
+    );
+    return converterRegistry.methods.getConvertibleTokenAnchors(tokenId).call();
   }
 
   get convertibleTokens() {
