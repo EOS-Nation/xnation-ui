@@ -308,11 +308,10 @@ const callbackDfs = (
 ) => {
   visited.add(start);
   const destinations = adjacencyList.get(start)!;
+  if (destinations.includes(goal)) {
+    callBack([...path, goal]);
+  }
   for (const destination of destinations) {
-    if (destination === goal) {
-      callBack([...path, goal]);
-    }
-
     if (!visited.has(destination)) {
       callbackDfs(destination, goal, adjacencyList, callBack, visited, [
         ...path,
