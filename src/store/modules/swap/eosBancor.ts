@@ -1965,6 +1965,8 @@ export class EosBancorModule
 
   @action async convert(proposal: ProposedConvertTransaction) {
     const { from, to } = proposal;
+    if (compareString(from.id, to.id))
+      throw new Error("Cannot convert a token to itself.");
     const fromAmount = from.amount;
     const toAmount = Number(to.amount);
 
@@ -2130,6 +2132,8 @@ export class EosBancorModule
     from,
     toId
   }: ProposedFromTransaction): Promise<ConvertReturn> {
+    if (compareString(from.id, toId))
+      throw new Error("Cannot convert a token to itself.");
     const assetAmount = await this.viewAmountToAsset(from);
 
     const allRelays = this.convertableRelays.map(multiToDry);
@@ -2149,6 +2153,8 @@ export class EosBancorModule
   }
 
   @action async getCost({ fromId, to }: ProposedToTransaction) {
+    if (compareString(fromId, to.id))
+      throw new Error("Cannot convert a token to itself.");
     const assetAmount = await this.viewAmountToAsset(to);
 
     const allRelays = this.convertableRelays.map(multiToDry);
