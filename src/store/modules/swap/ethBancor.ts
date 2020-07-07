@@ -2245,6 +2245,8 @@ export class EthBancorModule
   }
 
   @action async convert({ from, to, onUpdate }: ProposedConvertTransaction) {
+    if (compareString(from.id, to.id))
+      throw new Error("Cannot convert a token to itself.");
     const [fromToken, toToken] = await this.tokensById([from.id, to.id]);
     const fromIsEth = compareString(fromToken.symbol, "eth");
 
@@ -2411,6 +2413,8 @@ export class EthBancorModule
   }
 
   @action async getReturn({ from, toId }: ProposedFromTransaction) {
+    if (compareString(from.id, toId))
+      throw new Error("Cannot convert a token to itself.");
     const [fromToken, toToken] = await this.tokensById([from.id, toId]);
 
     const [fromTokenContract, toTokenContract] = [fromToken.id, toToken.id];
@@ -2441,6 +2445,8 @@ export class EthBancorModule
   }
 
   @action async getCost({ fromId, to }: ProposedToTransaction) {
+    if (compareString(fromId, to.id))
+      throw new Error("Cannot convert a token to itself.");
     const fromToken = await this.tokenById(fromId);
     const toToken = await this.tokenById(to.id);
 

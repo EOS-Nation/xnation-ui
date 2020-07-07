@@ -447,6 +447,8 @@ export class UsdBancorModule
   }
 
   @action async convert(propose: ProposedConvertTransaction) {
+    if (compareString(propose.from.id, propose.to.id))
+      throw new Error("Cannot convert a token to itself.");
     const accountName = this.isAuthenticated;
 
     const fromToken = await this.tokenById(propose.from.id);
@@ -606,6 +608,8 @@ export class UsdBancorModule
   }
 
   @action async getReturn(propose: ProposedFromTransaction) {
+    if (compareString(propose.from.id, propose.toId))
+      throw new Error("Cannot convert a token to itself.");
     this.checkRefresh();
 
     const bestReturn = await this.bestFromReturn(propose);
@@ -618,6 +622,8 @@ export class UsdBancorModule
   }
 
   @action async getCost(propose: ProposedToTransaction) {
+    if (compareString(propose.fromId, propose.to.id))
+      throw new Error("Cannot convert a token to itself.");
     this.checkRefresh();
 
     const cheapestCost = await this.bestToReturn(propose);
