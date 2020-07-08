@@ -20,7 +20,7 @@
           <b-table
             id="relays-table"
             striped
-            :key="buddy"
+            :key="dynamicId"
             stacked="sm"
             :items="tokens"
             :fields="fields"
