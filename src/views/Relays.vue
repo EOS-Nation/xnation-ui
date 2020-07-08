@@ -139,7 +139,7 @@ export default class Relays extends Vue {
   numeral = numeral;
   private filter: string = "";
   small = false;
-  dynamicId = 'buddy'
+  dynamicId = "buddy";
   @bancor.Action loadMorePools!: LiquidityModule["loadMorePools"];
   @bancor.Getter morePoolsAvailable!: LiquidityModule["morePoolsAvailable"];
   @bancor.Getter loadingPools!: LiquidityModule["loadingPools"];
@@ -288,10 +288,7 @@ export default class Relays extends Vue {
   created() {
     window.addEventListener("resize", this.handleResize);
     this.handleResize();
-    setTimeout(this.refreshTable, 3000);
-    setTimeout(this.refreshTable, 6000);
-    setTimeout(this.refreshTable, 10000);
-    setTimeout(this.refreshTable, 20000);
+    setInterval(this.refreshTable, 5000);
   }
 }
 </script>

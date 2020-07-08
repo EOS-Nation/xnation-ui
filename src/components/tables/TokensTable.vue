@@ -260,10 +260,7 @@ export default class TokensTable extends Vue {
   created() {
     window.addEventListener("resize", this.handleResize);
     this.handleResize();
-    setTimeout(this.refreshTable, 3000);
-    setTimeout(this.refreshTable, 6000);
-    setTimeout(this.refreshTable, 10000);
-    setTimeout(this.refreshTable, 20000);
+    setInterval(this.refreshTable, 5000);
   }
 }
 </script>
