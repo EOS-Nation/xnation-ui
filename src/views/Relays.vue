@@ -285,10 +285,16 @@ export default class Relays extends Vue {
     this.dynamicId = reverseString;
   }
 
+  tokensChanged = _.debounce(() => this.refreshTable(), 2000);
+
+  @Watch("tokens")
+  onChange() {
+    this.tokensChanged();
+  }
+
   created() {
     window.addEventListener("resize", this.handleResize);
     this.handleResize();
-    setInterval(this.refreshTable, 5000);
   }
 }
 </script>
