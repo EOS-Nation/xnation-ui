@@ -17,6 +17,7 @@
       <div class="table-responsive">
         <b-table
           id="tokens-table"
+          :key="dynamicId"
           striped
           stacked="sm"
           :items="tokens"
@@ -133,6 +134,8 @@ export default class TokensTable extends Vue {
   @Prop() value!: string;
   @Prop() name!: string;
 
+  dynamicId = "mate";
+
   small = false;
 
   filter = "";
@@ -246,9 +249,21 @@ export default class TokensTable extends Vue {
     this.small = window.innerWidth < 768;
   }
 
+  refreshTable() {
+    const reverseString = this.dynamicId
+      .split("")
+      .reverse()
+      .join();
+    this.dynamicId = reverseString;
+  }
+
   created() {
     window.addEventListener("resize", this.handleResize);
     this.handleResize();
+    setTimeout(this.refreshTable, 3000);
+    setTimeout(this.refreshTable, 6000);
+    setTimeout(this.refreshTable, 10000);
+    setTimeout(this.refreshTable, 20000);
   }
 }
 </script>

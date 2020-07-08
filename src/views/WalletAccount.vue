@@ -29,7 +29,7 @@
         </div>
         <div class="block-content">
           <b-table
-            id="tokens-table"
+            id="tokens-tablee"
             striped
             :fields="fields"
             :items="tokens"

@@ -20,6 +20,7 @@
           <b-table
             id="relays-table"
             striped
+            :key="buddy"
             stacked="sm"
             :items="tokens"
             :fields="fields"
@@ -138,6 +139,7 @@ export default class Relays extends Vue {
   numeral = numeral;
   private filter: string = "";
   small = false;
+  dynamicId = 'buddy'
   @bancor.Action loadMorePools!: LiquidityModule["loadMorePools"];
   @bancor.Getter morePoolsAvailable!: LiquidityModule["morePoolsAvailable"];
   @bancor.Getter loadingPools!: LiquidityModule["loadingPools"];
@@ -275,9 +277,21 @@ export default class Relays extends Vue {
     this.small = window.innerWidth < 768;
   }
 
+  refreshTable() {
+    const reverseString = this.dynamicId
+      .split("")
+      .reverse()
+      .join();
+    this.dynamicId = reverseString;
+  }
+
   created() {
     window.addEventListener("resize", this.handleResize);
     this.handleResize();
+    setTimeout(this.refreshTable, 3000);
+    setTimeout(this.refreshTable, 6000);
+    setTimeout(this.refreshTable, 10000);
+    setTimeout(this.refreshTable, 20000);
   }
 }
 </script>
