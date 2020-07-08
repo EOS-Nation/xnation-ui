@@ -28,16 +28,24 @@
     </div>
   </div>
 
-  <div v-else id="page-container" class="page-header-fixed page-header-dark">
-    <router-view name="Nav"></router-view>
+  <div
+    v-else
+    id="page-container"
+    class="page-header-fixed  bg-primary page-header-dark"
+  >
+    <div>
+      <router-view name="Nav"></router-view>
 
-    <main id="main-container" class="bg-primary">
-      <router-view name="Hero"></router-view>
-      <router-view></router-view>
-    </main>
-    <my-footer></my-footer>
-    <modal-login />
-    <modal-tx />
+      <main id="main-container" class="bg-primary">
+        <router-view name="Hero"></router-view>
+        <router-view></router-view>
+      </main>
+    </div>
+    <div>
+      <my-footer></my-footer>
+      <modal-login />
+      <modal-tx />
+    </div>
   </div>
 </template>
 
@@ -116,6 +124,14 @@ export default class App extends Vue {
 h2 {
   padding: 25px;
 }
+
+#page-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
 #loading {
   background-color: #324856;
   height: 100%;
