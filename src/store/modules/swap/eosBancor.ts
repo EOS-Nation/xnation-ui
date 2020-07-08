@@ -1009,9 +1009,7 @@ export class EosBancorModule
     waitTime: number;
   }) {
     const chunked = _.chunk(dryRelays, chunkSize);
-    const [firstChunk] = chunked;
-    const remainingChunks = chunked.slice(1, 9999);
-
+    const [firstChunk, ...remainingChunks] = chunked;
     const [bancorApiFeeds, firstBatch] = await Promise.all([
       this.buildPossibleRelayFeedsFromBancorApi({ relays: dryRelays }),
       this.hydrateOldRelays(firstChunk)
