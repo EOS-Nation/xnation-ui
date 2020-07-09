@@ -1068,27 +1068,6 @@ export class EosBancorModule
     return;
   }
 
-  @action async fetchBalancesFromReserves(relays: DryRelay[]) {
-    const tokens = relays
-      .flatMap(relay => relay.reserves)
-      .map(reserve => ({
-        contract: reserve.contract,
-        symbol: reserve.symbol.code().to_string()
-      }));
-
-    const uniqueTokens = _.uniqWith(
-      tokens,
-      (a, b) =>
-        compareString(a.symbol, b.symbol) &&
-        compareString(a.contract, b.contract)
-    );
-
-    return vxm.eosNetwork.getBalances({
-      tokens: uniqueTokens,
-      slow: false
-    });
-  }
-
   @action async bareMinimumForTrade({
     fromId,
     toId,

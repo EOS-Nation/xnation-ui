@@ -104,6 +104,7 @@ import {
   SimpleToken,
   SimpleTokenWithMarketData
 } from "@/types/bancor";
+import _ from "lodash";
 const {
   ContentLoader,
   FacebookLoader,

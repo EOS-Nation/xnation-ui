@@ -87,6 +87,7 @@ export const getSxContracts = async () => {
       ext_tokens: { sym: string; contract: string }[];
     }[];
   };
+  console.log(res, "was raw res");
   return res.rows.map(set => ({
     contract: set.contract,
     tokens: set.ext_tokens.map(token => ({

@@ -1,120 +1,124 @@
 <template>
-  <div>
-    <div class="content content-boxed">
-      <div class="block" style="min-height: 1000px;">
-        <div class="block-header">
-          <h3 class="block-title">
-            {{ $route.params.service.toUpperCase() }}
-            <small>Pools</small>
-          </h3>
-          <div class="block-options">
-            <b-form-input
-              class="form-control form-control-alt"
-              v-model="filter"
-              debounce="500"
-              placeholder="Search Token"
-            ></b-form-input>
+  <b-col cols="12">
+    <div>
+      <div class="content content-boxed">
+        <div class="block" style="min-height: 1000px;">
+          <div class="block-header">
+            <h3 class="block-title">
+              {{ $route.params.service.toUpperCase() }}
+              <small>Pools</small>
+            </h3>
+            <div class="block-options">
+              <b-form-input
+                class="form-control form-control-alt"
+                v-model="filter"
+                debounce="500"
+                placeholder="Search Token"
+              ></b-form-input>
+            </div>
           </div>
-        </div>
-        <div class="block-content">
-          <b-table
-            id="relays-table"
-            striped
-            :key="dynamicId"
-            stacked="sm"
-            :items="tokens"
-            :fields="fields"
-            :filter="filter"
-            sort-by="liqDepth"
-            :sort-desc="true"
-            primary-key="id"
-            :table-busy="loadingPools"
-            :tbody-transition-props="transProps"
-            :tbody-transition-handlers="transHandler"
-          >
-            <template v-slot:table-busy>
-              <div class="text-center my-2">
-                <b-spinner class="align-middle"></b-spinner>
-                <strong>Loading...</strong>
-              </div>
-            </template>
-            <template v-if="morePoolsAvailable" v-slot:custom-foot>
-              <b-button :disabled="loadingPools" @click="loadMorePools"
-                >Load more...
-              </b-button>
-            </template>
-            <template v-slot:table-colgroup>
-              <col key="index" style="width: 46px;" />
-              <col key="symbol" style="width: 260px;" />
-              <col key="smart" style="width: 200px;" />
-            </template>
-            <template v-slot:cell(symbol)="data">
-              <img
-                :id="`tooltip-target-${data.item.reserveId}`"
-                :key="reserve.reserveId"
-                v-for="reserve in data.item.reserves"
-                class="img-avatar img-avatar-thumb img-avatar32 mr-3"
-                :src="reserve.logo[0]"
-                v-fallback="reserve.logo.slice(1)"
-                :alt="`${reserve.symbol} Token Logo`"
-              />
-              <b-popover
-                v-for="reserve in data.item.reserves"
-                :key="`${reserve.reserveId}-tooltip`"
-                :target="`tooltip-target-${data.item.reserveId}`"
-                triggers="hover"
-              >
-                <p>Contract: {{ reserve.contract }}</p>
-                <p>Symbol: {{ reserve.symbol }}</p>
-                <p>{{ reserve.balance && `Balance: ${reserve.balance}` }}</p>
-              </b-popover>
-              {{ data.item.symbol }}
-            </template>
-            <template v-slot:cell(index)="data">
-              {{ data.index + 1 }}
-            </template>
-            <template v-slot:cell(smartTokenSymbol)="data">
-              <span> {{ data.item.smartTokenSymbol }}</span>
-            </template>
-            <template v-slot:cell(ratio)>
-              50 - 50
-            </template>
-            <template v-slot:cell(actions)="data">
-              <div>
-                <b-btn
-                  v-if="focusDoesExist"
-                  @click="focusRelay(data.item.id)"
-                  :disabled="!data.item.focusAvailable"
-                  size="sm"
-                  variant="warning"
-                  class="mr-1"
+          <div class="block-content">
+            <b-table
+              id="relays-table"
+              striped
+              :key="dynamicId"
+              stacked="sm"
+              :items="tokens"
+              :fields="fields"
+              :filter="filter"
+              sort-by="liqDepth"
+              :sort-desc="true"
+              primary-key="id"
+              :table-busy="loadingPools"
+              :tbody-transition-props="transProps"
+              :tbody-transition-handlers="transHandler"
+            >
+              <template v-slot:table-busy>
+                <div class="text-center my-2">
+                  <b-spinner class="align-middle"></b-spinner>
+                  <strong>Loading...</strong>
+                </div>
+              </template>
+              <template v-if="morePoolsAvailable" v-slot:custom-foot>
+                <b-button :disabled="loadingPools" @click="loadMorePools"
+                  >Load more...
+                </b-button>
+              </template>
+              <template v-slot:table-colgroup>
+                <col key="index" style="width: 46px;" />
+                <col key="symbol" style="width: 260px;" />
+                <col key="smart" style="width: 200px;" />
+              </template>
+              <template v-slot:cell(symbol)="data">
+                <img
+                  :id="`tooltip-target-${data.item.reserveId}`"
+                  :key="reserve.reserveId"
+                  v-for="reserve in data.item.reserves"
+                  class="img-avatar img-avatar-thumb img-avatar32 mr-3"
+                  :src="reserve.logo[0]"
+                  v-fallback="reserve.logo.slice(1)"
+                  :alt="`${reserve.symbol} Token Logo`"
+                />
+                <b-popover
+                  v-for="reserve in data.item.reserves"
+                  :key="`${reserve.reserveId}-tooltip`"
+                  :target="`tooltip-target-${data.item.reserveId}`"
+                  triggers="hover"
                 >
-                  <font-awesome-icon icon="chart-line" />
-                </b-btn>
-                <b-btn
-                  @click="goToRelay(data.item.id, 'liquidate')"
-                  :disabled="!data.item.removeLiquiditySupported"
-                  size="sm"
-                  variant="success"
-                  class="mr-1"
-                >
-                  <font-awesome-icon icon="minus" />
-                </b-btn>
-                <b-btn
-                  @click="goToRelay(data.item.id)"
-                  :disabled="!data.item.addLiquiditySupported"
-                  size="sm"
-                  variant="info"
-                >
-                  <font-awesome-icon icon="plus" />
-                </b-btn>
-              </div>
-            </template>
-          </b-table>
+                  <p>Contract: {{ reserve.contract }}</p>
+                  <p>Symbol: {{ reserve.symbol }}</p>
+                  <p>
+                    {{ reserve.balance && `Balance: ${reserve.balance}` }}
+                  </p>
+                </b-popover>
+                {{ data.item.symbol }}
+              </template>
+              <template v-slot:cell(index)="data">
+                {{ data.index + 1 }}
+              </template>
+              <template v-slot:cell(smartTokenSymbol)="data">
+                <span> {{ data.item.smartTokenSymbol }}</span>
+              </template>
+              <template v-slot:cell(ratio)>
+                50 - 50
+              </template>
+              <template v-slot:cell(actions)="data">
+                <div>
+                  <b-btn
+                    v-if="focusDoesExist"
+                    @click="focusRelay(data.item.id)"
+                    :disabled="!data.item.focusAvailable"
+                    size="sm"
+                    variant="warning"
+                    class="mr-1"
+                  >
+                    <font-awesome-icon icon="chart-line" />
+                  </b-btn>
+                  <b-btn
+                    @click="goToRelay(data.item.id, 'liquidate')"
+                    :disabled="!data.item.removeLiquiditySupported"
+                    size="sm"
+                    variant="success"
+                    class="mr-1"
+                  >
+                    <font-awesome-icon icon="minus" />
+                  </b-btn>
+                  <b-btn
+                    @click="goToRelay(data.item.id)"
+                    :disabled="!data.item.addLiquiditySupported"
+                    size="sm"
+                    variant="info"
+                  >
+                    <font-awesome-icon icon="plus" />
+                  </b-btn>
+                </div>
+              </template>
+            </b-table>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </b-col>
 </template>
 
 <script lang="ts">
@@ -125,6 +129,7 @@ import { TokenPrice, TradingModule, LiquidityModule } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
 import Velocity from "velocity-animate";
 import { State, Getter, Action, namespace } from "vuex-class";
+import _ from "lodash";
 
 const bancor = namespace("bancor");
 

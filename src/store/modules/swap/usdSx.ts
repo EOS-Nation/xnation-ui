@@ -222,6 +222,14 @@ export class UsdBancorModule
 
   get token() {
     return (arg0: string) => {
+      console.log(
+        this.tokens.map(x => x.symbol).join(" "),
+        "are current tokens",
+        arg0
+      );
+
+      const foundToken = this.tokens.find(x => x.symbol == "EOS");
+      console.log("found token...", foundToken);
       return findOrThrow(
         this.tokens,
         token => compareString(token.id, arg0),
@@ -244,6 +252,16 @@ export class UsdBancorModule
       retryPromise(() => get_volume(rpc, contract, 1), 4, 500),
       retryPromise(() => get_settings(rpc, contract), 4, 500)
     ]);
+
+    const againTokens = await get_tokens(rpc, contract);
+    console.log(
+      againTokens["EOS"].contract.to_string(),
+      "was the res of tokens"
+    );
+    console.assert(
+      againTokens["EOS"].contract.to_string() !== "eosio.sokem",
+      "shits retarded"
+    );
 
     return { tokens, volume, settings, contract };
   }
@@ -282,16 +300,32 @@ export class UsdBancorModule
     vxm.eosBancor.init();
 
     const registryData = await getSxContracts();
-    vxm.eosNetwork.getBalances({
-      tokens: registryData.flatMap(data => data.tokens),
-      slow: false
-    });
+    console.log(registryData, "was registry data");
+    if (this.isAuthenticated) {
+      vxm.eosNetwork.getBalances({
+        tokens: registryData.flatMap(data => data.tokens),
+        slow: false
+      });
+    }
 
     const contracts = registryData.map(x => x.contract);
 
     this.checkPrices(contracts);
     this.setContracts(contracts);
+    console.log(contracts, "are the contracts");
     const allTokens = await Promise.all(contracts.map(this.fetchContract));
+    console.log(
+      "all tokens are..",
+      allTokens.flatMap(x =>
+        tokensToArray(x.tokens)
+          .flat(1)
+          .map(token => ({
+            ...token,
+            contract: token.contract.to_string(),
+            symbol: token.sym.code().to_string()
+          }))
+      )
+    );
     this.setStats(allTokens);
 
     retryPromise(() => this.updateStats(), 4, 1000);
@@ -314,6 +348,8 @@ export class UsdBancorModule
         id: buildTokenId(token)
       }))
     );
+
+    console.log({ all, allWithId });
 
     const uniqTokens = _.uniqBy(allWithId, "id").map(x => x.id);
 
@@ -353,9 +389,12 @@ export class UsdBancorModule
       }
     );
 
+    console.log(newTokens, "are new tokens set.");
+
     this.setNewTokens(newTokens);
     await wait(100);
     this.moduleInitiated();
+    await wait(100);
     console.timeEnd("sx");
   }
 
@@ -431,12 +470,14 @@ export class UsdBancorModule
     const tokens = this.newTokens.filter(token =>
       compareString(token.symbol, symbolName)
     );
-    vxm.eosNetwork.getBalances({
-      tokens: tokens.map(token => ({
-        contract: token.contract,
-        symbol: token.symbol
-      }))
-    });
+    if (this.isAuthenticated) {
+      vxm.eosNetwork.getBalances({
+        tokens: tokens.map(token => ({
+          contract: token.contract,
+          symbol: token.symbol
+        }))
+      });
+    }
   }
 
   @action async refreshBalances(symbols: BaseToken[] = []) {}
