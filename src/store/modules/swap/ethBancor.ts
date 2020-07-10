@@ -1868,7 +1868,6 @@ export class EthBancorModule
         smartTokenAddresses: registeredSmartTokenAddresses,
         ...(bancorApiTokens && { tokenPrices: bancorApiTokens })
       });
-      console.log("did you get here?");
 
       const isDev = process.env.NODE_ENV == "development";
       const initialLoad = bareMinimumSmartTokenAddresses;
