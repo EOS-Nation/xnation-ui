@@ -1,28 +1,39 @@
 <template>
-  <b-modal :visible="value" size="lg" @change="onChange" centered hide-footer>
-    <template slot="modal-header" header-class="xxx">
-      <div class="left">
-        <h5 id="select-token">Select Token</h5>
-        <b-btn
-          size="sm"
-          href="https://github.com/eoscafe/eos-airdrops"
-          target="_blank"
-          >Add Token</b-btn
-        >
-      </div>
-      <div>
-        <b-input-group>
-          <b-form-input
-            v-model="tokenSearch"
-            placeholder="Search Token"
-          ></b-form-input>
-        </b-input-group>
-      </div>
-    </template>
+  <b-modal
+    scrollable
+    :visible="value"
+    size="lg"
+    @change="onChange"
+    centered
+    hide-footer
+  >
     <div class="modal-content">
+      <div class="ffs">
+        <h5 id="select-token">
+          Select Token
+        </h5>
+        <div class="left">
+          <b-btn
+            size="sm"
+            class="d-none d-md-block"
+            href="https://github.com/eoscafe/eos-airdrops"
+            target="_blank"
+            >Add Token</b-btn
+          >
+        </div>
+        <div>
+          <b-input-group>
+            <b-form-input
+              v-model="tokenSearch"
+              placeholder="Search Token"
+            ></b-form-input>
+          </b-input-group>
+        </div>
+      </div>
       <b-row class="mx-0 mb-4">
         <b-col
           md="6"
+          sm="12"
           v-if="filterable"
           lg="4"
           class="d-flex align-items-center py-2"
@@ -41,7 +52,7 @@
       </b-row>
       <b-row class="d-flex align-items-center mx-0 gutters-tiny">
         <b-col
-          cols="6"
+          sm="12"
           md="6"
           lg="4"
           v-for="token in searchedTokens"
@@ -140,8 +151,6 @@ export default class ModalSelect extends Vue {
   }
 }
 </script>
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss">
 #select-token {
   margin-right: 12px;
@@ -149,9 +158,9 @@ export default class ModalSelect extends Vue {
 
 .modal-content {
   min-height: 49vh;
-  height: 50vh;
-  max-height: 51vh;
-  overflow: scroll;
+  // height: 50vh;
+  // max-height: 51vh;
+  // overflow: scroll;
 }
 .slide-fade-enter-active {
   transition: all 0.3s ease;
@@ -165,9 +174,18 @@ export default class ModalSelect extends Vue {
   opacity: 0;
 }
 
+.ffs {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  min-height: 65px;
+  height: 65px;
+}
+// min-height: 65px;
+
 .left {
   display: flex;
-  align-items: baseline
+  align-items: baseline;
 }
 
 @keyframes fa-blink {
