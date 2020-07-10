@@ -282,10 +282,12 @@ export class UsdBancorModule
     vxm.eosBancor.init();
 
     const registryData = await getSxContracts();
-    vxm.eosNetwork.getBalances({
-      tokens: registryData.flatMap(data => data.tokens),
-      slow: false
-    });
+    if (this.isAuthenticated) {
+      vxm.eosNetwork.getBalances({
+        tokens: registryData.flatMap(data => data.tokens),
+        slow: false
+      });
+    }
 
     const contracts = registryData.map(x => x.contract);
 
@@ -354,8 +356,8 @@ export class UsdBancorModule
     );
 
     this.setNewTokens(newTokens);
-    await wait(100);
     this.moduleInitiated();
+    await wait(10);
     console.timeEnd("sx");
   }
 
@@ -431,12 +433,14 @@ export class UsdBancorModule
     const tokens = this.newTokens.filter(token =>
       compareString(token.symbol, symbolName)
     );
-    vxm.eosNetwork.getBalances({
-      tokens: tokens.map(token => ({
-        contract: token.contract,
-        symbol: token.symbol
-      }))
-    });
+    if (this.isAuthenticated) {
+      vxm.eosNetwork.getBalances({
+        tokens: tokens.map(token => ({
+          contract: token.contract,
+          symbol: token.symbol
+        }))
+      });
+    }
   }
 
   @action async refreshBalances(symbols: BaseToken[] = []) {}

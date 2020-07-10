@@ -125,6 +125,7 @@ import { TokenPrice, TradingModule, LiquidityModule } from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
 import Velocity from "velocity-animate";
 import { State, Getter, Action, namespace } from "vuex-class";
+import _ from "lodash";
 
 const bancor = namespace("bancor");
 

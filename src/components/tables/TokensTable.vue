@@ -257,7 +257,7 @@ export default class TokensTable extends Vue {
     this.dynamicId = reverseString;
   }
 
-  tokensChanged = _.debounce(() => this.refreshTable(), 2000);
+  tokensChanged = debounce(() => this.refreshTable(), 2000);
 
   @Watch("tokens")
   onChange() {
