@@ -1,7 +1,7 @@
 <template>
   <div>
-    <div class="content content-boxed">
-      <div class="block" style="min-height: 1000px;">
+    <div class="container-md">
+      <div class="block">
         <div class="block-header">
           <h3 class="block-title">
             {{ $route.params.service.toUpperCase() }}
@@ -80,7 +80,7 @@
               50 - 50
             </template>
             <template v-slot:cell(actions)="data">
-              <div>
+              <div class="actionButtons">
                 <b-btn
                   v-if="focusDoesExist"
                   @click="focusRelay(data.item.id)"
@@ -148,13 +148,13 @@ export default class Relays extends Vue {
   fields = [
     {
       key: "index",
-      label: "#",
-      class: "index-header"
+      label: "#"
     },
     {
       key: "symbol",
       sortable: true,
-      label: "Token"
+      label: "Token",
+      tdClass: ["tokenss"]
     },
     {
       key: "smartTokenSymbol",
@@ -168,7 +168,8 @@ export default class Relays extends Vue {
     },
     {
       key: "ratio",
-      tdClass: "font-w700"
+      tdClass: "font-w700",
+      class: "noWrap"
     },
     {
       key: "liqDepth",
@@ -186,7 +187,8 @@ export default class Relays extends Vue {
     },
     {
       key: "actions",
-      label: "Actions"
+      label: "Actions",
+      tdClass: ["noWrap"]
     }
   ];
 
@@ -303,6 +305,22 @@ export default class Relays extends Vue {
 <style lang="scss">
 table#relays-table .flip-list-move {
   transition: transform 0.5s;
+}
+
+.index-header {
+  padding: 2px;
+}
+
+.actions {
+  min-width: 130px;
+}
+
+.tokenss {
+  max-width: 160px;
+}
+
+.noWrap {
+  white-space: nowrap;
 }
 
 .block-options {
