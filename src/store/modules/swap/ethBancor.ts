@@ -1870,7 +1870,6 @@ export class EthBancorModule
       });
 
       const isDev = process.env.NODE_ENV == "development";
-      const initialLoad = bareMinimumSmartTokenAddresses;
 
       const approvedPriority = await this.poolsByPriority({
         smartTokenAddresses: registeredSmartTokenAddresses,
@@ -1879,15 +1878,18 @@ export class EthBancorModule
 
       const remainingLoad = _.differenceWith(
         approvedPriority,
-        initialLoad,
+        bareMinimumSmartTokenAddresses,
         compareString
       ).slice(0, isDev ? 5 : 20);
 
-      await this.addPools(initialLoad);
+      await this.addPools(bareMinimumSmartTokenAddresses);
       await wait(1);
       this.addPools(remainingLoad);
-
       this.moduleInitiated();
+
+      if (this.relaysList.length < 1 || this.relayFeed.length < 2) {
+        console.error("Init resolved with less than 2 relay feeds or 1 relay.");
+      }
       console.timeEnd("eth");
     } catch (e) {
       throw new Error(`Threw inside ethBancor ${e.message}`);
@@ -1918,7 +1920,7 @@ export class EthBancorModule
             smartTokenAddress,
             converterAddress
           });
-          this.addPool({ relay });
+          await this.addPool({ relay });
           return relay;
         } catch (e) {
           console.log(`Failed building relay ${converterAddress} ${e.message}`);
