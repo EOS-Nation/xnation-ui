@@ -31,7 +31,10 @@ import {
   number_to_asset,
   symbol,
   Sym,
-  Asset
+  Asset,
+  extended_asset,
+  asset,
+  name
 } from "eos-common";
 import {
   compareString,
@@ -102,11 +105,38 @@ const accumulateVolume = (acc: SxToken, token: SxToken) => ({
 const tokensToArray = (tokens: Tokens): Token[] =>
   Object.keys(tokens).map(key => tokens[key]);
 
-const tokenToId = (token: Token) =>
-  buildTokenId({
-    contract: token.contract.to_string(),
-    symbol: token.sym.code().to_string()
+const environmentCanBeTrusted = () => {
+  const baseString = "eosio.token";
+  const testAsset = extended_asset(asset("1.0000 EOS"), name(baseString));
+  return baseString == testAsset.contract.to_string();
+};
+const trusted = environmentCanBeTrusted();
+
+const contractDb: BaseToken[] = [
+  { contract: "tethertether", symbol: "USDT" },
+  { contract: "eosdtsttoken", symbol: "EOSDT" },
+  { contract: "eosio.token", symbol: "EOS" },
+  { contract: "usdbusdbusdb", symbol: "USDB" },
+  { contract: "usdetotokens", symbol: "USDE" },
+  { contract: "vigortoken11", symbol: "VIGOR" }
+];
+
+const symbolNameToContract = (symbolName: string) =>
+  findOrThrow(
+    contractDb,
+    token => compareString(token.symbol, symbolName),
+    "failed to find hardcoded contract"
+  ).contract;
+
+const tokenToId = (token: Token) => {
+  const symbolName = token.sym.code().to_string();
+  return buildTokenId({
+    contract: trusted
+      ? token.contract.to_string()
+      : symbolNameToContract(symbolName),
+    symbol: symbolName
   });
+};
 
 interface AddedVolume extends Token {
   volume24h?: number;
@@ -383,7 +413,10 @@ export class UsdBancorModule
       addedPossibleVolumes.map(async token => {
         const symbolName = token.sym.code().to_string();
         const precision = token.sym.precision();
-        const contract = token.contract.to_string();
+        const contract = trusted
+          ? token.contract.to_string()
+          : symbolNameToContract(symbolName);
+
         const volume24h = token.volume24h || 0;
 
         const rate = await get_spot_price(
