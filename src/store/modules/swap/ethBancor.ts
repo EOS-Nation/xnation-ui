@@ -334,6 +334,7 @@ export class EthBancorModule
     BancorConverterFactory: ""
   };
   initiated: boolean = false;
+  failedPools: string[] = [];
 
   @mutation setBancorApiTokens(tokens: TokenPrice[]) {
     this.bancorApiTokens = tokens;
@@ -351,14 +352,28 @@ export class EthBancorModule
     this.loadingPools = status;
   }
 
+  @mutation updateFailedPools(smartTokenAddresses: string[]) {
+    this.failedPools = _.uniqWith(
+      [...this.failedPools, ...smartTokenAddresses],
+      compareString
+    );
+  }
+
   @action async loadMorePools() {
     this.setLoadingPools(true);
-    const newPoolsAvailable = this.registeredSmartTokenAddresses.filter(
-      address =>
-        !this.relaysList.some(relay =>
-          compareString(relay.smartToken.contract, address)
-        )
-    );
+    const newPoolsAvailable = this.registeredSmartTokenAddresses
+      .filter(
+        address =>
+          !this.relaysList.some(relay =>
+            compareString(relay.smartToken.contract, address)
+          )
+      )
+      .filter(
+        address =>
+          !this.failedPools.some(failedPoolAddress =>
+            compareString(address, failedPoolAddress)
+          )
+      );
     const sortedPools = await this.poolsByPriority({
       smartTokenAddresses: newPoolsAvailable,
       tokenPrices: this.bancorApiTokens
@@ -397,6 +412,7 @@ export class EthBancorModule
       await wait(1);
     } else {
       console.log("Refusing to add pool as it failed tests", relay);
+      this.updateFailedPools([relay.smartToken.contract]);
     }
   }
 
@@ -1923,6 +1939,7 @@ export class EthBancorModule
           await this.addPool({ relay });
           return relay;
         } catch (e) {
+          this.updateFailedPools([smartTokenAddress]);
           console.log(`Failed building relay ${converterAddress} ${e.message}`);
         }
       })
