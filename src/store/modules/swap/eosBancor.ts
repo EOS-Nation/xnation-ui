@@ -2038,9 +2038,7 @@ export class EosBancorModule
       );
     const openActions = await multiContract.openActions(
       contract,
-      contract == "bntbntbntbnt"
-        ? symbol.code().to_string()
-        : symbol.toString(true),
+      symbol.toString(true),
       this.isAuthenticated
     );
     return openActions;
