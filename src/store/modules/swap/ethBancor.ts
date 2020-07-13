@@ -32,7 +32,8 @@ import {
   updateArray,
   networkTokens,
   isOdd,
-  multiSteps
+  multiSteps,
+  PoolType
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
@@ -62,7 +63,6 @@ import {
   makeBatchRequest
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
-import BigNumber from "bignumber.js";
 import {
   getSmartTokenHistory,
   fetchSmartTokens,
@@ -75,11 +75,6 @@ import { priorityEthPools, getHardCodedRelays } from "./staticRelays";
 interface WeiExtendedAsset {
   weiAmount: string;
   contract: string;
-}
-
-enum PoolType {
-  Traditional = 1,
-  ChainLink = 2
 }
 
 const poolIdToPoolType = (id: string) =>
