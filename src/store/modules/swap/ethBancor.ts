@@ -1466,28 +1466,35 @@ export class EthBancorModule
     const bytesKeys = Object.keys(hardCodedBytes);
     const bytesList = Object.values(hardCodedBytes);
 
-    const contractAddresses = await Promise.race([
-      Promise.all(
-        bytesList.map(bytes => registryContract.methods.addressOf(bytes).call())
-      ),
-      wait(10000).then(() => {
-        throw new Error(
-          "Failed to resolve the Ethereum Bancor Contracts, BancorNetwork, BancorConverterRegistry, BancorX and BancorConverterFactory."
-        );
-      })
-    ]);
+    try {
+      const contractAddresses = await Promise.race([
+        Promise.all(
+          bytesList.map(bytes =>
+            registryContract.methods.addressOf(bytes).call()
+          )
+        ),
+        wait(10000).then(() => {
+          throw new Error(
+            "Failed to resolve the Ethereum Bancor Contracts, BancorNetwork, BancorConverterRegistry, BancorX and BancorConverterFactory."
+          );
+        })
+      ]);
 
-    const zipped = _.zip(bytesKeys, contractAddresses) as [string, string][];
+      const zipped = _.zip(bytesKeys, contractAddresses) as [string, string][];
 
-    const object = zipped.reduce(
-      (acc, [key, value]) => ({
-        ...acc,
-        [key!]: value
-      }),
-      {}
-    ) as RegisteredContracts;
-    this.setContractAddresses(object);
-    return object;
+      const object = zipped.reduce(
+        (acc, [key, value]) => ({
+          ...acc,
+          [key!]: value
+        }),
+        {}
+      ) as RegisteredContracts;
+      this.setContractAddresses(object);
+      return object;
+    } catch (e) {
+      console.error(`Failed fetching ETH contract addresses ${e.message}`);
+      throw new Error(e.message);
+    }
   }
 
   @mutation setContractAddresses(contracts: RegisteredContracts) {
@@ -1908,6 +1915,7 @@ export class EthBancorModule
       }
       console.timeEnd("eth");
     } catch (e) {
+      console.error(`Threw inside ethBancor ${e.message}`);
       throw new Error(`Threw inside ethBancor ${e.message}`);
     }
   }
@@ -2176,7 +2184,7 @@ export class EthBancorModule
     const tokenContractAddress = findOrThrow(
       this.tokenMeta,
       meta => compareString(meta.id, id),
-      "failed to find this token contract address in meta"
+      `failed to find this token contract address in meta (${id})`
     ).contract;
     const balance = await vxm.ethWallet.getBalance({
       accountHolder: this.isAuthenticated,
