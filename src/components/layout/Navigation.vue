@@ -263,7 +263,7 @@ export default class Navigation extends Vue {
 
   get loginTooltip() {
     return this.selected == "eth" && vxm.ethWallet.isAuthenticated
-      ? "Logout via MetaMask"
+      ? "Logout via wallet"
       : "";
   }
 
