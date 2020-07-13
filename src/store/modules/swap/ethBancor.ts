@@ -42,7 +42,7 @@ import {
   ethErc20WrapperContract,
   ethReserveAddress
 } from "@/api/ethConfig";
-import { toWei, fromWei } from "web3-utils";
+import { toWei, fromWei, isAddress, toHex, asciiToHex } from "web3-utils";
 import Decimal from "decimal.js";
 import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
@@ -185,14 +185,14 @@ const removeLeadingZeros = (hexString: string) => {
   const withoutOx = hexString.startsWith("0x") ? hexString.slice(2) : hexString;
   const initialAttempt =
     "0x" + withoutOx.slice(withoutOx.split("").findIndex(x => x !== "0"));
-  if (web3.utils.isAddress(initialAttempt)) return initialAttempt;
+  if (isAddress(initialAttempt)) return initialAttempt;
   const secondAttempt = [
     "0",
     "x",
     "0",
     ...initialAttempt.split("").slice(2)
   ].join("");
-  if (web3.utils.isAddress(secondAttempt)) return secondAttempt;
+  if (isAddress(secondAttempt)) return secondAttempt;
   else throw new Error(`Failed parsing hex ${hexString}`);
 };
 
@@ -754,7 +754,7 @@ export class EthBancorModule
       tx.send({
         from: this.isAuthenticated,
         ...(gas && { gas }),
-        ...(value && { value: web3.utils.toHex(value) })
+        ...(value && { value: toHex(value) })
       })
         .on("transactionHash", (hash: string) => {
           txHash = hash;
@@ -1284,7 +1284,7 @@ export class EthBancorModule
         .sendTransaction({
           from: this.isAuthenticated,
           to: ethErc20WrapperContract,
-          value: web3.utils.toHex(toWei(ethDec))
+          value: toHex(toWei(ethDec))
         })
         .on("transactionHash", (hash: string) => {
           txHash = hash;
@@ -1452,10 +1452,10 @@ export class EthBancorModule
 
   @action async fetchContractAddresses() {
     const hardCodedBytes: RegisteredContracts = {
-      BancorNetwork: web3.utils.asciiToHex("BancorNetwork"),
-      BancorConverterRegistry: web3.utils.asciiToHex("BancorConverterRegistry"),
-      BancorX: web3.utils.asciiToHex("BancorX"),
-      BancorConverterFactory: web3.utils.asciiToHex("BancorConverterFactory")
+      BancorNetwork: asciiToHex("BancorNetwork"),
+      BancorConverterRegistry: asciiToHex("BancorConverterRegistry"),
+      BancorX: asciiToHex("BancorX"),
+      BancorConverterFactory: asciiToHex("BancorConverterFactory")
     };
 
     const registryContract = new web3.eth.Contract(
@@ -2199,7 +2199,9 @@ export class EthBancorModule
   }
 
   @mutation updateBalance([id, balance]: [string, number]) {
-    const newBalances = this.tokenBalances.filter(balance => balance.id !== id);
+    const newBalances = this.tokenBalances.filter(
+      balance => !compareString(balance.id, id)
+    );
     newBalances.push({ id, balance });
     this.tokenBalances = newBalances;
   }

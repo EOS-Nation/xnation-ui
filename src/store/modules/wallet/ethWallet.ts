@@ -1,8 +1,13 @@
 import { createModule, mutation, action } from "vuex-class-component";
-import { web3, compareString } from "@/api/helpers";
+import {
+  web3,
+  compareString,
+  onboard,
+  selectedWeb3Wallet
+} from "@/api/helpers";
 import { ABISmartToken, ethReserveAddress } from "@/api/ethConfig";
 import { EthAddress } from "@/types/bancor";
-import { fromWei } from "web3-utils";
+import { fromWei, isAddress, toHex, toWei } from "web3-utils";
 import { shrinkToken } from "@/api/ethBancorCalc";
 import { vxm } from "@/store";
 
@@ -60,35 +65,34 @@ export class EthereumModule extends VuexModule.With({
   }
 
   @action async connect() {
-    // @ts-ignore
-    const accounts = await web3.currentProvider.enable();
-    if (!accounts) throw new Error("Failed to find a Web3 compatible wallet.");
-    this.setLoggedInAccount(accounts[0]);
-    this.startListener();
-    return accounts[0];
-  }
-
-  @action async accountChange(params: AccountParams) {
-    const loggedInAccount = params.selectedAddress;
-    if (loggedInAccount !== this.isAuthenticated) {
-      this.setLoggedInAccount(params.selectedAddress);
-      vxm.ethBancor.accountChange(params.selectedAddress);
+    try {
+      await onboard.walletSelect();
+      await onboard.walletCheck();
+    } catch (e) {
+      console.log(e, "was the error");
+      throw new Error(`error: ${e}`);
     }
   }
 
-  @action async startListener() {
-    // @ts-ignore
-    web3.currentProvider.publicConfigStore.on("update", (data: AccountParams) =>
-      this.accountChange(data)
-    );
+  @action async accountChange(loggedInAccount: string) {
+    if (loggedInAccount !== this.isAuthenticated) {
+      this.setLoggedInAccount(loggedInAccount);
+      vxm.ethBancor.accountChange(loggedInAccount);
+    }
+  }
+
+  @action async nativeBalanceChange(nativeBalance: string) {
+    vxm.ethBancor.updateBalance([
+      ethReserveAddress,
+      Number(fromWei(nativeBalance))
+    ]);
   }
 
   @action async checkAlreadySignedIn() {
-    if (this.ethereum) {
-      if (this.ethereum.selectedAddress) {
-        this.setLoggedInAccount(this.ethereum.selectedAddress);
-        this.startListener();
-      }
+    const previouslySelectedWallet = localStorage.getItem(selectedWeb3Wallet);
+
+    if (previouslySelectedWallet) {
+      await onboard.walletSelect(previouslySelectedWallet);
     }
   }
 
@@ -140,10 +144,10 @@ export class EthereumModule extends VuexModule.With({
     recipient: string;
   }) {
     if (!floatAmount) throw new Error("Float Amount required.");
-    if (!web3.utils.isAddress(recipient))
+    if (!isAddress(recipient))
       throw new Error("Recipient must be valid ETH address");
-    const weiAmount = web3.utils.toWei(floatAmount);
-    const value = web3.utils.toHex(weiAmount);
+    const weiAmount = toWei(floatAmount);
+    const value = toHex(weiAmount);
     const params = [
       {
         from: this.isAuthenticated,
