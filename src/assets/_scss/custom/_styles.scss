@@ -13,17 +13,27 @@
 
 // Block Modes
 .block {
-
   &.block-mode-loading {
     > .block-header,
     > .block-content,
     > .nav-tabs {
-      opacity: 0.0;
+      opacity: 0;
     }
     &::after {
-      content: '';
-      background: url('../media/icons/circle-notch.svg') no-repeat 50% 50%;
+      content: "";
+      background: url("../media/icons/circle-notch.svg") no-repeat 50% 50%;
       background-size: 24px;
     }
   }
+}
+
+.bn-onboard-modal {
+  font-family: "Arial" !important;
+}
+.bn-onboard-modal-content {
+  font-family: "Arial" !important;
+}
+
+.bn-onboard-custom.bn-onboard-modal {
+  z-index: 99;
 }
