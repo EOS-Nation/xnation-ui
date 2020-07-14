@@ -19,7 +19,8 @@ import {
   Step,
   HistoryModule,
   ViewAmount,
-  ModuleParam
+  ModuleParam,
+  UserPoolBalances
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -60,7 +61,8 @@ import {
   buildRegistryContract,
   buildV28ConverterContract,
   buildNetworkContract,
-  makeBatchRequest
+  makeBatchRequest,
+  buildAnchorContract
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
 import {
@@ -70,7 +72,7 @@ import {
 } from "@/api/zumZoom";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { findNewPath } from "@/api/eosBancorCalc";
-import { priorityEthPools, getHardCodedRelays } from "./staticRelays";
+import { priorityEthPools } from "./staticRelays";
 
 interface WeiExtendedAsset {
   weiAmount: string;
@@ -144,8 +146,9 @@ const sortAlongSide = <T>(
   return res;
 };
 
-interface EthOpposingLiquid extends OpposingLiquid {
+interface EthOpposingLiquid {
   smartTokenAmount: string;
+  opposingAmount: string;
 }
 
 const relayIncludesAtLeastOneNetworkToken = (relay: Relay) =>
@@ -1082,7 +1085,7 @@ export class EthBancorModule
   //   return { reserves, totalSupplyWei };
   // }
 
-  @action async calculateOpposingDeposit(
+  @action async calculateOpposingDepositInfo(
     opposingDeposit: OpposingLiquidParams
   ): Promise<EthOpposingLiquid> {
     const { id, reserve } = opposingDeposit;
@@ -1124,6 +1127,33 @@ export class EthBancorModule
     };
   }
 
+  @action async opposingReserveChangeNotRequired(poolId: string) {
+    if (poolId == "0xb1CD6e4153B2a390Cf00A6556b0fC1458C4A5533") {
+      console.warn("not going to bother changing!");
+      return true;
+    }
+
+    const poolType = await this.getPoolType(poolId);
+    return poolType == PoolType.ChainLink;
+  }
+
+  @action async calculateOpposingDeposit(
+    opposingDeposit: OpposingLiquidParams
+  ): Promise<OpposingLiquid> {
+    const opposingReserveChangeNotRequired = await this.opposingReserveChangeNotRequired(
+      opposingDeposit.id
+    );
+
+    if (opposingReserveChangeNotRequired) {
+      return { opposingAmount: undefined };
+    } else {
+      const { opposingAmount } = await this.calculateOpposingDepositInfo(
+        opposingDeposit
+      );
+      return { opposingAmount };
+    }
+  }
+
   @action async getUserBalance(tokenContractAddress: string) {
     const balance = await vxm.ethWallet.getBalance({
       accountHolder: vxm.wallet.isAuthenticated,
@@ -1139,9 +1169,9 @@ export class EthBancorModule
     );
   }
 
-  @action async getUserBalances(relayId: string) {
-    if (!vxm.wallet.isAuthenticated)
-      throw new Error("Cannot find users .isAuthenticated");
+  @action async getUserBalancesTraditional(
+    relayId: string
+  ): Promise<UserPoolBalances> {
     const relay = await this.relayById(relayId);
 
     const smartTokenUserBalance = await this.getUserBalance(
@@ -1170,7 +1200,66 @@ export class EthBancorModule
     };
   }
 
+  @action async liquidationLimit({
+    anchorContract,
+    poolTokenAddress
+  }: {
+    anchorContract: string;
+    poolTokenAddress: string;
+  }) {
+    const contract = buildAnchorContract(anchorContract);
+    return contract.methods.liquidationLimit(poolTokenAddress).call();
+  }
+
+  @action async fetchPoolToken({
+    anchorContract,
+    reserveTokenAddress
+  }: {
+    anchorContract: string;
+    reserveTokenAddress: string;
+  }) {
+    const contract = buildAnchorContract(anchorContract);
+    return contract.methods.poolToken(reserveTokenAddress).call();
+  }
+
+  @action async getPoolType(poolId: string): Promise<PoolType> {
+    const relay = await this.relayById(poolId);
+    return typeof relay.converterType !== "undefined" &&
+      relay.converterType == PoolType.ChainLink
+      ? PoolType.ChainLink
+      : PoolType.Traditional;
+  }
+
+  @action async getUserBalancesChainLink(
+    relayId: string
+  ): Promise<UserPoolBalances> {
+    // console.log("todo, get user pool balances");
+  }
+
+  @action async getUserBalances(relayId: string): Promise<UserPoolBalances> {
+    if (!vxm.wallet.isAuthenticated)
+      throw new Error("Cannot find users .isAuthenticated");
+
+    const poolType = await this.getPoolType(relayId);
+    return poolType == PoolType.Traditional
+      ? this.getUserBalancesTraditional(relayId)
+      : this.getUserBalancesChainLink(relayId);
+  }
+
   @action async calculateOpposingWithdraw(
+    opposingWithdraw: OpposingLiquidParams
+  ): Promise<OpposingLiquid> {
+    const changedNotRequired = await this.opposingReserveChangeNotRequired(
+      opposingWithdraw.id
+    );
+    if (changedNotRequired) {
+      return { opposingAmount: undefined };
+    } else {
+      return this.calculateOpposingWithdrawInfo(opposingWithdraw);
+    }
+  }
+
+  @action async calculateOpposingWithdrawInfo(
     opposingWithdraw: OpposingLiquidParams
   ): Promise<EthOpposingLiquid> {
     const { id, reserve } = opposingWithdraw;
@@ -1248,7 +1337,7 @@ export class EthBancorModule
 
     const postV28 = Number(relay.version) >= 28;
 
-    const { smartTokenAmount } = await this.calculateOpposingWithdraw({
+    const { smartTokenAmount } = await this.calculateOpposingWithdrawInfo({
       id: relayId,
       reserve: reserves[0]
     });
@@ -1390,7 +1479,7 @@ export class EthBancorModule
 
     onUpdate!(0, steps);
 
-    const { smartTokenAmount } = await this.calculateOpposingDeposit({
+    const { smartTokenAmount } = await this.calculateOpposingDepositInfo({
       reserve: reserves[0],
       id: relayId
     });

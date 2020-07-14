@@ -135,6 +135,20 @@ export const buildConverterContract = (
   // @ts-ignore
   buildContract(ABIConverter, contractAddress);
 
+export const buildAnchorContract = (
+  contractAddress: string
+): ContractMethods<{
+  activate: (
+    primaryReserveToken: string,
+    primaryReserveOracle: string,
+    secondaryReserveOracle: string
+  ) => ContractSendMethod;
+  poolToken: (poolToken: string) => CallReturn<string>;
+  liquidationLimit: (poolToken: string) => CallReturn<string>;
+}> =>
+  // @ts-ignore
+  buildContract([], contractAddress);
+
 export const buildV28ConverterContract = (
   contractAddress: string
 ): ContractMethods<{

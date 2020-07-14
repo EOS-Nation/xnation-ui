@@ -265,6 +265,11 @@ export interface TradingModule {
   loadMoreTokens: (tokenIds?: string[]) => Promise<void>;
 }
 
+export interface UserPoolBalances {
+  maxWithdrawals: ViewAmount[];
+  smartTokenBalance: string;
+}
+
 export interface LiquidityModule {
   init: (param: ModuleParam) => Promise<void>;
   readonly relay: (arg0: string) => ViewRelay;
@@ -281,12 +286,7 @@ export interface LiquidityModule {
   calculateOpposingWithdraw: (
     opposingWithdraw: OpposingLiquidParams
   ) => Promise<OpposingLiquid>;
-  getUserBalances: (
-    relayId: string
-  ) => Promise<{
-    maxWithdrawals: ViewAmount[];
-    smartTokenBalance: string;
-  }>;
+  getUserBalances: (relayId: string) => Promise<UserPoolBalances>;
   removeLiquidity: (params: LiquidityParams) => Promise<string>;
   addLiquidity: (params: LiquidityParams) => Promise<string>;
   removeRelay?: (symbolName: string) => Promise<string>;
