@@ -173,7 +173,7 @@ const sortAlongSide = <T>(
 };
 
 interface EthOpposingLiquid {
-  smartTokenAmount: string;
+  smartTokenAmount: ViewAmount;
   opposingAmount: string;
 }
 
@@ -574,9 +574,8 @@ export class EthBancorModule
     this.initiated = false;
   }
 
-  @action async onNetworkChange(network: EthNetworks) {
-    console.log(network, "is the new network");
-    if (this.currentEthNetwork !== network) {
+  @action async onNetworkChange(updatedNetwork: EthNetworks) {
+    if (this.currentNetwork !== updatedNetwork) {
       this.resetData();
       this.init();
     }
@@ -1191,7 +1190,7 @@ export class EthBancorModule
 
     return {
       opposingAmount: shrinkToken(opposingAmount, opposingReserve.decimals),
-      smartTokenAmount: fundReward
+      smartTokenAmount: { id: smartTokenAddress, amount: fundReward } 
     };
   }
 
@@ -1379,7 +1378,10 @@ export class EthBancorModule
     }
     return {
       opposingAmount: shrinkToken(opposingValue, opposingReserve.decimals),
-      smartTokenAmount
+      smartTokenAmount: {
+        id: smartTokenAddress,
+        amount: smartTokenAmount
+      }
     };
   }
 
@@ -1414,12 +1416,12 @@ export class EthBancorModule
     const hash = postV28
       ? await this.removeLiquidityV28({
           converterAddress: relay.contract,
-          smartTokensWei: smartTokenAmount,
+          smartTokensWei: smartTokenAmount.amount,
           reserveTokenAddresses: relay.reserves.map(reserve => reserve.contract)
         })
       : await this.liquidate({
           converterAddress: relay.contract,
-          smartTokenAmount
+          smartTokenAmount: smartTokenAmount.amount
         });
 
     wait(2000).then(() =>
@@ -1591,7 +1593,7 @@ export class EthBancorModule
     } else {
       txHash = await this.fundRelay({
         converterAddress,
-        fundAmount,
+        fundAmount: fundAmount.amount,
         onHash: () => onUpdate!(2, steps)
       });
     }
