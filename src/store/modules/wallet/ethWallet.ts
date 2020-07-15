@@ -3,7 +3,8 @@ import {
   web3,
   compareString,
   onboard,
-  selectedWeb3Wallet
+  selectedWeb3Wallet,
+  EthNetworks
 } from "@/api/helpers";
 import { ABISmartToken, ethReserveAddress } from "@/api/ethConfig";
 import { EthAddress } from "@/types/bancor";
@@ -46,6 +47,7 @@ export class EthereumModule extends VuexModule.With({
   namespaced: "ethWallet/"
 }) {
   loggedInAccount: string = "";
+  currentNetwork: EthNetworks = EthNetworks.Mainnet;
 
   @mutation setLoggedInAccount(account: string) {
     this.loggedInAccount = account;
@@ -58,6 +60,17 @@ export class EthereumModule extends VuexModule.With({
   get ethereum() {
     // @ts-ignore
     return window["ethereum"];
+  }
+
+  @mutation setNetwork(network: EthNetworks) {
+    this.currentNetwork = network;
+  }
+
+  @action async onNetworkChange(network: EthNetworks) {
+    if (network !== this.currentNetwork) {
+      this.setNetwork(network);
+      vxm.ethBancor.onNetworkChange(network);
+    }
   }
 
   @action async logout() {

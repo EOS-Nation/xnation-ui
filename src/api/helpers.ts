@@ -32,7 +32,6 @@ import {
   buildV28ConverterContract
 } from "./ethBancorCalc";
 import { sortByNetworkTokens } from "./sortByNetworkTokens";
-import { add } from "lodash";
 
 export const networkTokens = ["BNT", "USDB"];
 
@@ -156,10 +155,18 @@ export type Wei = string | number;
 export type Ether = string | number;
 
 export let web3 = new Web3(
-  "https://mainnet.infura.io/v3/da059c364a2f4e6eb89bfd89600bce07"
+  Web3.givenProvider ||
+    "https://mainnet.infura.io/v3/da059c364a2f4e6eb89bfd89600bce07"
 );
 
 export const selectedWeb3Wallet = "SELECTED_WEB3_WALLET";
+
+export enum EthNetworks {
+  Mainnet = 1,
+  Ropsten = 3,
+  Rinkeby = 4,
+  Goerli = 5
+}
 
 export const onboard = Onboard({
   dappId: process.env.VUE_APP_BLOCKNATIVE,
@@ -170,11 +177,17 @@ export const onboard = Onboard({
       vxm.ethWallet.accountChange(address);
     },
     balance: balance => vxm.ethWallet.nativeBalanceChange(balance),
+    network: (network: EthNetworks) => {
+      if (network == EthNetworks.Mainnet || network == EthNetworks.Ropsten) {
+        onboard.config({ networkId: network });
+        vxm.ethWallet.onNetworkChange(network);
+      }
+    },
     wallet: wallet => {
       if (wallet.name) {
         localStorage.setItem(selectedWeb3Wallet, wallet.name);
       }
-      web3 = new Web3(wallet.provider);
+      web3.setProvider(wallet.provider);
     }
   }
 });

@@ -32,7 +32,8 @@ import {
   updateArray,
   networkTokens,
   isOdd,
-  multiSteps
+  multiSteps,
+  EthNetworks
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
@@ -71,6 +72,31 @@ import {
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { findNewPath } from "@/api/eosBancorCalc";
 import { priorityEthPools, getHardCodedRelays } from "./staticRelays";
+
+interface EthNetworkVariables {
+  contractRegistry: string;
+  bntToken: string;
+  ethToken: string;
+}
+
+const getNetworkVariables = (ethNetwork: EthNetworks): EthNetworkVariables => {
+  switch (ethNetwork) {
+    case EthNetworks.Mainnet:
+      return {
+        contractRegistry: "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4",
+        bntToken: "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
+        ethToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+      };
+    case EthNetworks.Ropsten:
+      return {
+        contractRegistry: "0x57547da3406cbA9f80a989497173F5bC5438BFCF",
+        bntToken: "0xD4F9CBC9db55E039BE979d88d15F57A57552f32d",
+        ethToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+      };
+    default:
+      throw new Error("Information not stored");
+  }
+};
 
 interface WeiExtendedAsset {
   weiAmount: string;
@@ -177,8 +203,6 @@ const tokenPriceToFeed = (
 interface RegisteredContracts {
   BancorNetwork: string;
   BancorConverterRegistry: string;
-  BancorX: string;
-  BancorConverterFactory: string;
 }
 
 const removeLeadingZeros = (hexString: string) => {
@@ -272,7 +296,30 @@ interface TokenMeta {
   precision?: number;
 }
 
-const getTokenMeta = async () => {
+const getTokenMeta = async (currentNetwork: EthNetworks) => {
+
+  if (currentNetwork == EthNetworks.Ropsten) {
+    return [
+      {
+        contract: '0x4F5e60A76530ac44e0A318cbc9760A2587c34Da6',
+        symbol: 'YYYY',
+      },
+      {
+        contract: "0xD4F9CBC9db55E039BE979d88d15F57A57552f32d",
+        symbol: 'BNT',
+      },
+      {
+        contract: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        symbol: 'ETH',
+      },
+      {
+        contract: "0xe4158797A5D87FB3080846e019b9Efc4353F58cC",
+        symbol: 'XXX'
+      }
+    ].map((x): TokenMeta => ({ ...x, id: x.contract, image: 'https://ropsten.etherscan.io/images/main/empty-token.png', name: x.symbol }))
+  }
+  if (currentNetwork !== EthNetworks.Mainnet) throw new Error("Ropsten and Mainnet supported only.")
+
   const res: AxiosResponse<TokenMeta[]> = await axios.get(
     tokenMetaDataEndpoint
   );
@@ -326,26 +373,32 @@ export class EthBancorModule
   tokenMeta: TokenMeta[] = [];
   morePoolsAvailableProp: boolean = true;
   availableHistories: string[] = [];
-  bancorContractRegistry = "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4";
   contracts: RegisteredContracts = {
     BancorNetwork: "",
-    BancorConverterRegistry: "",
-    BancorX: "",
-    BancorConverterFactory: ""
+    BancorConverterRegistry: ""
   };
   initiated: boolean = false;
   failedPools: string[] = [];
+  currentNetwork: EthNetworks = EthNetworks.Mainnet;
+
+  @mutation setNetwork(network: EthNetworks) {
+    this.currentNetwork = network;
+  }
 
   @mutation setBancorApiTokens(tokens: TokenPrice[]) {
     this.bancorApiTokens = tokens;
   }
 
   get morePoolsAvailable() {
-    return this.morePoolsAvailableProp;
+    const allPools = this.registeredSmartTokenAddresses;
+    const remainingPools = allPools
+      .filter(poolAddress => !this.relaysList.some(relay => compareString(poolAddress, relay.smartToken.contract)))
+      .filter(poolAddress => !this.failedPools.some(failedPool => compareString(failedPool, poolAddress)))
+    return remainingPools.length > 0
   }
 
-  @mutation setPoolsAvailable(status: boolean) {
-    this.morePoolsAvailableProp = status;
+  get currentEthNetwork() {
+    return vxm.ethWallet.currentNetwork as EthNetworks;
   }
 
   @mutation setLoadingPools(status: boolean) {
@@ -411,7 +464,7 @@ export class EthBancorModule
       }
       await wait(1);
     } else {
-      console.log("Refusing to add pool as it failed tests", relay);
+      console.log("Refusing to add pool as it failed tests", relay,relayIncludesAtLeastOneNetworkToken(relay), relayReservesIncludedInTokenMeta(this.tokenMeta)(relay));
       this.updateFailedPools([relay.smartToken.contract]);
     }
   }
@@ -514,6 +567,21 @@ export class EthBancorModule
       await wait(interval);
     }
     throw new Error("Failed to find new address in decent time");
+  }
+
+  @mutation resetData() {
+    this.relayFeed = [];
+    this.relaysList = [];
+    this.tokenBalances = []
+    this.initiated = false;
+  }
+
+  @action async onNetworkChange(network: EthNetworks) {
+    console.log(network, "is the new network");
+    if (this.currentEthNetwork !== network) {
+      this.resetData();
+      this.init();
+    }
   }
 
   @action async deployConverter({
@@ -1450,17 +1518,15 @@ export class EthBancorModule
     return txHash;
   }
 
-  @action async fetchContractAddresses() {
+  @action async fetchContractAddresses(contractRegistry: string) {
     const hardCodedBytes: RegisteredContracts = {
       BancorNetwork: asciiToHex("BancorNetwork"),
-      BancorConverterRegistry: asciiToHex("BancorConverterRegistry"),
-      BancorX: asciiToHex("BancorX"),
-      BancorConverterFactory: asciiToHex("BancorConverterFactory")
+      BancorConverterRegistry: asciiToHex("BancorConverterRegistry")
     };
 
     const registryContract = new web3.eth.Contract(
       ABIContractRegistry,
-      this.bancorContractRegistry
+      contractRegistry
     );
 
     const bytesKeys = Object.keys(hardCodedBytes);
@@ -1470,7 +1536,9 @@ export class EthBancorModule
       const contractAddresses = await Promise.race([
         Promise.all(
           bytesList.map(bytes =>
-            registryContract.methods.addressOf(bytes).call()
+            registryContract.methods
+              .addressOf(bytes)
+              .call()
           )
         ),
         wait(10000).then(() => {
@@ -1845,21 +1913,32 @@ export class EthBancorModule
   @action async init(params?: ModuleParam) {
     console.log(params, "was init param on eth");
     console.time("eth");
-
     if (this.initiated) {
       console.log("returning already");
       return this.refresh();
     }
 
+    // @ts-ignore
+    const web3NetworkVersion = await web3.eth.getChainId();
+    const currentNetwork: EthNetworks = web3NetworkVersion;
+    this.setNetwork(currentNetwork);
+    const networkVariables = getNetworkVariables(currentNetwork);
+
+    const testnetActive = currentNetwork == EthNetworks.Ropsten;
+
+    if (params && params.tradeQuery?.quote && testnetActive) {
+      params.tradeQuery.quote = networkVariables.bntToken;
+    }
+
     try {
-      const [
+      let [
         tokenMeta,
         contractAddresses,
         availableSmartTokenHistories,
         bancorApiTokens
       ] = await Promise.all([
-        getTokenMeta(),
-        this.fetchContractAddresses(),
+        getTokenMeta(currentNetwork),
+        this.fetchContractAddresses(networkVariables.contractRegistry),
         fetchSmartTokens().catch(e => [] as HistoryItem[]),
         this.warmEthApi().catch(e => [] as TokenPrice[]),
         this.fetchUsdPriceOfBnt()
