@@ -101,9 +101,7 @@ export const buildTokenContract = (
     approvedAddress: string,
     approvedAmount: string
   ) => ContractSendMethod;
-}> =>
-  // @ts-ignore
-  buildContract(ABISmartToken, contractAddress);
+}> => buildContract(ABISmartToken, contractAddress);
 
 export const buildConverterContract = (
   contractAddress: string
@@ -131,9 +129,7 @@ export const buildConverterContract = (
   connectorTokenCount: () => CallReturn<string>;
   connectorTokens: (index: number) => CallReturn<string>;
   conversionFee: () => CallReturn<string>;
-}> =>
-  // @ts-ignore
-  buildContract(ABIConverter, contractAddress);
+}> => buildContract(ABIConverter, contractAddress);
 
 export const buildV28ConverterContract = (
   contractAddress: string
@@ -172,9 +168,7 @@ export const buildV28ConverterContract = (
   connectorTokens: (index: number) => CallReturn<string>;
   conversionFee: () => CallReturn<string>;
   reserveBalance: (reserveToken: string) => CallReturn<string>;
-}> =>
-  // @ts-ignore
-  buildContract(ABIConverterV28, contractAddress);
+}> => buildContract(ABIConverterV28, contractAddress);
 
 export const buildNetworkContract = (
   contractAddress: string
@@ -192,10 +186,7 @@ export const buildNetworkContract = (
     sourceToken: string,
     destinationToken: string
   ) => CallReturn<string[]>;
-}> =>
-  // @ts-ignore
-
-  buildContract(ABINetworkContract, contractAddress);
+}> => buildContract(ABINetworkContract, contractAddress);
 
 export const buildRegistryContract = (
   contractAddress: string
@@ -213,9 +204,7 @@ export const buildRegistryContract = (
     reserveTokens: string[],
     reserveWeights: number[]
   ) => ContractSendMethod;
-}> =>
-  // @ts-ignore
-  buildContract(ABIConverterRegistry, contractAddress);
+}> => buildContract(ABIConverterRegistry, contractAddress);
 
 export const makeBatchRequest = (calls: any[], from: string) => {
   let batch = new web3.BatchRequest();
