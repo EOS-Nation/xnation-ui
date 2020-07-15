@@ -11,7 +11,9 @@
         :img="img"
         :symbol="symbol"
         :dropdown="clickable"
+        :inputLabel="inputLabel"
         :label="label"
+        :input-label="inputLabel"
         @dropdown="clicked"
         @click="clicked"
         :warnBalance="warnBalance"
@@ -51,7 +53,8 @@ export default class TokenField extends Vue {
   @PropSync("tokenId", { type: String }) currentId!: string;
   @Prop({ default: 0 }) balance!: number;
   @Prop(Boolean) loading?: boolean;
-  @Prop({ default: "Available:" }) readonly label!: string;
+  @Prop({ default: "Balance:" }) readonly label!: string;
+  @Prop(String) readonly inputLabel!: string;
   @Prop(String) img!: string;
   @Prop(String) symbol!: string;
   @Prop(Boolean) invertAnimation?: boolean;
