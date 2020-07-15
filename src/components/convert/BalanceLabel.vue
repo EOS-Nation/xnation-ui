@@ -1,9 +1,9 @@
 <template>
   <div>
-    <span class="text-white font-size-sm" style="min-height: 50px">
+    <span class="text-muted font-size-sm">
       <div>
         <span v-if="loading">
-          <font-awesome-icon icon="circle-notch" class="text-white" spin />
+          <font-awesome-icon icon="circle-notch" spin />
         </span>
         <span v-else> {{ label }} {{ balance }}</span>
       </div>
@@ -18,7 +18,7 @@ import { vxm } from "@/store";
 export default class TokenAmountInput extends Vue {
   @Prop(String) balance!: string;
   @Prop(Boolean) loading?: boolean;
-  @Prop({ default: "Available:" }) readonly label!: string;
+  @Prop({ default: "Balance:" }) readonly label!: string;
 }
 </script>
 
