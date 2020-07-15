@@ -43,13 +43,13 @@ $theme-amethyst-side-overlay-bg:               $white !default;
 
 // City Theme
 
-$theme-city-primary:                       #ff6b6b !default;
+$theme-city-primary:                       #0f59d1 !default;
 $theme-city-light:                         lighten($theme-city-primary, 7%) !default;
 $theme-city-lighter:                       lighten($theme-city-primary, 15%) !default;
 $theme-city-dark:                          #555555 !default;
 $theme-city-darker:                        #333333 !default;
 
-$theme-city-body-bg:                       #f5f5f5 !default;
+$theme-city-body-bg:                       rgb(238, 238, 238) !default;
 $theme-city-body-bg-dark:                  darken($theme-city-body-bg, 4%) !default;
 $theme-city-body-bg-light:                 lighten($theme-city-body-bg, 2%) !default;
 

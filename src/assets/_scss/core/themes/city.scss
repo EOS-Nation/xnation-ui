@@ -33,3 +33,26 @@
                      $theme-city-sidebar-bg,
                      $theme-city-sidebar-dark-bg,
                      $theme-city-side-overlay-bg);
+.primary-light {
+  background: $theme-city-primary;
+}
+
+.primary-dark {
+  background: $theme-city-primary;
+}
+
+.bg-primary-light {
+  background: $theme-city-primary;
+}
+
+.bg-primary-dark {
+  background: $theme-city-primary;
+}
+
+.bg-body-light {
+  background: $theme-city-body-bg;
+}
+
+.bg-body-dark {
+  background: $theme-city-primary;
+}

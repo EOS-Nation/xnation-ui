@@ -104,11 +104,8 @@
 @import "../../../node_modules/bootstrap-vue/src/index.scss";
 
 // User styles (your own styles/overrides)
+@import "core/themes/city";
 @import "custom/styles";
 
 // User variables (your own variable overrides)
 @import "custom/variables";
-
-body {
-  background-color: #324856;
-}
