@@ -1,97 +1,91 @@
 <template>
-  <hero-wrapper>
-    <two-token-hero
-      :tokenOneId.sync="token1Id"
-      :tokenTwoId.sync="token2Id"
-      :tokenOneMeta="token1Meta"
-      :tokenTwoMeta="token2Meta"
-      :tokenOneAmount.sync="token1Amount"
-      :tokenTwoAmount.sync="token2Amount"
-      :warnBalance="true"
-      @update:tokenOneAmount="tokenOneChanged"
-      @update:tokenTwoAmount="tokenTwoChanged"
-      :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
+  <two-token-hero
+    :tokenOneId.sync="token1Id"
+    :tokenTwoId.sync="token2Id"
+    :tokenOneMeta="token1Meta"
+    :tokenTwoMeta="token2Meta"
+    :tokenOneAmount.sync="token1Amount"
+    :tokenTwoAmount.sync="token2Amount"
+    :warnBalance="true"
+    @update:tokenOneAmount="tokenOneChanged"
+    @update:tokenTwoAmount="tokenTwoChanged"
+    :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
+  >
+    <div>
+      <div
+        v-if="
+          selectedMenu == `addLiquidity` || selectedMenu == `removeLiquidity`
+        "
+      >
+        <div class="mb-3 mt-3">
+          <div class="font-size-sm">
+            {{
+              `Your balance: ${smartUserBalance} ${focusedRelay.smartTokenSymbol}`
+            }}
+            <span v-if="rateLoading">
+              <font-awesome-icon icon="circle-notch" spin />
+            </span>
+          </div>
+          <!-- <div class="text-white font-size-sm">Fee: {{ fee }} %</div> -->
+        </div>
+      </div>
+      <div v-else-if="selectedMenu == `setFee`">
+        <relay-fee-adjuster :fee.sync="feeAmount" />
+      </div>
+      <div v-else-if="selectedMenu == `changeOwner`">
+        <b-form-input
+          v-model="newOwner"
+          class="form-control-alt"
+          placeholder="New owner account"
+        ></b-form-input>
+      </div>
+      <dynamic-dropdown
+        :menus="menus"
+        :selectedMenu.sync="selectedMenu"
+        @clicked="toggleMain"
+      />
+    </div>
+
+    <modal-tx
+      :title="`${withdrawLiquidity ? 'Remove Liquidity' : 'Add Liquidity'}`"
+      v-model="txModal"
+      @input="modalClosed"
+      :busy="txBusy"
     >
       <div>
-        <div
-          v-if="
-            selectedMenu == `addLiquidity` || selectedMenu == `removeLiquidity`
-          "
-        >
-          <font-awesome-icon
-            :icon="withdrawLiquidity ? 'minus' : 'plus'"
-            class="fa-2x text-white cursor"
-          />
-          <div class="mb-3 mt-3">
-            <div class="text-white font-size-sm">
-              {{
-                `Your balance: ${smartUserBalance} ${focusedRelay.smartTokenSymbol}`
-              }}
-              <span v-if="rateLoading">
-                <font-awesome-icon icon="circle-notch" spin />
-              </span>
-            </div>
-            <!-- <div class="text-white font-size-sm">Fee: {{ fee }} %</div> -->
-          </div>
-        </div>
-        <div v-else-if="selectedMenu == `setFee`">
-          <relay-fee-adjuster :fee.sync="feeAmount" />
-        </div>
-        <div v-else-if="selectedMenu == `changeOwner`">
-          <b-form-input
-            v-model="newOwner"
-            class="form-control-alt"
-            placeholder="New owner account"
-          ></b-form-input>
-        </div>
-        <dynamic-dropdown
-          :menus="menus"
-          :selectedMenu.sync="selectedMenu"
-          @clicked="toggleMain"
+        <stepper
+          v-if="sections.length > 1"
+          :selectedStep="stepIndex"
+          :steps="sections"
+          :label="sections[stepIndex].description"
+          :numbered="true"
         />
+
+        <token-swap
+          :error="error"
+          :success="success"
+          :leftHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
+          :leftImg="token1Meta.img"
+          :leftTitle="`${token1Meta.symbol} ${token1Amount}`"
+          leftSubtitle=""
+          :rightImg="token2Meta.img"
+          :rightTitle="`${token2Meta.symbol} ${token2Amount}`"
+          :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
+          rightSubtitle=""
+        >
+          <template v-slot:footer>
+            <TxModalFooter
+              :error="error"
+              :success="success"
+              :explorerLink="explorerLink"
+              :explorerName="explorerName"
+              @close="txModal = false"
+            />
+          </template>
+        </token-swap>
       </div>
-
-      <modal-tx
-        :title="`${withdrawLiquidity ? 'Remove Liquidity' : 'Add Liquidity'}`"
-        v-model="txModal"
-        @input="modalClosed"
-        :busy="txBusy"
-      >
-        <div>
-          <stepper
-            v-if="sections.length > 1"
-            :selectedStep="stepIndex"
-            :steps="sections"
-            :label="sections[stepIndex].description"
-            :numbered="true"
-          />
-
-          <token-swap
-            :error="error"
-            :success="success"
-            :leftHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
-            :leftImg="token1Meta.img"
-            :leftTitle="`${token1Meta.symbol} ${token1Amount}`"
-            leftSubtitle=""
-            :rightImg="token2Meta.img"
-            :rightTitle="`${token2Meta.symbol} ${token2Amount}`"
-            :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
-            rightSubtitle=""
-          >
-            <template v-slot:footer>
-              <TxModalFooter
-                :error="error"
-                :success="success"
-                :explorerLink="explorerLink"
-                :explorerName="explorerName"
-                @close="txModal = false"
-              />
-            </template>
-          </token-swap>
-        </div>
-      </modal-tx>
-    </two-token-hero>
-  </hero-wrapper>
+    </modal-tx>
+  </two-token-hero>
 </template>
 
 <script lang="ts">
