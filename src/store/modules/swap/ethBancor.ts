@@ -218,6 +218,8 @@ const removeLeadingZeros = (hexString: string) => {
   else throw new Error(`Failed parsing hex ${hexString}`);
 };
 
+const zeroAddress: string = "0x0000000000000000000000000000000000000000";
+
 const relayReservesIncludedInTokenMeta = (tokenMeta: TokenMeta[]) => (
   relay: Relay
 ) =>
@@ -295,28 +297,35 @@ interface TokenMeta {
 }
 
 const getTokenMeta = async (currentNetwork: EthNetworks) => {
-
   if (currentNetwork == EthNetworks.Ropsten) {
     return [
       {
-        contract: '0x4F5e60A76530ac44e0A318cbc9760A2587c34Da6',
-        symbol: 'YYYY',
+        contract: "0x4F5e60A76530ac44e0A318cbc9760A2587c34Da6",
+        symbol: "YYYY"
       },
       {
         contract: "0xD4F9CBC9db55E039BE979d88d15F57A57552f32d",
-        symbol: 'BNT',
+        symbol: "BNT"
       },
       {
         contract: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-        symbol: 'ETH',
+        symbol: "ETH"
       },
       {
         contract: "0xe4158797A5D87FB3080846e019b9Efc4353F58cC",
-        symbol: 'XXX'
+        symbol: "XXX"
       }
-    ].map((x): TokenMeta => ({ ...x, id: x.contract, image: 'https://ropsten.etherscan.io/images/main/empty-token.png', name: x.symbol }))
+    ].map(
+      (x): TokenMeta => ({
+        ...x,
+        id: x.contract,
+        image: "https://ropsten.etherscan.io/images/main/empty-token.png",
+        name: x.symbol
+      })
+    );
   }
-  if (currentNetwork !== EthNetworks.Mainnet) throw new Error("Ropsten and Mainnet supported only.")
+  if (currentNetwork !== EthNetworks.Mainnet)
+    throw new Error("Ropsten and Mainnet supported only.");
 
   const res: AxiosResponse<TokenMeta[]> = await axios.get(
     tokenMetaDataEndpoint
@@ -390,9 +399,19 @@ export class EthBancorModule
   get morePoolsAvailable() {
     const allPools = this.registeredSmartTokenAddresses;
     const remainingPools = allPools
-      .filter(poolAddress => !this.relaysList.some(relay => compareString(poolAddress, relay.smartToken.contract)))
-      .filter(poolAddress => !this.failedPools.some(failedPool => compareString(failedPool, poolAddress)))
-    return remainingPools.length > 0
+      .filter(
+        poolAddress =>
+          !this.relaysList.some(relay =>
+            compareString(poolAddress, relay.smartToken.contract)
+          )
+      )
+      .filter(
+        poolAddress =>
+          !this.failedPools.some(failedPool =>
+            compareString(failedPool, poolAddress)
+          )
+      );
+    return remainingPools.length > 0;
   }
 
   get currentEthNetwork() {
@@ -462,7 +481,12 @@ export class EthBancorModule
       }
       await wait(1);
     } else {
-      console.log("Refusing to add pool as it failed tests", relay,relayIncludesAtLeastOneNetworkToken(relay), relayReservesIncludedInTokenMeta(this.tokenMeta)(relay));
+      console.log(
+        "Refusing to add pool as it failed tests",
+        relay,
+        relayIncludesAtLeastOneNetworkToken(relay),
+        relayReservesIncludedInTokenMeta(this.tokenMeta)(relay)
+      );
       this.updateFailedPools([relay.smartToken.contract]);
     }
   }
@@ -570,7 +594,7 @@ export class EthBancorModule
   @mutation resetData() {
     this.relayFeed = [];
     this.relaysList = [];
-    this.tokenBalances = []
+    this.tokenBalances = [];
     this.initiated = false;
   }
 
@@ -1190,7 +1214,7 @@ export class EthBancorModule
 
     return {
       opposingAmount: shrinkToken(opposingAmount, opposingReserve.decimals),
-      smartTokenAmount: { id: smartTokenAddress, amount: fundReward } 
+      smartTokenAmount: { id: smartTokenAddress, amount: fundReward }
     };
   }
 
@@ -1424,11 +1448,12 @@ export class EthBancorModule
           smartTokenAmount: smartTokenAmount.amount
         });
 
-    wait(2000).then(() =>
-      relay.reserves
-        .map(reserve => reserve.contract)
-        .forEach(contract => this.getUserBalance(contract))
-    );
+    const tokenAddressesChanged = [
+      ...relay.reserves.map(reserve => reserve.contract),
+      smartTokenAmount.id
+    ];
+    this.spamBalances(tokenAddressesChanged);
+
     return hash;
   }
 
@@ -1599,10 +1624,20 @@ export class EthBancorModule
     }
 
     onUpdate!(3, steps);
-    wait(3000).then(() =>
-      matchedBalances.forEach(balance => this.getUserBalance(balance.contract))
-    );
+
+    const tokenAddressesChanged = [
+      ...matchedBalances.map(x => x.contract),
+      fundAmount.id
+    ];
+    this.spamBalances(tokenAddressesChanged);
     return txHash;
+  }
+
+  @action async spamBalances(tokenAddresses: string[]) {
+    for (var i = 0; i < 10; i++) {
+      this.getUserBalance(tokenAddresses[i]);
+      await wait(1000);
+    }
   }
 
   @action async fetchContractAddresses(contractRegistry: string) {
@@ -1623,9 +1658,7 @@ export class EthBancorModule
       const contractAddresses = await Promise.race([
         Promise.all(
           bytesList.map(bytes =>
-            registryContract.methods
-              .addressOf(bytes)
-              .call()
+            registryContract.methods.addressOf(bytes).call()
           )
         ),
         wait(10000).then(() => {
@@ -2013,7 +2046,12 @@ export class EthBancorModule
 
     const testnetActive = currentNetwork == EthNetworks.Ropsten;
 
-    if (params && params.tradeQuery?.quote && testnetActive) {
+    if (
+      params &&
+      params.tradeQuery &&
+      params.tradeQuery.quote &&
+      testnetActive
+    ) {
       params.tradeQuery.quote = networkVariables.bntToken;
     }
 
@@ -2511,8 +2549,8 @@ export class EthBancorModule
         ethPath,
         fromWei,
         expandToken(toAmount * 0.9, toTokenDecimals),
-        "0x0000000000000000000000000000000000000000",
-        "0x0000000000000000000000000000000000000000",
+        zeroAddress,
+        zeroAddress,
         0
       ),
       ...(fromIsEth && { value: fromWei }),

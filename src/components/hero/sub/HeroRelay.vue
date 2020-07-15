@@ -430,7 +430,7 @@ export default class HeroRelay extends Vue {
         onUpdate: this.onUpdate
       });
       this.fetchBalances();
-      wait(7000).then(() => this.fetchBalances());
+      wait(3000).then(() => this.fetchBalances());
       this.success = txResult;
       // @ts-ignore
       this.$analytics.logEvent("Fund", { txId: txResult });
