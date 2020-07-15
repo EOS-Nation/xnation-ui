@@ -2,7 +2,7 @@
   <div
     v-if="loading && !error"
     id="loading"
-    class="page-header-fixed page-header-dark align-items-center"
+    class="page-header-fixed align-items-center bg-body-light"
   >
     <div class="d-flex justify-content-center align-items-center mb-3">
       <div>
@@ -19,7 +19,7 @@
   <div
     v-else-if="error"
     id="loading"
-    class="page-header-fixed page-header-dark align-items-center"
+    class="page-header-fixed align-items-center bg-body-light"
   >
     <div class="d-flex justify-content-center align-items-center mb-3">
       <div>
@@ -28,17 +28,19 @@
     </div>
   </div>
 
-  <div
-    v-else
-    id="page-container"
-    class="page-header-fixed  bg-primary page-header-dark"
-  >
+  <div v-else id="page-container" class="page-header-fixed bg-body-light">
     <div>
       <router-view name="Nav"></router-view>
 
-      <main id="main-container" class="bg-primary">
-        <router-view name="Hero"></router-view>
-        <router-view></router-view>
+      <main id="main-container">
+        <b-container fluid="xl" class="pt-5">
+          <b-row class="d-flex justify-content-center">
+            <b-col cols="12" style="max-width: 460px">
+              <router-view name="Hero"></router-view>
+            </b-col>
+          </b-row>
+        </b-container>
+        <!--        <router-view></router-view>-->
       </main>
     </div>
     <div>
