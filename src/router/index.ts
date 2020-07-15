@@ -22,7 +22,7 @@ const PREFERRED_SERVICE = "preferredService";
 export const router = new Router({
   mode: "history",
   base: process.env.BASE_URL,
-  linkExactActiveClass: "active",
+  //linkExactActiveClass: "active",
   scrollBehavior(to, from, savedPosition) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
