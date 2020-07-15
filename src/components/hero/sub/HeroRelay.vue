@@ -325,9 +325,11 @@ export default class HeroRelay extends Vue {
         id: this.focusedId,
         reserve: { id: this.token1Id, amount: tokenAmount }
       });
-      this.token2Amount = opposingAmount;
       this.token1Error = "";
       this.token2Error = "";
+      if (typeof opposingAmount !== "undefined") {
+        this.token2Amount = opposingAmount;
+      }
     } catch (e) {
       this.token1Error = e.message;
       this.token2Error = "";
@@ -346,9 +348,11 @@ export default class HeroRelay extends Vue {
         id: this.focusedId,
         reserve: { id: this.token2Id, amount: tokenAmount }
       });
-      this.token1Amount = opposingAmount;
       this.token2Error = "";
       this.token1Error = "";
+      if (typeof opposingAmount !== "undefined") {
+        this.token1Amount = opposingAmount;
+      }
     } catch (e) {
       this.token1Error = "";
       this.token2Error = e.message;

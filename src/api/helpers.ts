@@ -339,6 +339,10 @@ export interface Token {
   network: string;
 }
 
+export enum PoolType {
+  Traditional = 1,
+  ChainLink = 0
+}
 export interface Relay {
   id: string;
   reserves: Token[];
@@ -348,7 +352,7 @@ export interface Relay {
   fee: number;
   network: string;
   version: string;
-  converterType?: number;
+  converterType?: PoolType;
   owner: string;
 }
 
