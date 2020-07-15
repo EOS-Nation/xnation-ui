@@ -1,6 +1,12 @@
-import { ethReserveAddress } from './ethConfig';
+import { ethReserveAddress } from "./ethConfig";
 
-export const ethBancorApiDictionary = [
+export interface DictionaryItem {
+  smartTokenAddress: string;
+  tokenId: string;
+  tokenAddress: string;
+}
+
+export const ethBancorApiDictionary: DictionaryItem[] = [
   {
     smartTokenAddress: "0x7f8c53072d9b809a108b1a9d677bcc3b7b3f844e",
     tokenId: "5e70d03c6ea615ea174b74a8",
@@ -540,5 +546,40 @@ export const ethBancorApiDictionary = [
     smartTokenAddress: "0xa3b3c5a8b22c044d5f2d372f628245e2106d310d",
     tokenId: "5a2d307c47bbf500018ecc6e",
     tokenAddress: "0x744d70fdbe2ba4cf95131626614a1763df805b9e"
+  },
+  {
+    tokenAddress: "0x8a9c67fee641579deba04928c4bc45f66e26343a",
+    smartTokenAddress: "0x069d653038db2f9d84e9620be140b3d404a40258",
+    tokenId: "5ee9fe19db33edae1e7b47bb"
+  },
+  {
+    tokenAddress: "0xb4efd85c19999d84251304bda99e90b92300bd93",
+    smartTokenAddress: "0xb9fe4bd869a132137b668054ea48c897c0654ee4",
+    tokenId: "5ec2285c234e028ebd7ce619"
+  },
+  {
+    tokenAddress: "0x4485561db76614ff727f8e0a3ea95690b8b16022",
+    smartTokenAddress: "0xd86f489a495426b1847dbd4b5d85f4832e6d7225",
+    tokenId: "5ef9d239bcaa8f08dbe48af2"
+  },
+  {
+    tokenAddress: "0x67abf1c62d8acd07ada35908d38cd67be7dfeb36",
+    smartTokenAddress: "0x5a602561342f74d161e64796613d7528dd0993c1",
+    tokenId: "5ea28cc8234e028ebd5bb0d5"
+  },
+  {
+    tokenAddress: "0x12b19d3e2ccc14da04fae33e63652ce469b3f2fd",
+    smartTokenAddress: "0xddde5dba82b92daf339fbb4cf1ec4d1cec503075",
+    tokenId: "5a69a9cf1b67798dab40b9ad"
+  },
+  {
+    tokenAddress: "0x0e22734e078d6e399bcee40a549db591c4ea46cb",
+    smartTokenAddress: "0x452821f74ab9d38edd3145c59280ac1bcbce9b81",
+    tokenId: "5eef399fdb33edae1e920e08"
+  },
+  {
+    tokenAddress: "0x7de91b204c1c737bcee6f000aaa6569cf7061cb7",
+    smartTokenAddress: "0x111252c5a7fb75d541071753bd1faaf367d0321f",
+    tokenId: "5ef9d497bcaa8f08dbed5541"
   }
 ];

@@ -2030,6 +2030,85 @@ export class EthBancorModule
     }
   }
 
+  //
+  // @action async bancorIndexCheck(tokens: TokenPrice[]) {
+  //   console.log(tokens, "are all tokens", tokens.find(x => x.code == "AGRI"));
+  //   const tokensNotCoveredByDictionary = tokens.filter(
+  //     token =>
+  //       !ethBancorApiDictionary.some(dictionary =>
+  //         compareString(token.id, dictionary.tokenId)
+  //       )
+  //   );
+  //   console.warn(
+  //     tokensNotCoveredByDictionary,
+  //     "are tokens not covered by the dictionary"
+  //   );
+  //   const detailedTokens = await Promise.all(
+  //     tokens.map(async token => {
+  //       const detailToken = await ethBancorApi.getToken(token.id);
+  //       const minimalToken = {
+  //         tokenId: token.id,
+  //         symbol: detailToken.code,
+  //         name: detailToken.name,
+  //         image: detailToken.primaryCommunityImageName,
+  //         tokenAddress: detailToken.details[0].blockchainId,
+  //         precision: detailToken.details[0].decimals
+  //       };
+
+  //       const passed =
+  //         detailToken.details[0].blockchain.type == "ethereum" &&
+  //         detailToken.details[0].blockchain.chainId == "mainnet" &&
+  //         detailToken.details[0].relayCurrencyId;
+  //       if (!passed) return;
+
+  //       const relayCurrencyId = detailToken.details[0].relayCurrencyId;
+
+  //       const relay = await ethBancorApi.getToken(relayCurrencyId);
+  //       const smartTokenAddress = relay.details[0].blockchainId as string;
+
+  //       return {
+  //         ...minimalToken,
+  //         smartTokenAddress
+  //       };
+  //     })
+  //   );
+  //   const clean = detailedTokens.map(x => x!).filter(Boolean);
+  //   // @ts-ignore
+  //   const newDictionaryItems = clean
+  //     .filter(
+  //       item =>
+  //         !ethBancorApiDictionary.some(
+  //           dict =>
+  //             compareString(dict.tokenId, item.tokenId) &&
+  //             compareString(dict.tokenAddress, item.tokenAddress)
+  //         )
+  //     )
+  //     .map(item =>
+  //       _.pick(item, ["tokenAddress", "smartTokenAddress", "tokenId"])
+  //     ) as DictionaryItem[];
+
+  //   // @ts-ignore
+  //   const registryRequired = clean.filter(
+  //     item =>
+  //       !this.tokenMeta.some(meta =>
+  //         compareString(meta.contract, item.tokenAddress)
+  //       )
+  //   );
+  //   // @ts-ignore
+  //   const meta = registryRequired.map(
+  //     (item): TokenMeta => ({
+  //       id: item.tokenAddress,
+  //       precision: item.precision,
+  //       symbol: item.symbol,
+  //       name: item.name,
+  //       contract: item.tokenAddress,
+  //       image: item.image
+  //     })
+  //   );
+
+  //   return clean;
+  // }
+
   @action async init(params?: ModuleParam) {
     console.log(params, "was init param on eth");
     console.time("eth");
