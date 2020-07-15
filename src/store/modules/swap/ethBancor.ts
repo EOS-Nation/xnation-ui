@@ -1232,6 +1232,7 @@ export class EthBancorModule
 
   @action async getUserBalancesChainLink(
     relayId: string
+    // @ts-ignore
   ): Promise<UserPoolBalances> {
     // console.log("todo, get user pool balances");
   }
