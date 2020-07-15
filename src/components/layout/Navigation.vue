@@ -1,57 +1,115 @@
 <template>
-  <b-navbar class="navBar" toggleable="md" type="dark" variant="dark">
-    <b-navbar-brand>
-      <router-link :to="{ name: 'Tokens' }">
-        <img src="@/assets/media/logos/eosn.png" height="30px" class="mr-4" />
-      </router-link>
-    </b-navbar-brand>
-
-    <b-navbar-toggle target="navbar-toggle-collapse" />
-
-    <b-collapse id="navbar-toggle-collapse" is-nav>
-      <b-navbar-nav class="big" :fill="false">
-        <div class="networks">
-          <b-form-radio-group
-            size="sm"
-            :checked="selected"
-            @input="loadNewModule"
-            :options="options"
-            button-variant="branded"
-            buttons
+  <b-navbar class="navBar bg-primary">
+    <div class="d-none d-md-flex justify-content-between container-xl">
+      <b-navbar-brand class="pb-1" style="width: 250px">
+        <router-link :to="{ name: 'Tokens' }">
+          <img
+            src="@/assets/media/logos/bancor.png"
+            height="25px"
+            class="mb-1"
           />
-        </div>
-        <div class="features">
+        </router-link>
+      </b-navbar-brand>
+
+      <b-navbar-nav class="d-flex align-items-center">
+        <span class="text-white font-size-sm mr-2">Blockchains</span>
+        <div class="networks">
           <b-btn
-            class="mr-1"
-            v-for="navItem in navItems"
-            :key="navItem.label"
-            :to="navItem.destination"
-            :disabled="navItem.disabled"
-            :active="navItem.active"
-            variant="primary"
+            @click="loadNewModule(option.value)"
+            v-for="option in options"
+            :key="option.value"
+            :variant="selected === option.value ? 'light' : 'primary'"
+            class="border-0 ml-1 block-rounded"
             size="sm"
-            exact
           >
-            <font-awesome-icon :icon="navItem.icon" class="mr-1" fixed-width />
-            {{ navItem.label }}
+            {{ option.text }}
           </b-btn>
         </div>
-        <div class="spacer"></div>
       </b-navbar-nav>
 
-      <b-navbar-nav class="ml-auto login">
-        <b-btn
-          @click="loginAction"
-          variant="dual"
-          size="sm"
-          v-b-tooltip.hover
-          :title="loginTooltip"
-        >
-          {{ loginButtonLabel }}
-          <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
-        </b-btn>
-      </b-navbar-nav>
-    </b-collapse>
+      <div class="d-flex justify-content-end" style="width: 250px">
+        <b-navbar-nav class="mr-1">
+          <b-btn
+            @click="loginAction"
+            variant="primary"
+            class="border-0"
+            size="sm"
+            v-b-tooltip.hover
+            :title="loginTooltip"
+          >
+            {{ loginButtonLabel }}
+            <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
+          </b-btn>
+        </b-navbar-nav>
+        <b-navbar-nav class="mr-1">
+          <b-btn variant="primary" class="border-0" size="sm">
+            <font-awesome-icon icon="cog" fixed-width />
+          </b-btn>
+        </b-navbar-nav>
+        <b-navbar-nav>
+          <b-btn variant="primary" class="border-0" size="sm">
+            <font-awesome-icon icon="ellipsis-h" fixed-width />
+          </b-btn>
+        </b-navbar-nav>
+      </div>
+    </div>
+
+    <div class="d-block w-100 d-md-none">
+      <div class="d-flex justify-content-between">
+        <b-navbar-brand>
+          <router-link :to="{ name: 'Tokens' }">
+            <img
+              src="@/assets/media/logos/bancor.png"
+              height="25px"
+              class="mb-1"
+            />
+          </router-link>
+        </b-navbar-brand>
+        <div class="d-flex">
+          <b-navbar-nav class="mr-1">
+            <b-btn variant="primary" class="border-0" size="sm">
+              <font-awesome-icon icon="cog" fixed-width />
+            </b-btn>
+          </b-navbar-nav>
+          <b-navbar-nav>
+            <b-btn variant="primary" class="border-0" size="sm">
+              <font-awesome-icon icon="ellipsis-h" fixed-width />
+            </b-btn>
+          </b-navbar-nav>
+          <b-navbar-nav class="mr-1">
+            <b-btn
+              @click="loginAction"
+              variant="primary"
+              class="border-0"
+              size="sm"
+              v-b-tooltip.hover
+              :title="loginTooltip"
+            >
+              <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
+            </b-btn>
+          </b-navbar-nav>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-center">
+        <b-navbar-nav class="d-flex align-items-center">
+          <span class="text-white font-size-sm mr-2">Blockchains</span>
+          <div class="networks">
+            <b-btn
+              @click="loadNewModule(option.value)"
+              v-for="option in options"
+              :key="option.value"
+              :variant="selected === option.value ? 'light' : 'primary'"
+              class="border-0 ml-1 block-rounded"
+              size="sm"
+            >
+              {{ option.text }}
+            </b-btn>
+          </div>
+        </b-navbar-nav>
+      </div>
+      <div class="d-flex justify-content-between"></div>
+    </div>
   </b-navbar>
 </template>
 
@@ -294,7 +352,7 @@ export default class Navigation extends Vue {
       const isAuthenticated = vxm.ethWallet.isAuthenticated;
       if (isAuthenticated) {
         return this.shortenedEthAddress;
-      } else return "Login";
+      } else return "Connect Wallet";
     }
   }
 
@@ -322,7 +380,7 @@ export default class Navigation extends Vue {
 
   async loginActionEos() {
     const status = this.loginButtonLabel;
-    if (status === "Login") {
+    if (status === "Connect Wallet") {
       this.$bvModal.show("modal-login");
     } else if (
       status !== "Authenticating" &&
@@ -366,10 +424,6 @@ export default class Navigation extends Vue {
 .btn-branded:hover {
   color: black !important;
   background-color: #fa932b !important;
-}
-
-.login {
-  min-width: 130px;
 }
 
 @media (max-width: 768px) {
