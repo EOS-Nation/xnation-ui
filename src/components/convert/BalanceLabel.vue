@@ -1,6 +1,6 @@
 <template>
   <div>
-    <span class="text-muted font-size-sm">
+    <span class="font-size-sm">
       <div>
         <span v-if="loading">
           <font-awesome-icon icon="circle-notch" spin />
