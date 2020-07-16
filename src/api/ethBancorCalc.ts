@@ -6,7 +6,8 @@ import {
   ABISmartToken,
   ABIConverterRegistry,
   ABIConverterV28,
-  ABINetworkContract
+  ABINetworkContract,
+  ABIV2Converter
 } from "@/api/ethConfig";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
@@ -131,7 +132,7 @@ export const buildConverterContract = (
   conversionFee: () => CallReturn<string>;
 }> => buildContract(ABIConverter, contractAddress);
 
-export const buildAnchorContract = (
+export const buildV2Converter = (
   contractAddress: string
 ): ContractMethods<{
   activate: (
@@ -139,11 +140,24 @@ export const buildAnchorContract = (
     primaryReserveOracle: string,
     secondaryReserveOracle: string
   ) => ContractSendMethod;
-  poolToken: (poolToken: string) => CallReturn<string>;
+  reserveStakedBalance: (reserveToken: string) => CallReturn<string>;
+  poolToken: (reserveToken: string) => CallReturn<string>;
   liquidationLimit: (poolToken: string) => CallReturn<string>;
-}> =>
-  // @ts-ignore
-  buildContract([], contractAddress);
+  removeLiquidityReturn: (
+    poolToken: string,
+    amount: string
+  ) => CallReturn<string>;
+  addLiquidity: (
+    reserveTokenAddress: string,
+    amount: string,
+    minReturn: string
+  ) => ContractSendMethod;
+  removeLiquidity: (
+    poolTokenAddress: string,
+    amount: string,
+    minReturn: string
+  ) => ContractSendMethod;
+}> => buildContract(ABIV2Converter, contractAddress);
 
 export const buildV28ConverterContract = (
   contractAddress: string
