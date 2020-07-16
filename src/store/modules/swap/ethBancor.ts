@@ -1326,6 +1326,11 @@ export class EthBancorModule
     // @ts-ignore
   ): Promise<UserPoolBalances> {
     // console.log("todo, get user pool balances");
+    // get pool tokens
+    // get user pool token balances
+    // display pool token balance, 1:1?
+    // utilise anchor contract method to return actual balance expectations
+    //
   }
 
   @action async getUserBalances(relayId: string): Promise<UserPoolBalances> {
@@ -2239,10 +2244,10 @@ export class EthBancorModule
   }
 
   @action async getConverterType(contractAddress: string) {
-    const relay = this.relaysList.find(relay =>
+    const relay = findOrThrow(this.relaysList, relay =>
       compareString(relay.contract, contractAddress)
     );
-    if (Number(relay && relay.version) < 28) {
+    if (Number(relay.version) < 28) {
       throw new Error("Cannot get a converter type for a relay under v28");
     }
     const contract = buildV28ConverterContract(contractAddress);
