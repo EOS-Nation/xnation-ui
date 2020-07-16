@@ -29,14 +29,21 @@
     <div>
       <div>
         <div class="d-flex justify-content-between">
-          <p class="text-muted font-size-sm m-0 text-uppercase">
+          <p
+            class="font-size-sm m-0 text-uppercase"
+            :class="darkMode ? 'text-muted-dark' : 'text-muted-light'"
+          >
             {{ inputLabel }}
           </p>
-          <balance-label :label="label" :balance="formattedBalance" />
+          <balance-label
+            :label="label"
+            :balance="formattedBalance"
+            :class="darkMode ? 'text-muted-dark' : 'text-muted-light'"
+          />
         </div>
         <b-input-group class="mt-1">
           <b-form-input
-            type="number"
+            type="text"
             debounce="500"
             v-model="tokenAmount"
             class="form-control-alt"
@@ -47,7 +54,7 @@
               <div class="d-flex align-items-center">
                 <img
                   @click="click"
-                  class="img-avatar img-avatar20 cursor border-colouring"
+                  class="img-avatar img-avatar32 cursor border-colouring mr-1"
                   :src="img"
                   alt="Token Logo"
                 />
@@ -77,20 +84,22 @@
         </b-input-group>
       </div>
       <percentages
-        :v-if="balance"
+        v-if="balance && errorsList.length < 2"
         @percentUpdate="updatePercent"
         :balance="balance"
         :amount="amount"
         :loading="loadingBalance"
         :label="label"
+        class="text-right mt-1"
+        :class="darkMode ? 'text-muted-dark' : 'text-muted-light'"
       />
-      <h4 class="error">
-        <div class="error-list">
+      <div class="error">
+        <div class="error-list mb-2 text-center">
           <b-badge :key="error" v-for="error in errorsList" variant="danger">{{
             error
           }}</b-badge>
         </div>
-      </h4>
+      </div>
     </div>
   </div>
 </template>
@@ -142,6 +151,10 @@ export default class TokenAmountInput extends Vue {
     ];
   }
 
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
+
   get insufficientBalance() {
     return Number(this.tokenAmount) > this.balance;
   }
@@ -174,7 +187,6 @@ export default class TokenAmountInput extends Vue {
 
 <style lang="scss" scoped>
 .error-list {
-  margin-top: 8px;
   :first-child {
     margin-right: 3px;
   }
