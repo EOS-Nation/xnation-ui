@@ -1,17 +1,32 @@
 <template>
-  <div class="w-100 text-center">
-    <b-btn
-      class="mx-1 block-rounded"
-      v-for="navItem in navItems"
-      :key="navItem.label"
-      :to="navItem.destination"
-      :disabled="navItem.disabled"
-      :variant="!navItem.active ? 'light' : 'primary'"
-      size="sm"
-    >
-      <!--      <font-awesome-icon :icon="navItem.icon" class="mr-1" fixed-width />-->
-      {{ navItem.label }}
-    </b-btn>
+  <div class="w-100 text-center my-2">
+    <b-row>
+      <b-col cols="6">
+        <b-btn
+          class="btn-block mx-1 block-rounded"
+          :key="navItems[0].label"
+          :to="navItems[0].destination"
+          :disabled="navItems[0].disabled"
+          :variant="!navItems[0].active ? 'light' : 'primary'"
+          size="lg"
+        >
+          {{ navItems[0].label }}
+        </b-btn>
+      </b-col>
+      <b-col cols="6">
+        <b-btn
+          class="btn-block mx-1 block-rounded"
+          :key="navItems[1].label"
+          :to="navItems[1].destination"
+          :disabled="navItems[1].disabled"
+          :variant="!navItems[1].active ? 'light' : 'primary'"
+          size="lg"
+        >
+          {{ navItems[1].label }}
+        </b-btn>
+      </b-col>
+    </b-row>
+    <hr style="border: #0f59d1 solid 1px !important;">
   </div>
 </template>
 
