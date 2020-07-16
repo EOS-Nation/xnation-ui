@@ -343,16 +343,23 @@ export enum PoolType {
   Traditional = 1,
   ChainLink = 0
 }
+export interface PoolToken {
+  reserveId: string;
+  poolToken: Token;
+}
+
+export type Anchor = Token | PoolToken[];
+
 export interface Relay {
   id: string;
   reserves: Token[];
-  smartToken: Token;
+  anchor: Anchor;
   contract: ContractAccount;
   isMultiContract: boolean;
   fee: number;
   network: string;
   version: string;
-  converterType?: PoolType;
+  converterType: PoolType;
   owner: string;
 }
 

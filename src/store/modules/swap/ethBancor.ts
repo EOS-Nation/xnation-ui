@@ -35,7 +35,9 @@ import {
   isOdd,
   multiSteps,
   EthNetworks,
-  PoolType
+  PoolType,
+  Anchor,
+  PoolToken
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
@@ -75,6 +77,21 @@ import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
 import { findNewPath } from "@/api/eosBancorCalc";
 import { priorityEthPools } from "./staticRelays";
 
+interface AnchorProps {
+  anchor: Anchor;
+  converterType: PoolType;
+}
+
+const tokensInRelay = (relay: Relay): Token[] => {
+  const reserveTokens = relay.reserves;
+  if (relay.converterType == PoolType.ChainLink) {
+    const poolTokens = relay.anchor as PoolToken[];
+    const tokens = poolTokens.map(token => token.poolToken);
+    return [...reserveTokens, ...tokens];
+  } else if (relay.converterType == PoolType.Traditional) {
+    return [...reserveTokens, relay.anchor as Token];
+  } else throw new Error("Failed to identify pool");
+};
 interface EthNetworkVariables {
   contractRegistry: string;
   bntToken: string;
@@ -349,11 +366,10 @@ const getTokenMeta = async (currentNetwork: EthNetworks) => {
   return _.uniqWith(final, (a, b) => compareString(a.id, b.id));
 };
 
-const compareRelayBySmartTokenAddress = (a: Relay, b: Relay) =>
-  compareString(a.smartToken.contract, b.smartToken.contract);
+const compareRelayById = (a: Relay, b: Relay) => compareString(a.id, b.id);
 
 interface RelayFeed {
-  smartTokenContract: string;
+  anchorId: string;
   tokenId: string;
   liqDepth: number;
   costByNetworkUsd?: number;
@@ -2208,34 +2224,29 @@ export class EthBancorModule
     }
   }
 
-  @action async buildRelaysFromSmartTokenAddresses(
-    smartTokenAddresses: string[]
+  @action async buildRelaysFromAnchorAddresses(
+    anchorAddresses: string[]
   ): Promise<Relay[]> {
     const converterAddresses = await this.fetchConverterAddressesBySmartTokenAddresses(
-      smartTokenAddresses
+      anchorAddresses
     );
 
-    if (converterAddresses.length !== smartTokenAddresses.length)
-      throw new Error(
-        "Was expecting as many converters as smartTokenAddresses"
-      );
+    if (converterAddresses.length !== anchorAddresses.length)
+      throw new Error("Was expecting as many converters as anchor addresses");
 
-    const combined = _.zip(
-      converterAddresses,
-      smartTokenAddresses
-    ) as string[][];
+    const combined = _.zip(converterAddresses, anchorAddresses) as string[][];
 
     const relays = await Promise.all(
-      combined.map(async ([converterAddress, smartTokenAddress]) => {
+      combined.map(async ([converterAddress, anchorAddress]) => {
         try {
           const relay = await this.buildRelay({
-            smartTokenAddress,
+            anchorAddress,
             converterAddress
           });
           await this.addPool({ relay });
           return relay;
         } catch (e) {
-          this.updateFailedPools([smartTokenAddress]);
+          this.updateFailedPools([anchorAddress]);
           console.log(`Failed building relay ${converterAddress} ${e.message}`);
         }
       })
@@ -2255,8 +2266,39 @@ export class EthBancorModule
     return Number(converterType);
   }
 
+  @action async buildOracleAnchor(anchorAddress: string): Promise<AnchorProps> {
+    console.log("shit to do");
+  }
+
+  @action async buildSmartTokenAnchor(
+    anchorAddress: string
+  ): Promise<AnchorProps> {
+    const smartToken = await this.buildTokenByTokenAddress(anchorAddress);
+    return { anchor: smartToken, converterType: PoolType.Traditional };
+  }
+
+  @action async buildAnchor({
+    anchorAddress,
+    version
+  }: {
+    anchorAddress: string;
+    version: number;
+  }): Promise<AnchorProps> {
+    const over28 = version >= 28;
+    if (over28) {
+      const poolType = await this.getPoolType(anchorAddress);
+      if (poolType == PoolType.Traditional)
+        return this.buildSmartTokenAnchor(anchorAddress);
+      else if (poolType == PoolType.ChainLink)
+        return this.buildOracleAnchor(anchorAddress);
+      else throw new Error("Failed to identify anchor");
+    } else {
+      return this.buildSmartTokenAnchor(anchorAddress);
+    }
+  }
+
   @action async buildRelay(relayAddresses: {
-    smartTokenAddress: string;
+    anchorAddress: string;
     converterAddress: string;
   }): Promise<Relay> {
     const converterContract = buildConverterContract(
@@ -2287,33 +2329,25 @@ export class EthBancorModule
         "Converter not valid, does not have 2 tokens in converter"
       );
 
-    const tokenAddresses: string[] = [
-      reserve1Address as string,
-      reserve2Address as string,
-      relayAddresses.smartTokenAddress
-    ];
-
-    const over28 = Number(version) >= 28;
-
-    // @ts-ignore
-    const [reserve1, reserve2, smartToken, converterType] = (await Promise.all([
-      ...tokenAddresses.map(this.buildTokenByTokenAddress),
-      ...(over28
-        ? [this.getConverterType(relayAddresses.converterAddress)]
-        : [])
-    ])) as [Token, Token, Token, number];
+    const [reserve1, reserve2, anchorProps] = await Promise.all([
+      this.buildTokenByTokenAddress(reserve1Address),
+      this.buildTokenByTokenAddress(reserve2Address),
+      this.buildAnchor({
+        anchorAddress: relayAddresses.anchorAddress,
+        version: Number(version)
+      })
+    ]);
 
     return {
-      id: relayAddresses.smartTokenAddress,
+      id: relayAddresses.anchorAddress,
       fee: Number(fee) / 10000,
       owner: owner,
       network: "ETH",
       version: version,
       contract: relayAddresses.converterAddress,
-      smartToken,
       reserves: [reserve1, reserve2],
       isMultiContract: false,
-      ...(over28 && { converterType })
+      ...anchorProps
     };
   }
 
@@ -2328,11 +2362,7 @@ export class EthBancorModule
     }
 
     const tokenContract = buildTokenContract(address);
-
-    const existingTokens = this.relaysList.flatMap(relay => [
-      ...relay.reserves,
-      relay.smartToken
-    ]);
+    const existingTokens = this.relaysList.flatMap(tokensInRelay);
 
     const existingToken = existingTokens.find(token =>
       compareString(token.contract, address)
@@ -2417,7 +2447,7 @@ export class EthBancorModule
 
     const meshedRelays = _.uniqWith(
       [...relays, ...this.relaysList],
-      compareRelayBySmartTokenAddress
+      compareRelayById
     );
     this.relaysList = meshedRelays;
   }
