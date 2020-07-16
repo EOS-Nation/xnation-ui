@@ -40,8 +40,17 @@
 }
 
 .btn {
+  border: none !important;
 
   &.block-rounded {
-    border-radius: $border-radius;
+    border-radius: $border-radius !important;
   }
+}
+
+.modal .modal-content {
+  border-radius: $border-radius !important;
+}
+
+.form-control-alt {
+  height: 44px;
 }

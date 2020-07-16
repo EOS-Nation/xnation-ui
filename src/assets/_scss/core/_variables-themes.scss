@@ -43,7 +43,7 @@ $theme-amethyst-side-overlay-bg:               $white !default;
 
 // City Theme
 
-$theme-city-primary:                       #0f59d1 !default;
+$theme-city-primary: #0f59d1 !default;
 $theme-city-light:                         lighten($theme-city-primary, 7%) !default;
 $theme-city-lighter:                       lighten($theme-city-primary, 15%) !default;
 $theme-city-dark:                          #555555 !default;

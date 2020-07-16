@@ -34,25 +34,42 @@
                      $theme-city-sidebar-dark-bg,
                      $theme-city-side-overlay-bg);
 .primary-light {
-  background: $theme-city-primary;
+  background: #0f59d1 !important;
 }
 
 .primary-dark {
-  background: $theme-city-primary;
-}
-
-.bg-primary-light {
-  background: $theme-city-primary;
-}
-
-.bg-primary-dark {
-  background: $theme-city-primary;
+  background: #0f59d1 !important;
 }
 
 .bg-body-light {
-  background: $theme-city-body-bg;
+  background: #f8f9fd !important;
 }
 
 .bg-body-dark {
-  background: $theme-city-primary;
+  background: #1c344e !important;
+}
+
+.bg-block-light {
+  background: $white !important;
+}
+
+.bg-block-dark {
+  background: #0a2540 !important;
+}
+
+.text-muted-light {
+  color: $text-muted !important;
+}
+
+.text-muted-dark {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 600;
+}
+
+.text-body-light {
+  color: #575757 !important;
+}
+
+.text-body-dark {
+  color: rgba(255, 255, 255, 0.9) !important;
 }
