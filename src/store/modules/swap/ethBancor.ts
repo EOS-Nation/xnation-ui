@@ -65,7 +65,7 @@ import {
   buildV28ConverterContract,
   buildNetworkContract,
   makeBatchRequest,
-  buildAnchorContract
+  buildV2Converter
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
 import {
@@ -1314,7 +1314,7 @@ export class EthBancorModule
     anchorContract: string;
     poolTokenAddress: string;
   }) {
-    const contract = buildAnchorContract(anchorContract);
+    const contract = buildV2Converter(anchorContract);
     return contract.methods.liquidationLimit(poolTokenAddress).call();
   }
 
@@ -1325,7 +1325,7 @@ export class EthBancorModule
     anchorContract: string;
     reserveTokenAddress: string;
   }) {
-    const contract = buildAnchorContract(anchorContract);
+    const contract = buildV2Converter(anchorContract);
     return contract.methods.poolToken(reserveTokenAddress).call();
   }
 
@@ -2266,8 +2266,32 @@ export class EthBancorModule
     return Number(converterType);
   }
 
-  @action async buildOracleAnchor(anchorAddress: string): Promise<AnchorProps> {
-    console.log("shit to do");
+  @action async buildOracleAnchor({
+    anchorAddress,
+    reserveAddresses
+  }: {
+    anchorAddress: string;
+    reserveAddresses: string[];
+  }): Promise<AnchorProps> {
+    const poolTokens = await Promise.all(
+      reserveAddresses.map(
+        async (reserveAddress): Promise<PoolToken> => {
+          const poolTokenAddress = await this.fetchPoolToken({
+            reserveTokenAddress: reserveAddress,
+            anchorContract: anchorAddress
+          });
+          const token = await this.buildTokenByTokenAddress(poolTokenAddress);
+          return {
+            reserveId: reserveAddress,
+            poolToken: token
+          };
+        }
+      )
+    );
+    return {
+      anchor: poolTokens,
+      converterType: PoolType.ChainLink
+    };
   }
 
   @action async buildSmartTokenAnchor(
@@ -2279,10 +2303,12 @@ export class EthBancorModule
 
   @action async buildAnchor({
     anchorAddress,
-    version
+    version,
+    reserveAddresses
   }: {
     anchorAddress: string;
     version: number;
+    reserveAddresses: string[];
   }): Promise<AnchorProps> {
     const over28 = version >= 28;
     if (over28) {
@@ -2290,7 +2316,7 @@ export class EthBancorModule
       if (poolType == PoolType.Traditional)
         return this.buildSmartTokenAnchor(anchorAddress);
       else if (poolType == PoolType.ChainLink)
-        return this.buildOracleAnchor(anchorAddress);
+        return this.buildOracleAnchor({ anchorAddress, reserveAddresses });
       else throw new Error("Failed to identify anchor");
     } else {
       return this.buildSmartTokenAnchor(anchorAddress);
@@ -2334,7 +2360,8 @@ export class EthBancorModule
       this.buildTokenByTokenAddress(reserve2Address),
       this.buildAnchor({
         anchorAddress: relayAddresses.anchorAddress,
-        version: Number(version)
+        version: Number(version),
+        reserveAddresses: [reserve1Address, reserve2Address]
       })
     ]);
 
