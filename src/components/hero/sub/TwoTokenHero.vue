@@ -1,10 +1,15 @@
 <template>
-  <div class="block block-rounded">
+  <div
+    class="block block-rounded mb-3"
+    :class="darkMode ? 'bg-block-dark' : 'bg-block-light'"
+  >
     <div class="block-header">
       <sub-navigation />
     </div>
 
-    <div class="block-content">
+    <div class="block-content pt-2">
+      <slot name="liquidityActions"></slot>
+
       <b-row>
         <b-col md="12">
           <token-field
@@ -16,7 +21,7 @@
             :balance="tokenOneMeta.balance"
             :img="tokenOneMeta.img"
             :choices="tokenOneMeta.choices"
-            input-label="From"
+            :input-label="inputLabels[0]"
             :label="label"
             :errors="tokenOneMeta.errors"
             :warnBalance="warnBalance"
@@ -25,7 +30,7 @@
       </b-row>
 
       <b-row>
-        <b-col md="12">
+        <b-col md="12" class="my-3">
           <token-field
             :tokenId.sync="idTwo"
             :symbol="tokenTwoMeta.symbol"
@@ -35,7 +40,7 @@
             :balance="tokenTwoMeta.balance"
             :img="tokenTwoMeta.img"
             :choices="tokenTwoMeta.choices"
-            input-label="To (estimated)"
+            :input-label="inputLabels[1]"
             :label="label"
             :errors="tokenTwoMeta.errors"
             :warnBalance="warnBalance"
@@ -88,6 +93,7 @@ export default class HeroConvert extends Vue {
   @Prop(Object) tokenTwoMeta!: TokenMeta;
 
   @Prop(String) label?: string;
+  @Prop(Array) inputLabels!: string[];
   @Prop(Array) choices?: any[];
   @Prop({ default: false }) warnBalance?: boolean;
 
@@ -98,6 +104,10 @@ export default class HeroConvert extends Vue {
 
   @Emit()
   tokenTwoClicked() {}
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 
   get tokenOneChoices() {
     return this.tokenOneMeta.choices;
