@@ -6,8 +6,9 @@
     @change="onChange"
     centered
     hide-footer
+    :content-class="darkMode ? 'bg-block-dark' : ''"
   >
-    <div class="modal-content">
+    <div>
       <div class="ffs">
         <h5 id="select-token">
           Select Token
@@ -50,14 +51,14 @@
           </b-dropdown>
         </b-col>
       </b-row>
-      <b-row class="d-flex align-items-center mx-0 gutters-tiny">
+      <b-row class="d-flex align-items-center mx-0">
         <b-col
           sm="12"
           md="6"
           lg="4"
           v-for="token in searchedTokens"
           :key="token.id"
-          class="text-center mb-2"
+          class="text-center"
           @click="setToken(token.id)"
         >
           <token-balance-block
@@ -88,6 +89,10 @@ export default class ModalSelect extends Vue {
 
   onChange(value: boolean) {
     this.$emit("input", value);
+  }
+
+  get darkMode() {
+    return vxm.general.darkMode;
   }
 
   private tokenSearch: String = "";
