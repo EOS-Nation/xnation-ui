@@ -9,48 +9,35 @@
       :tokenTwoAmount.sync="toTokenAmount"
       @update:tokenOneAmount="updatePriceReturn"
       @update:tokenTwoAmount="updatePriceCost"
+      :input-labels="['From', 'To (Estimated)']"
     >
       <div class="w-100">
-        <transition name="fade" mode="out-in">
-          <font-awesome-icon
-            icon="exchange-alt"
-            class="fa-2x cursor"
-            :pulse="flipping"
-            @click="swapTokens"
-          />
-        </transition>
-        <div>
+        <div class="text-center">
           <span v-if="loading">
             <font-awesome-icon icon="circle-notch" spin />
           </span>
           <span v-else class="font-size-sm">
-            {{ unitReward }}
+            {{ unitReward }} =
+            {{ `$${(this.toToken.price * this.reward).toFixed(2)} USD` }}
           </span>
-          <div class="font-size-sm">
-            {{
-              `1 ${fromToken.symbol} = $${(
-                this.toToken.price * this.reward
-              ).toFixed(2)} USD`
-            }}
-          </div>
           <div v-if="fee !== null" :class="[`font-size-sm`]">
             Fee: {{ fee }}
           </div>
           <div
             v-if="slippage !== null"
             :class="[
-              slippageHigh ? 'text-warning' : 'text-dark',
+              slippageHigh ? 'text-danger font-w700' : '',
               `font-size-sm`
             ]"
           >
             {{ displayedSlippage }}
           </div>
         </div>
+
         <b-btn
           @click="initConvert"
           variant="primary"
-          class="btn-block mb-3"
-          v-ripple
+          class="btn-block my-3"
           :disabled="disableConvert"
         >
           <font-awesome-icon
