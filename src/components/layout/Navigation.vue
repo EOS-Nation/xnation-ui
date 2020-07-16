@@ -32,7 +32,7 @@
           <b-btn
             @click="loginAction"
             variant="primary"
-            class="border-0"
+            class="block-rounded"
             size="sm"
             v-b-tooltip.hover
             :title="loginTooltip"
@@ -42,12 +42,19 @@
           </b-btn>
         </b-navbar-nav>
         <b-navbar-nav class="mr-1">
-          <b-btn variant="primary" class="border-0" size="sm">
-            <font-awesome-icon icon="cog" fixed-width />
-          </b-btn>
+          <b-dropdown id="dropdown-settings" right variant="primary" size="sm" toggle-class="block-rounded" no-caret>
+            <template v-slot:button-content>
+              <font-awesome-icon icon="cog" fixed-width />
+            </template>
+            <b-dropdown-header class="text-center">Settings</b-dropdown-header>
+            <b-dropdown-divider></b-dropdown-divider>
+            <b-dropdown-item @click="toggleDarkMode">Dark Mode: {{ darkMode ? 'ON' : 'OFF' }}</b-dropdown-item>
+            <b-dropdown-item>Second Action</b-dropdown-item>
+            <b-dropdown-item>Third Action</b-dropdown-item>
+          </b-dropdown>
         </b-navbar-nav>
         <b-navbar-nav>
-          <b-btn variant="primary" class="border-0" size="sm">
+          <b-btn variant="primary" class="block-rounded" size="sm">
             <font-awesome-icon icon="ellipsis-h" fixed-width />
           </b-btn>
         </b-navbar-nav>
@@ -217,6 +224,10 @@ export default class Navigation extends Vue {
     return this.selectedNetwork;
   }
 
+  get darkMode() {
+    return vxm.general.darkMode
+  }
+
   get navItems() {
     return [
       {
@@ -286,6 +297,10 @@ export default class Navigation extends Vue {
       params: defaultModuleParams(moduleId)
     });
     this.$router.push({ name: "Tokens", ...extendRouter(moduleId) });
+  }
+
+  toggleDarkMode() {
+    vxm.general.toggleDarkMode();
   }
 
   get options() {
