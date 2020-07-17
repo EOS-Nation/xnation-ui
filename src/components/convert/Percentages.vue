@@ -1,6 +1,6 @@
 <template>
   <div>
-    <span class="font-size-sm">
+    <span class="font-size-sm font-w400">
       <div v-if="Number(balance) > 0" class="cursor">
         <span @click="setPercentage(10)">10%</span>
         -

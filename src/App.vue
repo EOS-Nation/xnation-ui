@@ -55,7 +55,7 @@
             </b-col>
           </b-row>
         </b-container>
-        <!--        <router-view></router-view>-->
+        <router-view></router-view>
       </main>
     </div>
     <div>
