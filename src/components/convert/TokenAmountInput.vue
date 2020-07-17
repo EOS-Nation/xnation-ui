@@ -54,7 +54,7 @@
               <div class="d-flex align-items-center">
                 <img
                   @click="click"
-                  class="img-avatar img-avatar32 cursor border-colouring mr-1"
+                  class="img-avatar img-avatar32 cursor border-colouring bg-white mr-1"
                   :src="img"
                   alt="Token Logo"
                 />
@@ -65,11 +65,12 @@
             <b-button v-else variant="light" class="d-flex align-items-center">
               <img
                 @click="click"
-                class="img-avatar img-avatar20 cursor border-colouring"
+                class="img-avatar img-avatar32 cursor border-colouring bg-white mr-1"
                 :src="img"
                 alt="Token Logo"
               />
               <span class="px-1">{{ symbol }}</span>
+              <font-awesome-icon icon="caret-down" class="text-muted ml-1" />
             </b-button>
             <b-button
               v-if="toggle"
