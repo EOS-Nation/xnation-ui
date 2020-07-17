@@ -1,87 +1,89 @@
 <template>
-  <two-token-hero
-    v-if="loaded"
-    :tokenOneId.sync="networkId"
-    :tokenTwoId.sync="tokenId"
-    :tokenOneMeta="networkMeta"
-    :tokenTwoMeta="tokenMeta"
-    :input-labels="['Input', 'Input']"
-    @update:tokenOneId="networkTokenChange"
-    @update:tokenTwoId="tokenChange"
-    :tokenOneAmount.sync="networkAmount"
-    :tokenTwoAmount.sync="tokenAmount"
-    :warnBalance="true"
-  >
-    <div>
-      <div v-if="calculationsAvailable" class="mb-3 mt-3">
-        <span class="text-white font-size-sm">
-          {{ networkTokenReward }}
-        </span>
-        <div class="text-white font-size-sm">
-          {{ tokenReward }}
+  <div>
+    <two-token-hero
+      v-if="loaded"
+      :tokenOneId.sync="networkId"
+      :tokenTwoId.sync="tokenId"
+      :tokenOneMeta="networkMeta"
+      :tokenTwoMeta="tokenMeta"
+      :input-labels="['Input', 'Input']"
+      @update:tokenOneId="networkTokenChange"
+      @update:tokenTwoId="tokenChange"
+      :tokenOneAmount.sync="networkAmount"
+      :tokenTwoAmount.sync="tokenAmount"
+      :warnBalance="true"
+    >
+      <div>
+        <div v-if="calculationsAvailable" class="mb-3 mt-3">
+          <span class="text-white font-size-sm">
+            {{ networkTokenReward }}
+          </span>
+          <div class="text-white font-size-sm">
+            {{ tokenReward }}
+          </div>
+          <div class="text-white font-size-sm">
+            {{ networkTokenUsdReward }}
+          </div>
         </div>
-        <div class="text-white font-size-sm">
-          {{ networkTokenUsdReward }}
+        <div v-else class="mb-3 mt-3">
+          <span class="text-white font-size-sm">
+            Enter initial liquidity...
+          </span>
         </div>
-      </div>
-      <div v-else class="mb-3 mt-3">
-        <span class="text-white font-size-sm">
-          Enter initial liquidity...
-        </span>
-      </div>
-      <relay-fee-adjuster :fee.sync="fee" />
-      <div class="create d-flex justify-content-center">
-        <b-btn
-          @click="createRelay"
-          variant="success"
-          v-ripple
-          class="px-4 py-2 d-block create"
-          :disabled="!createPoolReady"
-        >
-          <font-awesome-icon icon="plus" fixed-width class="mr-2" />
-          <span class="font-w700">Create Pool</span>
-        </b-btn>
-      </div>
-      <modal-multi-tx
-        title="Create Pool"
-        v-model="txModal"
-        :busy="txBusy"
-        @input="cleanUpAfterTx"
-      >
-        <div>
-          <stepper
-            v-if="sections.length > 1"
-            :selectedStep="stepIndex"
-            :steps="sections"
-            :label="sections[stepIndex].description"
-            :numbered="true"
-          />
-          <token-swap
-            :error="error"
-            :success="success"
-            leftHeader="Network Token"
-            :leftImg="selectedNetworkToken.img"
-            :leftTitle="selectedNetworkToken.symbol"
-            :leftSubtitle="networkAmount"
-            rightHeader="Listing token"
-            :rightImg="selectedToken.img"
-            :rightTitle="selectedToken.symbol"
-            :rightSubtitle="tokenAmount"
+        <relay-fee-adjuster :fee.sync="fee" />
+        <div class="create d-flex justify-content-center">
+          <b-btn
+            @click="createRelay"
+            variant="success"
+            v-ripple
+            class="px-4 py-2 d-block create"
+            :disabled="!createPoolReady"
           >
-            <template v-slot:footer>
-              <TxModalFooter
-                :error="error"
-                :success="success"
-                :explorerLink="explorerLink"
-                :explorerName="explorerName"
-                @close="txModal = false"
-              />
-            </template>
-          </token-swap>
+            <font-awesome-icon icon="plus" fixed-width class="mr-2" />
+            <span class="font-w700">Create Pool</span>
+          </b-btn>
         </div>
-      </modal-multi-tx>
-    </div>
-  </two-token-hero>
+        <modal-multi-tx
+          title="Create Pool"
+          v-model="txModal"
+          :busy="txBusy"
+          @input="cleanUpAfterTx"
+        >
+          <div>
+            <stepper
+              v-if="sections.length > 1"
+              :selectedStep="stepIndex"
+              :steps="sections"
+              :label="sections[stepIndex].description"
+              :numbered="true"
+            />
+            <token-swap
+              :error="error"
+              :success="success"
+              leftHeader="Network Token"
+              :leftImg="selectedNetworkToken.img"
+              :leftTitle="selectedNetworkToken.symbol"
+              :leftSubtitle="networkAmount"
+              rightHeader="Listing token"
+              :rightImg="selectedToken.img"
+              :rightTitle="selectedToken.symbol"
+              :rightSubtitle="tokenAmount"
+            >
+              <template v-slot:footer>
+                <TxModalFooter
+                  :error="error"
+                  :success="success"
+                  :explorerLink="explorerLink"
+                  :explorerName="explorerName"
+                  @close="txModal = false"
+                />
+              </template>
+            </token-swap>
+          </div>
+        </modal-multi-tx>
+      </div>
+    </two-token-hero>
+  </div>
 </template>
 
 <script lang="ts">

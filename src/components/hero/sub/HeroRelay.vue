@@ -62,7 +62,7 @@
           :selectedMenu.sync="selectedMenu"
           @clicked="toggleMain"
         />
-        <b-btn variant="primary" class="btn-block my-3">
+        <b-btn variant="primary" class="btn-block my-3" size="lg">
           <font-awesome-icon
             :icon="loadingConversion ? 'circle-notch' : 'arrow-right'"
             :spin="loadingConversion"
@@ -114,9 +114,13 @@
       </modal-tx>
     </two-token-hero>
 
-    <h6 class="text-center">
-      <font-awesome-icon icon="plus" class="mr-2" />Create a pool
-    </h6>
+    <div
+      class="d-flex justify-content-center"
+    >
+      <router-link :to="{ name: 'Create' }" class="cursor font-w700" :class="darkMode ? 'text-body-dark' : 'text-body-light'">
+        <font-awesome-icon icon="plus" class="mr-2" />Create Pool
+      </router-link>
+    </div>
   </div>
 </template>
 
@@ -145,6 +149,7 @@ import Stepper from "@/components/modals/Stepper.vue";
 import wait from "waait";
 import { compareString } from "../../../api/helpers";
 import { sortByNetworkTokens } from "../../../api/sortByNetworkTokens";
+import { vxm } from "@/store";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
@@ -184,6 +189,10 @@ export default class HeroRelay extends Vue {
 
   sections: Step[] = [];
   stepIndex = 0;
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter relay!: LiquidityModule["relay"];

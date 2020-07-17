@@ -39,6 +39,7 @@
           variant="primary"
           class="btn-block my-3"
           :disabled="disableConvert"
+          size="lg"
         >
           <font-awesome-icon
             :icon="loadingConversion ? 'circle-notch' : 'exchange-alt'"
