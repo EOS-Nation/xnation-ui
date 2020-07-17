@@ -13,7 +13,6 @@
 
 // Block Modes
 .block {
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05), 0 6px 20px 0 rgba(0, 0, 0, 0.15);
   &.block-mode-loading {
     > .block-header,
     > .block-content,
@@ -25,6 +24,10 @@
       background: url("../media/icons/circle-notch.svg") no-repeat 50% 50%;
       background-size: 24px;
     }
+  }
+
+  &.block-shadow {
+    box-shadow: 0 0px 8px 0 rgba(0, 0, 0, 0.05), 0 0px 16px 0 rgba(0, 73, 219, 0.1);
   }
 }
 
@@ -51,6 +54,6 @@
   border-radius: $border-radius !important;
 }
 
-.form-control-alt {
+.form-control-alt-light, .form-control-alt-dark {
   height: 44px;
 }

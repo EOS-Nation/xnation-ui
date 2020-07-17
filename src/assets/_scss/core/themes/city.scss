@@ -53,23 +53,30 @@
   background: $white !important;
 }
 
+.bg-light {
+  background: #eeeeee !important;
+}
+
 .bg-block-dark {
   background: #0a2540 !important;
 }
 
 .text-muted-light {
-  color: $text-muted !important;
+  color: rgba(87, 87, 87, 0.7) !important;
+  font-weight: bold;
 }
 
 .text-muted-dark {
-  color: rgba(255, 255, 255, 0.9) !important;
-  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-weight: bold;
 }
 
 .text-body-light {
-  color: #575757 !important;
+  color: rgba(87, 87, 87, 0.85) !important;
+  font-weight: bold;
 }
 
 .text-body-dark {
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-weight: bold;
 }
