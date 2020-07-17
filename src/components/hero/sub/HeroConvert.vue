@@ -37,7 +37,7 @@
         <b-btn
           @click="initConvert"
           variant="primary"
-          class="btn-block my-3"
+          class="btn-block mt-3"
           :disabled="disableConvert"
           size="lg"
         >
@@ -47,12 +47,12 @@
             fixed-width
             class="mr-2"
           />
-          <span class="font-w700">Convert</span>
+          <span class="font-w700">Swap</span>
         </b-btn>
       </div>
     </two-token-hero>
     <modal-tx
-      title="Convert"
+      title="Confirm Swap"
       v-model="txModal"
       :busy="txBusy"
       @input="closeTxModal"
@@ -71,9 +71,7 @@
           :leftImg="fromToken.logo"
           :leftTitle="`${fromTokenAmount} ${fromToken.symbol}`"
           :leftSubtitle="
-            `${fromToken.name} ($${(
-              token(fromTokenId).price * Number(fromTokenAmount)
-            ).toFixed(2)} USD)`
+            `${fromToken.name}`
           "
           :rightImg="toToken.logo"
           :rightTitle="`${toTokenAmount} ${toToken.symbol}`"
@@ -87,6 +85,11 @@
               :explorerName="explorerName"
               @close="closeTxModal"
             />
+            <b-col cols="12">
+              <b-btn variant="primary" class="btn-block" size="lg">
+                Confirm Swap
+              </b-btn>
+            </b-col>
           </template>
         </token-swap>
       </div>

@@ -1,13 +1,12 @@
 <template>
-  <div
-    class="block block-rounded mb-3"
-    :class="darkMode ? 'bg-block-dark' : 'bg-block-light'"
+  <content-block
+    class="mb-3"
   >
-    <div class="block-header">
+    <template slot="header">
       <sub-navigation />
-    </div>
+    </template>
 
-    <div class="block-content pt-2">
+    <div>
       <slot name="liquidityActions"></slot>
 
       <b-row>
@@ -54,7 +53,7 @@
         </b-col>
       </b-row>
     </div>
-  </div>
+  </content-block>
 </template>
 <script lang="ts">
 import {
@@ -68,6 +67,7 @@ import {
 import { vxm } from "@/store";
 import TokenField from "@/components/convert/TokenField.vue";
 import SubNavigation from "@/components/layout/SubNavigation.vue";
+import ContentBlock from "@/components/common/ContentBlock.vue";
 
 interface TokenMeta {
   balance?: number;
@@ -79,6 +79,7 @@ interface TokenMeta {
 
 @Component({
   components: {
+    ContentBlock,
     SubNavigation,
     TokenField
   }
