@@ -48,7 +48,7 @@
             : 'bg-body-light text-body-light'
         "
       >
-        <b-container fluid="xl" class="pt-5">
+        <b-container fluid="xl" class="pt-4">
           <b-row class="d-flex justify-content-center">
             <b-col cols="12" style="max-width: 460px">
               <router-view name="Hero"></router-view>
@@ -59,7 +59,7 @@
       </main>
     </div>
     <div>
-      <my-footer></my-footer>
+      <my-footer v-if="false"></my-footer>
       <modal-login />
       <modal-tx />
     </div>
