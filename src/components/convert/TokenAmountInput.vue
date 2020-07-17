@@ -46,11 +46,11 @@
             type="text"
             debounce="500"
             v-model="tokenAmount"
-            class="form-control-alt"
+            :class="darkMode ? 'form-control-alt-dark' : 'form-control-alt-light'"
             placeholder="Enter Amount"
           ></b-form-input>
           <b-input-group-append>
-            <b-button v-if="dropdown" @click="dropdownEvent" variant="light">
+            <div v-if="dropdown" @click="dropdownEvent" class="rounded-right d-flex align-items-center px-2 cursor" :class="darkMode ? 'bg-body-dark' : 'bg-light'">
               <div class="d-flex align-items-center">
                 <img
                   @click="click"
@@ -61,8 +61,8 @@
                 <span class="px-1">{{ symbol }}</span>
                 <font-awesome-icon icon="caret-down" class="text-muted ml-1" />
               </div>
-            </b-button>
-            <b-button v-else variant="light" class="d-flex align-items-center">
+            </div>
+            <div v-else variant="light" class="rounded-right d-flex align-items-center px-2 cursor" :class="darkMode ? 'bg-body-dark' : 'bg-light'">
               <img
                 @click="click"
                 class="img-avatar img-avatar32 cursor border-colouring bg-white mr-1"
@@ -71,7 +71,7 @@
               />
               <span class="px-1">{{ symbol }}</span>
               <font-awesome-icon icon="caret-down" class="text-muted ml-1" />
-            </b-button>
+            </div>
             <b-button
               v-if="toggle"
               :variant="status ? 'success' : 'danger'"
