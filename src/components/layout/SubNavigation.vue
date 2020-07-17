@@ -1,7 +1,7 @@
 <template>
-  <div class="w-100 text-center my-2">
+  <div class="w-100 text-center mt-2">
     <b-row>
-      <b-col cols="6">
+      <b-col cols="6" class="pr-2">
         <b-btn
           class="btn-block mx-1 block-rounded"
           :key="navItems[0].label"
@@ -13,20 +13,20 @@
           {{ navItems[0].label }}
         </b-btn>
       </b-col>
-      <b-col cols="6">
+      <b-col cols="6" class="pl-2">
         <b-btn
           class="btn-block mx-1 block-rounded"
           :key="navItems[1].label"
           :to="navItems[1].destination"
           :disabled="navItems[1].disabled"
-          :variant="!navItems[1].active ? 'light' : 'primary'"
+          :variant="(navItems[1].active || navItems[2].active) ? 'primary' : 'light'"
           size="lg"
         >
           {{ navItems[1].label }}
         </b-btn>
       </b-col>
     </b-row>
-    <hr style="border: #0f59d1 solid 1px !important;">
+    <hr :class="darkMode ? 'hr-dark' : 'hr-light'" />
   </div>
 </template>
 
@@ -128,6 +128,10 @@ export default class SubNavigation extends Vue {
 
   get selectedWallet() {
     return vxm.wallet.currentWallet;
+  }
+
+  get darkMode() {
+    return vxm.general.darkMode;
   }
 
   get selected() {
@@ -302,62 +306,11 @@ export default class SubNavigation extends Vue {
 </script>
 
 <style>
-.navItem {
-  margin: 2px 2px;
+.hr-light {
+  border: #eeeeee solid 1px;
 }
 
-#form-group {
-  margin-bottom: unset;
-}
-
-.btn-branded {
-  color: grey !important;
-  background-color: #1b262e !important;
-}
-
-.btn-branded:hover {
-  color: black !important;
-  background-color: #fa932b !important;
-}
-
-@media (max-width: 768px) {
-  .networks {
-    margin-top: 15px;
-    margin-bottom: 15px;
-  }
-
-  .login {
-    margin-top: 15px;
-  }
-}
-
-.features {
-  flex-grow: 2;
-  flex-basis: auto;
-  display: flex;
-  justify-content: center;
-}
-
-.spacer {
-  display: hidden;
-  flex-grow: 1;
-}
-
-.networks {
-  flex-grow: 1;
-  flex-basis: auto;
-  display: flex;
-  justify-content: center;
-}
-
-.big {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-label.active {
-  color: black !important;
-  background-color: #d18235 !important;
+.hr-dark {
+  border: #1c344e solid 1px;
 }
 </style>
