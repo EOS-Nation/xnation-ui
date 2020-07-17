@@ -1,5 +1,5 @@
 <template>
-  <b-navbar class="navBar bg-primary">
+  <b-navbar class="navBar" :class="darkMode ? 'bg-block-dark' : 'primary-light'">
     <div class="d-none d-md-flex justify-content-between container-xl">
       <b-navbar-brand class="pb-1" style="width: 250px">
         <router-link :to="{ name: 'Tokens' }">
@@ -11,24 +11,8 @@
         </router-link>
       </b-navbar-brand>
 
-      <b-navbar-nav class="d-flex align-items-center">
-        <span class="text-white font-size-sm mr-2">Blockchains</span>
-        <div class="networks">
-          <b-btn
-            @click="loadNewModule(option.value)"
-            v-for="option in options"
-            :key="option.value"
-            :variant="selected === option.value ? 'light' : 'primary'"
-            class="border-0 ml-1 block-rounded"
-            size="sm"
-          >
-            {{ option.text }}
-          </b-btn>
-        </div>
-      </b-navbar-nav>
-
       <div class="d-flex justify-content-end" style="width: 250px">
-        <b-navbar-nav class="mr-1">
+        <b-navbar-nav class="mr-2">
           <b-btn
             @click="loginAction"
             variant="primary"
@@ -41,21 +25,46 @@
             <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
           </b-btn>
         </b-navbar-nav>
-        <b-navbar-nav class="mr-1">
-          <b-dropdown id="dropdown-settings" right variant="primary" size="sm" toggle-class="block-rounded" no-caret>
+        <b-navbar-nav class="mr-2">
+          <b-dropdown
+            id="dropdown-settings"
+            right
+            variant="primary"
+            size="sm"
+            toggle-class="block-rounded"
+            no-caret
+          >
             <template v-slot:button-content>
               <font-awesome-icon icon="cog" fixed-width />
             </template>
             <b-dropdown-header class="text-center">Settings</b-dropdown-header>
             <b-dropdown-divider></b-dropdown-divider>
-            <b-dropdown-item @click="toggleDarkMode">Dark Mode: {{ darkMode ? 'ON' : 'OFF' }}</b-dropdown-item>
-            <b-dropdown-item>Second Action</b-dropdown-item>
+            <b-dropdown-item @click="toggleDarkMode"
+              >Dark Mode: {{ darkMode ? "ON" : "OFF" }}</b-dropdown-item
+            >
+            <b-dropdown-item>
+              <div class="d-flex align-items-center">
+                <span class="font-size-sm mr-2">Blockchains</span>
+                <div>
+                  <b-btn
+                    @click="loadNewModule(option.value)"
+                    v-for="option in options"
+                    :key="option.value"
+                    :variant="selected === option.value ? 'light' : 'primary'"
+                    class="border-0 ml-1 block-rounded"
+                    size="sm"
+                  >
+                    {{ option.text }}
+                  </b-btn>
+                </div>
+              </div>
+            </b-dropdown-item>
             <b-dropdown-item>Third Action</b-dropdown-item>
           </b-dropdown>
         </b-navbar-nav>
         <b-navbar-nav>
           <b-btn variant="primary" class="block-rounded" size="sm">
-            <font-awesome-icon icon="ellipsis-h" fixed-width />
+            <font-awesome-icon icon="ellipsis-v" fixed-width />
           </b-btn>
         </b-navbar-nav>
       </div>
@@ -225,7 +234,7 @@ export default class Navigation extends Vue {
   }
 
   get darkMode() {
-    return vxm.general.darkMode
+    return vxm.general.darkMode;
   }
 
   get navItems() {
