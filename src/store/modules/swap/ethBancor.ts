@@ -1877,13 +1877,13 @@ export class EthBancorModule
     return [
       {
         tokenId: tokenReserve.contract,
-        smartTokenContract: relay.smartToken.contract,
+        anchorId: relay.smartToken.contract,
         costByNetworkUsd: main,
         liqDepth
       },
       {
         tokenId: networkReserve.contract,
-        smartTokenContract: relay.smartToken.contract,
+        anchorId: relay.smartToken.contract,
         liqDepth,
         costByNetworkUsd: reverse * main
       }
