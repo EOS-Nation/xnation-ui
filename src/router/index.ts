@@ -4,6 +4,7 @@ import Wallet from "@/views/Wallet.vue";
 import WalletAccount from "@/views/WalletAccount.vue";
 import Tokens from "@/views/Tokens.vue";
 import Relays from "@/views/Relays.vue";
+import Data from "@/views/Data.vue";
 import RelayDetail from "@/views/RelayDetail.vue";
 import PageNotFound from "@/views/PageNotFound.vue";
 import HeroConvert from "@/components/hero/sub/HeroConvert.vue";
@@ -92,7 +93,6 @@ export const router = new Router({
       name: "Relays",
       components: {
         Nav: Navigation,
-        default: Relays,
         Hero: HeroRelay
       },
       props: true,
@@ -128,12 +128,23 @@ export const router = new Router({
       name: "Tokens",
       components: {
         Nav: Navigation,
-        default: Tokens,
         Hero: HeroConvert
       },
       props: true,
       meta: {
         feature: "Trade"
+      }
+    },
+    {
+      path: "/:service/data",
+      name: "Data",
+      components: {
+        Nav: Navigation,
+        default: Data,
+      },
+      props: true,
+      meta: {
+        feature: "Liquidity"
       }
     },
     {
