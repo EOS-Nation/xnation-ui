@@ -1,45 +1,59 @@
 <template>
-  <b-container>
-    <b-row>
-      <b-col md="4">
-        <token-field
-          :tokenId.sync="idOne"
-          :symbol="tokenOneMeta.symbol"
-          :amount.sync="amountOne"
-          :clickable="tokenOneClickable"
-          @clicked="tokenOneClicked"
-          :balance="tokenOneMeta.balance"
-          :img="tokenOneMeta.img"
-          :choices="tokenOneMeta.choices"
-          :label="label"
-          :errors="tokenOneMeta.errors"
-          :warnBalance="warnBalance"
-        />
-      </b-col>
-      <b-col
-        md="4"
-        class="d-flex justify-content-center align-items-center"
-        style="min-height: 230px"
-      >
-        <slot></slot>
-      </b-col>
-      <b-col md="4">
-        <token-field
-          :tokenId.sync="idTwo"
-          :symbol="tokenTwoMeta.symbol"
-          :amount.sync="amountTwo"
-          :clickable="tokenTwoClickable"
-          @clicked="tokenTwoClicked"
-          :balance="tokenTwoMeta.balance"
-          :img="tokenTwoMeta.img"
-          :choices="tokenTwoMeta.choices"
-          :label="label"
-          :errors="tokenTwoMeta.errors"
-          :warnBalance="warnBalance"
-        />
-      </b-col>
-    </b-row>
-  </b-container>
+  <content-block
+    class="mb-3"
+  >
+    <template slot="header">
+      <sub-navigation />
+    </template>
+
+    <div>
+      <slot name="liquidityActions"></slot>
+
+      <b-row>
+        <b-col md="12">
+          <token-field
+            :tokenId.sync="idOne"
+            :symbol="tokenOneMeta.symbol"
+            :amount.sync="amountOne"
+            :clickable="tokenOneClickable"
+            @clicked="tokenOneClicked"
+            :balance="tokenOneMeta.balance"
+            :img="tokenOneMeta.img"
+            :choices="tokenOneMeta.choices"
+            :input-label="inputLabels[0]"
+            :label="label"
+            :errors="tokenOneMeta.errors"
+            :warnBalance="warnBalance"
+          />
+        </b-col>
+      </b-row>
+
+      <b-row>
+        <b-col md="12" class="my-3">
+          <token-field
+            :tokenId.sync="idTwo"
+            :symbol="tokenTwoMeta.symbol"
+            :amount.sync="amountTwo"
+            :clickable="tokenTwoClickable"
+            @clicked="tokenTwoClicked"
+            :balance="tokenTwoMeta.balance"
+            :img="tokenTwoMeta.img"
+            :choices="tokenTwoMeta.choices"
+            :input-label="inputLabels[1]"
+            :label="label"
+            :errors="tokenTwoMeta.errors"
+            :warnBalance="warnBalance"
+          />
+        </b-col>
+      </b-row>
+
+      <b-row>
+        <b-col md="12" class="d-flex justify-content-center align-items-center">
+          <slot></slot>
+        </b-col>
+      </b-row>
+    </div>
+  </content-block>
 </template>
 <script lang="ts">
 import {
@@ -52,6 +66,8 @@ import {
 } from "vue-property-decorator";
 import { vxm } from "@/store";
 import TokenField from "@/components/convert/TokenField.vue";
+import SubNavigation from "@/components/layout/SubNavigation.vue";
+import ContentBlock from "@/components/common/ContentBlock.vue";
 
 interface TokenMeta {
   balance?: number;
@@ -63,6 +79,8 @@ interface TokenMeta {
 
 @Component({
   components: {
+    ContentBlock,
+    SubNavigation,
     TokenField
   }
 })
@@ -76,6 +94,7 @@ export default class HeroConvert extends Vue {
   @Prop(Object) tokenTwoMeta!: TokenMeta;
 
   @Prop(String) label?: string;
+  @Prop(Array) inputLabels!: string[];
   @Prop(Array) choices?: any[];
   @Prop({ default: false }) warnBalance?: boolean;
 
@@ -86,6 +105,10 @@ export default class HeroConvert extends Vue {
 
   @Emit()
   tokenTwoClicked() {}
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 
   get tokenOneChoices() {
     return this.tokenOneMeta.choices;

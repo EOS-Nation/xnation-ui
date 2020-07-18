@@ -1,5 +1,5 @@
 <template>
-  <hero-wrapper>
+  <div>
     <two-token-hero
       :tokenOneId.sync="fromTokenId"
       :tokenTwoId.sync="toTokenId"
@@ -9,64 +9,50 @@
       :tokenTwoAmount.sync="toTokenAmount"
       @update:tokenOneAmount="updatePriceReturn"
       @update:tokenTwoAmount="updatePriceCost"
+      :input-labels="['From', 'To (Estimated)']"
     >
-      <div>
-        <transition name="fade" mode="out-in">
-          <font-awesome-icon
-            icon="exchange-alt"
-            class="fa-2x text-white cursor"
-            :pulse="flipping"
-            @click="swapTokens"
-          />
-        </transition>
-        <div class="mb-3 mt-3">
+      <div class="w-100">
+        <div class="text-center">
           <span v-if="loading">
-            <font-awesome-icon icon="circle-notch" class="text-white" spin />
+            <font-awesome-icon icon="circle-notch" spin />
           </span>
-          <span v-else class="text-white font-size-sm">
-            {{ unitReward }}
+          <span v-else class="font-size-sm">
+            {{ unitReward }} =
+            {{ `$${(this.toToken.price * this.reward).toFixed(2)} USD` }}
           </span>
-          <div class="text-white font-size-sm">
-            {{
-              `1 ${fromToken.symbol} = $${(
-                this.toToken.price * this.reward
-              ).toFixed(2)} USD`
-            }}
-          </div>
-          <div v-if="fee !== null" :class="['text-white', `font-size-sm`]">
+          <div v-if="fee !== null" :class="[`font-size-sm`]">
             Fee: {{ fee }}
           </div>
           <div
             v-if="slippage !== null"
             :class="[
-              slippageHigh ? 'text-warning' : 'text-white',
+              slippageHigh ? 'text-danger font-w700' : '',
               `font-size-sm`
             ]"
           >
             {{ displayedSlippage }}
           </div>
         </div>
-        <div class="d-flex justify-content-center">
-          <b-btn
-            @click="initConvert"
-            variant="success"
-            v-ripple
-            class="px-4 py-2 d-block"
-            :disabled="disableConvert"
-          >
-            <font-awesome-icon
-              :icon="loadingConversion ? 'circle-notch' : 'sync-alt'"
-              :spin="loadingConversion"
-              fixed-width
-              class="mr-2"
-            />
-            <span class="font-w700">CONVERT</span>
-          </b-btn>
-        </div>
+
+        <b-btn
+          @click="initConvert"
+          variant="primary"
+          class="btn-block mt-3"
+          :disabled="disableConvert"
+          size="lg"
+        >
+          <font-awesome-icon
+            :icon="loadingConversion ? 'circle-notch' : 'exchange-alt'"
+            :spin="loadingConversion"
+            fixed-width
+            class="mr-2"
+          />
+          <span class="font-w700">Swap</span>
+        </b-btn>
       </div>
     </two-token-hero>
     <modal-tx
-      title="Convert"
+      title="Confirm Swap"
       v-model="txModal"
       :busy="txBusy"
       @input="closeTxModal"
@@ -85,9 +71,7 @@
           :leftImg="fromToken.logo"
           :leftTitle="`${fromTokenAmount} ${fromToken.symbol}`"
           :leftSubtitle="
-            `${fromToken.name} ($${(
-              token(fromTokenId).price * Number(fromTokenAmount)
-            ).toFixed(2)} USD)`
+            `${fromToken.name}`
           "
           :rightImg="toToken.logo"
           :rightTitle="`${toTokenAmount} ${toToken.symbol}`"
@@ -101,11 +85,16 @@
               :explorerName="explorerName"
               @close="closeTxModal"
             />
+            <b-col cols="12">
+              <b-btn variant="primary" class="btn-block" size="lg">
+                Confirm Swap
+              </b-btn>
+            </b-col>
           </template>
         </token-swap>
       </div>
     </modal-tx>
-  </hero-wrapper>
+  </div>
 </template>
 <script lang="ts">
 import { Watch, Component, Vue } from "vue-property-decorator";

@@ -1,7 +1,7 @@
 <template>
   <b-modal
     id="modal-tx"
-    size="lg"
+    size="md"
     centered
     hide-footer
     :visible="value"
@@ -9,6 +9,7 @@
     @close="onClose"
     @cancel="onCancel"
     @hide="onHide"
+    :content-class="darkMode ? 'bg-block-dark' : 'bg-block-light'"
   >
     <template slot="modal-title">
       {{ title }}
@@ -29,6 +30,10 @@ export default class ModalConvertToken extends Vue {
   @Prop() title!: string;
   @Prop() value!: boolean;
   @Prop() busy!: boolean;
+
+  get darkMode() {
+    return vxm.general.darkMode
+  }
 
   onClose(event: any) {
     event.preventDefault();

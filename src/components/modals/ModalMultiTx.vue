@@ -9,6 +9,7 @@
     @close="onClose"
     @cancel="onCancel"
     @hide="onHide"
+    :content-class="darkMode ? 'bg-block-dark' : 'bg-block-light'"
   >
     <template slot="modal-title">
       {{ title }}
@@ -41,6 +42,10 @@ export default class ModalMultiTx extends Vue {
   @Prop() busy!: boolean;
   @Prop() sections!: any[];
   @Prop(Number) selectedSection!: number;
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 
   onClose(event: any) {
     event.preventDefault();

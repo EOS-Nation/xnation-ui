@@ -1,14 +1,18 @@
 <template>
-  <b-container fluid>
-    <b-row align-v="center" class="footer">
+  <b-container fluid class="d-flex justify-content-center bg-primary-light">
+    <b-row align-v="center" class="footer container-xl">
       <b-col cols="4">
-        <a :href="website" target="_blank" class="orange">EOS NATION </a
+        <a :href="website" target="_blank" class="text-white font-w700"
+          >Bancor </a
         ><span class="text">© 2020</span>
       </b-col>
-      <b-col cols="8" class="d-flex justify-content-end align-middle">
+      <b-col
+        cols="8"
+        class="font-size-sm d-flex justify-content-end align-items-center"
+      >
         <ul class="list-inline ">
           <li class="list-inline-item">
-            <router-link class="orange" :to="{ name: 'Privacy' }">
+            <router-link class="text-white" :to="{ name: 'Privacy' }">
               Privacy Policy
             </router-link>
           </li>
@@ -22,7 +26,7 @@
               />
               by
             </span>
-            <a :href="website" target="_blank" class="fas orange"
+            <a :href="website" target="_blank" class="fas text-white"
               >EOS Nation
             </a>
           </li>
@@ -70,7 +74,6 @@ export default class MyFooter extends Vue {
 
 <style lang="scss">
 .footer {
-  background-color: #1f2d36;
   padding: 15px 15px;
   justify-content: space-between;
 }
@@ -90,9 +93,5 @@ export default class MyFooter extends Vue {
 
 .text {
   color: white;
-}
-
-.orange {
-  color: #d18235;
 }
 </style>

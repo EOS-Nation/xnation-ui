@@ -1,35 +1,30 @@
 <template>
   <b-modal
-    scrollable
     :visible="value"
-    size="lg"
+    size="md"
     @change="onChange"
     centered
+    hide-header
     hide-footer
+    :content-class="darkMode ? 'bg-block-dark' : 'bg-block-light'"
   >
-    <div class="modal-content">
-      <div class="ffs">
-        <h5 id="select-token">
-          Select Token
-        </h5>
-        <div class="left">
-          <b-btn
-            size="sm"
-            class="d-none d-md-block"
-            href="https://github.com/eoscafe/eos-airdrops"
-            target="_blank"
-            >Add Token</b-btn
-          >
-        </div>
-        <div>
+    <div>
+      <b-row>
+        <b-col>
+          <h3 class="text-center" :class="darkMode ? 'text-body-dark' : 'text-body-light'">Select Token</h3>
+        </b-col>
+      </b-row>
+      <b-row>
+        <b-col class="px-4">
           <b-input-group>
             <b-form-input
               v-model="tokenSearch"
-              placeholder="Search Token"
+              placeholder="Search"
+              class="form-control-alt"
             ></b-form-input>
           </b-input-group>
-        </div>
-      </div>
+        </b-col>
+      </b-row>
       <b-row class="mx-0 mb-4">
         <b-col
           md="6"
@@ -50,14 +45,14 @@
           </b-dropdown>
         </b-col>
       </b-row>
-      <b-row class="d-flex align-items-center mx-0 gutters-tiny">
+      <b-row class="d-flex align-items-center mx-0">
         <b-col
           sm="12"
           md="6"
-          lg="4"
+          lg="6"
           v-for="token in searchedTokens"
           :key="token.id"
-          class="text-center mb-2"
+
           @click="setToken(token.id)"
         >
           <token-balance-block
@@ -88,6 +83,10 @@ export default class ModalSelect extends Vue {
 
   onChange(value: boolean) {
     this.$emit("input", value);
+  }
+
+  get darkMode() {
+    return vxm.general.darkMode;
   }
 
   private tokenSearch: String = "";

@@ -64,7 +64,7 @@ export class EosTransitModule extends VuexModule.With({
   walletState: WalletState | false = false;
 
   get loginStatus() {
-    const login = ["Login", "arrow-circle-right", false];
+    const login = ["Connect Wallet", "arrow-circle-right", false];
     if (!this.wallet && !this.walletState) return login;
     else if (this.walletState && this.walletState.authenticating)
       return ["Authenticating", "spinner", true];

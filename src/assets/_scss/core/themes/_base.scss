@@ -3,7 +3,7 @@
 // --------------------------------------------------
 
 // Bootstrap functions
-@import '../../bootstrap/functions';
+@import '../../../../../node_modules/bootstrap/scss/functions';
 
 // User variables (your own variable overrides)
 @import '../../custom/variables';
@@ -12,10 +12,10 @@
 @import '../variables-bootstrap';
 
 // Bootstrap variables
-@import '../../bootstrap/variables';
+@import '../../../../../node_modules/bootstrap/scss/variables';
 
 // Bootstrap mixins
-@import '../../bootstrap/mixins';
+@import '../../../../../node_modules/bootstrap/scss/mixins';
 
 // Custom mixins and Bootstrap overrides
 @import '../mixins';

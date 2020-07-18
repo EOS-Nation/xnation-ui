@@ -1,5 +1,5 @@
 <template>
-  <hero-wrapper>
+  <div>
     <two-token-hero
       :tokenOneId.sync="token1Id"
       :tokenTwoId.sync="token2Id"
@@ -11,19 +11,31 @@
       @update:tokenOneAmount="tokenOneChanged"
       @update:tokenTwoAmount="tokenTwoChanged"
       :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
+      :input-labels="['Input', 'Input']"
     >
-      <div>
+      <template v-slot:liquidityActions>
+        <b-row class="mb-4">
+          <b-col sm="12">
+            <b-btn variant="primary" class="btn-block py-3"
+              >Add Liquidity</b-btn
+            >
+          </b-col>
+          <b-col sm="12" class="mt-3 mt-sm-3">
+            <b-btn variant="light" class="btn-block py-3"
+              >Remove Liquidity</b-btn
+            >
+          </b-col>
+        </b-row>
+      </template>
+
+      <div class="w-100">
         <div
           v-if="
             selectedMenu == `addLiquidity` || selectedMenu == `removeLiquidity`
           "
         >
-          <font-awesome-icon
-            :icon="withdrawLiquidity ? 'minus' : 'plus'"
-            class="fa-2x text-white cursor"
-          />
           <div class="mb-3 mt-3">
-            <div class="text-white font-size-sm">
+            <div class="font-size-sm">
               {{
                 `Your balance: ${smartUserBalance} ${focusedRelay.smartTokenSymbol}`
               }}
@@ -45,10 +57,20 @@
           ></b-form-input>
         </div>
         <dynamic-dropdown
+          v-if="false"
           :menus="menus"
           :selectedMenu.sync="selectedMenu"
           @clicked="toggleMain"
         />
+        <b-btn variant="primary" class="btn-block my-3" size="lg">
+          <font-awesome-icon
+            :icon="loadingConversion ? 'circle-notch' : 'arrow-right'"
+            :spin="loadingConversion"
+            fixed-width
+            class="mr-2"
+          />
+          <span class="font-w700">Continue</span>
+        </b-btn>
       </div>
 
       <modal-tx
@@ -91,7 +113,15 @@
         </div>
       </modal-tx>
     </two-token-hero>
-  </hero-wrapper>
+
+    <div
+      class="d-flex justify-content-center"
+    >
+      <router-link :to="{ name: 'Create' }" class="cursor font-w700" :class="darkMode ? 'text-body-dark' : 'text-body-light'">
+        <font-awesome-icon icon="plus" class="mr-2" />Create Pool
+      </router-link>
+    </div>
+  </div>
 </template>
 
 <script lang="ts">
@@ -119,6 +149,7 @@ import Stepper from "@/components/modals/Stepper.vue";
 import wait from "waait";
 import { compareString } from "../../../api/helpers";
 import { sortByNetworkTokens } from "../../../api/sortByNetworkTokens";
+import { vxm } from "@/store";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
@@ -158,6 +189,10 @@ export default class HeroRelay extends Vue {
 
   sections: Step[] = [];
   stepIndex = 0;
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 
   @bancor.Getter token!: TradingModule["token"];
   @bancor.Getter relay!: LiquidityModule["relay"];

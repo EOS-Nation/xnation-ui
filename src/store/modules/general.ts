@@ -7,6 +7,11 @@ const VuexModule = createModule({
 
 export class GeneralModule extends VuexModule.With({ namespaced: "general/" }) {
   language: string = "en";
+  darkMode: boolean = false;
+
+  @mutation toggleDarkMode() {
+    this.darkMode = !this.darkMode;
+  }
 
   @mutation setLanguage(lang?: string) {
     if (lang) {

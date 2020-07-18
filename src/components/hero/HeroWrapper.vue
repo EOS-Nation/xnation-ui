@@ -1,14 +1,7 @@
 <template>
-  <div
-    class="bg-image"
-    :style="
-      'background-image: url(' +
-        require('@/assets/media/photos/bg01.jpg') +
-        ');'
-    "
-  >
-    <div class="bg-primary-dark-op">
-      <div class="content content-boxed text-center p-5 main">
+  <div class="bg-light">
+    <div>
+      <div class="content content-boxed main">
         <slot></slot>
       </div>
     </div>

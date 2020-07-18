@@ -1,7 +1,7 @@
 <template>
   <div>
-    <span class="text-white font-size-sm" style="min-height: 50px">
-      <div v-if="Number(balance) > 0" class="text-white-50 cursor">
+    <span class="font-size-sm font-w400">
+      <div v-if="Number(balance) > 0" class="cursor">
         <span @click="setPercentage(10)">10%</span>
         -
         <span @click="setPercentage(25)">25%</span>
@@ -21,7 +21,7 @@ import debounce from "lodash.debounce";
 import numeral from "numeral";
 
 @Component
-export default class TokenAmountInput extends Vue {
+export default class Percentages extends Vue {
   @Prop(Number) balance!: number;
   @Prop(Boolean) loading?: boolean;
   @Prop(String) amount!: number;

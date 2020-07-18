@@ -1,11 +1,12 @@
 <template>
-  <hero-wrapper>
+  <div>
     <two-token-hero
       v-if="loaded"
       :tokenOneId.sync="networkId"
       :tokenTwoId.sync="tokenId"
       :tokenOneMeta="networkMeta"
       :tokenTwoMeta="tokenMeta"
+      :input-labels="['Input', 'Input']"
       @update:tokenOneId="networkTokenChange"
       @update:tokenTwoId="tokenChange"
       :tokenOneAmount.sync="networkAmount"
@@ -82,7 +83,7 @@
         </modal-multi-tx>
       </div>
     </two-token-hero>
-  </hero-wrapper>
+  </div>
 </template>
 
 <script lang="ts">

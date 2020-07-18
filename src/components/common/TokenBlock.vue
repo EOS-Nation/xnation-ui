@@ -1,11 +1,23 @@
 <template>
-  <b-col md="5" class="text-center mb-2">
-    <h6 class="text-uppercase text-muted">{{ title }}</h6>
-    <img class="img-avatar img-avatar-thumb mb-2" :src="img" alt="Token Logo" />
-    <h2 class="mb-2">{{ tokenAmount }}</h2>
-    <h3 class="text-muted">
-      {{ tokenName }}
-    </h3>
+  <b-col md="12" class="d-flex justify-content-between align-items-center mb-2">
+    <h4 v-if="false" class="text-uppercase text-muted">{{ title }}</h4>
+
+    <h6
+      class="m-0 p-0"
+      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+    >
+      {{ tokenAmount }}
+    </h6>
+    <div class="d-flex align-items-center">
+      <h4 class="text-muted m-0 p-0">
+        {{ tokenName }}
+      </h4>
+      <img
+        class="img-avatar img-avatar48 img-avatar-thumb ml-3"
+        :src="img"
+        alt="Token Logo"
+      />
+    </div>
   </b-col>
 </template>
 <script lang="ts">
@@ -20,6 +32,10 @@ export default class TokenBalanceBlock extends Vue {
   @Prop() img!: string;
   @Prop() tokenAmount!: string;
   @Prop() tokenName!: string;
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 }
 </script>
 

@@ -2,7 +2,8 @@
   <div
     v-if="loading && !error"
     id="loading"
-    class="page-header-fixed page-header-dark align-items-center"
+    class="page-header-fixed align-items-center"
+    :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
   >
     <div class="d-flex justify-content-center align-items-center mb-3">
       <div>
@@ -19,7 +20,8 @@
   <div
     v-else-if="error"
     id="loading"
-    class="page-header-fixed page-header-dark align-items-center"
+    class="page-header-fixed align-items-center"
+    :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
   >
     <div class="d-flex justify-content-center align-items-center mb-3">
       <div>
@@ -31,18 +33,33 @@
   <div
     v-else
     id="page-container"
-    class="page-header-fixed  bg-primary page-header-dark"
+    :class="
+      darkMode ? 'bg-body-dark text-body-dark' : 'bg-body-light text-body-light'
+    "
   >
     <div>
       <router-view name="Nav"></router-view>
 
-      <main id="main-container" class="bg-primary">
-        <router-view name="Hero"></router-view>
+      <main
+        id="main-container"
+        :class="
+          darkMode
+            ? 'bg-body-dark text-body-dark'
+            : 'bg-body-light text-body-light'
+        "
+      >
+        <b-container fluid="xl" class="pt-4">
+          <b-row class="d-flex justify-content-center">
+            <b-col cols="12" style="max-width: 460px">
+              <router-view name="Hero"></router-view>
+            </b-col>
+          </b-row>
+        </b-container>
         <router-view></router-view>
       </main>
     </div>
     <div>
-      <my-footer></my-footer>
+      <my-footer v-if="false"></my-footer>
       <modal-login />
       <modal-tx />
     </div>
@@ -68,6 +85,10 @@ import wait from "waait";
 export default class App extends Vue {
   loading = true;
   error = false;
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 
   async loadBancor() {
     console.log("feature:", this.$route.meta.feature);

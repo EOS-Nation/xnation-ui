@@ -1,132 +1,33 @@
 <template>
-  <b-navbar class="navBar" :class="darkMode ? 'bg-block-dark' : 'primary-light'">
-    <div class="d-none d-md-flex justify-content-between container-xl">
-      <b-navbar-brand class="pb-1" style="width: 250px">
-        <router-link :to="{ name: 'Tokens' }">
-          <img
-            src="@/assets/media/logos/bancor.png"
-            height="25px"
-            class="mb-1"
-          />
-        </router-link>
-      </b-navbar-brand>
-
-      <div class="d-flex justify-content-end" style="width: 250px">
-        <b-navbar-nav class="mr-2">
-          <b-btn
-            @click="loginAction"
-            variant="primary"
-            class="block-rounded"
-            size="sm"
-            v-b-tooltip.hover
-            :title="loginTooltip"
-          >
-            {{ loginButtonLabel }}
-            <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
-          </b-btn>
-        </b-navbar-nav>
-        <b-navbar-nav class="mr-2">
-          <b-dropdown
-            id="dropdown-settings"
-            right
-            variant="primary"
-            size="sm"
-            toggle-class="block-rounded"
-            no-caret
-          >
-            <template v-slot:button-content>
-              <font-awesome-icon icon="cog" fixed-width />
-            </template>
-            <b-dropdown-header class="text-center">Settings</b-dropdown-header>
-            <b-dropdown-divider></b-dropdown-divider>
-            <b-dropdown-item @click="toggleDarkMode"
-              >Dark Mode: {{ darkMode ? "ON" : "OFF" }}</b-dropdown-item
-            >
-            <b-dropdown-item>
-              <div class="d-flex align-items-center">
-                <span class="font-size-sm mr-2">Blockchains</span>
-                <div>
-                  <b-btn
-                    @click="loadNewModule(option.value)"
-                    v-for="option in options"
-                    :key="option.value"
-                    :variant="selected === option.value ? 'light' : 'primary'"
-                    class="border-0 ml-1 block-rounded"
-                    size="sm"
-                  >
-                    {{ option.text }}
-                  </b-btn>
-                </div>
-              </div>
-            </b-dropdown-item>
-            <b-dropdown-item>Third Action</b-dropdown-item>
-          </b-dropdown>
-        </b-navbar-nav>
-        <b-navbar-nav>
-          <b-btn variant="primary" class="block-rounded" size="sm">
-            <font-awesome-icon icon="ellipsis-v" fixed-width />
-          </b-btn>
-        </b-navbar-nav>
-      </div>
-    </div>
-
-    <div class="d-block w-100 d-md-none">
-      <div class="d-flex justify-content-between">
-        <b-navbar-brand>
-          <router-link :to="{ name: 'Tokens' }">
-            <img
-              src="@/assets/media/logos/bancor.png"
-              height="25px"
-              class="mb-1"
-            />
-          </router-link>
-        </b-navbar-brand>
-        <div class="d-flex">
-          <b-navbar-nav class="mr-1">
-            <b-btn variant="primary" class="border-0" size="sm">
-              <font-awesome-icon icon="cog" fixed-width />
-            </b-btn>
-          </b-navbar-nav>
-          <b-navbar-nav>
-            <b-btn variant="primary" class="border-0" size="sm">
-              <font-awesome-icon icon="ellipsis-h" fixed-width />
-            </b-btn>
-          </b-navbar-nav>
-          <b-navbar-nav class="mr-1">
-            <b-btn
-              @click="loginAction"
-              variant="primary"
-              class="border-0"
-              size="sm"
-              v-b-tooltip.hover
-              :title="loginTooltip"
-            >
-              <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
-            </b-btn>
-          </b-navbar-nav>
-        </div>
-      </div>
-
-      <div class="d-flex justify-content-center">
-        <b-navbar-nav class="d-flex align-items-center">
-          <span class="text-white font-size-sm mr-2">Blockchains</span>
-          <div class="networks">
-            <b-btn
-              @click="loadNewModule(option.value)"
-              v-for="option in options"
-              :key="option.value"
-              :variant="selected === option.value ? 'light' : 'primary'"
-              class="border-0 ml-1 block-rounded"
-              size="sm"
-            >
-              {{ option.text }}
-            </b-btn>
-          </div>
-        </b-navbar-nav>
-      </div>
-      <div class="d-flex justify-content-between"></div>
-    </div>
-  </b-navbar>
+  <div class="w-100 text-center mt-2">
+    <b-row>
+      <b-col cols="6" class="pr-2">
+        <b-btn
+          class="btn-block mx-1 block-rounded"
+          :key="navItems[0].label"
+          :to="navItems[0].destination"
+          :disabled="navItems[0].disabled"
+          :variant="!navItems[0].active ? 'light' : 'primary'"
+          size="lg"
+        >
+          {{ navItems[0].label }}
+        </b-btn>
+      </b-col>
+      <b-col cols="6" class="pl-2">
+        <b-btn
+          class="btn-block mx-1 block-rounded"
+          :key="navItems[1].label"
+          :to="navItems[1].destination"
+          :disabled="navItems[1].disabled"
+          :variant="(navItems[1].active || navItems[2].active) ? 'primary' : 'light'"
+          size="lg"
+        >
+          {{ navItems[1].label }}
+        </b-btn>
+      </b-col>
+    </b-row>
+    <hr :class="darkMode ? 'hr-dark' : 'hr-light'" />
+  </div>
 </template>
 
 <script lang="ts">
@@ -220,7 +121,7 @@ const createDirectRoute = (name: string, params?: any) => ({
 });
 
 @Component
-export default class Navigation extends Vue {
+export default class SubNavigation extends Vue {
   get selectedNetwork() {
     return vxm.bancor.currentNetwork;
   }
@@ -229,12 +130,12 @@ export default class Navigation extends Vue {
     return vxm.wallet.currentWallet;
   }
 
-  get selected() {
-    return this.selectedNetwork;
-  }
-
   get darkMode() {
     return vxm.general.darkMode;
+  }
+
+  get selected() {
+    return this.selectedNetwork;
   }
 
   get navItems() {
@@ -262,30 +163,7 @@ export default class Navigation extends Vue {
         icon: "plus",
         render: this.selectedService!.features.includes(3),
         active: this.$route.name == "Create"
-      },
-      ...[
-        this.selectedService!.features.includes(1)
-          ? this.isAuthenticated
-            ? {
-                label: "Wallet",
-                destination: createDirectRoute("WalletAccount", {
-                  account: this.isAuthenticated
-                }),
-                icon: "wallet",
-                active: this.$route.name == "Wallet",
-                disabled: false,
-                render: true
-              }
-            : {
-                label: "Wallet",
-                destination: createDirectRoute("Wallet"),
-                icon: "wallet",
-                active: this.$route.name == "Wallet",
-                disabled: false,
-                render: true
-              }
-          : []
-      ]
+      }
       // @ts-ignore
     ].filter(route => route.render);
   }
@@ -306,10 +184,6 @@ export default class Navigation extends Vue {
       params: defaultModuleParams(moduleId)
     });
     this.$router.push({ name: "Tokens", ...extendRouter(moduleId) });
-  }
-
-  toggleDarkMode() {
-    vxm.general.toggleDarkMode();
   }
 
   get options() {
@@ -432,62 +306,11 @@ export default class Navigation extends Vue {
 </script>
 
 <style>
-.navItem {
-  margin: 2px 2px;
+.hr-light {
+  border: #eeeeee solid 1px;
 }
 
-#form-group {
-  margin-bottom: unset;
-}
-
-.btn-branded {
-  color: grey !important;
-  background-color: #1b262e !important;
-}
-
-.btn-branded:hover {
-  color: black !important;
-  background-color: #fa932b !important;
-}
-
-@media (max-width: 768px) {
-  .networks {
-    margin-top: 15px;
-    margin-bottom: 15px;
-  }
-
-  .login {
-    margin-top: 15px;
-  }
-}
-
-.features {
-  flex-grow: 2;
-  flex-basis: auto;
-  display: flex;
-  justify-content: center;
-}
-
-.spacer {
-  display: hidden;
-  flex-grow: 1;
-}
-
-.networks {
-  flex-grow: 1;
-  flex-basis: auto;
-  display: flex;
-  justify-content: center;
-}
-
-.big {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-label.active {
-  color: black !important;
-  background-color: #d18235 !important;
+.hr-dark {
+  border: #1c344e solid 1px;
 }
 </style>
