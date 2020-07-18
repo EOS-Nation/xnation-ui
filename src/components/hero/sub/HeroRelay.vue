@@ -16,12 +16,18 @@
       <template v-slot:liquidityActions>
         <b-row class="mb-4">
           <b-col sm="12">
-            <b-btn variant="primary" class="btn-block py-3"
+            <b-btn
+              :variant="withdrawLiquidity ? 'light' : 'primary'"
+              @click="withdrawLiquidity = false"
+              class="btn-block py-3"
               >Add Liquidity</b-btn
             >
           </b-col>
           <b-col sm="12" class="mt-3 mt-sm-3">
-            <b-btn variant="light" class="btn-block py-3"
+            <b-btn
+              @click="withdrawLiquidity = true"
+              :variant="withdrawLiquidity ? 'primary' : 'light'"
+              class="btn-block py-3"
               >Remove Liquidity</b-btn
             >
           </b-col>
@@ -223,6 +229,7 @@ export default class HeroRelay extends Vue {
   }
 
   set withdrawLiquidity(withdrawIsActive: boolean) {
+    console.log(withdrawIsActive, "is thing");
     this.selectedMenu = withdrawIsActive ? "removeLiquidity" : "addLiquidity";
   }
 
