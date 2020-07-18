@@ -348,7 +348,13 @@ export interface PoolToken {
   poolToken: Token;
 }
 
-export type Anchor = Token | PoolToken[];
+export interface PoolContainer {
+  poolContainerAddress: string;
+  poolTokens: PoolToken[];
+}
+
+export type SmartToken = Token;
+export type Anchor = SmartToken | PoolContainer;
 
 export interface Relay {
   id: string;
@@ -361,6 +367,14 @@ export interface Relay {
   version: string;
   converterType: PoolType;
   owner: string;
+}
+
+export interface TraditionalRelay extends Relay {
+  anchor: SmartToken;
+}
+
+export interface ChainLinkRelay extends Relay {
+  anchor: PoolContainer;
 }
 
 const isAuthenticatedViaModule = (module: EosTransitModule) => {

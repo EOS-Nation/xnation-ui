@@ -21,7 +21,7 @@ import {
 } from "@/api/helpers";
 import { fetchBinanceUsdPriceOfBnt } from "@/api/helpers";
 import wait from "waait";
-import { defaultModule } from '@/router';
+import { defaultModule } from "@/router";
 
 interface BntPrice {
   price: null | number;

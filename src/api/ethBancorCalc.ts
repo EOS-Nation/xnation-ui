@@ -7,7 +7,8 @@ import {
   ABIConverterRegistry,
   ABIConverterV28,
   ABINetworkContract,
-  ABIV2Converter
+  ABIV2Converter,
+  V2PoolsTokenContainer
 } from "@/api/ethConfig";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
@@ -35,6 +36,12 @@ export interface DryRelay extends BaseRelay {
   reserves: TokenSymbol[];
 }
 
+export interface MinimalRelay {
+  contract: string;
+  anchorAddress: string;
+  reserves: TokenSymbol[];
+}
+
 export interface ChoppedRelay {
   contract: string;
   reserves: TokenSymbol[];
@@ -57,19 +64,14 @@ export const chopRelays = (relays: DryRelay[]) =>
     return [...accum, relay1, relay2];
   }, []);
 
-export const generateEthPath = (from: string, relays: DryRelay[]) => {
-  console.log({ from, relays }, "was received on generate eth path");
-  return relays.reduce<{ lastSymbol: string; path: string[] }>(
+export const generateEthPath = (from: string, relays: MinimalRelay[]) =>
+  relays.reduce<{ lastSymbol: string; path: string[] }>(
     (acc, item) => {
       const destinationSymbol = item.reserves.find(
         reserve => reserve.symbol !== acc.lastSymbol
       )!;
       return {
-        path: [
-          ...acc.path,
-          item.smartToken.contract,
-          destinationSymbol.contract
-        ],
+        path: [...acc.path, item.anchorAddress, destinationSymbol.contract],
         lastSymbol: destinationSymbol.symbol
       };
     },
@@ -80,7 +82,6 @@ export const generateEthPath = (from: string, relays: DryRelay[]) => {
       ]
     }
   ).path;
-};
 
 const buildContract = (abi: AbiItem[], contractAddress?: string) =>
   contractAddress
@@ -103,6 +104,12 @@ export const buildTokenContract = (
     approvedAmount: string
   ) => ContractSendMethod;
 }> => buildContract(ABISmartToken, contractAddress);
+
+export const buildV2PoolsContainer = (
+  contractAddress: string
+): ContractMethods<{
+  poolTokens: () => CallReturn<string[]>;
+}> => buildContract(V2PoolsTokenContainer, contractAddress);
 
 export const buildConverterContract = (
   contractAddress: string
@@ -143,6 +150,7 @@ export const buildV2Converter = (
   reserveStakedBalance: (reserveToken: string) => CallReturn<string>;
   poolToken: (reserveToken: string) => CallReturn<string>;
   liquidationLimit: (poolToken: string) => CallReturn<string>;
+  effectiveReserveWeights: () => CallReturn<{ "0": string; "1": string }>;
   removeLiquidityReturn: (
     poolToken: string,
     amount: string
