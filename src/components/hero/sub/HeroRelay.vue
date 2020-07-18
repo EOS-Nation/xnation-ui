@@ -11,7 +11,6 @@
       @update:tokenOneAmount="tokenOneChanged"
       @update:tokenTwoAmount="tokenTwoChanged"
       :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
-      :input-labels="['Input', 'Input']"
     >
       <template v-slot:liquidityActions>
         <b-row class="mb-4">
@@ -270,6 +269,7 @@ export default class HeroRelay extends Vue {
     return {
       ...this.token1,
       img: this.token1.logo,
+      inputLabel: "Input",
       balance: this.displayedToken1Balance,
       choices: this.secondaryReserveChoices,
       errors: [this.token1Error]
@@ -280,6 +280,7 @@ export default class HeroRelay extends Vue {
     return {
       ...this.token2,
       img: this.token2.logo,
+      inputLabel: "Input",
       choices: this.primaryReserveChoices(this.token1Id),
       balance: this.displayedToken2Balance,
       errors: [this.token1Error]
