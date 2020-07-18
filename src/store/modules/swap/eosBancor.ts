@@ -616,6 +616,29 @@ export class EosBancorModule
     };
   }
 
+  get secondaryReserveChoices(): ModalChoice[] {
+    return this.newNetworkTokenChoices;
+  }
+
+  get primaryReserveChoices() {
+    return (secondaryReserveId: string) =>
+      this.tokens
+        .map(
+          (token): ModalChoice => ({
+            id: token.id,
+            symbol: token.symbol,
+            img: token.logo,
+            contract: token.contract
+          })
+        )
+        .filter(
+          token =>
+            !this.secondaryReserveChoices.some(choice =>
+              compareString(choice.id, token.id)
+            )
+        );
+  }
+
   get newNetworkTokenChoices(): NetworkChoice[] {
     const bnt: BaseToken = {
       symbol: "BNT",

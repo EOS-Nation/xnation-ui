@@ -272,6 +272,8 @@ export interface UserPoolBalances {
 
 export interface LiquidityModule {
   init: (param: ModuleParam) => Promise<void>;
+  readonly primaryReserveChoices: (secondaryChoiceId: string) => ModalChoice[];
+  readonly secondaryReserveChoices: ModalChoice[];
   readonly relay: (arg0: string) => ViewRelay;
   readonly relays: ViewRelay[];
   readonly supportedFeatures: (arg0: string) => string[];
