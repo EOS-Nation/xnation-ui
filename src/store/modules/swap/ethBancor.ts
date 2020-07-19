@@ -41,7 +41,9 @@ import {
   TraditionalRelay,
   ChainLinkRelay,
   SmartToken,
-  PoolContainer
+  PoolContainer,
+  viewTokenToModalChoice,
+  reserveIncludedInRelay
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
@@ -84,22 +86,12 @@ import { findNewPath } from "@/api/eosBancorCalc";
 import { priorityEthPools } from "./staticRelays";
 import BigNumber from "bignumber.js";
 
-const viewTokenToModalChoice = (token: ViewToken): ModalChoice => ({
-  id: token.id,
-  symbol: token.symbol,
-  img: token.logo,
-  contract: token.contract
-});
-
 const metaToModalChoice = (meta: TokenMeta): ModalChoice => ({
   id: meta.contract,
   contract: meta.contract,
   symbol: meta.symbol,
   img: meta.image
 });
-
-const reserveIncludedInRelay = (reserveId: string) => (relay: Relay) =>
-  relay.reserves.some(reserve => compareString(reserve.contract, reserveId));
 
 const isTraditional = (relay: Relay): boolean =>
   typeof relay.anchor == "object" &&

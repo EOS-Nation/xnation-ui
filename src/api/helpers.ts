@@ -2,35 +2,24 @@ import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import { JsonRpc } from "eosjs";
 import Onboard from "bnc-onboard";
-
-import {
-  Asset,
-  asset_to_number,
-  Sym,
-  symbol,
-  number_to_asset
-} from "eos-common";
+import { Asset, asset_to_number, Sym, number_to_asset } from "eos-common";
 import { rpc } from "./rpc";
 import {
   TokenBalances,
   EosMultiRelay,
-  Converter,
   TokenMeta,
   BaseToken,
   TokenBalanceReturn,
   TokenBalanceParam,
-  Section,
   Step,
-  OnUpdate
+  OnUpdate,
+  ViewToken,
+  ModalChoice
 } from "@/types/bancor";
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
 import wait from "waait";
-import {
-  buildConverterContract,
-  shrinkToken,
-  buildV28ConverterContract
-} from "./ethBancorCalc";
+import { buildConverterContract, shrinkToken } from "./ethBancorCalc";
 import { sortByNetworkTokens } from "./sortByNetworkTokens";
 
 export const networkTokens = ["BNT", "USDB"];
@@ -347,6 +336,20 @@ export interface PoolToken {
   reserveId: string;
   poolToken: Token;
 }
+
+export const reserveIncludedInEosRelay = (reserveId: string) => (
+  relay: EosMultiRelay
+) => relay.reserves.some(reserve => compareString(reserve.id, reserveId));
+
+export const reserveIncludedInRelay = (reserveId: string) => (relay: Relay) =>
+  relay.reserves.some(reserve => compareString(reserve.contract, reserveId));
+
+export const viewTokenToModalChoice = (token: ViewToken): ModalChoice => ({
+  id: token.id,
+  symbol: token.symbol,
+  img: token.logo,
+  contract: token.contract
+});
 
 export interface PoolContainer {
   poolContainerAddress: string;

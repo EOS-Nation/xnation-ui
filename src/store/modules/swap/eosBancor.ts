@@ -19,6 +19,7 @@ import {
   BaseToken,
   CreatePoolParams,
   ViewRelay,
+  ViewModalToken,
   Step,
   TokenMeta,
   ViewAmount,
@@ -41,7 +42,9 @@ import {
   buildTokenId,
   EosAccount,
   compareToken,
-  multiSteps
+  multiSteps,
+  viewTokenToModalChoice,
+  reserveIncludedInEosRelay
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -65,7 +68,7 @@ import {
   TokenAmount,
   findNewPath
 } from "@/api/eosBancorCalc";
-import _ from "lodash";
+import _, { uniqWith } from "lodash";
 import wait from "waait";
 import { getHardCodedRelays } from "./staticRelays";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
@@ -621,22 +624,27 @@ export class EosBancorModule
   }
 
   get primaryReserveChoices() {
-    return (secondaryReserveId: string) =>
-      this.tokens
-        .map(
-          (token): ModalChoice => ({
-            id: token.id,
-            symbol: token.symbol,
-            img: token.logo,
-            contract: token.contract
-          })
+    return (secondaryReserveId: string): ModalChoice[] => {
+      const poolsWithReserve = this.relaysList.filter(
+        reserveIncludedInEosRelay(secondaryReserveId)
+      );
+      const reserves = uniqWith(
+        poolsWithReserve
+          .flatMap(relay => relay.reserves)
+          .filter(reserve => !compareString(reserve.id, secondaryReserveId)),
+        (a, b) => compareString(a.id, b.id)
+      );
+      return reserves
+        .filter(reserve =>
+          this.tokens.some(token => compareString(reserve.id, token.id))
         )
-        .filter(
-          token =>
-            !this.secondaryReserveChoices.some(choice =>
-              compareString(choice.id, token.id)
-            )
-        );
+        .map(reserve =>
+          viewTokenToModalChoice(
+            this.tokens.find(token => compareString(token.id, reserve.id))!
+          )
+        )
+        .filter(token => !compareString(token.id, secondaryReserveId));
+    };
   }
 
   get newNetworkTokenChoices(): NetworkChoice[] {
