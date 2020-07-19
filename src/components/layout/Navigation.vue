@@ -1,59 +1,66 @@
 <template>
-  <b-navbar
-    class="navBar"
-    :class="darkMode ? 'bg-block-dark' : 'primary-light'"
-  >
-    <div class="d-flex justify-content-between container-xl">
-      <b-navbar-brand class="pb-1" style="width: 250px">
-        <router-link :to="{ name: 'Tokens' }">
-          <img
-            src="@/assets/media/logos/bancor.png"
-            height="25px"
-            class="mb-1"
-          />
-        </router-link>
-      </b-navbar-brand>
+  <div>
+    <div class="d-block mb-0 pt-3 pb-2 bg-primary"></div>
+    <b-navbar class="navBar">
+      <div class="d-flex justify-content-between container-xl">
+        <b-navbar-brand class="pb-1" style="width: 250px">
+          <router-link :to="{ name: 'Tokens' }">
+            <img
+              v-if="darkMode"
+              src="@/assets/media/logos/bancor-white.png"
+              height="35px"
+              class="mb-1"
+            />
+            <img
+              v-else
+              src="@/assets/media/logos/bancor-black.png"
+              height="35px"
+              class="mb-1"
+            />
+          </router-link>
+        </b-navbar-brand>
 
-      <div class="d-flex justify-content-end" style="width: 250px">
-        <b-navbar-nav class="mr-2">
-          <b-btn
-            @click="loginAction"
-            variant="primary"
-            class="block-rounded"
-            size="sm"
-            v-b-tooltip.hover
-            :title="loginTooltip"
-          >
-            <span class="d-none d-sm-inline mr-2">{{ loginButtonLabel }}</span>
-            <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
-          </b-btn>
-        </b-navbar-nav>
-        <b-navbar-nav class="mr-2">
-          <settings-menu>
-            <template slot="blockchains">
-              <div class="d-flex justify-content-between">
-                <b-btn
-                  size="sm"
-                  @click="loadNewModule(option.value)"
-                  v-for="option in options"
-                  :key="option.value"
-                  :variant="selected === option.value ? 'primary' : 'light'"
-                  class="border-0 px-4 block-rounded"
-                >
-                  {{ option.text }}
-                </b-btn>
-              </div>
-            </template>
-          </settings-menu>
-        </b-navbar-nav>
-        <b-navbar-nav>
-          <b-btn variant="primary" class="block-rounded" size="sm">
-            <font-awesome-icon icon="ellipsis-v" fixed-width />
-          </b-btn>
-        </b-navbar-nav>
+        <div class="d-flex justify-content-end" style="width: 250px">
+          <b-navbar-nav class="mr-2">
+            <b-btn
+              @click="loginAction"
+              variant="light"
+              class="block-rounded"
+              size="sm"
+              v-b-tooltip.hover
+              :title="loginTooltip"
+            >
+              <span class="d-none d-sm-inline mr-2">{{
+                loginButtonLabel
+              }}</span>
+              <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
+            </b-btn>
+          </b-navbar-nav>
+          <b-navbar-nav class="mr-2">
+            <settings-menu>
+              <template slot="blockchains">
+                <div class="d-flex justify-content-between">
+                  <b-btn
+                    size="sm"
+                    @click="loadNewModule(option.value)"
+                    v-for="option in options"
+                    :key="option.value"
+                    :variant="selected === option.value ? 'primary' : 'light'"
+                    class="border-0 px-4 block-rounded"
+                  >
+                    {{ option.text }}
+                  </b-btn>
+                </div>
+              </template>
+            </settings-menu>
+          </b-navbar-nav>
+          <b-navbar-nav>
+            <bancor-menu />
+          </b-navbar-nav>
+        </div>
       </div>
-    </div>
-  </b-navbar>
+    </b-navbar>
+  </div>
 </template>
 
 <script lang="ts">
@@ -74,6 +81,7 @@ import { ModuleParam } from "../../types/bancor";
 import { ethReserveAddress } from "../../api/ethConfig";
 import { Route } from "vue-router";
 import SettingsMenu from "@/components/layout/SettingsMenu.vue";
+import BancorMenu from "@/components/layout/BancorMenu.vue";
 
 const defaultPaths = [
   {
@@ -147,7 +155,7 @@ const createDirectRoute = (name: string, params?: any) => ({
   ...(params && { params })
 });
 @Component({
-  components: { SettingsMenu }
+  components: { BancorMenu, SettingsMenu }
 })
 export default class Navigation extends Vue {
   get selectedNetwork() {
