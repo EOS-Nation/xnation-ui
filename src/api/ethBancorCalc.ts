@@ -184,7 +184,7 @@ export const buildV2Converter = (
 }> => buildContract(ABIV2Converter, contractAddress);
 
 export const buildV28ConverterContract = (
-  contractAddress: string
+  contractAddress?: string
 ): ContractMethods<{
   acceptTokenOwnership: () => ContractSendMethod;
   acceptOwnership: () => ContractSendMethod;

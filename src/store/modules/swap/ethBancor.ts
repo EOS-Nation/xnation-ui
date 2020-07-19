@@ -89,6 +89,8 @@ import { findNewPath } from "@/api/eosBancorCalc";
 import { priorityEthPools } from "./staticRelays";
 import BigNumber from "bignumber.js";
 
+type MultiCall = [string, CallReturn<any>];
+
 const metaToModalChoice = (meta: TokenMeta): ModalChoice => ({
   id: meta.contract,
   contract: meta.contract,
@@ -2221,10 +2223,26 @@ export class EthBancorModule
   // }
 
   @action async fetchWithMultiCall({
-    calls
+    calls,
+    strict = false
   }: {
-    calls: [string, CallReturn<any>][];
-  }) {}
+    calls: MultiCall[];
+    strict?: boolean;
+  }) {
+    const multiContract = buildMultiCallContract(
+      "0x5Eb3fa2DFECdDe21C950813C665E9364fa609bD2"
+    );
+
+    const res = await multiContract.methods
+      .aggregate(
+        calls.map(([address, call]) => [address, call.encodeABI()]),
+        strict
+      )
+      .call();
+
+    const matched = _.zip(calls.map(([address]) => address), res.returnData)!!;
+    return matched;
+  }
 
   @action async multiCallShit({
     multiCallContractAddress,
@@ -2233,25 +2251,84 @@ export class EthBancorModule
     multiCallContractAddress: string;
     converterAddresses: string[];
   }) {
-    console.log(multiCallContractAddress);
-    const multiContract = buildMultiCallContract(multiCallContractAddress);
+    const contract = buildV28ConverterContract();
 
-    const calls: [string, string][] = converterAddresses.map(address => {
-      const contract = buildV28ConverterContract(address);
-      return [address, contract.methods.owner().encodeABI()];
+    const methods = [
+      {
+        name: "owner",
+        method: contract.methods.owner(),
+        isAddress: true,
+        methodName: "owner"
+      },
+      {
+        name: "version",
+        method: contract.methods.version(),
+        methodName: "version"
+      },
+      {
+        name: "connectorTokenCount",
+        method: contract.methods.connectorTokenCount(),
+        methodName: "connectorTokenCount"
+      },
+      {
+        name: "conversionFee",
+        method: contract.methods.conversionFee(),
+        methodName: "conversionFee"
+      },
+      {
+        name: "connectorToken1",
+        method: contract.methods.connectorTokens(0),
+        isAddress: true,
+        methodName: "connectorTokens"
+      },
+      {
+        name: "connectorToken2",
+        method: contract.methods.connectorTokens(1),
+        isAddress: true,
+        methodName: "connectorTokens"
+      }
+    ].map(method => ({
+      ...method,
+      type: contract.options.jsonInterface.find(
+        jsonInterface => jsonInterface.name! == method.methodName
+      )!.outputs![0].type
+    }));
+
+    const calls = converterAddresses.flatMap(address => {
+      return methods.map(method => [address, method.method]) as [
+        string,
+        CallReturn<any>
+      ][];
     });
 
-    const shitAddress =
-      "0x000000000000000000000000dfee8dc240c6cadc2c7f7f9c257c259914dea84e";
-    const betterAddress = removeLeadingZeros(shitAddress);
-    console.log({ shitAddress, betterAddress });
-    const res = await multiContract.methods.aggregate(calls, false).call();
-    console.log(res, "came back from multi call shit");
+    const rawRes = await this.fetchWithMultiCall({ calls });
 
-    const derp = res.returnData.map(data => data.data);
-    console.log(derp, "should be the plain data");
+    const rebuilt = converterAddresses.map(converterAddress =>
+      rawRes.filter(([address]) =>
+        compareString(converterAddress, address as string)
+      )
+    );
+    console.log(rebuilt, "was rebuilt");
 
-    return res;
+    const finalRes = rebuilt.map(section =>
+      section.reduce((acc, [_, dataRes], index) => {
+        const previousMethod = methods[index];
+        const processedData = dataRes && dataRes.success && dataRes.data;
+        if (processedData) {
+          const final = web3.eth.abi.decodeParameter(
+            previousMethod.type,
+            processedData
+          );
+          return {
+            ...acc,
+            [previousMethod.name]: final
+          };
+        } else {
+          return false;
+        }
+      }, {})
+    );
+    console.log(finalRes, "was finalres");
   }
 
   @action async init(params?: ModuleParam) {
@@ -2261,6 +2338,16 @@ export class EthBancorModule
       console.log("returning already");
       return this.refresh();
     }
+
+    const crazyString =
+      "0x00000000000000000000000000000000000000000000000000000000000003e9";
+    const first = web3.utils.toAscii(crazyString);
+    // const second = web3.utils.toUtf8(crazyString);
+    console.log({ first });
+    // const lessCrazyString = "0x3e9";
+    // const afirst = web3.utils.toAscii(lessCrazyString);
+    // const asecond = web3.utils.toUtf8(lessCrazyString);
+    // console.log({ afirst, asecond, first, second });
 
     // @ts-ignore
     const web3NetworkVersion = await web3.eth.getChainId();
