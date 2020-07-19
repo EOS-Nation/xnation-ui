@@ -11,17 +11,22 @@
       @update:tokenOneAmount="tokenOneChanged"
       @update:tokenTwoAmount="tokenTwoChanged"
       :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
-      :input-labels="['Input', 'Input']"
     >
       <template v-slot:liquidityActions>
         <b-row class="mb-4">
           <b-col sm="12">
-            <b-btn variant="primary" class="btn-block py-3"
+            <b-btn
+              :variant="withdrawLiquidity ? 'light' : 'primary'"
+              @click="withdrawLiquidity = false"
+              class="btn-block py-3"
               >Add Liquidity</b-btn
             >
           </b-col>
           <b-col sm="12" class="mt-3 mt-sm-3">
-            <b-btn variant="light" class="btn-block py-3"
+            <b-btn
+              @click="withdrawLiquidity = true"
+              :variant="withdrawLiquidity ? 'primary' : 'light'"
+              class="btn-block py-3"
               >Remove Liquidity</b-btn
             >
           </b-col>
@@ -114,10 +119,12 @@
       </modal-tx>
     </two-token-hero>
 
-    <div
-      class="d-flex justify-content-center"
-    >
-      <router-link :to="{ name: 'Create' }" class="cursor font-w700" :class="darkMode ? 'text-body-dark' : 'text-body-light'">
+    <div class="d-flex justify-content-center">
+      <router-link
+        :to="{ name: 'Create' }"
+        class="cursor font-w700"
+        :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+      >
         <font-awesome-icon icon="plus" class="mr-2" />Create Pool
       </router-link>
     </div>
@@ -147,7 +154,7 @@ import RelayFeeAdjuster from "@/components/common/RelayFeeAdjuster.vue";
 import TxModalFooter from "@/components/common/TxModalFooter.vue";
 import Stepper from "@/components/modals/Stepper.vue";
 import wait from "waait";
-import { compareString } from "../../../api/helpers";
+import { compareString, findOrThrow } from "../../../api/helpers";
 import { sortByNetworkTokens } from "../../../api/sortByNetworkTokens";
 import { vxm } from "@/store";
 
@@ -200,6 +207,10 @@ export default class HeroRelay extends Vue {
   @bancor.Action focusSymbol!: TradingModule["focusSymbol"];
   @bancor.Getter currentNetwork!: string;
   @bancor.Getter supportedFeatures!: LiquidityModule["supportedFeatures"];
+  @bancor.Getter
+  secondaryReserveChoices!: LiquidityModule["secondaryReserveChoices"];
+  @bancor.Getter
+  primaryReserveChoices!: LiquidityModule["primaryReserveChoices"];
   @bancor.Action getUserBalances!: LiquidityModule["getUserBalances"];
   @bancor.Action
   calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
@@ -217,6 +228,7 @@ export default class HeroRelay extends Vue {
   }
 
   set withdrawLiquidity(withdrawIsActive: boolean) {
+    console.log(withdrawIsActive, "is thing");
     this.selectedMenu = withdrawIsActive ? "removeLiquidity" : "addLiquidity";
   }
 
@@ -257,7 +269,9 @@ export default class HeroRelay extends Vue {
     return {
       ...this.token1,
       img: this.token1.logo,
+      inputLabel: "Input",
       balance: this.displayedToken1Balance,
+      choices: this.secondaryReserveChoices,
       errors: [this.token1Error]
     };
   }
@@ -266,6 +280,8 @@ export default class HeroRelay extends Vue {
     return {
       ...this.token2,
       img: this.token2.logo,
+      inputLabel: "Input",
+      choices: this.primaryReserveChoices(this.token1Id),
       balance: this.displayedToken2Balance,
       errors: [this.token1Error]
     };
@@ -396,6 +412,11 @@ export default class HeroRelay extends Vue {
   }
 
   async toggleMain() {
+    if (!this.isAuthenticated) {
+      // @ts-ignore
+      await this.promptAuth();
+      return;
+    }
     switch (this.selectedMenu) {
       case "setFee":
         return this.setFee();
@@ -531,6 +552,55 @@ export default class HeroRelay extends Vue {
     this.updateMaxBalances(maxWithdrawals);
 
     this.smartUserBalance = smartTokenBalance;
+  }
+
+  set token2Id(newId: string) {
+    const relayWithId = findOrThrow(
+      this.relays,
+      relay =>
+        relay.reserves.some(reserve => compareString(reserve.id, newId)) &&
+        relay.reserves.some(reserve =>
+          compareString(reserve.id, this.token1Id)
+        ),
+      "failed to find relay provided by module, likely bug in filtering"
+    );
+    this.navToPoolId(relayWithId!.id);
+  }
+
+  navToPoolId(poolId: string) {
+    this.$router.push({
+      name: "Relay",
+      params: { account: poolId }
+    });
+  }
+
+  set token1Id(newId: string) {
+    const poolContainsBothReserves = (reserveIds: string[]) => (
+      relay: ViewRelay
+    ) =>
+      reserveIds.every(id =>
+        relay.reserves.some(reserve => compareString(reserve.id, id))
+      );
+    const samePrimaryReserveSupported = this.relays.find(
+      poolContainsBothReserves([newId, this.token2Id])
+    );
+
+    if (samePrimaryReserveSupported) {
+      this.navToPoolId(samePrimaryReserveSupported.id);
+    } else {
+      const newToken = this.token(newId);
+      const firstPoolAvailable = this.relays.find(relay =>
+        relay.reserves.some(reserve => compareString(reserve.id, newId))
+      );
+      this.$bvToast.toast(
+        `No pool found with ${newToken.symbol} and ${this.token2.symbol}`,
+        {
+          title: "Pool not found",
+          autoHideDelay: 5000
+        }
+      );
+      this.navToPoolId(firstPoolAvailable!.id);
+    }
   }
 
   async created() {

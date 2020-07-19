@@ -90,7 +90,7 @@ export class EthereumModule extends VuexModule.With({
   @action async accountChange(loggedInAccount: string) {
     if (loggedInAccount !== this.isAuthenticated) {
       this.setLoggedInAccount(loggedInAccount);
-      vxm.ethBancor.accountChange(loggedInAccount);
+      vxm.ethBancor.onAuthChange(loggedInAccount);
     }
   }
 
