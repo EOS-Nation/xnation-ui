@@ -20,7 +20,8 @@ import {
   HistoryModule,
   ViewAmount,
   ModuleParam,
-  UserPoolBalances
+  UserPoolBalances,
+  CallReturn
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -74,7 +75,8 @@ import {
   makeBatchRequest,
   buildV2Converter,
   MinimalRelay,
-  buildV2PoolsContainer
+  buildV2PoolsContainer,
+  buildMultiCallContract
 } from "@/api/ethBancorCalc";
 import { ethBancorApiDictionary } from "@/api/bancorApiRelayDictionary";
 import {
@@ -137,6 +139,7 @@ interface EthNetworkVariables {
   contractRegistry: string;
   bntToken: string;
   ethToken: string;
+  multiCall: string;
 }
 
 const getNetworkVariables = (ethNetwork: EthNetworks): EthNetworkVariables => {
@@ -145,13 +148,15 @@ const getNetworkVariables = (ethNetwork: EthNetworks): EthNetworkVariables => {
       return {
         contractRegistry: "0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4",
         bntToken: "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
-        ethToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+        ethToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        multiCall: "0x5Eb3fa2DFECdDe21C950813C665E9364fa609bD2"
       };
     case EthNetworks.Ropsten:
       return {
         contractRegistry: "0x57547da3406cbA9f80a989497173F5bC5438BFCF",
         bntToken: "0xD4F9CBC9db55E039BE979d88d15F57A57552f32d",
-        ethToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+        ethToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        multiCall: "0xf3ad7e31b052ff96566eedd218a823430e74b406"
       };
     default:
       throw new Error("Information not stored");
@@ -2215,6 +2220,40 @@ export class EthBancorModule
   //   return clean;
   // }
 
+  @action async fetchWithMultiCall({
+    calls
+  }: {
+    calls: [string, CallReturn<any>][];
+  }) {}
+
+  @action async multiCallShit({
+    multiCallContractAddress,
+    converterAddresses
+  }: {
+    multiCallContractAddress: string;
+    converterAddresses: string[];
+  }) {
+    console.log(multiCallContractAddress);
+    const multiContract = buildMultiCallContract(multiCallContractAddress);
+
+    const calls: [string, string][] = converterAddresses.map(address => {
+      const contract = buildV28ConverterContract(address);
+      return [address, contract.methods.owner().encodeABI()];
+    });
+
+    const shitAddress =
+      "0x000000000000000000000000dfee8dc240c6cadc2c7f7f9c257c259914dea84e";
+    const betterAddress = removeLeadingZeros(shitAddress);
+    console.log({ shitAddress, betterAddress });
+    const res = await multiContract.methods.aggregate(calls, false).call();
+    console.log(res, "came back from multi call shit");
+
+    const derp = res.returnData.map(data => data.data);
+    console.log(derp, "should be the plain data");
+
+    return res;
+  }
+
   @action async init(params?: ModuleParam) {
     console.log(params, "was init param on eth");
     console.time("eth");
@@ -2324,6 +2363,11 @@ export class EthBancorModule
       throw new Error("Was expecting as many converters as anchor addresses");
 
     const combined = _.zip(converterAddresses, anchorAddresses) as string[][];
+
+    this.multiCallShit({
+      multiCallContractAddress: "0x5Eb3fa2DFECdDe21C950813C665E9364fa609bD2",
+      converterAddresses: converterAddresses.slice(0, 3)
+    });
 
     const relays = await Promise.all(
       combined.map(async ([converterAddress, anchorAddress]) => {
