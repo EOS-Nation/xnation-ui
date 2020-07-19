@@ -412,6 +412,11 @@ export default class HeroRelay extends Vue {
   }
 
   async toggleMain() {
+    if (!this.isAuthenticated) {
+      // @ts-ignore
+      await this.promptAuth();
+      return;
+    }
     switch (this.selectedMenu) {
       case "setFee":
         return this.setFee();

@@ -44,7 +44,8 @@ import {
   compareToken,
   multiSteps,
   viewTokenToModalChoice,
-  reserveIncludedInEosRelay
+  reserveIncludedInEosRelay,
+  sortAlongSide
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -559,6 +560,16 @@ export class EosBancorModule
     return this.$store.rootGetters[`${this.wallet}Wallet/isAuthenticated`];
   }
 
+  @action async onAuthChange(isAuthenticated: string | false) {
+    if (isAuthenticated) {
+      const reserves = uniqWith(
+        this.relaysList.flatMap(relay => relay.reserves),
+        (a, b) => compareString(a.id, b.id)
+      );
+      this.fetchTokenBalancesIfPossible(reserves);
+    }
+  }
+
   get wallet() {
     return "eos";
   }
@@ -634,7 +645,7 @@ export class EosBancorModule
           .filter(reserve => !compareString(reserve.id, secondaryReserveId)),
         (a, b) => compareString(a.id, b.id)
       );
-      return reserves
+      const choices = reserves
         .filter(reserve =>
           this.tokens.some(token => compareString(reserve.id, token.id))
         )
@@ -644,6 +655,12 @@ export class EosBancorModule
           )
         )
         .filter(token => !compareString(token.id, secondaryReserveId));
+
+      return sortAlongSide(
+        choices,
+        choice => choice.id.toLowerCase(),
+        this.tokens.map(token => token.id.toLowerCase())
+      );
     };
   }
 
@@ -1777,8 +1794,6 @@ export class EosBancorModule
       return hydrated.reserves.map(agnosticToTokenAmount);
     }
   }
-
-  @action async accountChange() {}
 
   @action async getUserBalances(relayId: string) {
     const relay = await this.relayById(relayId);

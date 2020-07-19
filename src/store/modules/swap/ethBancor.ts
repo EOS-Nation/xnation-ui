@@ -43,7 +43,8 @@ import {
   SmartToken,
   PoolContainer,
   viewTokenToModalChoice,
-  reserveIncludedInRelay
+  reserveIncludedInRelay,
+  sortAlongSide
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
@@ -203,28 +204,6 @@ const sortSmartTokenAddressesByHighestLiquidity = (
     console.warn(
       "Sorted by Highest liquidity sorter is returning the same array passed"
     );
-  return res;
-};
-
-const sortAlongSide = <T>(
-  arr: T[],
-  selector: (item: T) => string,
-  sortedArr: string[]
-): T[] => {
-  const res = arr.slice().sort((a, b) => {
-    const aIndex = sortedArr.findIndex(sort =>
-      compareString(sort, selector(a))
-    );
-    const bIndex = sortedArr.findIndex(sort =>
-      compareString(sort, selector(b))
-    );
-
-    if (aIndex == -1 && bIndex == -1) return 0;
-    if (aIndex == -1) return 1;
-    if (bIndex == -1) return -1;
-    return aIndex - bIndex;
-  });
-
   return res;
 };
 
@@ -435,7 +414,6 @@ export class EthBancorModule
   tokenBalances: { id: string; balance: number }[] = [];
   bntUsdPrice: number = 0;
   tokenMeta: TokenMeta[] = [];
-  morePoolsAvailableProp: boolean = true;
   availableHistories: string[] = [];
   contracts: RegisteredContracts = {
     BancorNetwork: "",
@@ -555,7 +533,11 @@ export class EthBancorModule
         .filter(
           reserve => !compareString(reserve.contract, secondaryReserveId)
         );
-      return reserves
+
+      const modalChoices = reserves
+        .filter(reserve =>
+          this.tokens.some(token => compareString(token.id, reserve.contract))
+        )
         .map(reserve =>
           viewTokenToModalChoice(
             this.tokens.find(token =>
@@ -563,13 +545,18 @@ export class EthBancorModule
             )!
           )
         )
-        .filter(Boolean)
         .filter(
           token =>
             !this.secondaryReserveChoices.some(choice =>
               compareString(choice.id, token.id)
             )
         );
+
+      return sortAlongSide(
+        modalChoices,
+        choice => choice.id.toLowerCase(),
+        this.tokens.map(token => token.id.toLowerCase())
+      );
     };
   }
 
@@ -600,8 +587,8 @@ export class EthBancorModule
   }
 
   get newPoolTokenChoices() {
-    return (networkToken: string): ModalChoice[] =>
-      this.tokenMeta
+    return (networkToken: string): ModalChoice[] => {
+      const tokenChoices = this.tokenMeta
         .map(meta => metaToModalChoice(meta))
         .map(modalChoice => ({
           ...modalChoice,
@@ -625,8 +612,15 @@ export class EthBancorModule
           });
           return !existingRelayWithSameReserves;
         })
-        .filter((_, index) => index < 200)
-        .sort((a, b) => Number(b.balance) - Number(a.balance));
+        .filter((_, index) => index < 200);
+
+      const sorted = sortAlongSide(
+        tokenChoices,
+        token => token.id.toLowerCase(),
+        this.tokens.map(token => token.id.toLowerCase())
+      ).sort((a, b) => Number(b.balance) - Number(a.balance));
+      return sorted;
+    };
   }
 
   get isAuthenticated() {
@@ -2635,7 +2629,7 @@ export class EthBancorModule
     this.tokenBalances = [];
   }
 
-  @action async accountChange(address: string) {
+  @action async onAuthChange(address: string) {
     const previousBalances = this.tokenBalances;
     this.wipeTokenBalances();
     previousBalances.forEach(({ id }) =>

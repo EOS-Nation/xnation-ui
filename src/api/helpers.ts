@@ -337,6 +337,28 @@ export interface PoolToken {
   poolToken: Token;
 }
 
+export const sortAlongSide = <T>(
+  arr: T[],
+  selector: (item: T) => string,
+  sortedArr: string[]
+): T[] => {
+  const res = arr.slice().sort((a, b) => {
+    const aIndex = sortedArr.findIndex(sort =>
+      compareString(sort, selector(a))
+    );
+    const bIndex = sortedArr.findIndex(sort =>
+      compareString(sort, selector(b))
+    );
+
+    if (aIndex == -1 && bIndex == -1) return 0;
+    if (aIndex == -1) return 1;
+    if (bIndex == -1) return -1;
+    return aIndex - bIndex;
+  });
+
+  return res;
+};
+
 export const reserveIncludedInEosRelay = (reserveId: string) => (
   relay: EosMultiRelay
 ) => relay.reserves.some(reserve => compareString(reserve.id, reserveId));

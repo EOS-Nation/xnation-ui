@@ -208,7 +208,7 @@ export class UsdBancorModule
   }
 
   @action async loadMoreTokens() {}
-  @action async accountChange() {}
+  @action async onAuthChange() {}
 
   get tokens(): ViewToken[] {
     if (!this.initiated) {
