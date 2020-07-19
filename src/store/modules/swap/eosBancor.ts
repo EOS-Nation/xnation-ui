@@ -19,7 +19,6 @@ import {
   BaseToken,
   CreatePoolParams,
   ViewRelay,
-  ViewModalToken,
   Step,
   TokenMeta,
   ViewAmount,
@@ -42,10 +41,7 @@ import {
   buildTokenId,
   EosAccount,
   compareToken,
-  multiSteps,
-  viewTokenToModalChoice,
-  reserveIncludedInEosRelay,
-  sortAlongSide
+  multiSteps
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -69,7 +65,7 @@ import {
   TokenAmount,
   findNewPath
 } from "@/api/eosBancorCalc";
-import _, { uniqWith } from "lodash";
+import _ from "lodash";
 import wait from "waait";
 import { getHardCodedRelays } from "./staticRelays";
 import { sortByNetworkTokens } from "@/api/sortByNetworkTokens";
@@ -560,16 +556,6 @@ export class EosBancorModule
     return this.$store.rootGetters[`${this.wallet}Wallet/isAuthenticated`];
   }
 
-  @action async onAuthChange(isAuthenticated: string | false) {
-    if (isAuthenticated) {
-      const reserves = uniqWith(
-        this.relaysList.flatMap(relay => relay.reserves),
-        (a, b) => compareString(a.id, b.id)
-      );
-      this.fetchTokenBalancesIfPossible(reserves);
-    }
-  }
-
   get wallet() {
     return "eos";
   }
@@ -627,40 +613,6 @@ export class EosBancorModule
           const first = isNaN(a.balance) ? 0 : Number(a.balance);
           return second - first;
         });
-    };
-  }
-
-  get secondaryReserveChoices(): ModalChoice[] {
-    return this.newNetworkTokenChoices;
-  }
-
-  get primaryReserveChoices() {
-    return (secondaryReserveId: string): ModalChoice[] => {
-      const poolsWithReserve = this.relaysList.filter(
-        reserveIncludedInEosRelay(secondaryReserveId)
-      );
-      const reserves = uniqWith(
-        poolsWithReserve
-          .flatMap(relay => relay.reserves)
-          .filter(reserve => !compareString(reserve.id, secondaryReserveId)),
-        (a, b) => compareString(a.id, b.id)
-      );
-      const choices = reserves
-        .filter(reserve =>
-          this.tokens.some(token => compareString(reserve.id, token.id))
-        )
-        .map(reserve =>
-          viewTokenToModalChoice(
-            this.tokens.find(token => compareString(token.id, reserve.id))!
-          )
-        )
-        .filter(token => !compareString(token.id, secondaryReserveId));
-
-      return sortAlongSide(
-        choices,
-        choice => choice.id.toLowerCase(),
-        this.tokens.map(token => token.id.toLowerCase())
-      );
     };
   }
 
@@ -1794,6 +1746,8 @@ export class EosBancorModule
       return hydrated.reserves.map(agnosticToTokenAmount);
     }
   }
+
+  @action async accountChange() {}
 
   @action async getUserBalances(relayId: string) {
     const relay = await this.relayById(relayId);

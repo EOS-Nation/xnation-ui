@@ -51,12 +51,6 @@ export class NetworkModule extends VuexModule.With({ namespaced: "network/" }) {
     return vxm[`${this.currentNetwork}Network`]["protocol"];
   }
 
-  @action async resetBalances() {
-    return this.$store.dispatch(`eosNetwork/resetBalances`, null, {
-      root: true
-    });
-  }
-
   @action async transfer(params: TransferParam): Promise<void> {
     return this.dispatcher(["transfer", params]);
   }

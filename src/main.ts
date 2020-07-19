@@ -1,7 +1,7 @@
 import Vue from "vue";
 import App from "./App.vue";
 import { router } from "./router";
-import { store, vxm } from "./store/";
+import { store } from "./store/";
 import i18n from "./i18n";
 import BootstrapVue from "bootstrap-vue";
 import "bootstrap/dist/css/bootstrap.css";
@@ -60,21 +60,6 @@ Vue.component("font-awesome-layers-text", FontAwesomeLayersText);
 Vue.config.productionTip = false;
 
 sync(store, router, { moduleName: "routeModule" });
-
-Vue.mixin({
-  methods: {
-    promptAuth: async function() {
-      const isAuthenticated = this.$store.getters["wallet/isAuthenticated"];
-      if (isAuthenticated) return;
-      const currentNetwork = this.$store.getters["bancor/currentNetwork"];
-      if (currentNetwork == "eth") {
-        vxm.ethWallet.connect();
-      } else if (currentNetwork == "eos") {
-        this.$bvModal.show("modal-login");
-      }
-    }
-  }
-});
 
 new Vue({
   router,

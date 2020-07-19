@@ -1,5 +1,7 @@
 <template>
-  <content-block class="mb-3">
+  <content-block
+    class="mb-3"
+  >
     <template slot="header">
       <sub-navigation />
     </template>
@@ -18,7 +20,7 @@
             :balance="tokenOneMeta.balance"
             :img="tokenOneMeta.img"
             :choices="tokenOneMeta.choices"
-            :input-label="tokenOneMeta.inputLabel"
+            :input-label="inputLabels[0]"
             :label="label"
             :errors="tokenOneMeta.errors"
             :warnBalance="warnBalance"
@@ -37,7 +39,7 @@
             :balance="tokenTwoMeta.balance"
             :img="tokenTwoMeta.img"
             :choices="tokenTwoMeta.choices"
-            :input-label="tokenTwoMeta.inputLabel"
+            :input-label="inputLabels[1]"
             :label="label"
             :errors="tokenTwoMeta.errors"
             :warnBalance="warnBalance"

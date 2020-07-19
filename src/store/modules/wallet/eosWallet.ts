@@ -14,7 +14,6 @@ import meetone from "eos-transit-meetone-provider";
 import whalevault from "eos-transit-whalevault-provider";
 import keycat from "eos-transit-keycat-provider";
 import anchor from "eos-transit-anchorlink-provider";
-import { vxm } from "@/store";
 
 interface EosWalletAction {
   name: string;
@@ -151,13 +150,11 @@ export class EosTransitModule extends VuexModule.With({
 
     try {
       await wallet.connect();
+
       try {
         await wallet.login();
         this.setWallet(wallet);
         localStorage.setItem("autoLogin", provider.id);
-        vxm.eosBancor.onAuthChange(
-          wallet && wallet.auth! && wallet.auth!.accountName!
-        );
       } catch (e) {
         console.log("auth error");
         throw e;
@@ -174,7 +171,6 @@ export class EosTransitModule extends VuexModule.With({
       this.setWallet(false);
       this.setWalletState(false);
       localStorage.removeItem("autoLogin");
-      vxm.network.resetBalances();
     }
   }
 

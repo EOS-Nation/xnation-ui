@@ -70,7 +70,9 @@
           :success="success"
           :leftImg="fromToken.logo"
           :leftTitle="`${fromTokenAmount} ${fromToken.symbol}`"
-          :leftSubtitle="`${fromToken.name}`"
+          :leftSubtitle="
+            `${fromToken.name}`
+          "
           :rightImg="toToken.logo"
           :rightTitle="`${toTokenAmount} ${toToken.symbol}`"
           :rightSubtitle="toToken.name"
@@ -373,6 +375,7 @@ export default class HeroConvert extends Vue {
 
   get disableConvert() {
     return (
+      !this.isAuthenticated ||
       this.loadingConversion ||
       this.fromTokenAmount == "" ||
       this.toTokenAmount == "" ||
@@ -398,12 +401,6 @@ export default class HeroConvert extends Vue {
   }
 
   async initConvert() {
-    if (!this.isAuthenticated) {
-      // @ts-ignore
-      await this.promptAuth();
-      return;
-    }
-
     try {
       this.sections = [];
       this.txModal = true;

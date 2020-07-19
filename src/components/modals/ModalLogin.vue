@@ -113,6 +113,7 @@ export default class ModalLogin extends Vue {
       this.$bvModal.hide("modal-login");
     } catch (e) {
       this.error = e;
+      console.log(e);
     } finally {
       this.loading = false;
     }

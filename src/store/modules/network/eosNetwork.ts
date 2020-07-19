@@ -137,14 +137,6 @@ export class EosNetworkModule
     return balances;
   }
 
-  @mutation clearBalances() {
-    this.tokenBalances = [];
-  }
-
-  @action async resetBalances() {
-    this.clearBalances();
-  }
-
 
   @action public async getBalances(params?: GetBalanceParam) {
     if (!this.isAuthenticated) throw new Error("Not logged in.");
