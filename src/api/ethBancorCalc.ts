@@ -128,9 +128,10 @@ export const buildMultiCallContract = (
 }> => buildContract(ABIMultiCallContract, contractAddress);
 
 export const buildConverterContract = (
-  contractAddress: string
+  contractAddress?: string
 ): ContractMethods<{
   acceptTokenOwnership: () => ContractSendMethod;
+  reserves: () => CallReturn<any[]>;
   acceptOwnership: () => ContractSendMethod;
   fund: (fundAmount: string) => ContractSendMethod;
   liquidate: (fundAmount: string) => ContractSendMethod;
