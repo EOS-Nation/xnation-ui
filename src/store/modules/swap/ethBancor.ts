@@ -62,7 +62,7 @@ import Decimal from "decimal.js";
 import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import wait from "waait";
-import _, { uniqWith, add } from "lodash";
+import _, { uniqWith, add, chunk } from "lodash";
 import {
   DryRelay,
   TokenSymbol,
@@ -93,6 +93,8 @@ import BigNumber from "bignumber.js";
 
 const sortFeedByExtraProps = (a: ReserveFeed, b: ReserveFeed) => {
   if (a.change24H || a.volume24H) return -1;
+  if (b.change24H || a.volume24H) return 1;
+  return 0;
 };
 
 const compareAnchorAndConverter = (
@@ -1191,9 +1193,9 @@ export class EthBancorModule
           relay.reserves,
           reserve => reserve.symbol
         );
-        const foundFeeds = this.relayFeed
-          .filter(feed => compareString(feed.poolId, relay.id))
-          .sort(sortFeedByExtraProps);
+        const relayFeed = this.relayFeed
+          .sort(sortFeedByExtraProps)
+          .find(feed => compareString(feed.poolId, relay.id))!;
 
         const smartTokenSymbol = relay.anchor.symbol;
         const hasHistory = this.availableHistories.some(history =>
@@ -1802,6 +1804,15 @@ export class EthBancorModule
     const tokens = await ethBancorApi.getTokens();
     this.setBancorApiTokens(tokens);
     return tokens;
+  }
+
+  @action async buildPossibleReserveFeedsFromBancorApi(relays: Relay[]) {
+    const feeds = await this.possibleRelayFeedsFromBancorApi(relays);
+    console.assert(
+      feeds.length > 1,
+      `was expecting relay feeds to be created by bancor api when it was passed ${relays.length} relays`
+    );
+    this.updateRelayFeeds(feeds);
   }
 
   @action async possibleRelayFeedsFromBancorApi(
@@ -2786,16 +2797,22 @@ export class EthBancorModule
     }
 
     try {
+      let bancorApiTokens: TokenPrice[] = [];
+
+      this.warmEthApi()
+        .then(tokens => {
+          bancorApiTokens = tokens;
+        })
+        .catch(e => [] as TokenPrice[]);
+
       let [
         tokenMeta,
         contractAddresses,
-        availableSmartTokenHistories,
-        bancorApiTokens
+        availableSmartTokenHistories
       ] = await Promise.all([
         getTokenMeta(currentNetwork),
         this.fetchContractAddresses(networkVariables.contractRegistry),
         fetchSmartTokens().catch(e => [] as HistoryItem[]),
-        this.warmEthApi().catch(e => [] as TokenPrice[]),
         this.fetchUsdPriceOfBnt()
       ]);
 
@@ -2821,7 +2838,8 @@ export class EthBancorModule
           params,
           networkContractAddress: contractAddresses.BancorNetwork,
           anchorAddressess: registeredAnchorAddresses,
-          ...(bancorApiTokens && { tokenPrices: bancorApiTokens })
+          ...(bancorApiTokens &&
+            bancorApiTokens.length > 0 && { tokenPrices: bancorApiTokens })
         })
       ]);
 
@@ -2859,7 +2877,7 @@ export class EthBancorModule
 
       await this.addPoolsBulk(initialLoad);
 
-      this.addPoolsBulk(remainingLoad.slice(0, 150));
+      this.addPoolsBulk(remainingLoad);
       this.moduleInitiated();
 
       if (this.relaysList.length < 1 || this.relayFeed.length < 2) {
@@ -2876,9 +2894,19 @@ export class EthBancorModule
     if (!convertersAndAnchors || convertersAndAnchors.length == 0)
       throw new Error("Received nothing for addPoolsBulk");
     this.setLoadingPools(true);
-    const data = await this.addPoolsV2(convertersAndAnchors);
-    this.updateRelays(data.completeV1Pools);
-    this.updateRelayFeeds(data.traditionalRelayFeeds);
+    const chunked = _.chunk(convertersAndAnchors.slice(0, 150), 150);
+    const chunkedReturn = await Promise.all(
+      chunked.map(chunk => this.addPoolsV2(chunk).catch())
+    );
+    const completeV1Pools = chunkedReturn.flatMap(
+      relay => relay.completeV1Pools
+    );
+    const traditionalRelayFeeds = chunkedReturn.flatMap(
+      relay => relay.traditionalRelayFeeds
+    );
+    this.updateRelays(completeV1Pools);
+    this.buildPossibleReserveFeedsFromBancorApi(completeV1Pools);
+    this.updateRelayFeeds(traditionalRelayFeeds);
     this.setLoadingPools(false);
   }
 
