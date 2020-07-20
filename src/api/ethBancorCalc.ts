@@ -131,7 +131,10 @@ export const buildConverterContract = (
   contractAddress?: string
 ): ContractMethods<{
   acceptTokenOwnership: () => ContractSendMethod;
-  reserves: () => CallReturn<any[]>;
+  reserves: (reserveAddress: string) => CallReturn<any[]>;
+  reserveBalance: (reserveAddress: string) => CallReturn<string>;
+  getConnectorBalance: (reserveAddress: string) => CallReturn<string>;
+  getReserveBalance: (reserveAdress: string) => CallReturn<string>;
   acceptOwnership: () => ContractSendMethod;
   fund: (fundAmount: string) => ContractSendMethod;
   liquidate: (fundAmount: string) => ContractSendMethod;

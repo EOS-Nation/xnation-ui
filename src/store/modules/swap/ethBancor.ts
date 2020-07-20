@@ -46,7 +46,8 @@ import {
   PoolContainer,
   viewTokenToModalChoice,
   reserveIncludedInRelay,
-  sortAlongSide
+  sortAlongSide,
+  RelayWithReserveBalances
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
@@ -112,13 +113,13 @@ interface ConverterAndAnchor {
   anchorAddress: string;
 }
 interface Method {
-  type: string;
+  type?: string;
   name: string;
-  method: CallReturn<any>;
+  method: string;
   methodName: string;
 }
 
-type MultiCall = [string, CallReturn<any>];
+type MultiCall = [string, string];
 
 const metaToModalChoice = (meta: TokenMeta): ModalChoice => ({
   id: meta.contract,
@@ -247,6 +248,33 @@ interface EthOpposingLiquid {
   smartTokenAmount: ViewAmount;
   opposingAmount: string;
 }
+
+const buildReserveStructure = (
+  reserveOne: string,
+  reserveTwo: string
+): Method[] => {
+  const contract = buildConverterContract();
+
+  console.log(reserveOne, "was pushed in");
+  console.log(reserveTwo, "was pushed in");
+
+  const methods: Method[] = [
+    {
+      name: "reserveOne",
+      method: contract.methods.reserveBalance(reserveOne).encodeABI(),
+      methodName: "reserveBalance",
+      type: "uint256"
+    },
+    {
+      name: "reserveTwo",
+      method: contract.methods.reserveBalance(reserveTwo).encodeABI(),
+      methodName: "reserveBalance",
+      type: "uint256"
+    }
+  ];
+
+  return methods;
+};
 
 const relayIncludesAtLeastOneNetworkToken = (relay: Relay) =>
   relay.reserves.some(reserve => networkTokens.includes(reserve.symbol));
@@ -1970,6 +1998,58 @@ export class EthBancorModule
     ];
   }
 
+  @action async buildTraditionalRelayFeedsWithBalances({
+    relays,
+    usdPriceOfBnt
+  }: {
+    relays: RelayWithReserveBalances[];
+    usdPriceOfBnt: number;
+  }) {
+    return relays.flatMap(relay => {
+      const reservesBalances = relay.reserves.map(reserve => {
+        console.log(relay, reserve);
+        const reserveBalance = findOrThrow(relay.reserveBalances, balance =>
+          compareString(balance.id, reserve.contract)
+        );
+        const decNumber = shrinkToken(reserveBalance.amount, reserve.decimals);
+        return [reserve, Number(decNumber)] as [Token, number];
+      });
+
+      console.log(reservesBalances, "should be a token then a number");
+
+      const [
+        [networkReserve, networkReserveAmount],
+        [tokenReserve, tokenAmount]
+      ] = sortByNetworkTokens(reservesBalances, balance =>
+        balance[0].symbol.toUpperCase()
+      );
+
+      const networkReserveIsUsd = networkReserve.symbol == "USDB";
+      const dec = networkReserveAmount / tokenAmount;
+      const reverse = tokenAmount / networkReserveAmount;
+      const main = networkReserveIsUsd ? dec : dec * usdPriceOfBnt;
+
+      const liqDepth =
+        (networkReserveIsUsd
+          ? networkReserveAmount
+          : networkReserveAmount * usdPriceOfBnt) * 2;
+      return [
+        {
+          tokenId: tokenReserve.contract,
+          poolId: relay.id,
+          costByNetworkUsd: main,
+          liqDepth
+        },
+        {
+          tokenId: networkReserve.contract,
+          poolId: relay.id,
+          liqDepth,
+          costByNetworkUsd: reverse * main
+        }
+      ];
+    });
+  }
+
   @action async buildRelayFeedTraditional({
     relay,
     usdPriceOfBnt
@@ -2269,12 +2349,7 @@ export class EthBancorModule
       "0x5Eb3fa2DFECdDe21C950813C665E9364fa609bD2"
     );
 
-    const res = await multiContract.methods
-      .aggregate(
-        calls.map(([address, call]) => [address, call.encodeABI()]),
-        strict
-      )
-      .call();
+    const res = await multiContract.methods.aggregate(calls, strict).call();
 
     const matched = _.zip(calls.map(([address]) => address), res.returnData)!!;
     return matched;
@@ -2285,13 +2360,13 @@ export class EthBancorModule
     const methods: Method[] = [
       {
         name: "symbol",
-        method: contract.methods.symbol(),
+        method: contract.methods.symbol().encodeABI(),
         methodName: "symbol",
         type: "string"
       },
       {
         name: "decimals",
-        method: contract.methods.decimals(),
+        method: contract.methods.decimals().encodeABI(),
         methodName: "decimals",
         type: "uint8"
       }
@@ -2306,32 +2381,32 @@ export class EthBancorModule
     const methods: Method[] = [
       {
         name: "owner",
-        method: contract.methods.owner(),
+        method: contract.methods.owner().encodeABI(),
         methodName: "owner"
       },
       {
         name: "version",
-        method: contract.methods.version(),
+        method: contract.methods.version().encodeABI(),
         methodName: "version"
       },
       {
         name: "connectorTokenCount",
-        method: contract.methods.connectorTokenCount(),
+        method: contract.methods.connectorTokenCount().encodeABI(),
         methodName: "connectorTokenCount"
       },
       {
         name: "conversionFee",
-        method: contract.methods.conversionFee(),
+        method: contract.methods.conversionFee().encodeABI(),
         methodName: "conversionFee"
       },
       {
         name: "connectorToken1",
-        method: contract.methods.connectorTokens(0),
+        method: contract.methods.connectorTokens(0).encodeABI(),
         methodName: "connectorTokens"
       },
       {
         name: "connectorToken2",
-        method: contract.methods.connectorTokens(1),
+        method: contract.methods.connectorTokens(1).encodeABI(),
         methodName: "connectorTokens"
       }
     ].map(method => ({
@@ -2345,30 +2420,45 @@ export class EthBancorModule
   }
 
   @action async multiCallShit<T>({
-    methods,
-    contractAddresses
+    contractAddresses,
+    calls,
+    methods
   }: {
+    contractAddresses?: string[];
+    calls?: [string, string][];
     methods: Method[];
-    contractAddresses: string[];
   }): Promise<{ originAddress: string; data: T }[]> {
-    // this does not work with fetch reserves because fetch reserves has different params e.g. reserve('tokenaddress1'), reserve('tokenaddress2');
-    // make it dumber, just accept calls as a param instead
-    // in an object form probably
+    if (!calls && (!contractAddresses || contractAddresses.length == 0)) {
+      console.log({ calls, contractAddresses });
+      throw new Error("Must received contract addressess or raw calls");
+    }
+    let callsToGo: [string, string][] = [];
+    if (calls) {
+      callsToGo = calls;
+    } else {
+      callsToGo = contractAddresses!.flatMap(
+        address =>
+          methods.map(method => [address, method.method]) as [string, string][]
+      );
+    }
 
-    const calls = contractAddresses.flatMap(
-      address =>
-        methods.map(method => [address, method.method]) as [
-          string,
-          CallReturn<any>
-        ][]
-    );
+    const rawRes = await this.fetchWithMultiCall({ calls: callsToGo });
 
-    const rawRes = await this.fetchWithMultiCall({ calls });
-
-    const rebuilt = contractAddresses.map(converterAddress =>
-      rawRes.filter(([address]) =>
-        compareString(converterAddress, address as string)
+    const rebuilt = callsToGo
+      .map(([contractAddress]) => contractAddress)
+      .filter(
+        (item, index, arr) =>
+          arr.findIndex(i => compareString(i, item)) == index
       )
+      .map(contractAddress =>
+        rawRes.filter(([address]) =>
+          compareString(contractAddress, address as string)
+        )
+      );
+
+    console.log(
+      rebuilt.filter(section => !section[0]![1]!.success),
+      "was the rebuilt failure"
     );
 
     const finalRes = rebuilt
@@ -2393,7 +2483,7 @@ export class EthBancorModule
               return false;
             }
           } catch (e) {
-            console.warn(e.message, " failed", processedData);
+            console.warn(e.message, "failed", processedData);
             return false;
           }
         }, {})
@@ -2448,38 +2538,47 @@ export class EthBancorModule
 
   @action async buildPossibleTokens(tokenAddresses: string[]) {
     const tokens = await this.buildTokenByTokenAddressses(tokenAddresses);
-    console.log(
-      tokens,
-      "was the res of smart tokens... where ",
-      tokenAddresses,
-      "were asked for"
-    );
     return tokens;
   }
 
-  @action async buildReserveStructure(): Promise<Method[]> {
-    const contract = buildConverterContract();
-    const reserves = await contract.methods.reserves().call();
-
-    const methods: Method[] = [
-      {
-        name: "symbol",
-        method: contract.methods.reserves(),
-        methodName: "symbol",
-        type: "string"
-      },
-      {
-        name: "decimals",
-        method: contract.methods.decimals(),
-        methodName: "decimals",
-        type: "uint8"
-      }
-    ];
-  }
-
   @action async fetchReserves(
-    relays: { converterAddress: string; reserves: [string, string] }[]
-  ) {}
+    relays: {
+      converterAddress: string;
+      reserves: [string, string];
+      version: number;
+    }[]
+  ) {
+    const baseMethods = buildReserveStructure(
+      ethReserveAddress,
+      ethReserveAddress
+    );
+    const contract = buildConverterContract();
+    const calls = relays.flatMap(relay => {
+      const pastV17 = relay.version >= 17;
+      const reserveRequests = relay.reserves.map(reserve =>
+        contract.methods[
+          pastV17 ? "getConnectorBalance" : "getConnectorBalance"
+        ](reserve).encodeABI()
+      );
+      return reserveRequests.map(
+        reserveAbi => [relay.converterAddress, reserveAbi] as [string, string]
+      );
+    });
+
+    const res = await this.multiCallShit({ calls, methods: baseMethods });
+
+    const successful = relays.filter(relay =>
+      res.some(r => compareString(r.originAddress, relay.converterAddress))
+    );
+    const failed = _.differenceWith(relays, successful, (a, b) =>
+      compareString(a.converterAddress, b.converterAddress)
+    );
+    console.log({ successful, failed });
+    return res as {
+      originAddress: string;
+      data: { reserveOne: string; reserveTwo: string };
+    }[];
+  }
 
   @action async addPoolsV2(convertersAndAnchors: ConverterAndAnchor[]) {
     const allAnchors = convertersAndAnchors.map(item => item.anchorAddress);
@@ -2489,20 +2588,16 @@ export class EthBancorModule
       this.buildPossibleTokens(allAnchors)
     ]);
 
-    this.fetchReserves(firstHalfs[0].converterAddress);
-
-    const verifiedV1Anchors = smartTokens.map(token => token.contract);
-    const assumedV2Anchors = _.differenceWith(
-      allAnchors,
-      verifiedV1Anchors,
-      compareString
-    );
-
-    const parsedFirstHalfs = firstHalfs.map(half => ({
+    const polished = firstHalfs.map(half => ({
       ...half,
-      reserves: [half.connectorToken1, half.connectorToken2]
+      reserves: [half.connectorToken1, half.connectorToken2] as [
+        string,
+        string
+      ],
+      version: Number(half.version)
     }));
-    const passedFirstHalfs = parsedFirstHalfs.filter(
+
+    const passedFirstHalfs = polished.filter(
       relay =>
         relay.connectorTokenCount == "2" &&
         relay.reserves.every(reserveAddress =>
@@ -2512,13 +2607,115 @@ export class EthBancorModule
         )
     );
 
+    const relaysWithEth = passedFirstHalfs.find(x =>
+      x.reserves.some(r => compareString(r, ethReserveAddress))
+    );
+    console.log(relaysWithEth, "relays with eth");
+
     const reserveTokens = _.uniqWith(
       passedFirstHalfs.flatMap(half => half.reserves),
       compareString
     );
-    console.log();
-    const tokensFetched = await this.buildTokenByTokenAddressses(reserveTokens);
-    console.log(tokensFetched, "are the tokens fetched!");
+
+    const [tokensFetched, allReserveBalances] = await Promise.all([
+      this.buildTokenByTokenAddressses(reserveTokens),
+      this.fetchReserves(passedFirstHalfs)
+    ]);
+    console.log({ x: allReserveBalances, tokensFetched });
+
+    const verifiedV1Anchors = smartTokens.map(token => token.contract);
+    const assumedV2Anchors = _.differenceWith(
+      allAnchors,
+      verifiedV1Anchors,
+      compareString
+    );
+
+    const v1Pools = await Promise.all(
+      verifiedV1Anchors.map(async smartTokenAddress => {
+        const converterAddress = convertersAndAnchors.find(item =>
+          compareString(item.anchorAddress, smartTokenAddress)
+        )!.converterAddress;
+        const polishedHalf = polished.find(pol =>
+          compareString(pol.converterAddress, converterAddress)
+        )!;
+        const smartToken = smartTokens.find(token =>
+          compareString(token.contract, smartTokenAddress)
+        )!;
+        const anchorProps = await this.smartTokenAnchor(smartToken);
+        const reserveBalances = allReserveBalances.find(reserve =>
+          compareString(reserve.originAddress, converterAddress)
+        )!;
+        if (!reserveBalances) return;
+        console.log(reserveBalances);
+        const zippedReserveBalances = [
+          {
+            contract: polishedHalf.connectorToken1,
+            amount: reserveBalances.data.reserveOne
+          },
+          {
+            contract: polishedHalf.connectorToken2,
+            amount: reserveBalances.data.reserveTwo
+          }
+        ];
+        const reserveTokens = zippedReserveBalances.map(
+          reserve =>
+            tokensFetched.find(token =>
+              compareString(token.contract, reserve.contract)
+            )!
+        );
+
+        const relay: RelayWithReserveBalances = {
+          id: smartTokenAddress,
+          reserves: reserveTokens,
+          reserveBalances: zippedReserveBalances.map(zip => ({
+            amount: zip.amount,
+            id: zip.contract
+          })),
+          contract: converterAddress,
+          fee: Number(polishedHalf.conversionFee) / 10000,
+          isMultiContract: false,
+          network: "ETH",
+          owner: polishedHalf.owner,
+          version: String(polishedHalf.version),
+          anchor: anchorProps.anchor,
+          converterType: anchorProps.converterType
+        };
+
+        return relay;
+      })
+    );
+
+    const completeV1Pools = (v1Pools.filter(
+      Boolean
+    ) as RelayWithReserveBalances[]).filter(x => x.reserves.every(Boolean));
+    const failedV1Anchors = _.differenceWith(
+      verifiedV1Anchors,
+      completeV1Pools.map(pool => pool.id),
+      compareString
+    );
+
+    console.log(completeV1Pools, "are the v1 pools finished");
+
+    const failedV1AnchorsAndConverters = convertersAndAnchors.filter(item =>
+      failedV1Anchors.some(failedAnchor =>
+        compareString(failedAnchor, item.anchorAddress)
+      )
+    );
+    const failedHalfs = failedV1AnchorsAndConverters.map(fail =>
+      firstHalfs.find(x =>
+        compareString(x.converterAddress, fail.converterAddress)
+      )
+    );
+
+    console.log(failedHalfs, "are the failed halfs");
+    const traditionalRelayFeeds = await this.buildTraditionalRelayFeedsWithBalances(
+      { relays: completeV1Pools, usdPriceOfBnt: this.bntUsdPrice }
+    );
+
+    return {
+      traditionalRelayFeeds,
+      completeV1Pools
+    };
   }
 
   @action async init(params?: ModuleParam) {
@@ -2609,32 +2806,39 @@ export class EthBancorModule
         converterAddress: converterAddress!
       }));
 
-      this.addPoolsV2(anchorAndConvertersMatched.slice(0, 150));
+      const allData = await this.addPoolsV2(
+        anchorAndConvertersMatched.slice(0, 150)
+      );
+      console.log(allData, "was allData");
+
+      this.updateRelays(allData.completeV1Pools);
+
+      this.updateRelayFeeds(allData.traditionalRelayFeeds);
 
       // this.multiCallShit({
       //   methods: await this.buildRelayMethodStructure(),
       //   contractAddresses: converterAddresses.slice(0, 150)
       // });
 
-      const isDev = process.env.NODE_ENV == "development";
+      // const isDev = process.env.NODE_ENV == "development";
 
-      const approvedPriority = await this.poolsByPriority({
-        smartTokenAddresses: registeredAnchorAddresses,
-        ...(bancorApiTokens && { tokenPrices: bancorApiTokens as TokenPrice[] })
-      });
+      // const approvedPriority = await this.poolsByPriority({
+      //   smartTokenAddresses: registeredAnchorAddresses,
+      //   ...(bancorApiTokens && { tokenPrices: bancorApiTokens as TokenPrice[] })
+      // });
 
-      const remainingLoad = _.differenceWith(
-        approvedPriority,
-        bareMinimumAnchorAddresses,
-        compareString
-      ).slice(0, isDev ? 5 : 20);
+      // const remainingLoad = _.differenceWith(
+      //   approvedPriority,
+      //   bareMinimumAnchorAddresses,
+      //   compareString
+      // ).slice(0, isDev ? 5 : 20);
 
-      await this.addPools(bareMinimumAnchorAddresses);
+      // await this.addPools(bareMinimumAnchorAddresses);
       await wait(1);
-      this.addPools(remainingLoad);
-      this.addPoolsContainingTokenAddresses([
-        "0x309627af60f0926daa6041b8279484312f2bf060"
-      ]);
+      // this.addPools(remainingLoad);
+      // this.addPoolsContainingTokenAddresses([
+      //   "0x309627af60f0926daa6041b8279484312f2bf060"
+      // ]);
       this.moduleInitiated();
 
       if (this.relaysList.length < 1 || this.relayFeed.length < 2) {
@@ -2728,6 +2932,10 @@ export class EthBancorModule
       },
       converterType: PoolType.ChainLink
     };
+  }
+
+  @action async smartTokenAnchor(smartToken: Token) {
+    return { anchor: smartToken, converterType: PoolType.Traditional };
   }
 
   @action async buildSmartTokenAnchor(
@@ -2895,8 +3103,23 @@ export class EthBancorModule
     });
 
     const allTokens = [...fetchedTokens, ...wholeTokens];
-    return sortAlongSide(
+
+    const updated = updateArray(
       allTokens,
+      token => !token.symbol,
+      tokenWithoutSymbol => {
+        const meta = this.tokenMeta.find(x =>
+          compareString(x.contract, tokenWithoutSymbol.contract)
+        )!;
+        return {
+          ...tokenWithoutSymbol,
+          symbol: meta.symbol
+        };
+      }
+    );
+
+    return sortAlongSide(
+      updated,
       token => token.contract.toLowerCase(),
       addresses.map(x => x.toLowerCase())
     );
