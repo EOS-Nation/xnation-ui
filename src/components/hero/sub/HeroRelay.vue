@@ -110,6 +110,13 @@
             :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
             rightSubtitle=""
           >
+            <template slot="icon">
+              <font-awesome-icon
+                      icon="plus"
+                      class="text-primary"
+                      size="2x"
+              />
+            </template>
             <template v-slot:footer>
               <TxModalFooter
                 :error="error"
@@ -118,6 +125,12 @@
                 :explorerName="explorerName"
                 @close="txModal = false"
               />
+              <b-col cols="12">
+                <b-btn @click="withdrawLiquidity ? remove() : add()" variant="primary" class="btn-block" size="lg">
+                  Confirm
+                  {{ withdrawLiquidity ? "Remove Liquidity" : "Add Liquidity" }}
+                </b-btn>
+              </b-col>
             </template>
           </token-swap>
         </div>
@@ -446,7 +459,7 @@ export default class HeroRelay extends Vue {
 
   async remove() {
     this.sections = [];
-    this.txModal = true;
+    // this.txModal = true;
     this.error = "";
     this.success = "";
 
@@ -476,7 +489,7 @@ export default class HeroRelay extends Vue {
 
   async add() {
     this.sections = [];
-    this.txModal = true;
+    // this.txModal = true;
     this.error = "";
     this.success = "";
 

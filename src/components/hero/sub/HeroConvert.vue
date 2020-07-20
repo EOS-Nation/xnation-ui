@@ -35,7 +35,7 @@
         </div>
 
         <b-btn
-          @click="initConvert"
+          @click="txModal = true"
           variant="primary"
           class="btn-block mt-3"
           :disabled="disableConvert"
@@ -75,8 +75,17 @@
           :rightTitle="`${toTokenAmount} ${toToken.symbol}`"
           :rightSubtitle="toToken.name"
         >
+          <template slot="icon">
+            <font-awesome-icon
+              icon="exchange-alt"
+              class="text-primary"
+              size="2x"
+              rotation="90"
+            />
+          </template>
           <template v-slot:footer>
             <TxModalFooter
+              v-if="txBusy || error || success"
               :error="error"
               :success="success"
               :explorerLink="explorerLink"
@@ -84,7 +93,12 @@
               @close="closeTxModal"
             />
             <b-col cols="12">
-              <b-btn variant="primary" class="btn-block" size="lg">
+              <b-btn
+                @click="initConvert"
+                variant="primary"
+                class="btn-block"
+                size="lg"
+              >
                 Confirm Swap
               </b-btn>
             </b-col>
@@ -406,7 +420,7 @@ export default class HeroConvert extends Vue {
 
     try {
       this.sections = [];
-      this.txModal = true;
+      // this.txModal = true;
       this.txBusy = true;
       this.success = "";
       this.error = "";

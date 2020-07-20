@@ -3,6 +3,7 @@
     id="modal-tx"
     size="md"
     centered
+    hide-header
     hide-footer
     :visible="value"
     :hide-header-close="busy"
@@ -11,9 +12,12 @@
     @hide="onHide"
     :content-class="darkMode ? 'bg-block-dark' : 'bg-block-light'"
   >
-    <template slot="modal-title">
-      {{ title }}
-    </template>
+    <b-row>
+      <b-col class="d-flex justify-content-between">
+        <h5 :class="darkMode ? 'text-body-dark' : 'text-body-light'">{{ title }}</h5>
+        <font-awesome-icon icon="times" @click="onHide()" class="cursor" :class="darkMode ? 'text-body-dark' : 'text-body-light'"/>
+      </b-col>
+    </b-row>
     <transition name="slide-fade" mode="out-in">
       <slot></slot>
     </transition>
