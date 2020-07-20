@@ -394,6 +394,10 @@ export interface Relay {
   owner: string;
 }
 
+export interface RelayWithReserveBalances extends Relay {
+  reserveBalances: { id: string; amount: string }[];
+}
+
 export interface TraditionalRelay extends Relay {
   anchor: SmartToken;
 }

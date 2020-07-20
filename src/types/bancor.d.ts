@@ -220,6 +220,7 @@ export interface ContractMethods<T> extends Contract {
 
 export interface CallReturn<T = any> {
   call: () => Promise<T>;
+  encodeABI: () => string;
 }
 
 export interface TokenPriceExtended extends TokenPrice {
