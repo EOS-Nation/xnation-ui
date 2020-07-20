@@ -11,21 +11,22 @@
       @update:tokenOneAmount="tokenOneChanged"
       @update:tokenTwoAmount="tokenTwoChanged"
       :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
+      :input-labels="['Input', 'Input']"
     >
       <template v-slot:liquidityActions>
         <b-row class="mb-4">
           <b-col sm="12">
             <b-btn
-              :variant="withdrawLiquidity ? 'light' : 'primary'"
+              :variant="withdrawLiquidity ? darkMode  ? 'dark' : 'light' : 'primary'"
               @click="withdrawLiquidity = false"
               class="btn-block py-3"
               >Add Liquidity</b-btn
             >
           </b-col>
-          <b-col sm="12" class="mt-3 mt-sm-3">
+          <b-col sm="12" class="mt-3">
             <b-btn
               @click="withdrawLiquidity = true"
-              :variant="withdrawLiquidity ? 'primary' : 'light'"
+              :variant="withdrawLiquidity ? 'primary' : darkMode  ? 'dark' : 'light'"
               class="btn-block py-3"
               >Remove Liquidity</b-btn
             >

@@ -1,15 +1,22 @@
 <template>
-  <b-container fluid="xl">
+  <b-container fluid="xl" class="px-xl-0">
     <b-row>
-      <b-col cols="12" class="px-1 px-md-3 px-xl-0">
+      <b-col cols="12">
         <content-block title="Statistics">
-          <p>test</p>
+          <statistics />
         </content-block>
-
-        <content-block :no-header="true">
-          <p class="m-0 p-0">test</p>
+      </b-col>
+      <b-col md="6">
+        <content-block title="Liquidity">
+          <liquidity-chart />
         </content-block>
-
+      </b-col>
+      <b-col md="6">
+        <content-block title="Volume">
+          <liquidity-chart />
+        </content-block>
+      </b-col>
+      <b-col>
         <tokens-table
           :loading="false"
           :name="name"
@@ -29,9 +36,13 @@ import { vxm } from "@/store";
 import TokensTable from "@/components/tables/TokensTable.vue";
 import { SimpleToken } from "@/types/bancor";
 import ContentBlock from "@/components/common/ContentBlock.vue";
+import Statistics from "@/components/data/Statistics.vue";
+import LiquidityChart from "@/components/data/charts/LiquidityChart.vue";
 
 @Component({
   components: {
+    LiquidityChart,
+    Statistics,
     ContentBlock,
     TokensTable
   }

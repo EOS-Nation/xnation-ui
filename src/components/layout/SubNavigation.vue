@@ -7,7 +7,7 @@
           :key="navItems[0].label"
           :to="navItems[0].destination"
           :disabled="navItems[0].disabled"
-          :variant="!navItems[0].active ? 'light' : 'primary'"
+          :variant="!navItems[0].active ? darkMode ? 'dark' : 'light' : 'primary'"
           size="lg"
         >
           {{ navItems[0].label }}
@@ -19,7 +19,7 @@
           :key="navItems[1].label"
           :to="navItems[1].destination"
           :disabled="navItems[1].disabled"
-          :variant="(navItems[1].active || navItems[2].active) ? 'primary' : 'light'"
+          :variant="(!navItems[1].active && !navItems[2].active) ? darkMode ? 'dark' : 'light' : 'primary'"
           size="lg"
         >
           {{ navItems[1].label }}

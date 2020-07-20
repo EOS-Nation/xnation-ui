@@ -1,132 +1,66 @@
 <template>
-  <b-navbar class="navBar" :class="darkMode ? 'bg-block-dark' : 'primary-light'">
-    <div class="d-none d-md-flex justify-content-between container-xl">
-      <b-navbar-brand class="pb-1" style="width: 250px">
-        <router-link :to="{ name: 'Tokens' }">
-          <img
-            src="@/assets/media/logos/bancor.png"
-            height="25px"
-            class="mb-1"
-          />
-        </router-link>
-      </b-navbar-brand>
-
-      <div class="d-flex justify-content-end" style="width: 250px">
-        <b-navbar-nav class="mr-2">
-          <b-btn
-            @click="loginAction"
-            variant="primary"
-            class="block-rounded"
-            size="sm"
-            v-b-tooltip.hover
-            :title="loginTooltip"
-          >
-            {{ loginButtonLabel }}
-            <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
-          </b-btn>
-        </b-navbar-nav>
-        <b-navbar-nav class="mr-2">
-          <b-dropdown
-            id="dropdown-settings"
-            right
-            variant="primary"
-            size="sm"
-            toggle-class="block-rounded"
-            no-caret
-          >
-            <template v-slot:button-content>
-              <font-awesome-icon icon="cog" fixed-width />
-            </template>
-            <b-dropdown-header class="text-center">Settings</b-dropdown-header>
-            <b-dropdown-divider></b-dropdown-divider>
-            <b-dropdown-item @click="toggleDarkMode"
-              >Dark Mode: {{ darkMode ? "ON" : "OFF" }}</b-dropdown-item
-            >
-            <b-dropdown-item>
-              <div class="d-flex align-items-center">
-                <span class="font-size-sm mr-2">Blockchains</span>
-                <div>
-                  <b-btn
-                    @click="loadNewModule(option.value)"
-                    v-for="option in options"
-                    :key="option.value"
-                    :variant="selected === option.value ? 'light' : 'primary'"
-                    class="border-0 ml-1 block-rounded"
-                    size="sm"
-                  >
-                    {{ option.text }}
-                  </b-btn>
-                </div>
-              </div>
-            </b-dropdown-item>
-            <b-dropdown-item>Third Action</b-dropdown-item>
-          </b-dropdown>
-        </b-navbar-nav>
-        <b-navbar-nav>
-          <b-btn variant="primary" class="block-rounded" size="sm">
-            <font-awesome-icon icon="ellipsis-v" fixed-width />
-          </b-btn>
-        </b-navbar-nav>
-      </div>
-    </div>
-
-    <div class="d-block w-100 d-md-none">
-      <div class="d-flex justify-content-between">
-        <b-navbar-brand>
+  <div>
+    <div class="d-block mb-0 pt-3 pb-2 bg-primary"></div>
+    <b-navbar class="navBar">
+      <div class="d-flex justify-content-between container-xl">
+        <b-navbar-brand class="pb-1" style="width: 250px">
           <router-link :to="{ name: 'Tokens' }">
             <img
-              src="@/assets/media/logos/bancor.png"
-              height="25px"
+              v-if="darkMode"
+              src="@/assets/media/logos/bancor-white.png"
+              height="35px"
+              class="mb-1"
+            />
+            <img
+              v-else
+              src="@/assets/media/logos/bancor-black.png"
+              height="35px"
               class="mb-1"
             />
           </router-link>
         </b-navbar-brand>
-        <div class="d-flex">
-          <b-navbar-nav class="mr-1">
-            <b-btn variant="primary" class="border-0" size="sm">
-              <font-awesome-icon icon="cog" fixed-width />
-            </b-btn>
-          </b-navbar-nav>
-          <b-navbar-nav>
-            <b-btn variant="primary" class="border-0" size="sm">
-              <font-awesome-icon icon="ellipsis-h" fixed-width />
-            </b-btn>
-          </b-navbar-nav>
-          <b-navbar-nav class="mr-1">
+
+        <div class="d-flex justify-content-end" style="width: 250px">
+          <b-navbar-nav class="mr-2">
             <b-btn
               @click="loginAction"
-              variant="primary"
-              class="border-0"
+              variant="light"
+              class="block-rounded"
               size="sm"
               v-b-tooltip.hover
               :title="loginTooltip"
             >
+              <span class="d-none d-sm-inline mr-2">{{
+                loginButtonLabel
+              }}</span>
               <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
             </b-btn>
           </b-navbar-nav>
+          <b-navbar-nav class="mr-2">
+            <settings-menu>
+              <template slot="blockchains">
+                <div class="d-flex justify-content-between">
+                  <b-btn
+                    size="sm"
+                    @click="loadNewModule(option.value)"
+                    v-for="option in options"
+                    :key="option.value"
+                    :variant="selected === option.value ? 'primary' : 'light'"
+                    class="border-0 px-4 block-rounded"
+                  >
+                    {{ option.text }}
+                  </b-btn>
+                </div>
+              </template>
+            </settings-menu>
+          </b-navbar-nav>
+          <b-navbar-nav>
+            <bancor-menu />
+          </b-navbar-nav>
         </div>
       </div>
-
-      <div class="d-flex justify-content-center">
-        <b-navbar-nav class="d-flex align-items-center">
-          <span class="text-white font-size-sm mr-2">Blockchains</span>
-          <div class="networks">
-            <b-btn
-              @click="loadNewModule(option.value)"
-              v-for="option in options"
-              :key="option.value"
-              :variant="selected === option.value ? 'light' : 'primary'"
-              class="border-0 ml-1 block-rounded"
-              size="sm"
-            >
-              {{ option.text }}
-            </b-btn>
-          </div>
-        </b-navbar-nav>
-      </div>
-      <div class="d-flex justify-content-between"></div>
-    </div>
-  </b-navbar>
+    </b-navbar>
+  </div>
 </template>
 
 <script lang="ts">
@@ -146,6 +80,8 @@ import { store } from "../../store";
 import { ModuleParam } from "../../types/bancor";
 import { ethReserveAddress } from "../../api/ethConfig";
 import { Route } from "vue-router";
+import SettingsMenu from "@/components/layout/SettingsMenu.vue";
+import BancorMenu from "@/components/layout/BancorMenu.vue";
 
 const defaultPaths = [
   {
@@ -218,8 +154,9 @@ const createDirectRoute = (name: string, params?: any) => ({
   name,
   ...(params && { params })
 });
-
-@Component
+@Component({
+  components: { BancorMenu, SettingsMenu }
+})
 export default class Navigation extends Vue {
   get selectedNetwork() {
     return vxm.bancor.currentNetwork;
@@ -306,10 +243,6 @@ export default class Navigation extends Vue {
       params: defaultModuleParams(moduleId)
     });
     this.$router.push({ name: "Tokens", ...extendRouter(moduleId) });
-  }
-
-  toggleDarkMode() {
-    vxm.general.toggleDarkMode();
   }
 
   get options() {

@@ -1,0 +1,121 @@
+<template>
+  <b-dropdown
+    id="dropdown-settings"
+    right
+    variant="light"
+    size="sm"
+    toggle-class="block-rounded"
+    menu-class="dropdown-dark"
+    no-caret
+  >
+    <template v-slot:button-content>
+      <font-awesome-icon icon="bars" fixed-width />
+    </template>
+
+    <b-dropdown-group id="dropdown-group-1">
+      <b-dropdown-header class="text-uppercase">Bancor</b-dropdown-header>
+      <b-dropdown-item style="width: 230px;" disabled>
+        <font-awesome-icon icon="info" class="mr-2" fixed-width /> About
+      </b-dropdown-item>
+    </b-dropdown-group>
+    <b-dropdown-divider></b-dropdown-divider>
+    <b-dropdown-group id="dropdown-group-2">
+      <b-dropdown-header class="text-uppercase">Apps</b-dropdown-header>
+      <b-dropdown-item :to="{ name: 'Tokens' }"
+        ><font-awesome-icon icon="exchange-alt" class="mr-2" fixed-width />
+        Bancor Swap</b-dropdown-item
+      >
+      <b-dropdown-item :to="{ name: 'Data' }"
+        ><font-awesome-icon icon="chart-line" class="mr-2" fixed-width /> Bancor
+        Data</b-dropdown-item
+      >
+      <b-dropdown-item disabled
+        ><font-awesome-icon icon="times" class="mr-2" fixed-width /> Bancor
+        X</b-dropdown-item
+      >
+      <b-dropdown-item disabled
+        ><font-awesome-icon icon="chart-bar" class="mr-2" fixed-width /> Bancor
+        DAO</b-dropdown-item
+      >
+    </b-dropdown-group>
+    <b-dropdown-divider></b-dropdown-divider>
+    <b-dropdown-group id="dropdown-group-3">
+      <b-dropdown-header class="text-uppercase">Developers</b-dropdown-header>
+      <b-dropdown-item disabled
+        ><font-awesome-icon icon="book-open" class="mr-2" fixed-width />
+        Gitbook</b-dropdown-item
+      >
+      <b-dropdown-item disabled
+        ><font-awesome-icon
+          :icon="['fab', 'github']"
+          class="mr-2"
+          fixed-width
+        />
+        GitHub</b-dropdown-item
+      >
+      <b-dropdown-item disabled
+        ><font-awesome-icon
+          :icon="['fab', 'telegram-plane']"
+          class="mr-2"
+          fixed-width
+        />
+        Chat</b-dropdown-item
+      >
+    </b-dropdown-group>
+    <b-dropdown-divider></b-dropdown-divider>
+    <b-dropdown-group id="dropdown-group-3">
+      <b-dropdown-header class="text-uppercase">Community</b-dropdown-header>
+      <b-dropdown-text>
+        <div class="d-flex justify-content-between">
+          <font-awesome-icon
+            :icon="['fab', 'facebook']"
+            class="mr-2"
+            fixed-width
+          />
+          <font-awesome-icon
+            :icon="['fab', 'twitter']"
+            class="mr-2"
+            fixed-width
+          />
+          <font-awesome-icon
+            :icon="['fab', 'linkedin']"
+            class="mr-2"
+            fixed-width
+          />
+          <font-awesome-icon
+            :icon="['fab', 'reddit-alien']"
+            class="mr-2"
+            fixed-width
+          />
+          <font-awesome-icon
+            :icon="['fab', 'telegram-plane']"
+            class="mr-2"
+            fixed-width
+          />
+        </div>
+      </b-dropdown-text>
+    </b-dropdown-group>
+  </b-dropdown>
+</template>
+
+<script lang="ts">
+import { Prop, Component, Vue } from "vue-property-decorator";
+import { vxm } from "@/store";
+
+@Component
+export default class BancorMenu extends Vue {
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
+
+  toggleDarkMode() {
+    vxm.general.toggleDarkMode();
+  }
+
+  set darkMode(value: boolean) {
+    vxm.general.toggleDarkMode();
+  }
+}
+</script>
+
+<style scoped lang="scss"></style>
