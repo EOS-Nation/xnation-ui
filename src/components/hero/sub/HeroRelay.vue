@@ -68,12 +68,7 @@
           @clicked="toggleMain"
         />
         <b-btn variant="primary" class="btn-block my-3" size="lg">
-          <font-awesome-icon
-            :icon="loadingConversion ? 'circle-notch' : 'arrow-right'"
-            :spin="loadingConversion"
-            fixed-width
-            class="mr-2"
-          />
+          <font-awesome-icon icon="arrow-right" fixed-width class="mr-2" />
           <span class="font-w700">Continue</span>
         </b-btn>
       </div>
