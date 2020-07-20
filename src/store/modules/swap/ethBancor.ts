@@ -2007,15 +2007,12 @@ export class EthBancorModule
   }) {
     return relays.flatMap(relay => {
       const reservesBalances = relay.reserves.map(reserve => {
-        console.log(relay, reserve);
         const reserveBalance = findOrThrow(relay.reserveBalances, balance =>
           compareString(balance.id, reserve.contract)
         );
         const decNumber = shrinkToken(reserveBalance.amount, reserve.decimals);
         return [reserve, Number(decNumber)] as [Token, number];
       });
-
-      console.log(reservesBalances, "should be a token then a number");
 
       const [
         [networkReserve, networkReserveAmount],
@@ -2156,7 +2153,7 @@ export class EthBancorModule
     return contract.methods.getConvertibleTokens().call();
   }
 
-  @mutation setregisteredAnchorAddresses(addresses: string[]) {
+  @mutation setRegisteredAnchorAddresses(addresses: string[]) {
     this.registeredAnchorAddresses = addresses;
   }
 
@@ -2583,10 +2580,25 @@ export class EthBancorModule
   @action async addPoolsV2(convertersAndAnchors: ConverterAndAnchor[]) {
     const allAnchors = convertersAndAnchors.map(item => item.anchorAddress);
 
+    const lookingFor = {
+      anchorAddress: "0xb1CD6e4153B2a390Cf00A6556b0fC1458C4A5533",
+      converterAddress: "0xE870D00176b2C71AFD4c43ceA550228E22be4ABd"
+    };
+    const includedInAchors = convertersAndAnchors.find(
+      x =>
+        compareString(x.anchorAddress, lookingFor.anchorAddress) &&
+        compareString(x.converterAddress, lookingFor.converterAddress)
+    );
+    console.log(includedInAchors, "was included in anchors");
     const [firstHalfs, smartTokens] = await Promise.all([
       this.fetchFetchHalfOfRelays(convertersAndAnchors),
       this.buildPossibleTokens(allAnchors)
     ]);
+
+    const x = firstHalfs.find(x =>
+      compareString(x.converterAddress, lookingFor.converterAddress)
+    );
+    console.log(x, "is the result of x");
 
     const polished = firstHalfs.map(half => ({
       ...half,
@@ -2726,17 +2738,6 @@ export class EthBancorModule
       return this.refresh();
     }
 
-    const crazyString =
-      "0x00000000000000000000000000000000000000000000000000000000000003e9";
-    const first = web3.utils.toAscii(crazyString);
-    // const second = web3.utils.toUtf8(crazyString);
-    console.log({ first });
-    // const lessCrazyString = "0x3e9";
-    // const afirst = web3.utils.toAscii(lessCrazyString);
-    // const asecond = web3.utils.toUtf8(lessCrazyString);
-    // console.log({ afirst, asecond, first, second });
-
-    // @ts-ignore
     const web3NetworkVersion = await web3.eth.getChainId();
     const currentNetwork: EthNetworks = web3NetworkVersion;
     this.setNetwork(currentNetwork);
@@ -2752,6 +2753,8 @@ export class EthBancorModule
     ) {
       params.tradeQuery.quote = networkVariables.bntToken;
     }
+
+    console.time("load");
 
     try {
       let [
@@ -2777,7 +2780,7 @@ export class EthBancorModule
         this.fetchConvertibleTokens(contractAddresses.BancorConverterRegistry)
       ]);
 
-      this.setregisteredAnchorAddresses(registeredAnchorAddresses);
+      this.setRegisteredAnchorAddresses(registeredAnchorAddresses);
       this.setConvertibleTokenAddresses(convertibleTokens);
 
       const [
@@ -2806,10 +2809,24 @@ export class EthBancorModule
         converterAddress: converterAddress!
       }));
 
-      const allData = await this.addPoolsV2(
-        anchorAndConvertersMatched.slice(0, 150)
+      const priorityAnchors = await this.poolsByPriority({
+        smartTokenAddresses: anchorAndConvertersMatched.map(
+          x => x.anchorAddress
+        ),
+        tokenPrices: bancorApiTokens
+      });
+
+      const sortedAnchorsAndConverters = sortAlongSide(
+        anchorAndConvertersMatched,
+        anchor => anchor.anchorAddress,
+        priorityAnchors
       );
-      console.log(allData, "was allData");
+
+      const allData = await this.addPoolsV2(
+        sortedAnchorsAndConverters.slice(0, 150)
+      );
+
+      console.timeEnd("load");
 
       this.updateRelays(allData.completeV1Pools);
 
