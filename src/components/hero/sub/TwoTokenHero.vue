@@ -8,7 +8,7 @@
       <slot name="liquidityActions"></slot>
 
       <b-row>
-        <b-col md="12">
+        <b-col md="12" cols="mt-2">
           <token-field
             :tokenId.sync="idOne"
             :symbol="tokenOneMeta.symbol"
@@ -27,7 +27,13 @@
       </b-row>
 
       <b-row>
-        <b-col md="12" class="my-3">
+        <b-col class="text-center">
+          <slot name="icon"></slot>
+        </b-col>
+      </b-row>
+
+      <b-row>
+        <b-col md="12" class="mb-3">
           <token-field
             :tokenId.sync="idTwo"
             :symbol="tokenTwoMeta.symbol"

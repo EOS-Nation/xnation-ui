@@ -11,7 +11,7 @@
       @update:tokenOneAmount="tokenOneChanged"
       @update:tokenTwoAmount="tokenTwoChanged"
       :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
-      :input-labels="['Input', 'Input']"
+      :input-labels="[withdrawLiquidity ? 'Output' : 'Input', withdrawLiquidity ? 'Output' : 'Input']"
     >
       <template v-slot:liquidityActions>
         <b-row class="mb-4">
@@ -36,6 +36,14 @@
             >
           </b-col>
         </b-row>
+      </template>
+
+      <template slot="icon">
+        <font-awesome-icon
+          :icon="withdrawLiquidity ? 'minus' : 'plus'"
+          class="text-primary"
+          size="1x"
+        />
       </template>
 
       <div class="w-100">
@@ -75,7 +83,7 @@
         <b-btn
           @click="txModal = true"
           variant="primary"
-          class="btn-block my-3"
+          class="btn-block mt-3"
           size="lg"
         >
           <font-awesome-icon icon="arrow-right" fixed-width class="mr-2" />
@@ -91,7 +99,7 @@
       >
         <div>
           <stepper
-            v-if="sections.length > 1"
+            v-if="false && sections.length > 1"
             :selectedStep="stepIndex"
             :steps="sections"
             :label="sections[stepIndex].description"
@@ -112,13 +120,14 @@
           >
             <template slot="icon">
               <font-awesome-icon
-                      icon="plus"
-                      class="text-primary"
-                      size="2x"
+                :icon="withdrawLiquidity ? 'minus' : 'plus'"
+                class="text-primary"
+                size="1x"
               />
             </template>
             <template v-slot:footer>
               <TxModalFooter
+                v-if="txBusy || error || success"
                 :error="error"
                 :success="success"
                 :explorerLink="explorerLink"
@@ -126,7 +135,12 @@
                 @close="txModal = false"
               />
               <b-col cols="12">
-                <b-btn @click="withdrawLiquidity ? remove() : add()" variant="primary" class="btn-block" size="lg">
+                <b-btn
+                  @click="withdrawLiquidity ? remove() : add()"
+                  variant="primary"
+                  class="btn-block"
+                  size="lg"
+                >
                   Confirm
                   {{ withdrawLiquidity ? "Remove Liquidity" : "Add Liquidity" }}
                 </b-btn>
@@ -140,7 +154,7 @@
     <div class="d-flex justify-content-center">
       <router-link
         :to="{ name: 'Create' }"
-        class="cursor font-w700"
+        class="cursor font-w700 mb-3"
         :class="darkMode ? 'text-body-dark' : 'text-body-light'"
       >
         <font-awesome-icon icon="plus" class="mr-2" />Create Pool

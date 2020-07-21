@@ -11,6 +11,14 @@
       @update:tokenTwoAmount="updatePriceCost"
       :input-labels="['From', 'To (Estimated)']"
     >
+      <template slot="icon">
+        <font-awesome-icon
+          icon="exchange-alt"
+          class="text-primary"
+          size="1x"
+          rotation="90"
+        />
+      </template>
       <div class="w-100">
         <div class="text-center">
           <span v-if="loading">
@@ -58,13 +66,6 @@
       @input="closeTxModal"
     >
       <div>
-        <stepper
-          v-if="sections.length > 1"
-          :selectedStep="stepIndex"
-          :steps="sections"
-          :label="sections[stepIndex].description"
-          :numbered="true"
-        />
         <token-swap
           :error="error"
           :success="success"
@@ -79,11 +80,92 @@
             <font-awesome-icon
               icon="exchange-alt"
               class="text-primary"
-              size="2x"
+              size="1x"
               rotation="90"
             />
           </template>
           <template v-slot:footer>
+            <b-col md="12">
+              <div
+                class="block block-rounded font-size-sm block-shadow"
+                :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
+              >
+                <div class="block-content py-2">
+                  <div class="d-flex justify-content-between">
+                    <p
+                      class="m-0 my-1 p-0"
+                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+                    >
+                      Total Worth USD
+                    </p>
+                    <p
+                      class="m-0 my-1 p-0 font-w600"
+                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+                    >
+                      {{
+                        numeral(toToken.price * toTokenAmount).format("$0,0.00")
+                      }}
+                    </p>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <p
+                      class="m-0 my-1 p-0"
+                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+                    >
+                      Price
+                    </p>
+                    <p
+                      class="m-0 my-1 p-0 font-w600"
+                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+                    >
+                      {{ unitReward }}
+                    </p>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <p
+                      class="m-0 my-1 p-0"
+                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+                    >
+                      Minimum Sent
+                    </p>
+                    <p
+                      class="m-0 my-1 p-0 font-w600"
+                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+                    >
+                      ?????? ETH
+                    </p>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <p
+                      class="m-0 my-1 p-0"
+                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+                    >
+                      Price Impact
+                    </p>
+                    <p
+                      class="m-0 my-1 p-0 font-w600"
+                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+                    >
+                      {{ numeral(slippage).format("0.00%") }}
+                    </p>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <p
+                      class="m-0 my-1 p-0"
+                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+                    >
+                      Liquidity Provider Fee
+                    </p>
+                    <p
+                      class="m-0 my-1 p-0 font-w600"
+                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+                    >
+                      ?.??%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </b-col>
             <TxModalFooter
               v-if="txBusy || error || success"
               :error="error"
@@ -92,14 +174,16 @@
               :explorerName="explorerName"
               @close="closeTxModal"
             />
+            <span v-if="false">{{ sections[stepIndex].description }}</span>
             <b-col cols="12">
               <b-btn
                 @click="initConvert"
                 variant="primary"
                 class="btn-block"
                 size="lg"
+                :disabled="txBusy"
               >
-                Confirm Swap
+                {{ confirmButton }}
               </b-btn>
             </b-col>
           </template>
@@ -207,7 +291,7 @@ export default class HeroConvert extends Vue {
   fromTokenError = "";
   toTokenError = "";
   slippage: number | null = null;
-
+  numeral = numeral;
   sections: Step[] = [];
   stepIndex = 0;
 
@@ -223,6 +307,14 @@ export default class HeroConvert extends Vue {
   @wallet.Getter isAuthenticated!: string | boolean;
   @bancor.Action
   calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
+
+  get confirmButton() {
+    return this.error ? "Try Again" : this.success ? "Close" : "Confirm Swap";
+  }
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 
   get fromTokenMeta() {
     return {
@@ -418,6 +510,11 @@ export default class HeroConvert extends Vue {
       return;
     }
 
+    if (this.success) {
+      this.closeTxModal()
+      return;
+    }
+
     try {
       this.sections = [];
       // this.txModal = true;
@@ -555,9 +652,9 @@ export default class HeroConvert extends Vue {
   }
 
   get unitReward() {
-    return `1 ${this.fromToken.symbol} = ${this.reward.toFixed(
+    return `${this.reward.toFixed(
       this.toToken.precision! > 6 ? 6 : this.toToken.precision
-    )} ${this.toToken.symbol}`;
+    )} ${this.toToken.symbol}/${this.fromToken.symbol}`;
   }
 
   async loadSimpleReward() {
