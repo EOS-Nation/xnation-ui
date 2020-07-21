@@ -664,30 +664,29 @@ export class EthBancorModule
   }
 
   get newNetworkTokenChoices(): ModalChoice[] {
-    const bntTokenMeta = this.tokenMeta.find(token => token.symbol == "BNT")!;
-    const usdBTokenMeta = this.tokenMeta.find(token => token.symbol == "USDB")!;
-
-    const bntBalance = this.tokenBalance(bntTokenMeta.contract);
-    const usdBalance = this.tokenBalance(usdBTokenMeta.contract);
-    return [
-      {
-        id: bntTokenMeta.contract,
-        contract: bntTokenMeta.contract,
-        symbol: bntTokenMeta.symbol,
-        img: bntTokenMeta.image,
-        usdValue: this.bntUsdPrice,
-        balance: bntBalance && bntBalance.balance
-      },
-      {
-        id: usdBTokenMeta.contract,
-        contract: usdBTokenMeta.contract,
-        symbol: usdBTokenMeta.symbol,
-        img: usdBTokenMeta.image,
-        usdValue: 1,
-        balance: usdBalance && usdBalance.balance
-      }
+    const toOffer = [
+      { symbolName: "BNT", value: this.bntUsdPrice },
+      { symbolName: "USDB", value: 1 }
     ];
-  }
+
+    const addedMeta = toOffer
+      .map(offer => ({
+        ...offer,
+        meta: this.tokenMeta.find(meta => meta.symbol == offer.symbolName)!
+      }))
+      .filter(offer => offer.meta);
+
+    return addedMeta.map(meta => ({
+      id: meta.meta.id,
+      contract: meta.meta.contract,
+      img: meta.meta.image,
+      symbol: meta.meta.symbol,
+      balance:
+        this.tokenBalance(meta.meta.contract) &&
+        this.tokenBalance(meta.meta.contract)!.balance,
+      usdValue: meta.value
+    }));
+      }
 
   get newPoolTokenChoices() {
     return (networkToken: string): ModalChoice[] => {
