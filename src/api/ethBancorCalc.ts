@@ -160,7 +160,7 @@ export const buildConverterContract = (
 }> => buildContract(ABIConverter, contractAddress);
 
 export const buildV2Converter = (
-  contractAddress: string
+  contractAddress?: string
 ): ContractMethods<{
   activate: (
     primaryReserveToken: string,
@@ -168,6 +168,8 @@ export const buildV2Converter = (
     secondaryReserveOracle: string
   ) => ContractSendMethod;
   reserveStakedBalance: (reserveToken: string) => CallReturn<string>;
+  primaryReserveToken: () => CallReturn<string>;
+  secondaryReserveToken: () => CallReturn<string>;
   poolToken: (reserveToken: string) => CallReturn<string>;
   liquidationLimit: (poolToken: string) => CallReturn<string>;
   effectiveReserveWeights: () => CallReturn<{ "0": string; "1": string }>;

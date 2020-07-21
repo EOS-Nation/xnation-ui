@@ -329,8 +329,9 @@ export interface Token {
 }
 
 export enum PoolType {
+  Liquid = 0,
   Traditional = 1,
-  ChainLink = 0
+  ChainLink = 2
 }
 export interface PoolToken {
   reserveId: string;
