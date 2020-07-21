@@ -9,7 +9,8 @@ import {
   ABINetworkContract,
   ABIV2Converter,
   V2PoolsTokenContainer,
-  ABIMultiCallContract
+  ABIMultiCallContract,
+  ABIContainerContract
 } from "@/api/ethConfig";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
@@ -105,6 +106,14 @@ export const buildTokenContract = (
     approvedAmount: string
   ) => ContractSendMethod;
 }> => buildContract(ABISmartToken, contractAddress);
+
+export const buildContainerContract = (
+  contractAddress?: string
+): ContractMethods<{
+  poolTokens(): CallReturn<string[]>;
+  symbol: () => CallReturn<string>;
+  decimals: () => CallReturn<string>;
+}> => buildContract(ABIContainerContract, contractAddress);
 
 export const buildV2PoolsContainer = (
   contractAddress: string
