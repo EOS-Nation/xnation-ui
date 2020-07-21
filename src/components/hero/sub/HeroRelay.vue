@@ -17,7 +17,9 @@
         <b-row class="mb-4">
           <b-col sm="12">
             <b-btn
-              :variant="withdrawLiquidity ? darkMode  ? 'dark' : 'light' : 'primary'"
+              :variant="
+                withdrawLiquidity ? (darkMode ? 'dark' : 'light') : 'primary'
+              "
               @click="withdrawLiquidity = false"
               class="btn-block py-3"
               >Add Liquidity</b-btn
@@ -26,7 +28,9 @@
           <b-col sm="12" class="mt-3">
             <b-btn
               @click="withdrawLiquidity = true"
-              :variant="withdrawLiquidity ? 'primary' : darkMode  ? 'dark' : 'light'"
+              :variant="
+                withdrawLiquidity ? 'primary' : darkMode ? 'dark' : 'light'
+              "
               class="btn-block py-3"
               >Remove Liquidity</b-btn
             >
@@ -68,7 +72,12 @@
           :selectedMenu.sync="selectedMenu"
           @clicked="toggleMain"
         />
-        <b-btn variant="primary" class="btn-block my-3" size="lg">
+        <b-btn
+          @click="txModal = true"
+          variant="primary"
+          class="btn-block my-3"
+          size="lg"
+        >
           <font-awesome-icon icon="arrow-right" fixed-width class="mr-2" />
           <span class="font-w700">Continue</span>
         </b-btn>
@@ -101,6 +110,13 @@
             :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
             rightSubtitle=""
           >
+            <template slot="icon">
+              <font-awesome-icon
+                      icon="plus"
+                      class="text-primary"
+                      size="2x"
+              />
+            </template>
             <template v-slot:footer>
               <TxModalFooter
                 :error="error"
@@ -109,6 +125,12 @@
                 :explorerName="explorerName"
                 @close="txModal = false"
               />
+              <b-col cols="12">
+                <b-btn @click="withdrawLiquidity ? remove() : add()" variant="primary" class="btn-block" size="lg">
+                  Confirm
+                  {{ withdrawLiquidity ? "Remove Liquidity" : "Add Liquidity" }}
+                </b-btn>
+              </b-col>
             </template>
           </token-swap>
         </div>
@@ -437,7 +459,7 @@ export default class HeroRelay extends Vue {
 
   async remove() {
     this.sections = [];
-    this.txModal = true;
+    // this.txModal = true;
     this.error = "";
     this.success = "";
 
@@ -467,7 +489,7 @@ export default class HeroRelay extends Vue {
 
   async add() {
     this.sections = [];
-    this.txModal = true;
+    // this.txModal = true;
     this.error = "";
     this.success = "";
 

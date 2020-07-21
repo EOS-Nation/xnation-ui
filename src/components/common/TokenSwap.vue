@@ -7,12 +7,7 @@
       :tokenName="leftSubtitle"
     />
     <b-col cols="12">
-      <font-awesome-icon
-        icon="exchange-alt"
-        class="text-primary"
-        size="2x"
-        rotation="90"
-      />
+      <slot name="icon"></slot>
     </b-col>
     <token-block
       :title="rightHeader"
@@ -93,19 +88,6 @@
           </div>
         </div>
       </div>
-    </b-col>
-    <b-col md="12" class="text-center mb-2 font-size-h1 text-primary">
-      <font-awesome-icon v-if="!success && !error" icon="sync-alt" spin />
-      <font-awesome-icon
-        v-else-if="error && !success"
-        icon="exclamation-triangle"
-        class="text-danger"
-      />
-      <font-awesome-icon
-        v-else-if="!error && success"
-        icon="check-circle"
-        class="text-success"
-      />
     </b-col>
 
     <slot name="footer"></slot>

@@ -10,8 +10,9 @@
   >
     <div>
       <b-row>
-        <b-col>
-          <h3 class="text-center" :class="darkMode ? 'text-body-dark' : 'text-body-light'">Select Token</h3>
+        <b-col class="d-flex justify-content-between">
+          <h5 :class="darkMode ? 'text-body-dark' : 'text-body-light'">Select Token</h5>
+          <font-awesome-icon icon="times" @click="onChange(false)" class="cursor" :class="darkMode ? 'text-body-dark' : 'text-body-light'"/>
         </b-col>
       </b-row>
       <b-row>
