@@ -1,5 +1,6 @@
 <template>
   <b-modal
+    scrollable
     :visible="value"
     size="md"
     @change="onChange"
@@ -10,9 +11,21 @@
   >
     <div>
       <b-row>
-        <b-col class="d-flex justify-content-between">
-          <h5 :class="darkMode ? 'text-body-dark' : 'text-body-light'">Select Token</h5>
-          <font-awesome-icon icon="times" @click="onChange(false)" class="cursor" :class="darkMode ? 'text-body-dark' : 'text-body-light'"/>
+        <b-col class="d-flex justify-content-between mb-3">
+          <h5
+            class="m-0"
+            :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+          >
+            Select Token
+          </h5>
+          <span
+            @click="onChange(false)"
+            class="cursor font-size-sm font-w400 d-flex align-items-center"
+            :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+          >
+            Cancel
+            <font-awesome-icon icon="times" size="2x" class="ml-2" />
+          </span>
         </b-col>
       </b-row>
       <b-row>
@@ -53,7 +66,6 @@
           lg="6"
           v-for="token in searchedTokens"
           :key="token.id"
-
           @click="setToken(token.id)"
         >
           <token-balance-block
@@ -157,7 +169,7 @@ export default class ModalSelect extends Vue {
 }
 
 .modal-content {
-  min-height: 49vh;
+  // min-height: 49vh;
   // height: 50vh;
   // max-height: 51vh;
   // overflow: scroll;

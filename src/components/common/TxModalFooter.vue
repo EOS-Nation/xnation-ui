@@ -15,7 +15,7 @@
     </b-col>
     <b-col cols="12" class="text-center">
       <div v-if="!success && !error">
-        <h6>
+        <h6 :class="darkMode ? 'text-body-dark' : 'text-body-light'">
           Please stand by...
         </h6>
       </div>
@@ -27,7 +27,6 @@
           SUCCESS: View {{ success.substring(0, 6) }} TX on
           {{ explorerName }}
         </a>
-        <span @click="triggerClose" class="cursor text-muted">- Close</span>
       </h6>
     </b-col>
   </div>
@@ -35,6 +34,7 @@
 
 <script lang="ts">
 import { Prop, Component, Vue, PropSync, Emit } from "vue-property-decorator";
+import {vxm} from "@/store";
 
 @Component
 export default class TxModalFooter extends Vue {
@@ -45,6 +45,10 @@ export default class TxModalFooter extends Vue {
 
   @Emit("close")
   triggerClose() {}
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 }
 </script>
 

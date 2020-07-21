@@ -60,7 +60,7 @@ export default class ModalConvertToken extends Vue {
 
 <style scoped lang="scss">
 .row {
-  min-height: 50vh;
+  // min-height: 50vh;
 }
 .slide-fade-enter-active {
   transition: all 0.3s ease;
