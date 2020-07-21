@@ -142,6 +142,16 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["relay"];
   }
 
+  get primaryReserveChoices() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["primaryReserveChoices"];
+  }
+
+  get secondaryReserveChoices() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["secondaryReserveChoices"];
+  }
+
   get morePoolsAvailable() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["morePoolsAvailable"];

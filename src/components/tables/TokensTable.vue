@@ -1,6 +1,6 @@
 <template>
-  <div class="block">
-    <div class="block-header">
+  <content-block>
+    <template slot="header">
       <h3 class="block-title">
         All Tokens <small> - {{ name }}</small>
       </h3>
@@ -12,87 +12,84 @@
           placeholder="Search Token"
         ></b-form-input>
       </div>
-    </div>
-    <div class="block-content px-0 px-md-3 ">
-      <div class="table-responsive">
-        <b-table
-          id="tokens-table"
-          :key="dynamicId"
-          striped
-          stacked="sm"
-          :items="tokens"
-          :fields="filteredFields"
-          :filter="filter"
-          primary-key="id"
-          :tbody-transition-props="transProps"
-          :tbody-transition-handlers="transHandler"
-        >
-          <template v-slot:head(change24h)="data">
-            <span class="cursor text-center" style="min-width: 1500px;">{{
-              data.label
+    </template>
+
+    <div class="table-responsive">
+      <b-table
+        id="tokens-table"
+        :key="dynamicId"
+        striped
+        stacked="sm"
+        :items="tokens"
+        :fields="filteredFields"
+        :filter="filter"
+        primary-key="id"
+        :tbody-transition-props="transProps"
+        :tbody-transition-handlers="transHandler"
+      >
+        <template v-slot:head(change24h)="data">
+          <span class="cursor text-center" style="min-width: 1500px;">{{
+            data.label
+          }}</span>
+        </template>
+        <template v-slot:cell(index)="data">
+          {{ data.index + 1 }}
+        </template>
+        <template v-slot:cell(symbol)="data">
+          <img
+            v-b-tooltip.hover
+            class="img-avatar img-avatar-thumb img-avatar32"
+            :src="data.item.logo"
+            alt="Token Logo"
+          />
+          {{ data.item.symbol }}
+        </template>
+        <template v-slot:cell(change24h)="data">
+          <span
+            :class="
+              data.item.change24h == null
+                ? ''
+                : data.item.change24h > 0
+                ? `text-success font-w700`
+                : 'text-danger font-w700'
+            "
+            >{{
+              data.item.change24h == null
+                ? "N/A"
+                : numeral(data.item.change24h).format("0.00") + "%"
+            }}</span
+          >
+        </template>
+        <template v-slot:cell(price)="data">
+          <span class="text-center font-w700">
+            <span v-if="data.item.price < 100">{{
+              numeral(data.item.price).format("$0,0.0000")
             }}</span>
-          </template>
-          <template v-slot:cell(index)="data">
-            {{ data.index + 1 }}
-          </template>
-          <template v-slot:cell(symbol)="data">
-            <img
-              v-b-tooltip.hover
-              class="img-avatar img-avatar-thumb img-avatar32"
-              :src="data.item.logo"
-              alt="Token Logo"
-            />
-            {{ data.item.symbol }}
-          </template>
-          <template v-slot:cell(change24h)="data">
-            <span
-              :class="
-                data.item.change24h == null
-                  ? ''
-                  : data.item.change24h > 0
-                  ? `text-success font-w700`
-                  : 'text-danger font-w700'
-              "
-              >{{
-                data.item.change24h == null
-                  ? "N/A"
-                  : numeral(data.item.change24h).format("0.00") + "%"
-              }}</span
+            <span v-else>{{ numeral(data.item.price).format("$0,0.00") }}</span>
+          </span>
+        </template>
+        <template v-slot:cell(actions)="data">
+          <span>
+            <b-btn
+              @click="initAction('convert', data.item.id)"
+              size="sm"
+              variant="success"
+              class="mr-1"
             >
-          </template>
-          <template v-slot:cell(price)="data">
-            <span class="text-center font-w700">
-              <span v-if="data.item.price < 100">{{
-                numeral(data.item.price).format("$0,0.0000")
-              }}</span>
-              <span v-else>{{
-                numeral(data.item.price).format("$0,0.00")
-              }}</span>
-            </span>
-          </template>
-          <template v-slot:cell(actions)="data">
-            <span>
-              <b-btn
-                @click="initAction('convert', data.item.id)"
-                size="sm"
-                variant="success"
-                class="mr-1"
-              >
-                <font-awesome-icon icon="exchange-alt" />
-              </b-btn>
-              <b-btn
-                @click="initAction('transfer', data.item.id)"
-                size="sm"
-                variant="info"
-              >
-                <font-awesome-icon icon="arrow-right" />
-              </b-btn>
-            </span>
-          </template>
-        </b-table>
-      </div>
+              <font-awesome-icon icon="exchange-alt" />
+            </b-btn>
+            <b-btn
+              @click="initAction('transfer', data.item.id)"
+              size="sm"
+              variant="info"
+            >
+              <font-awesome-icon icon="arrow-right" />
+            </b-btn>
+          </span>
+        </template>
+      </b-table>
     </div>
-  </div>
+  </content-block>
 </template>
 
 <script lang="ts">
@@ -114,9 +111,11 @@ const {
 } = require("vue-content-loader");
 const debounce = require("lodash.debounce");
 import Velocity from "velocity-animate";
+import ContentBlock from "@/components/common/ContentBlock.vue";
 
 @Component({
   components: {
+    ContentBlock,
     ContentLoader,
     FacebookLoader,
     CodeLoader,

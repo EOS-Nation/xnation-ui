@@ -48,7 +48,7 @@
             : 'bg-body-light text-body-light'
         "
       >
-        <b-container fluid="xl" class="pt-4">
+        <b-container fluid="xl" class="pt-1">
           <b-row class="d-flex justify-content-center">
             <b-col cols="12" style="max-width: 460px">
               <router-view name="Hero"></router-view>

@@ -1,7 +1,5 @@
 <template>
-  <content-block
-    class="mb-3"
-  >
+  <content-block class="mb-3">
     <template slot="header">
       <sub-navigation />
     </template>

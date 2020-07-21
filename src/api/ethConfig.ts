@@ -305,6 +305,40 @@ export const ABIBancorGasPriceLimit: AbiItem[] = [
   }
 ];
 
+export const ABIMultiCallContract: AbiItem[] = [
+  {
+    constant: false,
+    inputs: [
+      {
+        components: [
+          { internalType: "address", name: "target", type: "address" },
+          { internalType: "bytes", name: "callData", type: "bytes" }
+        ],
+        internalType: "struct Multicall.Call[]",
+        name: "calls",
+        type: "tuple[]"
+      },
+      { internalType: "bool", name: "strict", type: "bool" }
+    ],
+    name: "aggregate",
+    outputs: [
+      { internalType: "uint256", name: "blockNumber", type: "uint256" },
+      {
+        components: [
+          { internalType: "bool", name: "success", type: "bool" },
+          { internalType: "bytes", name: "data", type: "bytes" }
+        ],
+        internalType: "struct Multicall.Return[]",
+        name: "returnData",
+        type: "tuple[]"
+      }
+    ],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  }
+];
+
 export const ABISmartToken: AbiItem[] = [
   {
     constant: true,
@@ -3347,6 +3381,15 @@ export const ABIV2Converter: AbiItem[] = [
     type: "function"
   },
   {
+    constant: true,
+    inputs: [],
+    name: "referenceRate",
+    outputs: [{ name: "n", type: "uint256" }, { name: "d", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
     constant: false,
     inputs: [],
     name: "restoreRegistry",
@@ -3360,6 +3403,15 @@ export const ABIV2Converter: AbiItem[] = [
     inputs: [],
     name: "conversionsEnabled",
     outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "referenceRateUpdateTime",
+    outputs: [{ name: "", type: "uint256" }],
     payable: false,
     stateMutability: "view",
     type: "function"
@@ -3500,6 +3552,15 @@ export const ABIV2Converter: AbiItem[] = [
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "lastConversionRate",
+    outputs: [{ name: "n", type: "uint256" }, { name: "d", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
     type: "function"
   },
   {
@@ -3701,10 +3762,33 @@ export const ABIV2Converter: AbiItem[] = [
     type: "function"
   },
   {
+    constant: true,
+    inputs: [],
+    name: "effectiveTokensRate",
+    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [
+      { name: "_sourceToken", type: "address" },
+      { name: "_targetToken", type: "address" },
+      { name: "_amount", type: "uint256" }
+    ],
+    name: "targetAmountAndFee",
+    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
     constant: false,
     inputs: [
       { name: "_reserveToken", type: "address" },
-      { name: "_amount", type: "uint256" }
+      { name: "_amount", type: "uint256" },
+      { name: "_minReturn", type: "uint256" }
     ],
     name: "addLiquidity",
     outputs: [{ name: "", type: "uint256" }],
@@ -3716,7 +3800,8 @@ export const ABIV2Converter: AbiItem[] = [
     constant: false,
     inputs: [
       { name: "_poolToken", type: "address" },
-      { name: "_amount", type: "uint256" }
+      { name: "_amount", type: "uint256" },
+      { name: "_minReturn", type: "uint256" }
     ],
     name: "removeLiquidity",
     outputs: [{ name: "", type: "uint256" }],
@@ -3727,11 +3812,19 @@ export const ABIV2Converter: AbiItem[] = [
   {
     constant: true,
     inputs: [
-      { name: "_sourceToken", type: "address" },
-      { name: "_targetToken", type: "address" },
+      { name: "_poolToken", type: "address" },
       { name: "_amount", type: "uint256" }
     ],
-    name: "targetAmountAndFee",
+    name: "removeLiquidityReturn",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "effectiveReserveWeights",
     outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
     payable: false,
     stateMutability: "view",

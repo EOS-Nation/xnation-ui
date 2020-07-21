@@ -8,7 +8,8 @@ import {
   ABIConverterV28,
   ABINetworkContract,
   ABIV2Converter,
-  V2PoolsTokenContainer
+  V2PoolsTokenContainer,
+  ABIMultiCallContract
 } from "@/api/ethConfig";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
@@ -111,10 +112,29 @@ export const buildV2PoolsContainer = (
   poolTokens: () => CallReturn<string[]>;
 }> => buildContract(V2PoolsTokenContainer, contractAddress);
 
-export const buildConverterContract = (
+export const buildMultiCallContract = (
   contractAddress: string
 ): ContractMethods<{
+  aggregate: (
+    calls: any[],
+    strict: boolean
+  ) => CallReturn<{
+    blockNumber: string;
+    returnData: {
+      success: boolean;
+      data: string;
+    }[];
+  }>;
+}> => buildContract(ABIMultiCallContract, contractAddress);
+
+export const buildConverterContract = (
+  contractAddress?: string
+): ContractMethods<{
   acceptTokenOwnership: () => ContractSendMethod;
+  reserves: (reserveAddress: string) => CallReturn<any[]>;
+  reserveBalance: (reserveAddress: string) => CallReturn<string>;
+  getConnectorBalance: (reserveAddress: string) => CallReturn<string>;
+  getReserveBalance: (reserveAdress: string) => CallReturn<string>;
   acceptOwnership: () => ContractSendMethod;
   fund: (fundAmount: string) => ContractSendMethod;
   liquidate: (fundAmount: string) => ContractSendMethod;
@@ -140,7 +160,7 @@ export const buildConverterContract = (
 }> => buildContract(ABIConverter, contractAddress);
 
 export const buildV2Converter = (
-  contractAddress: string
+  contractAddress?: string
 ): ContractMethods<{
   activate: (
     primaryReserveToken: string,
@@ -148,6 +168,8 @@ export const buildV2Converter = (
     secondaryReserveOracle: string
   ) => ContractSendMethod;
   reserveStakedBalance: (reserveToken: string) => CallReturn<string>;
+  primaryReserveToken: () => CallReturn<string>;
+  secondaryReserveToken: () => CallReturn<string>;
   poolToken: (reserveToken: string) => CallReturn<string>;
   liquidationLimit: (poolToken: string) => CallReturn<string>;
   effectiveReserveWeights: () => CallReturn<{ "0": string; "1": string }>;
@@ -168,7 +190,7 @@ export const buildV2Converter = (
 }> => buildContract(ABIV2Converter, contractAddress);
 
 export const buildV28ConverterContract = (
-  contractAddress: string
+  contractAddress?: string
 ): ContractMethods<{
   acceptTokenOwnership: () => ContractSendMethod;
   acceptOwnership: () => ContractSendMethod;
