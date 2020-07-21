@@ -1965,10 +1965,12 @@ export class EthBancorModule
 
   @action async buildPossibleReserveFeedsFromBancorApi(relays: Relay[]) {
     const feeds = await this.possibleRelayFeedsFromBancorApi(relays);
-    console.assert(
-      feeds.length > 1,
-      `was expecting relay feeds to be created by bancor api when it was passed ${relays.length} relays`
-    );
+    const noFeedsCreated = feeds.length == 0;
+    if (noFeedsCreated && this.currentNetwork == EthNetworks.Mainnet) {
+      console.warn(
+        `Failed to create any feeds from the Bancor API after passing it ${relays.length} relays.`
+      );
+    }
     this.updateRelayFeeds(feeds);
   }
 
