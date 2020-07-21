@@ -3058,23 +3058,9 @@ export class EthBancorModule
       return this.refresh();
     }
 
-    const toDecode =
-      "0x00000000000000000000000000000000000000000000000000000000000189ed00000000000000000000000000000000000000000000000000000000000db853";
-
-    const x = web3.eth.abi.decodeParameters(["uint256", "uint256"], toDecode);
-
-    console.log(x, "was the reuslt of xx");
-
-    const contract = buildV28ConverterContract(
-      "0x7a3683e2661A4c794A1e98fAd2dC310f6C0787ad"
-    );
-    console.log(
-      await contract.methods.converterType().call(),
-      "was the converter type"
-    );
-
     const web3NetworkVersion = await web3.eth.getChainId();
     const currentNetwork: EthNetworks = web3NetworkVersion;
+    console.log(currentNetwork, "is the current network");
     this.setNetwork(currentNetwork);
     const networkVariables = getNetworkVariables(currentNetwork);
 
@@ -3089,6 +3075,7 @@ export class EthBancorModule
       params.tradeQuery.quote = networkVariables.bntToken;
     }
 
+    console.log("getting to try...");
     try {
       let bancorApiTokens: TokenPrice[] = [];
 
