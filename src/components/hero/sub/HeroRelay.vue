@@ -111,11 +111,7 @@
             rightSubtitle=""
           >
             <template slot="icon">
-              <font-awesome-icon
-                      icon="plus"
-                      class="text-primary"
-                      size="2x"
-              />
+              <font-awesome-icon icon="plus" class="text-primary" size="2x" />
             </template>
             <template v-slot:footer>
               <TxModalFooter
@@ -126,7 +122,12 @@
                 @close="txModal = false"
               />
               <b-col cols="12">
-                <b-btn @click="withdrawLiquidity ? remove() : add()" variant="primary" class="btn-block" size="lg">
+                <b-btn
+                  @click="withdrawLiquidity ? remove() : add()"
+                  variant="primary"
+                  class="btn-block"
+                  size="lg"
+                >
                   Confirm
                   {{ withdrawLiquidity ? "Remove Liquidity" : "Add Liquidity" }}
                 </b-btn>
@@ -564,12 +565,12 @@ export default class HeroRelay extends Vue {
 
   async fetchBalances() {
     if (!this.isAuthenticated) return;
-    const { maxWithdrawals, smartTokenBalance } = await this.getUserBalances(
+    const { maxWithdrawals, iouBalances } = await this.getUserBalances(
       this.focusedId
     );
     this.updateMaxBalances(maxWithdrawals);
 
-    this.smartUserBalance = smartTokenBalance;
+    this.smartUserBalance = iouBalances[0].amount;
   }
 
   set token2Id(newId: string) {

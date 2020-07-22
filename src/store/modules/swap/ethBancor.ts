@@ -1427,7 +1427,6 @@ export class EthBancorModule
     const { reserves, version, contract } = await this.relayById(poolId);
 
     const converterContract = buildConverterContract(contract);
-
     const smartTokenContract = buildTokenContract(poolId);
 
     const [reserveBalances, totalSupplyWei] = await Promise.all([
@@ -1559,7 +1558,7 @@ export class EthBancorModule
 
     return {
       maxWithdrawals,
-      smartTokenBalance: String(smartTokenUserBalance)
+      iouBalances: [{ id: "", amount: String(smartTokenUserBalance) }]
     };
   }
 
@@ -1605,12 +1604,58 @@ export class EthBancorModule
     relayId: string
     // @ts-ignore
   ): Promise<UserPoolBalances> {
-    // console.log("todo, get user pool balances");
-    // get pool tokens
-    // get user pool token balances
-    // display pool token balance, 1:1?
-    // utilise anchor contract method to return actual balance expectations
-    //
+    const relay = await this.chainLinkRelayById(relayId);
+    const poolTokenBalances = await Promise.all(
+      relay.anchor.poolTokens.map(async reserveAndPool => ({
+        ...reserveAndPool,
+        poolUserBalance: Number(
+          await this.getUserBalance(reserveAndPool.poolToken.contract)
+        ),
+        reserveToken: findOrThrow(relay.reserves, reserve =>
+          compareString(reserve.contract, reserveAndPool.reserveId)
+        )
+      }))
+    );
+
+    console.log(poolTokenBalances, "are the pool token balances");
+
+    const v2Converter = buildV2Converter(relay.contract);
+    const data = await Promise.all(
+      poolTokenBalances.map(async poolTokenBalance => {
+        const maxMaxwithdraw = await v2Converter.methods
+          .removeLiquidityReturn(
+            relay.contract,
+            expandToken(
+              poolTokenBalance.poolUserBalance,
+              poolTokenBalance.poolToken.decimals
+            )
+          )
+          .call();
+        return {
+          ...poolTokenBalance,
+          maxWithdraw: shrinkToken(
+            maxMaxwithdraw,
+            poolTokenBalance.reserveToken.decimals
+          )
+        };
+      })
+    );
+
+    const maxWithdrawals = data.map(
+      (x): ViewAmount => ({
+        id: x.reserveId,
+        amount: String(x.maxWithdraw)
+      })
+    );
+
+    const iouBalances = data.map(
+      (x): ViewAmount => ({
+        id: x.reserveId,
+        amount: String(x.poolUserBalance)
+      })
+    );
+
+    return { iouBalances, maxWithdrawals };
   }
 
   @action async getUserBalances(relayId: string): Promise<UserPoolBalances> {

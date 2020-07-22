@@ -268,7 +268,7 @@ export interface TradingModule {
 
 export interface UserPoolBalances {
   maxWithdrawals: ViewAmount[];
-  smartTokenBalance: string;
+  iouBalances: ViewAmount[];
 }
 
 export interface LiquidityModule {
