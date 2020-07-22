@@ -578,12 +578,12 @@ export default class HeroRelay extends Vue {
 
   async fetchBalances() {
     if (!this.isAuthenticated) return;
-    const { maxWithdrawals, smartTokenBalance } = await this.getUserBalances(
+    const { maxWithdrawals, iouBalances } = await this.getUserBalances(
       this.focusedId
     );
     this.updateMaxBalances(maxWithdrawals);
 
-    this.smartUserBalance = smartTokenBalance;
+    this.smartUserBalance = iouBalances[0].amount;
   }
 
   set token2Id(newId: string) {

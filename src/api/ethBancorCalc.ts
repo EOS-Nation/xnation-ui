@@ -9,7 +9,8 @@ import {
   ABINetworkContract,
   ABIV2Converter,
   V2PoolsTokenContainer,
-  ABIMultiCallContract
+  ABIMultiCallContract,
+  ABIContainerContract
 } from "@/api/ethConfig";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
@@ -106,6 +107,14 @@ export const buildTokenContract = (
   ) => ContractSendMethod;
 }> => buildContract(ABISmartToken, contractAddress);
 
+export const buildContainerContract = (
+  contractAddress?: string
+): ContractMethods<{
+  poolTokens(): CallReturn<string[]>;
+  symbol: () => CallReturn<string>;
+  decimals: () => CallReturn<string>;
+}> => buildContract(ABIContainerContract, contractAddress);
+
 export const buildV2PoolsContainer = (
   contractAddress: string
 ): ContractMethods<{
@@ -160,7 +169,7 @@ export const buildConverterContract = (
 }> => buildContract(ABIConverter, contractAddress);
 
 export const buildV2Converter = (
-  contractAddress: string
+  contractAddress?: string
 ): ContractMethods<{
   activate: (
     primaryReserveToken: string,
@@ -168,6 +177,8 @@ export const buildV2Converter = (
     secondaryReserveOracle: string
   ) => ContractSendMethod;
   reserveStakedBalance: (reserveToken: string) => CallReturn<string>;
+  primaryReserveToken: () => CallReturn<string>;
+  secondaryReserveToken: () => CallReturn<string>;
   poolToken: (reserveToken: string) => CallReturn<string>;
   liquidationLimit: (poolToken: string) => CallReturn<string>;
   effectiveReserveWeights: () => CallReturn<{ "0": string; "1": string }>;

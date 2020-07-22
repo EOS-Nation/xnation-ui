@@ -27,7 +27,8 @@ import {
   ProposedToTransaction,
   ModuleParam,
   TokenBalanceParam,
-  TokenBalanceReturn
+  TokenBalanceReturn,
+  UserPoolBalances
 } from "@/types/bancor";
 import { bancorApi, ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -1795,7 +1796,7 @@ export class EosBancorModule
     }
   }
 
-  @action async getUserBalances(relayId: string) {
+  @action async getUserBalances(relayId: string): Promise<UserPoolBalances> {
     const relay = await this.relayById(relayId);
     const [[smartTokenBalance], reserves, supply] = await Promise.all([
       vxm.network.getBalances({
@@ -1823,7 +1824,7 @@ export class EosBancorModule
 
     return {
       maxWithdrawals,
-      smartTokenBalance: String(smartTokenBalance.balance)
+      iouBalances: [{ id: "", amount: String(smartTokenBalance.balance) }]
     };
   }
 
