@@ -219,6 +219,10 @@ export interface ContractMethods<T> extends Contract {
 }
 
 export interface CallReturn<T = any> {
+  arguments: any[];
+  _method: {
+    outputs: { name: string; type: string }[];
+  };
   call: () => Promise<T>;
   encodeABI: () => string;
 }
