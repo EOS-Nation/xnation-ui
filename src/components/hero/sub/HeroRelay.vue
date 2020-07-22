@@ -21,7 +21,7 @@
                 withdrawLiquidity ? (darkMode ? 'dark' : 'light') : 'primary'
               "
               @click="withdrawLiquidity = false"
-              class="btn-block py-3"
+              class="btn-block block-rounded py-3"
               >Add Liquidity</b-btn
             >
           </b-col>
@@ -31,7 +31,7 @@
               :variant="
                 withdrawLiquidity ? 'primary' : darkMode ? 'dark' : 'light'
               "
-              class="btn-block py-3"
+              class="btn-block block-rounded py-3"
               >Remove Liquidity</b-btn
             >
           </b-col>
@@ -83,7 +83,7 @@
         <b-btn
           @click="txModal = true"
           variant="primary"
-          class="btn-block mt-3"
+          class="btn-block block-rounded mt-3"
           size="lg"
         >
           <font-awesome-icon icon="arrow-right" fixed-width class="mr-2" />
@@ -138,7 +138,7 @@
                 <b-btn
                   @click="withdrawLiquidity ? remove() : add()"
                   variant="primary"
-                  class="btn-block"
+                  class="btn-block block-rounded"
                   size="lg"
                 >
                   Confirm

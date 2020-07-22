@@ -20,7 +20,7 @@
     <div v-else class="block-header">
       <slot name="header"></slot>
     </div>
-    <div class="block-content py-3">
+    <div class="block-content pb-3 pt-0">
       <slot></slot>
     </div>
   </div>

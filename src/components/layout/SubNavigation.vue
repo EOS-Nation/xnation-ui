@@ -1,9 +1,9 @@
 <template>
   <div class="w-100 text-center mt-2">
     <b-row>
-      <b-col cols="6" class="pr-2">
+      <b-col cols="6" class="pr-1">
         <b-btn
-          class="btn-block mx-1 block-rounded"
+          class="btn-block block-rounded"
           :key="navItems[0].label"
           :to="navItems[0].destination"
           :disabled="navItems[0].disabled"
@@ -13,9 +13,9 @@
           {{ navItems[0].label }}
         </b-btn>
       </b-col>
-      <b-col cols="6" class="pl-2">
+      <b-col cols="6" class="pl-1">
         <b-btn
-          class="btn-block mx-1 block-rounded"
+          class="btn-block block-rounded"
           :key="navItems[1].label"
           :to="navItems[1].destination"
           :disabled="navItems[1].disabled"
@@ -141,7 +141,7 @@ export default class SubNavigation extends Vue {
   get navItems() {
     return [
       {
-        label: "Convert",
+        label: "Swap",
         destination: createDirectRoute("Tokens"),
         render: this.selectedService!.features.includes(0),
         disabled: false,
@@ -149,7 +149,7 @@ export default class SubNavigation extends Vue {
         active: this.$route.name == "Tokens"
       },
       {
-        label: "Pools",
+        label: "Pool",
         destination: createDirectRoute("Relays"),
         render: this.selectedService!.features.includes(2),
         disabled: false,

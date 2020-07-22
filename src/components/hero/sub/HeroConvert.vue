@@ -45,7 +45,7 @@
         <b-btn
           @click="txModal = true"
           variant="primary"
-          class="btn-block mt-3"
+          class="btn-block block-rounded mt-3"
           :disabled="disableConvert"
           size="lg"
         >
@@ -75,17 +75,19 @@
           :rightImg="toToken.logo"
           :rightTitle="`${toTokenAmount} ${toToken.symbol}`"
           :rightSubtitle="toToken.name"
+          :tx-busy="txBusy"
         >
           <template slot="icon">
             <font-awesome-icon
+              @click="swapTokens"
               icon="exchange-alt"
-              class="text-primary"
+              class="text-primary cursor"
               size="1x"
               rotation="90"
             />
           </template>
           <template v-slot:footer>
-            <b-col md="12">
+            <b-col md="12" v-if="!(txBusy || success || error)">
               <div
                 class="block block-rounded font-size-sm block-shadow"
                 :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
@@ -179,7 +181,7 @@
               <b-btn
                 @click="initConvert"
                 variant="primary"
-                class="btn-block"
+                class="btn-block block-rounded"
                 size="lg"
                 :disabled="txBusy"
               >
@@ -309,7 +311,7 @@ export default class HeroConvert extends Vue {
   calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
 
   get confirmButton() {
-    return this.error ? "Try Again" : this.success ? "Close" : "Confirm Swap";
+    return this.error ? "Try Again" : this.success ? "Close" : this.txBusy ? "processing ..." : "Confirm Swap";
   }
 
   get darkMode() {
@@ -512,6 +514,11 @@ export default class HeroConvert extends Vue {
 
     if (this.success) {
       this.closeTxModal()
+      return;
+    }
+
+    if (this.error) {
+      this.error = ""
       return;
     }
 

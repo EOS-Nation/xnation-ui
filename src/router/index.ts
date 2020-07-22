@@ -105,7 +105,6 @@ export const router = new Router({
       name: "RelayDetail",
       components: {
         Nav: Navigation,
-        default: RelayDetail,
         Hero: HeroRelay
       },
       props: true
@@ -115,7 +114,6 @@ export const router = new Router({
       name: "Relay",
       components: {
         Nav: Navigation,
-        default: Relays,
         Hero: HeroRelay
       },
       props: true,
