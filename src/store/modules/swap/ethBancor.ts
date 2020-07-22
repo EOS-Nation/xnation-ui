@@ -47,13 +47,14 @@ import {
   viewTokenToModalChoice,
   reserveIncludedInRelay,
   sortAlongSide,
-  RelayWithReserveBalances
+  RelayWithReserveBalances,
+  createIndexes,
+  rebuildFromIndex
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
   ABIContractRegistry,
   ABIConverterRegistry,
-  ABINetworkPathFinder,
   ethErc20WrapperContract,
   ethReserveAddress
 } from "@/api/ethConfig";

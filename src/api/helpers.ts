@@ -683,3 +683,19 @@ export interface TickerPrice {
   sell: number;
   symbol: string;
 }
+
+type indexSet = [number, number];
+
+export const createIndexes = (data: any[][]): indexSet[] =>
+  data.reduce(
+    (acc, item) => ({
+      lastIndex: acc.lastIndex + item.length,
+      built: acc.built.concat([[acc.lastIndex, acc.lastIndex + item.length]])
+    }),
+    { lastIndex: 0, built: [] as indexSet[] }
+  ).built;
+
+export const rebuildFromIndex = <T>(
+  arr: T[],
+  indexes: [number, number][]
+): T[][] => indexes.map(([before, after]) => arr.slice(before, after));
