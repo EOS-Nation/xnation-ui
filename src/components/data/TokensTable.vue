@@ -1,95 +1,78 @@
 <template>
-  <content-block>
-    <template slot="header">
-      <h3 class="block-title">
-        All Tokens <small> - {{ name }}</small>
-      </h3>
-      <div class="block-options">
-        <b-form-input
-          class="form-control form-control-alt"
-          debounce="500"
-          v-model="filter"
-          placeholder="Search Token"
-        ></b-form-input>
-      </div>
-    </template>
-
-    <div class="table-responsive">
-      <b-table
-        id="tokens-table"
-        :key="dynamicId"
-        striped
-        stacked="sm"
-        :items="tokens"
-        :fields="filteredFields"
-        :filter="filter"
-        primary-key="id"
-        :tbody-transition-props="transProps"
-        :tbody-transition-handlers="transHandler"
-      >
-        <template v-slot:head(change24h)="data">
-          <span class="cursor text-center" style="min-width: 1500px;">{{
-            data.label
+  <div class="table-responsive">
+    <b-table
+      id="tokens-table"
+      :key="dynamicId"
+      stacked="sm"
+      :items="tokens"
+      :fields="filteredFields"
+      :filter="filter"
+      primary-key="id"
+      :tbody-transition-props="transProps"
+      :tbody-transition-handlers="transHandler"
+    >
+      <template v-slot:head(change24h)="data">
+        <span class="cursor text-center" style="min-width: 1500px;">{{
+          data.label
+        }}</span>
+      </template>
+      <template v-slot:cell(index)="data">
+        {{ data.index + 1 }}
+      </template>
+      <template v-slot:cell(symbol)="data">
+        <img
+          v-b-tooltip.hover
+          class="img-avatar img-avatar-thumb img-avatar32"
+          :src="data.item.logo"
+          alt="Token Logo"
+        />
+        {{ data.item.symbol }}
+      </template>
+      <template v-slot:cell(change24h)="data">
+        <span
+          :class="
+            data.item.change24h == null
+              ? ''
+              : data.item.change24h > 0
+              ? `text-success font-w700`
+              : 'text-danger font-w700'
+          "
+          >{{
+            data.item.change24h == null
+              ? "N/A"
+              : numeral(data.item.change24h).format("0.00") + "%"
+          }}</span
+        >
+      </template>
+      <template v-slot:cell(price)="data">
+        <span class="text-center font-w700">
+          <span v-if="data.item.price < 100">{{
+            numeral(data.item.price).format("$0,0.0000")
           }}</span>
-        </template>
-        <template v-slot:cell(index)="data">
-          {{ data.index + 1 }}
-        </template>
-        <template v-slot:cell(symbol)="data">
-          <img
-            v-b-tooltip.hover
-            class="img-avatar img-avatar-thumb img-avatar32"
-            :src="data.item.logo"
-            alt="Token Logo"
-          />
-          {{ data.item.symbol }}
-        </template>
-        <template v-slot:cell(change24h)="data">
-          <span
-            :class="
-              data.item.change24h == null
-                ? ''
-                : data.item.change24h > 0
-                ? `text-success font-w700`
-                : 'text-danger font-w700'
-            "
-            >{{
-              data.item.change24h == null
-                ? "N/A"
-                : numeral(data.item.change24h).format("0.00") + "%"
-            }}</span
+          <span v-else>{{ numeral(data.item.price).format("$0,0.00") }}</span>
+        </span>
+      </template>
+      <template v-slot:cell(actions)="data">
+        <span>
+          <b-btn
+            @click="initAction('convert', data.item.id)"
+            size="sm"
+            variant="success"
+            class="mr-1"
           >
-        </template>
-        <template v-slot:cell(price)="data">
-          <span class="text-center font-w700">
-            <span v-if="data.item.price < 100">{{
-              numeral(data.item.price).format("$0,0.0000")
-            }}</span>
-            <span v-else>{{ numeral(data.item.price).format("$0,0.00") }}</span>
-          </span>
-        </template>
-        <template v-slot:cell(actions)="data">
-          <span>
-            <b-btn
-              @click="initAction('convert', data.item.id)"
-              size="sm"
-              variant="success"
-              class="mr-1"
-            >
-              <font-awesome-icon icon="exchange-alt" />
-            </b-btn>
-            <b-btn
-              @click="initAction('transfer', data.item.id)"
-              size="sm"
-              variant="info"
-            >
-              <font-awesome-icon icon="arrow-right" />
-            </b-btn>
-          </span>
-        </template>
-      </b-table>
-    </div>
-  </content-block>
+            <font-awesome-icon icon="exchange-alt" />
+          </b-btn>
+          <b-btn
+            @click="initAction('transfer', data.item.id)"
+            size="sm"
+            variant="info"
+          >
+            <font-awesome-icon icon="arrow-right" />
+          </b-btn>
+        </span>
+      </template>
+    </b-table>
+  </div>
 </template>
 
 <script lang="ts">
@@ -112,6 +95,7 @@ const {
 const debounce = require("lodash.debounce");
 import Velocity from "velocity-animate";
 import ContentBlock from "@/components/common/ContentBlock.vue";
+import { vxm } from "@/store";
 
 @Component({
   components: {
@@ -129,15 +113,12 @@ export default class TokensTable extends Vue {
   @Prop(Boolean) loading?: boolean;
   @Prop(Boolean) scrollToTop?: boolean;
 
-  @Prop() tokens!: SimpleToken[] | SimpleTokenWithMarketData[];
-  @Prop() value!: string;
-  @Prop() name!: string;
+  @Prop({ default: "" }) filter!: string;
 
   dynamicId = "mate";
 
   small = false;
 
-  filter = "";
   numeral = numeral;
 
   transProps = {
@@ -164,18 +145,9 @@ export default class TokensTable extends Vue {
 
   fields = [
     {
-      key: "index",
-      label: "#",
-      class: "index-header"
-    },
-    {
       key: "symbol",
       sortable: true,
-      label: "Token"
-    },
-    {
-      key: "name",
-      sortable: false
+      label: "Name"
     },
     {
       key: "change24h",
@@ -216,6 +188,10 @@ export default class TokensTable extends Vue {
     }
   ];
 
+  get tokens() {
+    return vxm.bancor.tokens;
+  }
+
   initAction(action: "convert" | "transfer", symbol: string) {
     if (this.scrollToTop) {
       window.scroll({
@@ -237,7 +213,7 @@ export default class TokensTable extends Vue {
       : this.fields;
     const hasKeys = small.filter(field => {
       if (field.key == "index" || field.key == "actions") return true;
-      return this.tokens.some(token =>
+      return this.tokens.some((token: any) =>
         new Object(token).hasOwnProperty(field.key)
       );
     });
@@ -261,6 +237,26 @@ export default class TokensTable extends Vue {
   @Watch("tokens")
   onChange() {
     this.tokensChanged();
+  }
+
+  onConvert(symbolName: string) {
+    const { query, params } = this.$route;
+    const { base, quote } = query;
+    this.$router.push({
+      name: "Tokens",
+      query: {
+        ...query,
+        quote: symbolName,
+        ...(base == symbolName && { base: quote })
+      }
+    });
+  }
+
+  onTransfer(symbolName: string) {
+    this.$router.push({
+      name: "Transfer",
+      params: { symbolName }
+    });
   }
 
   created() {

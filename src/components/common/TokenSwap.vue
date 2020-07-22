@@ -1,94 +1,31 @@
 <template>
   <b-row class="d-flex align-items-center justify-content-center">
-    <token-block
-      :title="leftHeader"
-      :img="leftImg"
-      :tokenAmount="leftTitle"
-      :tokenName="leftSubtitle"
-    />
-    <b-col cols="12">
-      <slot name="icon"></slot>
-    </b-col>
-    <token-block
-      :title="rightHeader"
-      :img="rightImg"
-      :tokenAmount="rightTitle"
-      :tokenName="rightSubtitle"
-    />
-    <b-col cols="12">
-      <p
-        class="font-size-sm font-w400 text-center mt-1 mb-2"
-        :class="!darkMode ? 'text-muted-light' : 'text-muted-dark'"
-      >
-        Output is estimated. If the price changes by more than 0.5% your
-        transaction will revert.
-      </p>
-    </b-col>
-    <b-col md="12">
-      <div
-        class="block block-rounded font-size-sm"
-        :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
-      >
-        <div class="block-content py-2">
-          <div class="d-flex justify-content-between">
-            <p
-              class="m-0 my-1 p-0"
-              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-            >
-              Price
-            </p>
-            <p
-              class="m-0 my-1 p-0 font-w600"
-              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-            >
-              ?????? ETH/BNT
-            </p>
-          </div>
-          <div class="d-flex justify-content-between">
-            <p
-              class="m-0 my-1 p-0"
-              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-            >
-              Minimum Sent
-            </p>
-            <p
-              class="m-0 my-1 p-0 font-w600"
-              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-            >
-              ?????? ETH
-            </p>
-          </div>
-          <div class="d-flex justify-content-between">
-            <p
-              class="m-0 my-1 p-0"
-              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-            >
-              Price Impact
-            </p>
-            <p
-              class="m-0 my-1 p-0 font-w600"
-              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-            >
-              ?.??%
-            </p>
-          </div>
-          <div class="d-flex justify-content-between">
-            <p
-              class="m-0 my-1 p-0"
-              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-            >
-              Liquidity Provider Fee
-            </p>
-            <p
-              class="m-0 my-1 p-0 font-w600"
-              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-            >
-              ?.????
-            </p>
-          </div>
-        </div>
-      </div>
-    </b-col>
+    <div v-if="!(txBusy || success || error)">
+      <token-block
+        :title="leftHeader"
+        :img="leftImg"
+        :tokenAmount="leftTitle"
+        :tokenName="leftSubtitle"
+      />
+      <b-col cols="12">
+        <slot name="icon"></slot>
+      </b-col>
+      <token-block
+        :title="rightHeader"
+        :img="rightImg"
+        :tokenAmount="rightTitle"
+        :tokenName="rightSubtitle"
+      />
+      <b-col cols="12">
+        <p
+          class="font-size-sm font-w400 text-center mt-1 mb-2"
+          :class="!darkMode ? 'text-muted-light' : 'text-muted-dark'"
+        >
+          Output is estimated. If the price changes by more than 0.5% your
+          transaction will revert.
+        </p>
+      </b-col>
+    </div>
 
     <slot name="footer"></slot>
   </b-row>
@@ -108,6 +45,7 @@ import TokenBlock from "@/components/common/TokenBlock.vue";
 export default class TokenBalanceBlock extends Vue {
   @Prop() error!: string;
   @Prop() success!: string;
+  @Prop({ default: false }) txBusy!: boolean;
 
   @Prop() leftImg!: string;
   @Prop() leftTitle!: string;

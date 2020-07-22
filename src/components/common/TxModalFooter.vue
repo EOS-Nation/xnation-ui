@@ -1,33 +1,43 @@
 <template>
   <div>
-    <b-col md="12" class="text-center mb-2 font-size-h1 text-primary">
-      <font-awesome-icon v-if="!success && !error" icon="sync-alt" spin />
+    <b-col md="12" class="text-center my-4 text-primary">
+      <font-awesome-icon v-if="!success && !error" size="3x" icon="circle-notch" spin />
       <font-awesome-icon
         v-else-if="error && !success"
         icon="exclamation-triangle"
         class="text-danger"
+        size="3x"
       />
       <font-awesome-icon
         v-else-if="!error && success"
         icon="check-circle"
         class="text-success"
+        size="3x"
       />
     </b-col>
     <b-col cols="12" class="text-center">
       <div v-if="!success && !error">
-        <h6>
-          Please stand by...
+        <h3 :class="darkMode ? 'text-body-dark' : 'text-body-light'">
+          Digesting ...
+        </h3>
+        <h6 :class="darkMode ? 'text-body-dark' : 'text-body-light'">
+          Wait for your Wallet to prompt and continue there
         </h6>
       </div>
       <h6 v-else-if="error && !success" class="text-danger">
+        <h3 :class="darkMode ? 'text-body-dark' : 'text-body-light'">
+          Transaction Failed
+        </h3>
         Error: {{ error }}
       </h6>
       <h6 v-else-if="!error && success">
-        <a :href="explorerLink" target="_blank" class="text-success">
-          SUCCESS: View {{ success.substring(0, 6) }} TX on
+        <h3 :class="darkMode ? 'text-body-dark' : 'text-body-light'">
+          Transaction Submitted
+        </h3>
+        <a :href="explorerLink" target="_blank" class="text-primary">
+          View {{ success.substring(0, 6) }} TX on
           {{ explorerName }}
         </a>
-        <span @click="triggerClose" class="cursor text-muted">- Close</span>
       </h6>
     </b-col>
   </div>
@@ -35,6 +45,7 @@
 
 <script lang="ts">
 import { Prop, Component, Vue, PropSync, Emit } from "vue-property-decorator";
+import {vxm} from "@/store";
 
 @Component
 export default class TxModalFooter extends Vue {
@@ -45,6 +56,10 @@ export default class TxModalFooter extends Vue {
 
   @Emit("close")
   triggerClose() {}
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 }
 </script>
 

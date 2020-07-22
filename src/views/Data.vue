@@ -17,14 +17,24 @@
         </content-block>
       </b-col>
       <b-col>
-        <tokens-table
-          :loading="false"
-          :name="name"
-          :tokens="tokens"
-          @convert="onConvert"
-          @transfer="onTransfer"
-          scrollToTop
-        />
+        <content-block title="Data Table">
+
+          <div>
+            <div class="mb-3">
+              <b-btn :variant="!tokensTable ? darkMode ? 'dark' : 'light' : 'primary'" @click="tokensTable = !tokensTable" class="block-rounded mr-2">Tokens</b-btn>
+              <b-btn :variant="tokensTable ? darkMode ? 'dark' : 'light' : 'primary'" @click="tokensTable = !tokensTable" class="block-rounded">Pairs</b-btn>
+            </div>
+            <b-form-input
+              class="mb-3"
+              :class="!darkMode ? 'form-control-alt-light' : 'form-control-alt-dark'"
+              debounce="500"
+              v-model="filter"
+              placeholder="Search Token"
+            ></b-form-input>
+            <table-pools v-if="!tokensTable" :filter="filter" />
+            <tokens-table v-else scrollToTop :loading="false" :filter="filter" />
+          </div>
+        </content-block>
       </b-col>
     </b-row>
   </b-container>
@@ -33,14 +43,16 @@
 <script lang="ts">
 import { Component, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store";
-import TokensTable from "@/components/tables/TokensTable.vue";
+import TokensTable from "@/components/data/TokensTable.vue";
 import { SimpleToken } from "@/types/bancor";
 import ContentBlock from "@/components/common/ContentBlock.vue";
 import Statistics from "@/components/data/Statistics.vue";
 import LiquidityChart from "@/components/data/charts/LiquidityChart.vue";
+import TablePools from "@/components/data/TablePools.vue";
 
 @Component({
   components: {
+    TablePools,
     LiquidityChart,
     Statistics,
     ContentBlock,
@@ -48,36 +60,11 @@ import LiquidityChart from "@/components/data/charts/LiquidityChart.vue";
   }
 })
 export default class Data extends Vue {
-  get tokens() {
-    return vxm.bancor.tokens;
-  }
+  tokensTable: boolean = true
+  filter: string = ""
 
-  get network() {
-    return this.$route.params.service;
-  }
-
-  get name() {
-    return this.network.toUpperCase();
-  }
-
-  onConvert(symbolName: string) {
-    const { query, params } = this.$route;
-    const { base, quote } = query;
-    this.$router.push({
-      name: "Tokens",
-      query: {
-        ...query,
-        quote: symbolName,
-        ...(base == symbolName && { base: quote })
-      }
-    });
-  }
-
-  onTransfer(symbolName: string) {
-    this.$router.push({
-      name: "Transfer",
-      params: { symbolName }
-    });
+  get darkMode() {
+    return vxm.general.darkMode
   }
 }
 </script>

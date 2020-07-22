@@ -1,14 +1,13 @@
 <template>
   <div>
     <span
-      class="text-uppercase"
+      class="text-uppercase font-size-sm"
       :class="darkMode ? 'text-muted-dark' : 'text-muted-light'"
     >
       {{ title }}
     </span>
     <div>
       <span
-        class="font-size-lg"
         :class="darkMode ? 'text-body-dark' : 'text-body-light'"
       >
         {{ value }}

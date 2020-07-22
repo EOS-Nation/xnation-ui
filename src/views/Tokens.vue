@@ -18,8 +18,7 @@
 <script lang="ts">
 import { Component, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store";
-import TokensTable from "@/components/tables/TokensTable.vue";
-import { SimpleToken } from "@/types/bancor";
+import TokensTable from "@/components/data/TokensTable.vue";
 
 @Component({
   components: {
