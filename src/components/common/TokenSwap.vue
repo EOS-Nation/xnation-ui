@@ -18,7 +18,7 @@
       />
       <b-col cols="12">
         <p
-          class="font-size-sm font-w400 text-center mt-1 mb-2"
+          class="font-size-sm font-w400 text-center mt-2 mb-3"
           :class="!darkMode ? 'text-muted-light' : 'text-muted-dark'"
         >
           Output is estimated. If the price changes by more than 0.5% your
