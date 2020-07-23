@@ -33,7 +33,7 @@
               :tbody-transition-props="transProps"
               :tbody-transition-handlers="transHandler"
             >
-              <template v-slot:table-busy>
+              <!-- <template v-slot:table-busy>
                 <div class="text-center my-2">
                   <b-spinner class="align-middle"></b-spinner>
                   <strong>Loading...</strong>
@@ -79,10 +79,10 @@
               </template>
               <template v-slot:cell(ratio)>
                 50 - 50
-              </template>
-              <template v-slot:cell(actions)="data">
-                <div class="actionButtons">
-                  <b-btn
+              </template> -->
+              <!-- <template v-slot:cell(actions)="data"> -->
+              <!-- <div class="actionButtons"> -->
+              <!-- <b-btn
                     v-if="focusDoesExist"
                     @click="focusRelay(data.item.id)"
                     :disabled="!data.item.focusAvailable"
@@ -108,9 +108,9 @@
                     variant="info"
                   >
                     <font-awesome-icon icon="plus" />
-                  </b-btn>
-                </div>
-              </template>
+                  </b-btn> -->
+              <!-- </div> -->
+              <!-- </template> -->
             </b-table>
           </div>
         </div>
@@ -136,6 +136,14 @@ const numeral = require("numeral");
 @Component({
   components: {
     SortIcons
+  },
+  beforeUpdate() {
+    console.log("updating...");
+    console.time("renderTime");
+  },
+  updated() {
+    console.timeEnd("renderTime");
+    console.log("updated");
   }
 })
 export default class Relays extends Vue {

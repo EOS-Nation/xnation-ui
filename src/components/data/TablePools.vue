@@ -1,19 +1,19 @@
 <template>
   <div class="table-responsive">
     <b-table
-            id="relays-table"
-            striped
-            :key="dynamicId"
-            stacked="sm"
-            :items="tokens"
-            :fields="fields"
-            :filter="filter"
-            sort-by="liqDepth"
-            :sort-desc="true"
-            primary-key="id"
-            :table-busy="loadingPools"
-            :tbody-transition-props="transProps"
-            :tbody-transition-handlers="transHandler"
+      id="relays-table"
+      striped
+      :key="dynamicId"
+      stacked="sm"
+      :items="tokens"
+      :fields="fields"
+      :filter="filter"
+      sort-by="liqDepth"
+      :sort-desc="true"
+      primary-key="id"
+      :table-busy="loadingPools"
+      :tbody-transition-props="transProps"
+      :tbody-transition-handlers="transHandler"
     >
       <template v-slot:table-busy>
         <div class="text-center my-2">
@@ -23,7 +23,7 @@
       </template>
       <template v-if="morePoolsAvailable" v-slot:custom-foot>
         <b-button :disabled="loadingPools" @click="loadMorePools"
-        >Load more...
+          >Load more...
         </b-button>
       </template>
       <template v-slot:table-colgroup>
@@ -32,19 +32,19 @@
       </template>
       <template v-slot:cell(symbol)="data">
         <img
-                :id="`tooltip-target-${data.item.reserveId}`"
-                :key="reserve.reserveId"
-                v-for="reserve in data.item.reserves"
-                class="img-avatar img-avatar-thumb img-avatar32"
-                :src="reserve.logo[0]"
-                v-fallback="reserve.logo.slice(1)"
-                :alt="`${reserve.symbol} Token Logo`"
+          :id="`tooltip-target-${data.item.reserveId}`"
+          :key="reserve.reserveId"
+          v-for="reserve in data.item.reserves"
+          class="img-avatar img-avatar-thumb img-avatar32"
+          :src="reserve.logo[0]"
+          v-fallback="reserve.logo.slice(1)"
+          :alt="`${reserve.symbol} Token Logo`"
         />
         <b-popover
-                v-for="reserve in data.item.reserves"
-                :key="`${reserve.reserveId}-tooltip`"
-                :target="`tooltip-target-${data.item.reserveId}`"
-                triggers="hover"
+          v-for="reserve in data.item.reserves"
+          :key="`${reserve.reserveId}-tooltip`"
+          :target="`tooltip-target-${data.item.reserveId}`"
+          triggers="hover"
         >
           <p>Contract: {{ reserve.contract }}</p>
           <p>Symbol: {{ reserve.symbol }}</p>
@@ -61,32 +61,32 @@
       <template v-slot:cell(ratio)>
         50 - 50
       </template>
-      <template v-slot:cell(actions)="data">
+      <template v-slot:cell(actions)="data" functional>
         <div class="actionButtons">
           <b-btn
-                  v-if="focusDoesExist"
-                  @click="focusRelay(data.item.id)"
-                  :disabled="!data.item.focusAvailable"
-                  size="sm"
-                  variant="warning"
-                  class="mr-1"
+            v-if="focusDoesExist"
+            @click="focusRelay(data.item.id)"
+            :disabled="!data.item.focusAvailable"
+            size="sm"
+            variant="warning"
+            class="mr-1"
           >
             <font-awesome-icon icon="chart-line" />
           </b-btn>
           <b-btn
-                  @click="goToRelay(data.item.id, 'liquidate')"
-                  :disabled="!data.item.removeLiquiditySupported"
-                  size="sm"
-                  variant="success"
-                  class="mr-1"
+            @click="goToRelay(data.item.id, 'liquidate')"
+            :disabled="!data.item.removeLiquiditySupported"
+            size="sm"
+            variant="success"
+            class="mr-1"
           >
             <font-awesome-icon icon="minus" />
           </b-btn>
           <b-btn
-                  @click="goToRelay(data.item.id)"
-                  :disabled="!data.item.addLiquiditySupported"
-                  size="sm"
-                  variant="info"
+            @click="goToRelay(data.item.id)"
+            :disabled="!data.item.addLiquiditySupported"
+            size="sm"
+            variant="info"
           >
             <font-awesome-icon icon="plus" />
           </b-btn>
@@ -117,7 +117,7 @@ const numeral = require("numeral");
 })
 export default class TablePools extends Vue {
   numeral = numeral;
-  @Prop({default: ""}) filter!: string
+  @Prop({ default: "" }) filter!: string;
   small = false;
   dynamicId = "buddy";
   @bancor.Action loadMorePools!: LiquidityModule["loadMorePools"];
