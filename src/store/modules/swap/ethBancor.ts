@@ -1903,7 +1903,7 @@ export class EthBancorModule
     const converterContract = buildConverterContract(contract);
     const smartTokenContract = buildTokenContract(poolId);
 
-    const [reserveBalances, totalSupplyWei] = await Promise.all([
+    const [reserveBalances, smartTokenSupplyWei] = await Promise.all([
       Promise.all(
         reserves.map(reserve =>
           fetchReserveBalance(converterContract, reserve.contract, version)
@@ -1917,7 +1917,7 @@ export class EthBancorModule
         ...reserve,
         weiAmount: reserveBalances[index]
       })),
-      totalSupplyWei
+      smartTokenSupplyWei
     };
   }
 
@@ -1933,8 +1933,9 @@ export class EthBancorModule
     const tokenAmount = reserve.amount;
 
     const smartTokenAddress = relay.anchor.contract;
+    const smartTokenDecimals = relay.anchor.decimals;
 
-    const { reserves, totalSupplyWei } = await this.fetchRelayBalances(
+    const { reserves, smartTokenSupplyWei } = await this.fetchRelayBalances(
       smartTokenAddress
     );
 
@@ -1944,17 +1945,28 @@ export class EthBancorModule
       [tokenSymbol]
     );
 
-    const tokenAmountWei = expandToken(tokenAmount, sameReserve.decimals);
+    const sameReserveWei = expandToken(tokenAmount, sameReserve.decimals);
 
     const opposingAmount = calculateOppositeFundRequirement(
-      tokenAmountWei,
+      sameReserveWei,
       sameReserve.weiAmount,
       opposingReserve.weiAmount
     );
     const fundReward = calculateFundReward(
-      tokenAmountWei,
+      sameReserveWei,
       sameReserve.weiAmount,
-      totalSupplyWei
+      smartTokenSupplyWei
+    );
+
+    const fundRewardDec = Number(shrinkToken(fundReward, smartTokenDecimals));
+    const smartSupplyDec = Number(
+      shrinkToken(smartTokenSupplyWei, smartTokenDecimals)
+    );
+    const shareOfPool = fundRewardDec / smartSupplyDec;
+
+    console.log(
+      { fundReward, fundRewardDec, smartSupplyDec, shareOfPool },
+      "x"
     );
 
     return {
@@ -2014,12 +2026,14 @@ export class EthBancorModule
       relay.anchor.contract
     );
 
-    const { totalSupplyWei, reserves } = await this.fetchRelayBalances(
+    const { smartTokenSupplyWei, reserves } = await this.fetchRelayBalances(
       relay.anchor.contract
     );
 
+    const smartTokenDecimals = relay.anchor.decimals;
+
     const percent = new Decimal(smartTokenUserBalance).div(
-      fromWei(totalSupplyWei)
+      shrinkToken(smartTokenSupplyWei, smartTokenDecimals)
     );
 
     const maxWithdrawals: ViewAmount[] = reserves.map(reserve => ({
@@ -2178,7 +2192,7 @@ export class EthBancorModule
     const relay = await this.traditionalRelayById(id);
     const smartTokenAddress = relay.anchor.contract;
 
-    const { reserves, totalSupplyWei } = await this.fetchRelayBalances(
+    const { reserves, smartTokenSupplyWei } = await this.fetchRelayBalances(
       smartTokenAddress
     );
 
@@ -2198,7 +2212,7 @@ export class EthBancorModule
     const liquidateCost = calculateLiquidateCost(
       sameReserveWei,
       sameReserve.weiAmount,
-      totalSupplyWei
+      smartTokenSupplyWei
     );
 
     const smartUserBalance = await vxm.ethWallet.getBalance({
