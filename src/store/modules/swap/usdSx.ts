@@ -190,6 +190,15 @@ export class UsdBancorModule
   contracts: string[] = [];
   stats: Stat[] = [];
   lastLoaded: number = 0;
+  slippageTolerance = 0;
+
+  @mutation setTolerance(tolerance: number) {
+    this.slippageTolerance = tolerance;
+  }
+
+  @action async setSlippageTolerance(tolerance: number) {
+    this.setTolerance(tolerance);
+  }
 
   get wallet() {
     return "eos";

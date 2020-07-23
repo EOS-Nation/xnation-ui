@@ -219,6 +219,10 @@ export interface ContractMethods<T> extends Contract {
 }
 
 export interface CallReturn<T = any> {
+  arguments: any[];
+  _method: {
+    outputs: { name: string; type: string }[];
+  };
   call: () => Promise<T>;
   encodeABI: () => string;
 }
@@ -250,6 +254,10 @@ export interface ViewModalToken {
   balance?: number;
 }
 
+export interface SlippageTolerance {
+  readonly slippageTolerance: number;
+  setSlippageTolerance: (tolerance: number) => Promise<void>;
+}
 export interface TradingModule {
   init: (param?: ModuleParam) => Promise<void>;
   readonly token: (arg0: string) => ViewToken;

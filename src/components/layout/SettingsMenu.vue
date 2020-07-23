@@ -21,14 +21,22 @@
           <b-btn size="sm" variant="light" class="mr-1 rounded btn-block"
             >0.1%</b-btn
           >
-          <b-btn size="sm" variant="primary" class="mr-1 rounded btn-block"
+          <b-btn
+            @click="setSlippage(0.005)"
+            size="sm"
+            variant="primary"
+            class="mr-1 rounded btn-block"
             >0.5%</b-btn
           >
-          <b-btn size="sm" variant="light" class="mr-1 rounded btn-block"
+          <b-btn
+            @click="setSlippage(0.01)"
+            size="sm"
+            variant="light"
+            class="mr-1 rounded btn-block"
             >1.0%</b-btn
           >
           <b-btn size="sm" variant="light" class="mr-1 rounded btn-block"
-            >Custom</b-btn
+            >Custom {{ slippage }}</b-btn
           >
         </div>
       </b-dropdown-item>
@@ -78,6 +86,14 @@ import { vxm } from "@/store";
 export default class SettingsMenu extends Vue {
   get darkMode() {
     return vxm.general.darkMode;
+  }
+
+  get slippage() {
+    return vxm.bancor.slippageTolerance;
+  }
+
+  setSlippage(slippage: number) {
+    vxm.bancor.setSlippageTolerance(slippage);
   }
 
   toggleDarkMode() {
