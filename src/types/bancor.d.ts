@@ -254,6 +254,10 @@ export interface ViewModalToken {
   balance?: number;
 }
 
+export interface SlippageTolerance {
+  readonly slippageTolerance: number;
+  setSlippageTolerance: (tolerance: number) => Promise<void>;
+}
 export interface TradingModule {
   init: (param?: ModuleParam) => Promise<void>;
   readonly token: (arg0: string) => ViewToken;

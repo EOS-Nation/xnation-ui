@@ -1214,6 +1214,16 @@ export class EthBancorModule
   failedPools: string[] = [];
   currentNetwork: EthNetworks = EthNetworks.Mainnet;
 
+  slippageTolerance = 0;
+
+  @mutation setTolerance(tolerance: number) {
+    this.slippageTolerance = tolerance;
+  }
+
+  @action async setSlippageTolerance(tolerance: number) {
+    this.setTolerance(tolerance);
+  }
+
   @mutation setNetwork(network: EthNetworks) {
     this.currentNetwork = network;
   }

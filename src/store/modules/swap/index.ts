@@ -60,6 +60,7 @@ interface Module {
   error: boolean;
 }
 
+const slippageTolerance = "SLIPPAGE_TOLERANCE";
 export class BancorModule extends VuexModule.With({
   namespaced: "bancor/"
 }) {
@@ -74,6 +75,17 @@ export class BancorModule extends VuexModule.With({
     loaded: false,
     error: false
   }));
+
+  slippageTolerance = 0.05;
+
+  @mutation setTolerance(tolerance: number) {
+    this.slippageTolerance = tolerance;
+  }
+
+  @action async setSlippageTolerance(tolerance: number) {
+    this.setTolerance(tolerance);
+    localStorage.setItem(slippageTolerance, String(tolerance));
+  }
 
   get currentNetwork() {
     // @ts-ignore
@@ -223,6 +235,10 @@ export class BancorModule extends VuexModule.With({
     resolveWhenFinished: boolean;
   }) {
     this.moduleInitalising(moduleId);
+    const tolerance = localStorage.getItem(slippageTolerance);
+    if (tolerance) {
+      this.setTolerance(Number(tolerance));
+    }
     if (resolveWhenFinished) {
       try {
         await this.$store.dispatch(`${moduleId}Bancor/init`, params || null, {
