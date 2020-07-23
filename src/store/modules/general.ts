@@ -11,6 +11,7 @@ export class GeneralModule extends VuexModule.With({ namespaced: "general/" }) {
 
   @mutation toggleDarkMode() {
     this.darkMode = !this.darkMode;
+    localStorage.setItem("darkMode", this.darkMode.toString());
   }
 
   @mutation setLanguage(lang?: string) {

@@ -1,15 +1,5 @@
 <template>
   <div>
-    <div class="steps">
-      <avatar
-        v-for="(step, index) in steps"
-        :key="step.index"
-        :username="step.description"
-        :initials="numbered && String(index + 1)"
-        :customStyle="{ display: 'block' }"
-        :backgroundColor="index == selectedStep ? '#d18235' : '#575757'"
-      />
-    </div>
     <div v-if="label" class="content">
       <h5>{{ label }}</h5>
     </div>

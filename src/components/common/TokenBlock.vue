@@ -1,5 +1,5 @@
 <template>
-  <b-col md="12" class="d-flex justify-content-between align-items-center mb-2">
+  <b-col md="12" class="d-flex justify-content-between align-items-center">
     <h4 v-if="false" class="text-uppercase text-muted">{{ title }}</h4>
 
     <h6
@@ -13,7 +13,7 @@
         {{ tokenName }}
       </h4>
       <img
-        class="img-avatar img-avatar48 img-avatar-thumb ml-3"
+        class="img-avatar img-avatar32 img-avatar-thumb ml-3"
         :src="img"
         alt="Token Logo"
       />

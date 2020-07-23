@@ -1,26 +1,40 @@
 <template>
   <div
     v-if="loading && !error"
-    id="loading"
-    class="page-header-fixed align-items-center"
+    class="loading d-flex justify-content-center align-items-center"
     :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
   >
-    <div class="d-flex justify-content-center align-items-center mb-3">
-      <div>
+    <div class="text-center mb-5">
+      <img
+        v-if="darkMode"
+        src="@/assets/media/logos/bancor-white.png"
+        height="85px"
+      />
+      <img
+        v-else
+        src="@/assets/media/logos/bancor-black.png"
+        height="85px"
+      />
+      <div class="d-flex justify-content-center align-items-center my-5">
         <b-spinner
-          style="display: block; width: 10rem; height: 10rem;"
-          class="text-light align-self-center align-middle"
+          style="display: block; width: 2rem; height: 2rem;"
+          class="align-self-center align-middle"
+          :class="darkMode ? 'text-primary' : 'text-primary'"
           label="Loading..."
         ></b-spinner>
-        <h2 class="text-white">Loading...</h2>
+        <h5
+          class="m-0 ml-3"
+          :class="darkMode ? 'text-body-dark' : 'text-muted-light'"
+        >
+          Just a moment ...
+        </h5>
       </div>
     </div>
   </div>
 
   <div
     v-else-if="error"
-    id="loading"
-    class="page-header-fixed align-items-center"
+    class="loading page-header-fixed align-items-center"
     :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
   >
     <div class="d-flex justify-content-center align-items-center mb-3">
@@ -129,6 +143,9 @@ export default class App extends Vue {
   }
 
   async created() {
+    const darkMode = localStorage.getItem("darkMode") === "true" ? true : false;
+    if (darkMode) vxm.general.toggleDarkMode();
+
     const autoLogin = localStorage.getItem("autoLogin");
     if (autoLogin) {
       const provider = vxm.eosWallet.walletProviders.find(
@@ -153,10 +170,8 @@ h2 {
   height: 100%;
 }
 
-#loading {
-  background-color: #324856;
+.loading {
   height: 100%;
-  padding-top: 95px;
 }
 
 .fade-enter-active,
