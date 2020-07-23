@@ -63,7 +63,14 @@ import Decimal from "decimal.js";
 import axios, { AxiosResponse } from "axios";
 import { vxm } from "@/store";
 import wait from "waait";
-import _, { uniqWith, add, chunk, isArray, first } from "lodash";
+import _, {
+  uniqWith,
+  add,
+  chunk,
+  isArray,
+  first,
+  differenceWith
+} from "lodash";
 import {
   DryRelay,
   TokenSymbol,
@@ -215,20 +222,15 @@ const relayTemplate = (): AbiTemplate => {
 
 const v2PoolBalanceTemplate = (reserves: string[]): AbiTemplate => {
   const contract = buildV2Converter();
-
-  const poolTokenAbis = reserves.map(reserve =>
-    contract.methods.poolToken(reserve).encodeABI()
-  );
-
-  const poolStakedBalanceAbis = reserves.map(reserve =>
-    contract.methods.reserveStakedBalance(reserve).encodeABI()
-  );
-
-  const poolWeightAbi = contract.methods.effectiveReserveWeights().encodeABI();
-
+  const [reserveOne, reserveTwo] = reserves;
   return {
     primaryReserveToken: contract.methods.primaryReserveToken(),
-    secondaryReserveToken: contract.methods.secondaryReserveToken()
+    secondaryReserveToken: contract.methods.secondaryReserveToken(),
+    poolTokenOne: contract.methods.poolToken(reserveOne),
+    poolTokenTwo: contract.methods.poolToken(reserveTwo),
+    reserveOneStakedBalance: contract.methods.reserveStakedBalance(reserveOne),
+    reserveTwoStakedBalance: contract.methods.reserveStakedBalance(reserveTwo),
+    effectiveReserveWeights: contract.methods.effectiveReserveWeights()
   };
 };
 
@@ -361,6 +363,16 @@ const buildV2WeightsStructure = (
 
   return methods;
 };
+
+interface V2Response {
+  reserveFeeds: ({
+      tokenId: string;
+      poolId: string;
+      costByNetworkUsd: number;
+      liqDepth: number;
+  } | ReserveFeed)[];
+  pools: (RelayWithReserveBalances | ChainLinkRelay)[];
+}
 
 const sortFeedByExtraProps = (a: ReserveFeed, b: ReserveFeed) => {
   if (a.change24H || a.volume24H) return -1;
@@ -602,13 +614,170 @@ const relayHandler = (converterAddresses: string[]): Handler => {
   };
 };
 
+interface RawAbiReserveBalance {
+  reserveOne: string;
+  reserveTwo: string;
+}
+
+const reserveBalanceHandler = (
+  relays: {
+    converterAddress: string;
+    reserves: [string, string];
+    version: number;
+  }[]
+): Handler => {
+  const template = reserveBalanceTemplate([
+    ethReserveAddress,
+    ethReserveAddress
+  ]);
+
+  const callGroups = relays.map(relay =>
+    createCallGroup(
+      reserveBalanceTemplate(relay.reserves),
+      relay.converterAddress
+    )
+  );
+  const finisher = (callGroupsRes: MultiCallReturn[]) => {
+    const decoded = decodeCallGroup<RawAbiReserveBalance>(
+      template,
+      callGroupsRes
+    );
+    return decoded;
+  };
+
+  return {
+    callGroups,
+    finisher
+  };
+};
+
+interface StakedAndReserve {
+  converterAddress: string;
+  reserves: {
+    reserveAddress: string;
+    stakedBalance: string;
+    reserveWeight: string;
+    poolTokenAddress: string;
+  }[];
+}
+
 const stakedAndReserveHandler = (
   relays: {
     converterAdress: string;
     reserveOne: string;
     reserveTwo: string;
   }[]
-) => {};
+): Handler => {
+  const template = v2PoolBalanceTemplate([
+    ethReserveAddress,
+    ethReserveAddress
+  ]);
+  const callGroups = relays.map(relay =>
+    createCallGroup(
+      v2PoolBalanceTemplate([relay.reserveOne, relay.reserveTwo]),
+      relay.converterAdress
+    )
+  );
+  const finisher = (callGroupsRes: MultiCallReturn[]) => {
+    const decoded = decodeCallGroup<RawAbiV2PoolBalances>(
+      template,
+      callGroupsRes
+    );
+
+    const data = decoded.data;
+    return {
+      converterAddress: decoded.originAddress,
+      reserves: [
+        {
+          reserveAddress: data.primaryReserveToken,
+          stakedBalance: data.reserveOneStakedBalance,
+          reserveWeight: data.effectiveReserveWeights[0],
+          poolTokenAddress: data.poolTokenOne
+        },
+        {
+          reserveAddress: data.secondaryReserveToken,
+          stakedBalance: data.reserveTwoStakedBalance,
+          reserveWeight: data.effectiveReserveWeights[1],
+          poolTokenAddress: data.poolTokenTwo
+        }
+      ]
+    };
+  };
+  return {
+    callGroups,
+    finisher
+  };
+};
+
+const polishTokens = (tokenMeta: TokenMeta[], tokens: Token[]) => {
+  const ethReserveToken: Token = {
+    contract: ethReserveAddress,
+    decimals: 18,
+    network: "ETH",
+    symbol: "ETH"
+  };
+
+  const ethHardCode = updateArray(
+    tokens,
+    token => compareString(token.contract, ethReserveAddress),
+    _ => ethReserveToken
+  );
+
+  const trackedInMeta = ethHardCode.filter(token => {
+    if (compareString(token.contract, ethReserveAddress)) return true;
+    return tokenMeta.some(meta => compareString(meta.contract, token.contract));
+  });
+
+  const symbolOveride = updateArray(
+    trackedInMeta,
+    token => typeof token.symbol == "undefined" || token.symbol == "",
+    token => ({
+      ...token,
+      symbol: tokenMeta.find(meta =>
+        compareString(token.contract, meta.contract)
+      )!.symbol
+    })
+  );
+
+  const decimalIsWrong = (decimals: number | undefined) =>
+    typeof decimals == "undefined" || Number.isNaN(decimals);
+
+  const missingDecimals = updateArray(
+    symbolOveride,
+    token => decimalIsWrong(token.decimals),
+    missingDecimal => {
+      const meta = tokenMeta.find(x =>
+        compareString(x.contract, missingDecimal.contract)
+      )!;
+      if (Object.keys(meta).includes("precision")) {
+        return {
+          ...missingDecimal,
+          decimals: meta.precision!
+        };
+      }
+      console.warn(
+        "Token Meta couldnt help determine decimals of token address",
+        missingDecimal.contract
+      );
+      return {
+        ...missingDecimal
+      };
+    }
+  ).filter(token => !decimalIsWrong(token.decimals));
+
+  const addedEth = [...missingDecimals, ethReserveToken];
+  const uniqueTokens = _.uniqWith(addedEth, (a, b) =>
+    compareString(a.contract, b.contract)
+  );
+
+  const difference = differenceWith(tokens, uniqueTokens, (a, b) =>
+    compareString(a.contract, b.contract)
+  );
+  if (difference.length > 0) {
+    console.warn("Polish tokens is dropping", difference, "tokens");
+  }
+  return uniqueTokens;
+};
 
 const seperateMiniTokens = (tokens: AbiCentralPoolToken[]) => {
   console.log(tokens, "are tokenssss");
@@ -663,15 +832,29 @@ const tokenHandler = (tokenAddresses: string[]): Handler => {
     createCallGroup(template, address)
   );
 
-  const finisher = (callGroupsRes: MultiCallReturn[]) => {
+  const finisher = (callGroupsRes: MultiCallReturn[]): Token => {
     const decoded = decodeCallGroup<RawAbiToken>(template, callGroupsRes);
 
-    return nameOriginAs("contract", decoded);
+    return {
+      contract: decoded.originAddress,
+      symbol: decoded.data.symbol,
+      decimals: Number(decoded.data.decimals),
+      network: "ETH"
+    };
   };
 
   return {
     finisher,
     callGroups
+  };
+};
+
+const reserveBalanceTemplate = (reserves: string[]) => {
+  const contract = buildConverterContract();
+  const [reserveOne, reserveTwo] = reserves;
+  return {
+    reserveOne: contract.methods.getConnectorBalance(reserveOne),
+    reserveTwo: contract.methods.getConnectorBalance(reserveTwo)
   };
 };
 
@@ -2451,9 +2634,15 @@ export class EthBancorModule
   }) {
     return relays.flatMap(relay => {
       const reservesBalances = relay.reserves.map(reserve => {
-        const reserveBalance = findOrThrow(relay.reserveBalances, balance =>
-          compareString(balance.id, reserve.contract)
+        const reserveBalance = findOrThrow(
+          relay.reserveBalances,
+          balance => compareString(balance.id, reserve.contract),
+          "failed to find a reserve balance for reserve"
         );
+        if (Number.isNaN(reserve.decimals)) {
+          console.log(relay, reserve, reserveBalance, "fucked up");
+        }
+        console.log(reserveBalance.amount, reserve.decimals, relay);
         const decNumber = shrinkToken(reserveBalance.amount, reserve.decimals);
         return [reserve, Number(decNumber)] as [Token, number];
       });
@@ -2830,13 +3019,19 @@ export class EthBancorModule
       return [];
     }
 
+    const indexes = createIndexes(calls);
+    const flattened = calls.flat(1);
     try {
-      const indexes = createIndexes(calls);
-      const rawRes = await this.fetchWithMultiCall({ calls: calls.flat(1) });
+      console.log("making direct request amount of...", flattened.length);
+      const rawRes = await this.fetchWithMultiCall({ calls: flattened });
       const reJoined = rebuildFromIndex(rawRes, indexes);
       return reJoined;
     } catch (e) {
-      console.error("Multi call shit failed", e.message);
+      console.error(
+        `Multi call shit failed after trying ${flattened.length} requests`,
+        e.message
+      );
+      console.error(flattened);
       throw new Error(e);
     }
   }
@@ -2924,7 +3119,8 @@ export class EthBancorModule
     }[];
   }
 
-  @action async addPoolsV2(convertersAndAnchors: ConverterAndAnchor[]) {
+  @action async addPoolsV2(convertersAndAnchors: ConverterAndAnchor[]): Promise<V2Response> {
+    console.log("asked to do", convertersAndAnchors.length);
     const allAnchors = convertersAndAnchors.map(item => item.anchorAddress);
     const allConverters = convertersAndAnchors.map(
       item => item.converterAddress
@@ -3004,24 +3200,37 @@ export class EthBancorModule
     const allTokens = [
       ...reserveTokens,
       ...poolTokenAddresses.flatMap(pool => pool.poolTokenAddresses)
-    ];
+    ].filter(tokenAddress => !compareString(tokenAddress, ethReserveAddress));
 
     console.log("starting smart multi");
 
-    const [reserveAndPoolTokens] = await this.smartMulti([
-      tokenHandler(allTokens)
-    ]);
-
-    const [v1ReserveBalances, stakedAndReserveWeights] = await Promise.all([
-      this.fetchReserves(verifiedV1Pools),
-      this.fetchStakedAndReserveWeights(
+    const [
+      reserveAndPoolTokens,
+      v1ReserveBalances,
+      stakedAndReserveWeights
+    ] = (await this.smartMulti([
+      tokenHandler(allTokens),
+      reserveBalanceHandler(verifiedV1Pools),
+      stakedAndReserveHandler(
         verifiedV2Pools.map(pool => ({
           converterAdress: pool.converterAddress,
           reserveOne: pool.connectorToken1,
           reserveTwo: pool.connectorToken2
         }))
       )
-    ]);
+    ])) as [Token[], DecodedResult<RawAbiReserveBalance>[], StakedAndReserve[]];
+
+    const polishedReserveAndPoolTokens = polishTokens(
+      this.tokenMeta,
+      reserveAndPoolTokens
+    );
+
+    console.log({
+      reserveAndPoolTokens,
+      polishedReserveAndPoolTokens,
+      v1ReserveBalances,
+      stakedAndReserveWeights
+    });
 
     const matched = stakedAndReserveWeights.map(relay => ({
       ...relay,
@@ -3030,7 +3239,7 @@ export class EthBancorModule
       ).anchorAddress,
       reserves: relay.reserves.map(reserve => ({
         ...reserve,
-        token: reserveAndPoolTokens.find(token =>
+        token: polishedReserveAndPoolTokens.find(token =>
           compareString(token.contract, reserve.reserveAddress)
         )
       }))
@@ -3058,7 +3267,7 @@ export class EthBancorModule
             poolContainerAddress: rawPool.anchorAddress,
             poolTokens: rawPool.reserves.map(reserve => ({
               reserveId: reserve.reserveAddress,
-              poolToken: reserveAndPoolTokens.find(poolToken =>
+              poolToken: polishedReserveAndPoolTokens.find(poolToken =>
                 compareString(poolToken.contract, reserve.poolTokenAddress)
               )!
             }))
@@ -3111,7 +3320,7 @@ export class EthBancorModule
       ];
       const reserveTokens = zippedReserveBalances.map(
         reserve =>
-          reserveAndPoolTokens.find(token =>
+          polishedReserveAndPoolTokens.find(token =>
             compareString(token.contract, reserve.contract)
           )!
       );
@@ -3140,6 +3349,12 @@ export class EthBancorModule
       Boolean
     ) as RelayWithReserveBalances[]).filter(x => x.reserves.every(Boolean));
 
+    console.log(
+      completeV1Pools.filter(
+        pool => !pool.reserveBalances.every(balance => balance.amount)
+      ),
+      completeV1Pools
+    );
     const traditionalRelayFeeds = await this.buildTraditionalReserveFeeds({
       relays: completeV1Pools,
       usdPriceOfBnt: this.bntUsdPrice
@@ -3162,81 +3377,6 @@ export class EthBancorModule
       reserveFeeds,
       pools
     };
-  }
-
-  @action async fetchStakedAndReserveWeights(
-    relays: {
-      converterAdress: string;
-      reserveOne: string;
-      reserveTwo: string;
-    }[]
-  ) {
-    const baseMethods = buildV2WeightsStructure(
-      ethReserveAddress,
-      ethReserveAddress
-    );
-    const contract = buildV2Converter();
-    const calls = relays.flatMap(relay => {
-      const reserves = [relay.reserveOne, relay.reserveTwo];
-
-      const identifyTokens = [
-        contract.methods.primaryReserveToken().encodeABI(),
-        contract.methods.secondaryReserveToken().encodeABI()
-      ];
-
-      const poolTokenAbis = reserves.map(reserve =>
-        contract.methods.poolToken(reserve).encodeABI()
-      );
-
-      const poolStakedBalanceAbis = reserves.map(reserve =>
-        contract.methods.reserveStakedBalance(reserve).encodeABI()
-      );
-
-      const poolWeightAbi = contract.methods
-        .effectiveReserveWeights()
-        .encodeABI();
-      const allAbis = [
-        ...poolTokenAbis,
-        ...identifyTokens,
-        ...poolStakedBalanceAbis,
-        poolWeightAbi
-      ];
-
-      return allAbis.map(
-        reserveAbi => [relay.converterAdress, reserveAbi] as [string, string]
-      );
-    });
-
-    const callReturn = await this.multiCallShit<{
-      poolTokenOne: string;
-      poolTokenTwo: string;
-      primaryReserveToken: string;
-      secondaryReserveToken: string;
-      reserveOneStakedBalance: string;
-      reserveTwoStakedBalance: string;
-      effectiveReserveWeights: { 0: string; 1: string };
-    }>({
-      calls,
-      methods: baseMethods
-    });
-
-    return callReturn.map(relay => ({
-      converterAddress: relay.originAddress,
-      reserves: [
-        {
-          reserveAddress: relay.data.primaryReserveToken,
-          stakedBalance: relay.data.reserveOneStakedBalance,
-          reserveWeight: relay.data.effectiveReserveWeights[0],
-          poolTokenAddress: relay.data.poolTokenOne
-        },
-        {
-          reserveAddress: relay.data.secondaryReserveToken,
-          stakedBalance: relay.data.reserveTwoStakedBalance,
-          reserveWeight: relay.data.effectiveReserveWeights[1],
-          poolTokenAddress: relay.data.poolTokenTwo
-        }
-      ]
-    }));
   }
 
   @action async addConvertersToAnchors(
@@ -3345,23 +3485,40 @@ export class EthBancorModule
         })
       ]);
 
-      console.log({ anchorAndConvertersMatched, bareMinimumAnchorAddresses });
+      const blackListedAnchors = ["0x7Ef1fEDb73BD089eC1010bABA26Ca162DFa08144"];
+
+      const notBlackListed = (blackListedAnchors: string[]) => (
+        converterAnchor: ConverterAndAnchor
+      ) =>
+        !blackListedAnchors.some(black =>
+          compareString(black, converterAnchor.anchorAddress)
+        );
+      const passedAnchorAndConvertersMatched = anchorAndConvertersMatched.filter(
+        notBlackListed(blackListedAnchors)
+      );
+
+      console.log({
+        anchorAndConvertersMatched: passedAnchorAndConvertersMatched,
+        bareMinimumAnchorAddresses
+      });
 
       const requiredAnchors = bareMinimumAnchorAddresses.map(anchor =>
-        findOrThrow(anchorAndConvertersMatched, item =>
+        findOrThrow(passedAnchorAndConvertersMatched, item =>
           compareString(item.anchorAddress, anchor)
         )
       );
 
       const priorityAnchors = await this.poolsByPriority({
-        anchorAddressess: anchorAndConvertersMatched.map(x => x.anchorAddress),
+        anchorAddressess: passedAnchorAndConvertersMatched.map(
+          x => x.anchorAddress
+        ),
         tokenPrices: bancorApiTokens
       });
 
       console.log({ priorityAnchors });
 
       const sortedAnchorsAndConverters = sortAlongSide(
-        anchorAndConvertersMatched,
+        passedAnchorAndConvertersMatched,
         anchor => anchor.anchorAddress,
         priorityAnchors
       );
@@ -3373,7 +3530,7 @@ export class EthBancorModule
 
       const remainingLoad = sortAlongSide(
         _.differenceWith(
-          anchorAndConvertersMatched,
+          passedAnchorAndConvertersMatched,
           initialLoad,
           compareAnchorAndConverter
         ),
@@ -3404,11 +3561,12 @@ export class EthBancorModule
     if (!convertersAndAnchors || convertersAndAnchors.length == 0)
       throw new Error("Received nothing for addPoolsBulk");
     this.setLoadingPools(true);
-    const chunked = _.chunk(convertersAndAnchors.slice(0, 150), 130);
+    const chunked = _.chunk(convertersAndAnchors, 30);
     const chunkedReturn = await Promise.all(
-      chunked.map(chunk => this.addPoolsV2(chunk))
+      chunked.map(chunk => this.addPoolsV2(chunk).catch(e => false))
     );
-    const pools = chunkedReturn.flatMap(relay => relay.pools);
+    const pools = chunkedReturn.filter(Boolean).map(x => x as V2Response).flatMap(relay => relay.pools);
+    console.log("final res", pools);
     const poolsFailed = _.differenceWith(convertersAndAnchors, pools, (a, b) =>
       compareString(a.anchorAddress, b.id)
     );
@@ -3418,7 +3576,7 @@ export class EthBancorModule
     );
     console.log(poolsFailed, "are pools failed");
     console.log(pools, "are the pools");
-    const reserveFeeds = chunkedReturn.flatMap(relay => relay.reserveFeeds);
+    const reserveFeeds = chunkedReturn.filter(Boolean).map(x => x as V2Response).flatMap(relay => relay.reserveFeeds);
     this.updateRelays(pools);
     this.buildPossibleReserveFeedsFromBancorApi(pools);
     this.updateRelayFeeds(reserveFeeds);
