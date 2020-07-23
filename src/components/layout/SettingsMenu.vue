@@ -15,31 +15,36 @@
       <b-dropdown-header class="text-uppercase"
         >Transaction Settings</b-dropdown-header
       >
-      <b-dropdown-item style="width: 300px;">
+      <b-dropdown-text style="width: 300px;">
         <p class="font-size-sm mb-0">Slippage Tolerance</p>
         <div class="d-flex justify-content-between align-items-end">
-          <b-btn size="sm" variant="light" class="mr-1 rounded btn-block"
+          <b-btn
+            @click="setSlippage(0.001)"
+            size="sm"
+            :variant="slippage === 0.001 ? 'primary' : 'light'"
+            class="mr-1 rounded btn-block"
             >0.1%</b-btn
           >
           <b-btn
             @click="setSlippage(0.005)"
             size="sm"
-            variant="primary"
+            :variant="slippage === 0.005 ? 'primary' : 'light'"
             class="mr-1 rounded btn-block"
             >0.5%</b-btn
           >
           <b-btn
             @click="setSlippage(0.01)"
             size="sm"
-            variant="light"
+            :variant="slippage === 0.01 ? 'primary' : 'light'"
             class="mr-1 rounded btn-block"
             >1.0%</b-btn
           >
-          <b-btn size="sm" variant="light" class="mr-1 rounded btn-block"
-            >Custom {{ slippage }}</b-btn
+          <b-btn @click="customSlippage = '3'" size="sm" :variant="!(slippage === 0.01 || slippage === 0.005 || slippage === 0.001) ? 'primary' : 'light'" class="mr-1 rounded btn-block"
+            >Custom</b-btn
           >
         </div>
-      </b-dropdown-item>
+        <b-input debounce="500" v-if="!(slippage === 0.01 || slippage === 0.005 || slippage === 0.001)" v-model="customSlippage" placeholder="Enter Percentage" class="form-control-alt-light font-size-sm mt-2" style="height: 30px"></b-input>
+      </b-dropdown-text>
     </b-dropdown-group>
     <b-dropdown-divider></b-dropdown-divider>
     <b-dropdown-group id="dropdown-group-2">
@@ -79,7 +84,7 @@
 </template>
 
 <script lang="ts">
-import { Prop, Component, Vue } from "vue-property-decorator";
+import { Prop, Component, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store";
 
 @Component
@@ -92,8 +97,17 @@ export default class SettingsMenu extends Vue {
     return vxm.bancor.slippageTolerance;
   }
 
+  customSlippage: string = ""
+
   setSlippage(slippage: number) {
     vxm.bancor.setSlippageTolerance(slippage);
+  }
+
+  @Watch("customSlippage")
+  updateCustomSlippage(newSlippage: string) {
+    console.log(newSlippage)
+    if (!newSlippage) return
+    this.setSlippage(parseFloat(newSlippage)/100)
   }
 
   toggleDarkMode() {
