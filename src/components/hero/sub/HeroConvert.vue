@@ -93,78 +93,7 @@
                 :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
               >
                 <div class="block-content py-2">
-                  <div class="d-flex justify-content-between">
-                    <p
-                      class="m-0 my-1 p-0"
-                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-                    >
-                      Total Worth USD
-                    </p>
-                    <p
-                      class="m-0 my-1 p-0 font-w600"
-                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-                    >
-                      {{
-                        numeral(toToken.price * toTokenAmount).format("$0,0.00")
-                      }}
-                    </p>
-                  </div>
-                  <div class="d-flex justify-content-between">
-                    <p
-                      class="m-0 my-1 p-0"
-                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-                    >
-                      Price
-                    </p>
-                    <p
-                      class="m-0 my-1 p-0 font-w600"
-                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-                    >
-                      {{ unitReward }}
-                    </p>
-                  </div>
-                  <div class="d-flex justify-content-between">
-                    <p
-                      class="m-0 my-1 p-0"
-                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-                    >
-                      Minimum Sent
-                    </p>
-                    <p
-                      class="m-0 my-1 p-0 font-w600"
-                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-                    >
-                      ?????? ETH
-                    </p>
-                  </div>
-                  <div class="d-flex justify-content-between">
-                    <p
-                      class="m-0 my-1 p-0"
-                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-                    >
-                      Price Impact
-                    </p>
-                    <p
-                      class="m-0 my-1 p-0 font-w600"
-                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-                    >
-                      {{ numeral(slippage).format("0.00%") }}
-                    </p>
-                  </div>
-                  <div class="d-flex justify-content-between">
-                    <p
-                      class="m-0 my-1 p-0"
-                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-                    >
-                      Liquidity Provider Fee
-                    </p>
-                    <p
-                      class="m-0 my-1 p-0 font-w600"
-                      :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-                    >
-                      ?.??%
-                    </p>
-                  </div>
+                  <advanced-block-item v-for="item in advancedBlockItems" :key="item.label" :label="item.label" :value="item.value" />
                 </div>
               </div>
             </b-col>
@@ -213,6 +142,7 @@ import numeral from "numeral";
 import { vxm } from "@/store";
 import { buildTokenId, compareString } from "../../../api/helpers";
 import { ethReserveAddress } from "../../../api/ethConfig";
+import AdvancedBlockItem from "@/components/common/AdvancedBlockItem.vue";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
   return {
@@ -266,6 +196,7 @@ const bancor = namespace("bancor");
     queryParamsCheck(to, next);
   },
   components: {
+    AdvancedBlockItem,
     TokenAmountInput,
     ModalSelect,
     HeroWrapper,
@@ -316,6 +247,31 @@ export default class HeroConvert extends Vue {
 
   get darkMode() {
     return vxm.general.darkMode;
+  }
+
+  get advancedBlockItems() {
+    return [
+      {
+        label: "Total Worth USD",
+        value: numeral((this.toToken.price ?? 0) * (parseFloat(this.toTokenAmount))).format("$0,0.00")
+      },
+      {
+        label: "Price",
+        value: this.unitReward
+      },
+      {
+        label: "Minimum Sent",
+        value: "????"
+      },
+      {
+        label: "Price Impact",
+        value: numeral(this.slippage).format("0.00%")
+      },
+      {
+        label: "Liquidity Provider Fee",
+        value: "????"
+      }
+    ]
   }
 
   get fromTokenMeta() {
