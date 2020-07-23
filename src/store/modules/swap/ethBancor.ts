@@ -131,6 +131,89 @@ const determineConverterType = (converterType: string | undefined) => {
   throw new Error("Failed to determine the converter type");
 };
 
+const expensiveConvertersAndAnchors: ConverterAndAnchor[] = [
+  {
+    anchorAddress: "0xd16a3A892695ec9a47EFFdD5247980a8d2be3fF2",
+    converterAddress: "0x55baD7CDDe403872E1A4EAB787F67177A41aA716"
+  },
+  {
+    anchorAddress: "0xa7e21e7584fc6fDf6Fa978a5d4981352B0260954",
+    converterAddress: "0xcFd79b484f33c8098E2fd279729BEcC1c53a362f"
+  },
+  {
+    anchorAddress: "0x6f8BeaDF9eCd851be239b616149aF3E69D49ce11",
+    converterAddress: "0xd79Bd02053287a2a635B09b63136806D174d51a5"
+  },
+  {
+    anchorAddress: "0x1344381f0e93a2A1Ab0BFd2fE209a9BD01343933",
+    converterAddress: "0x62aeE73B82Cc64dd3c65ac220838210556C5c897"
+  },
+  {
+    anchorAddress: "0x04A3030c94Fb2dBE2b898d8cBf6Fd1c656FA69dd",
+    converterAddress: "0xe8b06d938a863bb2c82644125d7714844b8A98a4"
+  },
+  {
+    anchorAddress: "0x1F5350558F1E3e8Bf370d4d552F3ebC785bf2979",
+    converterAddress: "0xEF8c6c64926A9548210adDC22e8ed6034E39b0Da"
+  },
+  {
+    anchorAddress: "0x0F92330EAaBa84CB54b068F4331Cc40Dd2A98236",
+    converterAddress: "0x66437A8E8D98ee27B5F5B99aB7835b6A887d191b"
+  },
+  {
+    anchorAddress: "0xE355dcF475ff7569B8b74d5165a532ABa87c25bf",
+    converterAddress: "0x8e11504d39dfc576a78cAC7FF835Bf9dcBb2453F"
+  },
+  {
+    anchorAddress: "0x534DF0Ec6D65cD6fE1b05D3b8c935c97Eb844190",
+    converterAddress: "0x850e6fDc53816Fb32d6A1B45aFD95e9e6420F9d7"
+  },
+  {
+    anchorAddress: "0x0aacA86e54Fe70eDd7c86cBF3cFb470caA49FAeF",
+    converterAddress: "0x6cba561bB35919597531d9cF6720A48867fdA8c9"
+  },
+  {
+    anchorAddress: "0x44AA95Fa2e84d3acdACDeFfe16d9b5eD0498cC8b",
+    converterAddress: "0xD9532211E102874E46E26f116877DA086CB20a51"
+  },
+  {
+    anchorAddress: "0xFA3Bba432c0499c091F821aEB22FC36c4F8c78e3",
+    converterAddress: "0x7D86d4d01DD72Db066655D38C1de0006c5B2224f"
+  },
+  {
+    anchorAddress: "0x09C5188d9fE33d218Cc186baE8F985907b25eBEe",
+    converterAddress: "0x99e8e0e3D4cd50f856f675567FeC8eb732CfE2d7"
+  },
+  {
+    anchorAddress: "0x4EB61146e9Ad2a9D395956eF410EBaF7459f4622",
+    converterAddress: "0x4b536A64f25f2070B5ACe6d79f6CeFf0D9Be4DC1"
+  },
+  {
+    anchorAddress: "0x368B3D50E51e8bf62E6C73fc389e4102B9aEB8e2",
+    converterAddress: "0xa4FfBDc5B0F5e61537c0F43FAD28Cf45E94BdE43"
+  },
+  {
+    anchorAddress: "0x91AFdd8EF36DEf4fa2B9d7A05420f9D0E4F775d1",
+    converterAddress: "0xC9A722be71Ac8B1Faa00c995e6d47835C933DAd6"
+  },
+  {
+    anchorAddress: "0xf001bC665ffac52c6a969305c3BDaaf88DE4bBC8",
+    converterAddress: "0x6DAE0133395AeC73B122fF010Ce85b78209310C2"
+  },
+  {
+    anchorAddress: "0xEE4dC4C5Ca843B83035d8E5159AC1bd1b4EbdfF5",
+    converterAddress: "0x7754717cDA23EfF9E0962a10E9Bb5B95aD2f4cdB"
+  },
+  {
+    anchorAddress: "0x038869E70E0f927EaA42F75d1E3bF83008e4c88E",
+    converterAddress: "0x1adD247e9a3E63490e1935AF8ef361505A285F77"
+  },
+  {
+    anchorAddress: "0xFD556AB5010A4076fee1A232117E4ef549A84032",
+    converterAddress: "0x971E89e5202e2E4d4cB16Bc89F742D151931559d"
+  }
+];
+
 const smartTokenAnchor = (smartToken: Token) => {
   return { anchor: smartToken, converterType: PoolType.Traditional };
 };
@@ -2588,10 +2671,6 @@ export class EthBancorModule
           balance => compareString(balance.id, reserve.contract),
           "failed to find a reserve balance for reserve"
         );
-        if (Number.isNaN(reserve.decimals)) {
-          console.log(relay, reserve, reserveBalance, "fucked up");
-        }
-        console.log(reserveBalance.amount, reserve.decimals, relay);
         const decNumber = shrinkToken(reserveBalance.amount, reserve.decimals);
         return [reserve, Number(decNumber)] as [Token, number];
       });
@@ -2925,6 +3004,8 @@ export class EthBancorModule
   }): Promise<MultiCallReturn[]> {
     const networkVars = getNetworkVariables(this.currentNetwork as EthNetworks);
     const multiContract = buildMultiCallContract(networkVars.multiCall);
+    console.count("MultiCall");
+    console.log("Calls Amount", calls.length);
 
     const res = await multiContract.methods.aggregate(calls, strict).call();
 
@@ -2948,20 +3029,19 @@ export class EthBancorModule
       console.log("making direct request amount of...", flattened.length);
       const rawRes = await this.fetchWithMultiCall({ calls: flattened });
       const reJoined = rebuildFromIndex(rawRes, indexes);
+      console.count("FirstGO");
       return reJoined;
     } catch (e) {
-      const chunkAmount = 300;
-      console.warn(
-        `Multi call shit failed after trying ${flattened.length} requests, will try to chunk by ${chunkAmount}`
-      );
+      let chunkAmount = 150;
 
-      const chunked = chunk(flattened, chunkAmount);
+      let chunked: MultiCall[][] = chunk(flattened, chunkAmount);
+
       const oneByOne = await Promise.all(
         chunked.map(async callGroup => {
           try {
-            return this.fetchWithMultiCall({ calls: callGroup });
+            return await this.fetchWithMultiCall({ calls: callGroup });
           } catch (e) {
-            console.error("Chunk attempt failed.");
+            console.error("Chunk attempt failed,", callGroup);
             throw new Error("Bad request in multi call chunk");
           }
         })
@@ -2982,12 +3062,15 @@ export class EthBancorModule
     );
 
     console.time("firstWaterfall");
-    console.log("started first half");
 
+    console.log("Started 1st section");
     const [firstHalfs, poolAndSmartTokens] = (await this.smartMulti([
       relayHandler(allConverters),
       miniPoolHandler(allAnchors)
     ])) as [AbiRelay[], AbiCentralPoolToken[]];
+
+    console.log("Ended 1st section");
+    console.log({ firstHalfs, poolAndSmartTokens });
 
     const { poolTokenAddresses, smartTokens } = seperateMiniTokens(
       poolAndSmartTokens
@@ -3074,6 +3157,12 @@ export class EthBancorModule
         }))
       )
     ])) as [Token[], DecodedResult<RawAbiReserveBalance>[], StakedAndReserve[]];
+
+    console.log({
+      reserveAndPoolTokens,
+      v1ReserveBalances,
+      stakedAndReserveWeights
+    });
 
     const polishedReserveAndPoolTokens = polishTokens(
       this.tokenMeta,
@@ -3415,12 +3504,16 @@ export class EthBancorModule
   @action async addPoolsBulk(convertersAndAnchors: ConverterAndAnchor[]) {
     if (!convertersAndAnchors || convertersAndAnchors.length == 0)
       throw new Error("Received nothing for addPoolsBulk");
+    console.log("addPoolsBulk should be fetching", convertersAndAnchors.length);
     this.setLoadingPools(true);
     const chunked = _.chunk(convertersAndAnchors, 150);
     const chunkedReturn = await Promise.all(
       chunked.map(chunk =>
         this.addPoolsV2(chunk).catch(e => {
-          console.log(chunk, "is the chunk that failed");
+          console.log(
+            chunk,
+            "is a chunk of converter and anchors that failed to load."
+          );
           return false;
         })
       )
