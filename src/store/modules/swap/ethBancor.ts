@@ -365,12 +365,14 @@ const buildV2WeightsStructure = (
 };
 
 interface V2Response {
-  reserveFeeds: ({
-      tokenId: string;
-      poolId: string;
-      costByNetworkUsd: number;
-      liqDepth: number;
-  } | ReserveFeed)[];
+  reserveFeeds: (
+    | {
+        tokenId: string;
+        poolId: string;
+        costByNetworkUsd: number;
+        liqDepth: number;
+      }
+    | ReserveFeed)[];
   pools: (RelayWithReserveBalances | ChainLinkRelay)[];
 }
 
@@ -1186,45 +1188,6 @@ export class EthBancorModule
       await this.addPoolsBulk(remainingPools);
     }
     this.setLoadingPools(false);
-  }
-
-  @action async addPools(smartTokenAddresses: string[]) {
-    this.setLoadingPools(true);
-    const relays = await this.buildRelaysFromAnchorAddresses(
-      smartTokenAddresses
-    );
-    this.setLoadingPools(false);
-
-    return relays;
-  }
-
-  @action async addPool({ relay }: { relay: Relay }) {
-    if (
-      relayIncludesAtLeastOneNetworkToken(relay) &&
-      relayReservesIncludedInTokenMeta(this.tokenMeta)(relay)
-    ) {
-      this.updateRelays([relay]);
-
-      const feed = await this.possibleRelayFeedsFromBancorApi([relay]);
-      if (feed.length > 0) {
-        this.updateRelayFeeds(feed);
-      } else {
-        const feed = await this.buildRelayFeed({
-          relay,
-          usdPriceOfBnt: this.bntUsdPrice
-        });
-        this.updateRelayFeeds(feed);
-      }
-      await wait(1);
-    } else {
-      console.log(
-        "Refusing to add pool as it failed tests",
-        relay,
-        relayIncludesAtLeastOneNetworkToken(relay),
-        relayReservesIncludedInTokenMeta(this.tokenMeta)(relay)
-      );
-      this.updateFailedPools([relay.id]);
-    }
   }
 
   get secondaryReserveChoices(): ModalChoice[] {
@@ -2594,20 +2557,6 @@ export class EthBancorModule
     this.bntUsdPrice = usdPrice;
   }
 
-  @action async buildRelayFeed(params: {
-    relay: Relay;
-    usdPriceOfBnt: number;
-  }): Promise<ReserveFeed[]> {
-    const type = await this.getPoolType(params.relay);
-    if (type == PoolType.Traditional)
-      return this.buildRelayFeedTraditional({
-        usdPriceOfBnt: params.usdPriceOfBnt,
-        relay: assertTraditional(params.relay)
-      });
-    return [];
-    throw new Error("Build Relay Feed cannot build unsupported relay");
-  }
-
   @action async fetchStakedReserveBalance({
     converterAddress,
     reserveTokenAddress
@@ -2759,13 +2708,12 @@ export class EthBancorModule
     console.log("load more triggered at", new Date().getTime());
     console.log("load more tokens received", tokenIds);
     if (tokenIds && tokenIds.length > 0) {
-      const smartTokenAddresses = await Promise.all(
+      const anchorAddresses = await Promise.all(
         tokenIds.map(id => this.relaysContainingToken(id))
       );
-      const addresses = smartTokenAddresses.flat(1);
-      console.log(addresses, "is gonna get loaded...");
-      await this.addPools(addresses);
-      await wait(1);
+      const addresses = anchorAddresses.flat(1);
+      const convertersAndAnchors = await this.addConvertersToAnchors(addresses);
+      await this.addPoolsV2(convertersAndAnchors);
       console.log("should be resolving loadMore at", new Date().getTime());
     } else {
       console.log("just loading random pools...");
@@ -2987,31 +2935,6 @@ export class EthBancorModule
     return matched;
   }
 
-  @action async buildPoolTokenContainerStructure(): Promise<Method[]> {
-    const methods: Method[] = [
-      {
-        name: "symbol",
-        method: contract.methods.symbol().encodeABI(),
-        methodName: "symbol",
-        type: "string"
-      },
-      {
-        name: "decimals",
-        method: contract.methods.decimals().encodeABI(),
-        methodName: "decimals",
-        type: "uint8"
-      },
-      {
-        name: "poolTokens",
-        method: contract.methods.poolTokens().encodeABI(),
-        methodName: "poolTokens",
-        type: "address[]"
-      }
-    ];
-
-    return methods;
-  }
-
   @action async multiCallShit(
     calls: MultiCall[][]
   ): Promise<MultiCallReturn[][]> {
@@ -3027,99 +2950,31 @@ export class EthBancorModule
       const reJoined = rebuildFromIndex(rawRes, indexes);
       return reJoined;
     } catch (e) {
-      console.error(
-        `Multi call shit failed after trying ${flattened.length} requests`,
-        e.message
+      const chunkAmount = 300;
+      console.warn(
+        `Multi call shit failed after trying ${flattened.length} requests, will try to chunk by ${chunkAmount}`
       );
-      console.error(flattened);
-      throw new Error(e);
+
+      const chunked = chunk(flattened, chunkAmount);
+      const oneByOne = await Promise.all(
+        chunked.map(async callGroup => {
+          try {
+            return this.fetchWithMultiCall({ calls: callGroup });
+          } catch (e) {
+            console.error("Chunk attempt failed.");
+            throw new Error("Bad request in multi call chunk");
+          }
+        })
+      );
+      const reFlat = oneByOne.flat(1);
+      console.log("Successfully recovered by chunking!");
+      return rebuildFromIndex(reFlat, indexes);
     }
   }
 
-  @action async buildTokens(tokenAddresses: string[]): Promise<Token[]> {
-    if (tokenAddresses.length == 0) return [];
-    const rawTokens = await this.multiCallShit<RawAbiToken>({
-      contractAddresses: tokenAddresses,
-      methods: await this.buildTokenMethodStructure()
-    });
-    return rawTokens.map(res => ({
-      contract: res.originAddress,
-      network: "ETH",
-      decimals: Number(res.data.decimals),
-      symbol: res.data.symbol
-    }));
-  }
-
-  @action async fetchPoolTokensOrSmartToken(tokenAddresses: string[]) {
-    const methods = await this.buildPoolTokenContainerStructure();
-    const tokens = await this.multiCallShit<{
-      symbol: string;
-      decimals: string;
-      poolTokens?: string[];
-    }>({
-      contractAddresses: tokenAddresses,
-      methods,
-      allowPartialFailure: true
-    });
-
-    const smartTokens = tokens
-      .filter(token => !token.data.poolTokens)
-      .map(token => ({
-        contract: token.originAddress,
-        decimals: token.data.decimals,
-        symbol: token.data.symbol
-      }));
-
-    const poolTokenAddresses = tokens
-      .filter(token => Array.isArray(token.data.poolTokens))
-      .map(token => ({
-        anchorAddress: token.originAddress,
-        poolTokenAddresses: token.data.poolTokens as string[]
-      }));
-
-    return { smartTokens, poolTokenAddresses };
-  }
-
-  @action async fetchReserves(
-    relays: {
-      converterAddress: string;
-      reserves: [string, string];
-      version: number;
-    }[]
-  ) {
-    const baseMethods = buildReserveStructure(
-      ethReserveAddress,
-      ethReserveAddress
-    );
-    const contract = buildConverterContract();
-    const calls = relays.flatMap(relay => {
-      const pastV17 = relay.version >= 17;
-      const reserveRequests = relay.reserves.map(reserve =>
-        contract.methods[
-          pastV17 ? "getConnectorBalance" : "getConnectorBalance"
-        ](reserve).encodeABI()
-      );
-      return reserveRequests.map(
-        reserveAbi => [relay.converterAddress, reserveAbi] as [string, string]
-      );
-    });
-
-    const res = await this.multiCallShit({ calls, methods: baseMethods });
-
-    const successful = relays.filter(relay =>
-      res.some(r => compareString(r.originAddress, relay.converterAddress))
-    );
-    const failed = _.differenceWith(relays, successful, (a, b) =>
-      compareString(a.converterAddress, b.converterAddress)
-    );
-    console.log({ successful, failed });
-    return res as {
-      originAddress: string;
-      data: { reserveOne: string; reserveTwo: string };
-    }[];
-  }
-
-  @action async addPoolsV2(convertersAndAnchors: ConverterAndAnchor[]): Promise<V2Response> {
+  @action async addPoolsV2(
+    convertersAndAnchors: ConverterAndAnchor[]
+  ): Promise<V2Response> {
     console.log("asked to do", convertersAndAnchors.length);
     const allAnchors = convertersAndAnchors.map(item => item.anchorAddress);
     const allConverters = convertersAndAnchors.map(
@@ -3561,11 +3416,19 @@ export class EthBancorModule
     if (!convertersAndAnchors || convertersAndAnchors.length == 0)
       throw new Error("Received nothing for addPoolsBulk");
     this.setLoadingPools(true);
-    const chunked = _.chunk(convertersAndAnchors, 30);
+    const chunked = _.chunk(convertersAndAnchors, 150);
     const chunkedReturn = await Promise.all(
-      chunked.map(chunk => this.addPoolsV2(chunk).catch(e => false))
+      chunked.map(chunk =>
+        this.addPoolsV2(chunk).catch(e => {
+          console.log(chunk, "is the chunk that failed");
+          return false;
+        })
+      )
     );
-    const pools = chunkedReturn.filter(Boolean).map(x => x as V2Response).flatMap(relay => relay.pools);
+    const pools = chunkedReturn
+      .filter(Boolean)
+      .map(x => x as V2Response)
+      .flatMap(relay => relay.pools);
     console.log("final res", pools);
     const poolsFailed = _.differenceWith(convertersAndAnchors, pools, (a, b) =>
       compareString(a.anchorAddress, b.id)
@@ -3576,7 +3439,10 @@ export class EthBancorModule
     );
     console.log(poolsFailed, "are pools failed");
     console.log(pools, "are the pools");
-    const reserveFeeds = chunkedReturn.filter(Boolean).map(x => x as V2Response).flatMap(relay => relay.reserveFeeds);
+    const reserveFeeds = chunkedReturn
+      .filter(Boolean)
+      .map(x => x as V2Response)
+      .flatMap(relay => relay.reserveFeeds);
     this.updateRelays(pools);
     this.buildPossibleReserveFeedsFromBancorApi(pools);
     this.updateRelayFeeds(reserveFeeds);
@@ -3585,41 +3451,14 @@ export class EthBancorModule
   }
 
   @action async addPoolsContainingTokenAddresses(tokenAddresses: string[]) {
-    const allPools = await Promise.all(
+    const anchorAddresses = await Promise.all(
       tokenAddresses.map(this.relaysContainingToken)
     );
-    const uniquePools = uniqWith(allPools.flat(1), compareString);
-    this.addPools(uniquePools.slice(0, 10));
-  }
-
-  @action async buildRelaysFromAnchorAddresses(
-    anchorAddresses: string[]
-  ): Promise<Relay[]> {
-    const converterAddresses = await this.fetchConverterAddressesByAnchorAddresses(
-      anchorAddresses
+    const uniqueAnchors = uniqWith(anchorAddresses.flat(1), compareString);
+    const anchorsAndConverters = await this.addConvertersToAnchors(
+      uniqueAnchors
     );
-
-    if (converterAddresses.length !== anchorAddresses.length)
-      throw new Error("Was expecting as many converters as anchor addresses");
-
-    const combined = _.zip(converterAddresses, anchorAddresses) as string[][];
-
-    const relays = await Promise.all(
-      combined.map(async ([converterAddress, anchorAddress]) => {
-        try {
-          const relay = await this.buildRelay({
-            anchorAddress,
-            converterAddress
-          });
-          await this.addPool({ relay });
-          return relay;
-        } catch (e) {
-          this.updateFailedPools([anchorAddress]);
-          console.log(`Failed building relay ${converterAddress} ${e.message}`);
-        }
-      })
-    );
-    return relays.filter(Boolean) as Relay[];
+    this.addPoolsV2(anchorsAndConverters);
   }
 
   @action async getConverterType(contractAddress: string) {
@@ -3634,48 +3473,6 @@ export class EthBancorModule
     return Number(converterType);
   }
 
-  @action async buildOracleAnchor({
-    anchorAddress,
-    reserveAddresses
-  }: {
-    anchorAddress: string;
-    reserveAddresses: string[];
-  }): Promise<AnchorProps> {
-    const poolTokens = await Promise.all(
-      reserveAddresses.map(
-        async (reserveAddress): Promise<PoolToken> => {
-          const poolTokenAddress = await this.fetchPoolToken({
-            reserveTokenAddress: reserveAddress,
-            anchorContract: anchorAddress
-          });
-          const [token] = await this.buildTokenByTokenAddressses([
-            poolTokenAddress
-          ]);
-          return {
-            reserveId: reserveAddress,
-            poolToken: token
-          };
-        }
-      )
-    );
-    return {
-      anchor: {
-        poolContainerAddress: anchorAddress,
-        poolTokens
-      },
-      converterType: PoolType.ChainLink
-    };
-  }
-
-  @action async buildSmartTokenAnchor(
-    anchorAddress: string
-  ): Promise<AnchorProps> {
-    const [smartToken] = await this.buildTokenByTokenAddressses([
-      anchorAddress
-    ]);
-    return { anchor: smartToken, converterType: PoolType.Traditional };
-  }
-
   @action async discoverAnchorType(anchorAddress: string): Promise<PoolType> {
     try {
       const v2PoolsContainerContract = buildV2PoolsContainer(anchorAddress);
@@ -3687,174 +3484,6 @@ export class EthBancorModule
     } catch (e) {
       return PoolType.Traditional;
     }
-  }
-
-  @action async buildAnchor({
-    anchorAddress,
-    converterAddress,
-    version,
-    reserveAddresses
-  }: {
-    anchorAddress: string;
-    converterAddress: string;
-    version: number;
-    reserveAddresses: string[];
-  }): Promise<AnchorProps> {
-    try {
-      const over28 = version >= 28;
-      if (over28) {
-        const poolType = await this.discoverAnchorType(anchorAddress);
-        if (poolType == PoolType.Traditional)
-          return this.buildSmartTokenAnchor(anchorAddress);
-        else if (poolType == PoolType.ChainLink)
-          return this.buildOracleAnchor({ anchorAddress, reserveAddresses });
-        else throw new Error("Failed to identify anchor");
-      } else {
-        return this.buildSmartTokenAnchor(anchorAddress);
-      }
-    } catch (e) {
-      console.log(`threw inside of build anchor ${e.message}`);
-      throw new Error(e);
-    }
-  }
-
-  @action async buildRelay(relayAddresses: {
-    anchorAddress: string;
-    converterAddress: string;
-  }): Promise<Relay> {
-    try {
-      const converterContract = buildConverterContract(
-        relayAddresses.converterAddress
-      );
-
-      const [
-        owner,
-        version,
-        connectorCount,
-        reserve1Address,
-        reserve2Address,
-        fee
-      ] = (await makeBatchRequest(
-        [
-          converterContract.methods.owner().call,
-          converterContract.methods.version().call,
-          converterContract.methods.connectorTokenCount().call,
-          converterContract.methods.connectorTokens(0).call,
-          converterContract.methods.connectorTokens(1).call,
-          converterContract.methods.conversionFee().call
-        ],
-        "0x0D8775F648430679A709E98d2b0Cb6250d2887EF"
-      )) as string[];
-
-      if (connectorCount !== "2")
-        throw new Error(
-          "Converter not valid, does not have 2 tokens in converter"
-        );
-
-      const [[reserve1], [reserve2], anchorProps] = await Promise.all([
-        this.buildTokenByTokenAddressses([reserve1Address]),
-        this.buildTokenByTokenAddressses([reserve2Address]),
-        this.buildAnchor({
-          converterAddress: relayAddresses.converterAddress,
-          anchorAddress: relayAddresses.anchorAddress,
-          version: Number(version),
-          reserveAddresses: [reserve1Address, reserve2Address]
-        })
-      ]);
-
-      console.log("final promise made it");
-
-      return {
-        id: relayAddresses.anchorAddress,
-        fee: Number(fee) / 10000,
-        owner: owner,
-        network: "ETH",
-        version: version,
-        contract: relayAddresses.converterAddress,
-        reserves: [reserve1, reserve2],
-        isMultiContract: false,
-        ...anchorProps
-      };
-    } catch (e) {
-      console.log(`threw inside build relay because ${e.message}`);
-      throw new Error(e);
-    }
-  }
-
-  @action async buildTokenByTokenAddressses(
-    addresses: string[]
-  ): Promise<Token[]> {
-    const hasContract = (address: string) => (meta: TokenMeta) =>
-      compareString(meta.contract, address);
-
-    const tokensInMeta = addresses.filter(address => {
-      if (compareString(address, ethReserveAddress)) return true;
-      return this.tokenMeta.find(hasContract(address));
-    });
-
-    const wholeTokensKnownInMeta = tokensInMeta.filter(address => {
-      if (compareString(address, ethReserveAddress)) return true;
-      const tokenMetaObj = this.tokenMeta.find(hasContract(address));
-      return tokenMetaObj && typeof tokenMetaObj.precision == "number";
-    });
-
-    const tokensWithOutRequiredDecimals = _.differenceWith(
-      tokensInMeta,
-      wholeTokensKnownInMeta,
-      compareString
-    );
-
-    const tokensNotInMeta = _.differenceWith(
-      addresses,
-      tokensInMeta,
-      compareString
-    );
-
-    const tokensToFetch = [
-      ...tokensWithOutRequiredDecimals,
-      ...tokensNotInMeta
-    ];
-
-    console.log(addresses, "are tokens asked for");
-    console.log(tokensToFetch, "are tokens to fetch");
-    const fetchedTokens = await this.buildTokens(tokensToFetch);
-
-    console.log({ fetchedTokens });
-
-    const wholeTokens = wholeTokensKnownInMeta.map(address => {
-      if (compareString(address, ethReserveAddress)) {
-        return {
-          contract: address,
-          decimals: 18,
-          network: "ETH",
-          symbol: "ETH"
-        };
-      }
-      const meta = this.tokenMeta.find(hasContract(address))!;
-      return metaToTokenAssumedPrecision(meta);
-    });
-
-    const allTokens = [...fetchedTokens, ...wholeTokens];
-
-    const updated = updateArray(
-      allTokens,
-      token => !token.symbol,
-      tokenWithoutSymbol => {
-        const meta = this.tokenMeta.find(x =>
-          compareString(x.contract, tokenWithoutSymbol.contract)
-        )!;
-        return {
-          ...tokenWithoutSymbol,
-          symbol: meta.symbol
-        };
-      }
-    );
-
-    return sortAlongSide(
-      updated,
-      token => token.contract.toLowerCase(),
-      addresses.map(x => x.toLowerCase())
-    );
   }
 
   @action async fetchConverterAddressesByAnchorAddresses(
