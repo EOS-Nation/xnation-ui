@@ -3398,8 +3398,6 @@ export class EthBancorModule
         this.fetchUsdPriceOfBnt()
       ]);
 
-      console.log({ tokenMeta, contractAddresses });
-
       this.setAvailableHistories(
         availableSmartTokenHistories.map(history => history.id)
       );
@@ -3468,7 +3466,7 @@ export class EthBancorModule
       );
 
       const initialLoad = _.uniqWith(
-        [...requiredAnchors, ...sortedAnchorsAndConverters.slice(0, 30)],
+        [...requiredAnchors, ...sortedAnchorsAndConverters.slice(0, 5)],
         compareAnchorAndConverter
       );
 
