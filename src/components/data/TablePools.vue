@@ -32,7 +32,6 @@
       </template>
       <template v-slot:cell(symbol)="data">
         <img
-          :id="`tooltip-target-${data.item.reserveId}`"
           :key="reserve.reserveId"
           v-for="reserve in data.item.reserves"
           class="img-avatar img-avatar-thumb img-avatar32"
@@ -40,16 +39,6 @@
           v-fallback="reserve.logo.slice(1)"
           :alt="`${reserve.symbol} Token Logo`"
         />
-        <b-popover
-          v-for="reserve in data.item.reserves"
-          :key="`${reserve.reserveId}-tooltip`"
-          :target="`tooltip-target-${data.item.reserveId}`"
-          triggers="hover"
-        >
-          <p>Contract: {{ reserve.contract }}</p>
-          <p>Symbol: {{ reserve.symbol }}</p>
-          <p>{{ reserve.balance && `Balance: ${reserve.balance}` }}</p>
-        </b-popover>
         {{ data.item.symbol }}
       </template>
       <template v-slot:cell(index)="data">
