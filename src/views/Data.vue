@@ -46,13 +46,15 @@
               v-model="filter"
               placeholder="Search Token"
             ></b-form-input>
-            <table-pools v-if="!tokensTable" :filter="filter" />
-            <tokens-table
-              v-else
-              scrollToTop
-              :loading="false"
-              :filter="filter"
-            />
+            <keep-alive>
+              <table-pools v-if="!tokensTable" :filter="filter" />
+              <tokens-table
+                v-else
+                scrollToTop
+                :loading="false"
+                :filter="filter"
+              />
+            </keep-alive>
           </div>
         </content-block>
       </b-col>
