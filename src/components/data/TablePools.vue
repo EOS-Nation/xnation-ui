@@ -1,19 +1,20 @@
 <template>
   <div class="table-responsive">
     <b-table
-            id="relays-table"
-            striped
-            :key="dynamicId"
-            stacked="sm"
-            :items="tokens"
-            :fields="fields"
-            :filter="filter"
-            sort-by="liqDepth"
-            :sort-desc="true"
-            primary-key="id"
-            :table-busy="loadingPools"
-            :tbody-transition-props="transProps"
-            :tbody-transition-handlers="transHandler"
+      id="relays-table"
+      :dark="darkMode ? true : false"
+      striped
+      :key="dynamicId"
+      stacked="sm"
+      :items="tokens"
+      :fields="fields"
+      :filter="filter"
+      sort-by="liqDepth"
+      :sort-desc="true"
+      primary-key="id"
+      :table-busy="loadingPools"
+      :tbody-transition-props="transProps"
+      :tbody-transition-handlers="transHandler"
     >
       <template v-slot:table-busy>
         <div class="text-center my-2">
@@ -23,7 +24,7 @@
       </template>
       <template v-if="morePoolsAvailable" v-slot:custom-foot>
         <b-button :disabled="loadingPools" @click="loadMorePools"
-        >Load more...
+          >Load more...
         </b-button>
       </template>
       <template v-slot:table-colgroup>
@@ -32,24 +33,14 @@
       </template>
       <template v-slot:cell(symbol)="data">
         <img
-                :id="`tooltip-target-${data.item.reserveId}`"
-                :key="reserve.reserveId"
-                v-for="reserve in data.item.reserves"
-                class="img-avatar img-avatar-thumb img-avatar32"
-                :src="reserve.logo[0]"
-                v-fallback="reserve.logo.slice(1)"
-                :alt="`${reserve.symbol} Token Logo`"
+          :id="`tooltip-target-${data.item.reserveId}`"
+          :key="reserve.reserveId"
+          v-for="reserve in data.item.reserves"
+          class="img-avatar img-avatar32"
+          :src="reserve.logo[0]"
+          v-fallback="reserve.logo.slice(1)"
+          :alt="`${reserve.symbol} Token Logo`"
         />
-        <b-popover
-                v-for="reserve in data.item.reserves"
-                :key="`${reserve.reserveId}-tooltip`"
-                :target="`tooltip-target-${data.item.reserveId}`"
-                triggers="hover"
-        >
-          <p>Contract: {{ reserve.contract }}</p>
-          <p>Symbol: {{ reserve.symbol }}</p>
-          <p>{{ reserve.balance && `Balance: ${reserve.balance}` }}</p>
-        </b-popover>
         {{ data.item.symbol }}
       </template>
       <template v-slot:cell(index)="data">
@@ -62,35 +53,15 @@
         50 - 50
       </template>
       <template v-slot:cell(actions)="data">
-        <div class="actionButtons">
-          <b-btn
-                  v-if="focusDoesExist"
-                  @click="focusRelay(data.item.id)"
-                  :disabled="!data.item.focusAvailable"
-                  size="sm"
-                  variant="warning"
-                  class="mr-1"
-          >
-            <font-awesome-icon icon="chart-line" />
-          </b-btn>
-          <b-btn
-                  @click="goToRelay(data.item.id, 'liquidate')"
-                  :disabled="!data.item.removeLiquiditySupported"
-                  size="sm"
-                  variant="success"
-                  class="mr-1"
-          >
-            <font-awesome-icon icon="minus" />
-          </b-btn>
-          <b-btn
-                  @click="goToRelay(data.item.id)"
-                  :disabled="!data.item.addLiquiditySupported"
-                  size="sm"
-                  variant="info"
-          >
-            <font-awesome-icon icon="plus" />
-          </b-btn>
-        </div>
+        <b-btn
+          :to="{
+            name: 'Relay'
+          }"
+          variant="primary"
+          class="mr-1"
+        >
+          Liquidity
+        </b-btn>
       </template>
     </b-table>
   </div>
@@ -117,7 +88,7 @@ const numeral = require("numeral");
 })
 export default class TablePools extends Vue {
   numeral = numeral;
-  @Prop({default: ""}) filter!: string
+  @Prop({ default: "" }) filter!: string;
   small = false;
   dynamicId = "buddy";
   @bancor.Action loadMorePools!: LiquidityModule["loadMorePools"];
@@ -129,21 +100,23 @@ export default class TablePools extends Vue {
       key: "symbol",
       sortable: true,
       label: "Token",
-      tdClass: ["tokenss"]
+      tdClass: ["tokenss", "align-middle"]
     },
     {
       key: "smartTokenSymbol",
-      sortable: false
+      sortable: false,
+      thClass: "text-center",
+      tdClass: ["text-center", "align-middle"]
     },
     {
       key: "owner",
-      class: "text-center",
-      tdClass: "font-w700",
+      thClass: "text-center",
+      tdClass: ["text-center", "align-middle"],
       formatter: (value: any) => this.shortenEthAddress(value)
     },
     {
       key: "ratio",
-      tdClass: "font-w700",
+      tdClass: ["align-middle"],
       class: "noWrap"
     },
     {
@@ -151,6 +124,7 @@ export default class TablePools extends Vue {
       sortable: true,
       label: "Liquidity Depth",
       class: ["text-right", "font-w700"],
+      tdClass: ["align-middle"],
       formatter: (value: any) =>
         value ? numeral(value).format("$0,0.00") : "Not Available"
     },
@@ -158,18 +132,24 @@ export default class TablePools extends Vue {
       key: "fee",
       sortable: true,
       class: ["text-right", "font-w700"],
+      tdClass: ["align-middle"],
       formatter: (value: string) => numeral(value).format("0.00%")
     },
     {
       key: "actions",
       label: "Actions",
-      tdClass: ["noWrap"]
+      class: "text-right",
+      tdClass: ["align-middle", "noWrap"]
     }
   ];
 
   transProps = {
     name: "flip-list"
   };
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 
   transHandler = {
     beforeEnter: function(el: any) {

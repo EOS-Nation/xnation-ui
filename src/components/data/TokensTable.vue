@@ -2,6 +2,8 @@
   <div class="table-responsive">
     <b-table
       id="tokens-table"
+      :dark="darkMode ? true : false"
+      striped
       :key="dynamicId"
       stacked="sm"
       :items="tokens"
@@ -12,9 +14,7 @@
       :tbody-transition-handlers="transHandler"
     >
       <template v-slot:head(change24h)="data">
-        <span class="cursor text-center" style="min-width: 1500px;">{{
-          data.label
-        }}</span>
+        <span class="cursor text-center">{{ data.label }}</span>
       </template>
       <template v-slot:cell(index)="data">
         {{ data.index + 1 }}
@@ -22,7 +22,7 @@
       <template v-slot:cell(symbol)="data">
         <img
           v-b-tooltip.hover
-          class="img-avatar img-avatar-thumb img-avatar32"
+          class="img-avatar img-avatar32"
           :src="data.item.logo"
           alt="Token Logo"
         />
@@ -45,7 +45,7 @@
         >
       </template>
       <template v-slot:cell(price)="data">
-        <span class="text-center font-w700">
+        <span class="font-w700">
           <span v-if="data.item.price < 100">{{
             numeral(data.item.price).format("$0,0.0000")
           }}</span>
@@ -53,23 +53,15 @@
         </span>
       </template>
       <template v-slot:cell(actions)="data">
-        <span>
-          <b-btn
-            @click="initAction('convert', data.item.id)"
-            size="sm"
-            variant="success"
-            class="mr-1"
-          >
-            <font-awesome-icon icon="exchange-alt" />
-          </b-btn>
-          <b-btn
-            @click="initAction('transfer', data.item.id)"
-            size="sm"
-            variant="info"
-          >
-            <font-awesome-icon icon="arrow-right" />
-          </b-btn>
-        </span>
+        <b-btn
+          :to="{
+            name: 'Tokens'
+          }"
+          variant="primary"
+          class="mr-1"
+        >
+          <font-awesome-icon icon="exchange-alt" /> Swap
+        </b-btn>
       </template>
     </b-table>
   </div>
@@ -147,19 +139,22 @@ export default class TokensTable extends Vue {
     {
       key: "symbol",
       sortable: true,
-      label: "Name"
+      label: "Name",
+      tdClass: ["align-middle"]
     },
     {
       key: "change24h",
       sortable: true,
       label: "24H Change",
-      class: "text-center"
+      thClass: "text-right",
+      tdClass: ["text-right", "align-middle"]
     },
     {
       key: "price",
       sortable: true,
       label: "Price USD",
-      class: ["text-center"],
+      thClass: "text-right",
+      tdClass: ["text-right", "align-middle"],
       formatter: (value: any, key: any, item: any) =>
         numeral(value).format("$0,0.0000")
     },
@@ -167,7 +162,8 @@ export default class TokensTable extends Vue {
       key: "volume24h",
       sortable: true,
       label: "24H Volume",
-      class: ["text-center"],
+      thClass: "text-right",
+      tdClass: ["text-right", "align-middle"],
       formatter: (value: any, key: any, item: any) =>
         value == null || value == undefined
           ? "N/A"
@@ -177,16 +173,22 @@ export default class TokensTable extends Vue {
       key: "liqDepth",
       sortable: true,
       label: "Liquidity Depth",
-      class: ["text-right"],
+      thClass: "text-right",
+      tdClass: ["text-right", "align-middle"],
       formatter: (value: any, key: any, item: any) =>
         numeral(value).format("$0,0.00")
     },
     {
       key: "actions",
       label: "Actions",
-      class: ["text-right"]
+      thClass: "text-right",
+      tdClass: ["text-right", "align-middle"]
     }
   ];
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 
   get tokens() {
     return vxm.bancor.tokens;
