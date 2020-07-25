@@ -613,8 +613,8 @@ const getNetworkVariables = (ethNetwork: EthNetworks): EthNetworkVariables => {
       };
     case EthNetworks.Ropsten:
       return {
-        contractRegistry: "0x173C9FA0aC4e2c8e32F668354FD497F19d601c4F",
-        bntToken: "0xaB82d802b5AAFAF672B213081C1c3811Cb46936a",
+        contractRegistry: "0xF9A25630f489173CE8e5993974D67b241b0D715B",
+        bntToken: "0x6348321a698f7a694044fa2bDe1841029fe5b7ba",
         ethToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         multiCall: "0xf3ad7e31b052ff96566eedd218a823430e74b406"
       };
@@ -747,6 +747,50 @@ const reserveBalanceHandler = (
     callGroups,
     finisher
   };
+};
+
+const hasTwoConnectors = (relay: RefinedAbiRelay) => {
+  const test = relay.connectorTokenCount == "2";
+  if (!test)
+    console.warn(
+      "Dropping relay",
+      relay.anchorAddress,
+      "because it does not have a connector count of two"
+    );
+  return test;
+};
+
+const reservesInTokenMeta = (meta: TokenMeta[]) => (relay: RefinedAbiRelay) => {
+  const test = relay.reserves.filter(reserveAddress =>
+    meta.some(meta => compareString(meta.contract, reserveAddress))
+  );
+  if (test.length == relay.reserves.length) return true;
+  const difference = _.differenceWith(relay.reserves, test, compareString);
+  console.warn(
+    "Dropping",
+    relay.anchorAddress,
+    `because ${
+      difference.length == 1 ? "one" : "all"
+    } of it's reserves are not included in token meta - ${difference.join(" ")}`
+  );
+  return false;
+};
+
+const networkTokenIncludedInReserves = (networkTokenAddresses: string[]) => (
+  relay: RefinedAbiRelay
+) => {
+  const test = relay.reserves.some(reserve =>
+    networkTokenAddresses.some(networkAddress =>
+      compareString(networkAddress, reserve)
+    )
+  );
+  if (!test)
+    console.warn(
+      "Dropping",
+      relay,
+      "because it does not feature a network token"
+    );
+  return test;
 };
 
 interface StakedAndReserve {
@@ -954,30 +998,6 @@ const reserveBalanceTemplate = (reserves: string[]) => {
     reserveOne: contract.methods.getConnectorBalance(reserveOne),
     reserveTwo: contract.methods.getConnectorBalance(reserveTwo)
   };
-};
-
-const buildReserveStructure = (
-  reserveOne: string,
-  reserveTwo: string
-): Method[] => {
-  const contract = buildConverterContract();
-
-  const methods: Method[] = [
-    {
-      name: "reserveOne",
-      method: contract.methods.reserveBalance(reserveOne).encodeABI(),
-      methodName: "reserveBalance",
-      type: "uint256"
-    },
-    {
-      name: "reserveTwo",
-      method: contract.methods.reserveBalance(reserveTwo).encodeABI(),
-      methodName: "reserveBalance",
-      type: "uint256"
-    }
-  ];
-
-  return methods;
 };
 
 const relayIncludesAtLeastOneNetworkToken = (relay: Relay) =>
@@ -1226,7 +1246,6 @@ export class EthBancorModule
   initiated: boolean = false;
   failedPools: string[] = [];
   currentNetwork: EthNetworks = EthNetworks.Mainnet;
-
   slippageTolerance = 0;
 
   @mutation setTolerance(tolerance: number) {
@@ -1850,11 +1869,46 @@ export class EthBancorModule
   }
 
   get chainkLinkRelays(): ViewRelay[] {
-    return [];
-    // return (this.relaysList.filter(isChainLink) as ChainLinkRelay[]).filter(
-    // relay =>
-    // this.relayFeed.some(feed => compareString(feed.anchorId, relay.id))
-    // );
+    return (this.relaysList.filter(isChainLink) as ChainLinkRelay[])
+      .filter(relay =>
+        this.relayFeed.some(feed => compareString(feed.poolId, relay.id))
+      )
+      .map(relay => {
+        const [networkReserve, tokenReserve] = sortByNetworkTokens(
+          relay.reserves,
+          reserve => reserve.symbol
+        );
+        const relayFeed = this.relayFeed
+          .slice()
+          .sort(sortFeedByExtraProps)
+          .find(feed => compareString(feed.poolId, relay.id))!;
+
+        const { poolContainerAddress } = relay.anchor;
+
+        return {
+          id: poolContainerAddress,
+          reserves: [networkReserve, tokenReserve].map(reserve => {
+            const meta = this.tokenMetaObj(reserve.contract);
+            return {
+              id: reserve.contract,
+              reserveId: poolContainerAddress + reserve.contract,
+              logo: [meta.image],
+              symbol: reserve.symbol,
+              contract: reserve.contract,
+              smartTokenSymbol: poolContainerAddress
+            };
+          }),
+          smartTokenSymbol: poolContainerAddress.slice(0, 5) + " V2",
+          fee: relay.fee / 100,
+          liqDepth: relayFeed.liqDepth,
+          owner: relay.owner,
+          symbol: tokenReserve.symbol,
+          addLiquiditySupported: true,
+          removeLiquiditySupported: true,
+          focusAvailable: false,
+          v2: true
+        } as ViewRelay;
+      });
   }
 
   get traditionalRelays(): ViewRelay[] {
@@ -1897,7 +1951,8 @@ export class EthBancorModule
           symbol: tokenReserve.symbol,
           addLiquiditySupported: true,
           removeLiquiditySupported: true,
-          focusAvailable: hasHistory
+          focusAvailable: hasHistory,
+          v2: false
         } as ViewRelay;
       });
   }
@@ -3046,7 +3101,6 @@ export class EthBancorModule
     const multiContract = buildMultiCallContract(networkVars.multiCall);
     console.count("MultiCall");
     console.log("Calls Amount", calls.length);
-    console.log("Calls", calls);
 
     const res = await multiContract.methods.aggregate(calls, strict).call();
 
@@ -3163,7 +3217,7 @@ export class EthBancorModule
       poolAndSmartTokens
     );
 
-    console.log(poolTokenAddresses, smartTokens, "are through");
+    console.log({ poolTokenAddresses, smartTokens }, "are through");
 
     const polished: RefinedAbiRelay[] = firstHalfs.map(half => ({
       ...half,
@@ -3178,7 +3232,7 @@ export class EthBancorModule
       converterType: determineConverterType(half.converterType)
     }));
 
-    console.log(polished);
+    console.log({ polished });
 
     const overWroteVersions = updateArray(
       polished,
@@ -3194,24 +3248,18 @@ export class EthBancorModule
       })
     );
 
-    console.log(overWroteVersions);
+    console.log({ overWroteVersions });
+
     const passedFirstHalfs = overWroteVersions
+      .filter(hasTwoConnectors)
+      .filter(reservesInTokenMeta(this.tokenMeta))
       .filter(
         relay =>
-          relay.connectorTokenCount == "2" &&
-          relay.reserves.every(reserveAddress =>
-            this.tokenMeta.some(meta =>
-              compareString(meta.contract, reserveAddress)
-            )
-          )
-      )
-      .filter(relay =>
-        relay.reserves.some(reserve =>
-          networkTokenAddresses.some(networkAddress =>
-            compareString(networkAddress, reserve)
-          )
-        )
+          this.currentNetwork == EthNetworks.Ropsten ||
+          networkTokenIncludedInReserves(networkTokenAddresses)(relay)
       );
+
+    console.log({ passedFirstHalfs });
 
     const verifiedV1Pools = passedFirstHalfs.filter(
       half => half.converterType == PoolType.Traditional
@@ -3220,6 +3268,8 @@ export class EthBancorModule
     const verifiedV2Pools = passedFirstHalfs.filter(
       half => half.converterType == PoolType.ChainLink
     );
+
+    console.log({ verifiedV1Pools, verifiedV2Pools });
 
     const reserveTokens = _.uniqWith(
       passedFirstHalfs.flatMap(half => half.reserves),
@@ -3400,12 +3450,7 @@ export class EthBancorModule
       Boolean
     ) as RelayWithReserveBalances[]).filter(x => x.reserves.every(Boolean));
 
-    console.log(
-      completeV1Pools.filter(
-        pool => !pool.reserveBalances.every(balance => balance.amount)
-      ),
-      completeV1Pools
-    );
+    console.log({ v1Pools, v2Pools });
     const traditionalRelayFeeds = await this.buildTraditionalReserveFeeds({
       relays: completeV1Pools,
       usdPriceOfBnt: this.bntUsdPrice
@@ -3599,7 +3644,7 @@ export class EthBancorModule
         anchorAndConvertersMatched,
         bareMinimumAnchorAddresses
       ] = await Promise.all([
-        this.addConvertersToAnchors(registeredAnchorAddresses),
+        this.add(registeredAnchorAddresses),
         this.bareMinimumPools({
           params,
           networkContractAddress: contractAddresses.BancorNetwork,
