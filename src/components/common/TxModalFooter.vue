@@ -1,7 +1,12 @@
 <template>
   <div>
     <b-col md="12" class="text-center my-4 text-primary">
-      <font-awesome-icon v-if="!success && !error" size="3x" icon="circle-notch" spin />
+      <font-awesome-icon
+        v-if="!success && !error"
+        size="3x"
+        icon="circle-notch"
+        spin
+      />
       <font-awesome-icon
         v-else-if="error && !success"
         icon="exclamation-triangle"
@@ -18,10 +23,10 @@
     <b-col cols="12" class="text-center">
       <div v-if="!success && !error">
         <h3 :class="darkMode ? 'text-body-dark' : 'text-body-light'">
-          Digesting ...
+          Waiting for Confirmation
         </h3>
         <h6 :class="darkMode ? 'text-body-dark' : 'text-body-light'">
-          Wait for your Wallet to prompt and continue there
+          {{ stepDescription }}
         </h6>
       </div>
       <h6 v-else-if="error && !success" class="text-danger">
@@ -45,7 +50,7 @@
 
 <script lang="ts">
 import { Prop, Component, Vue, PropSync, Emit } from "vue-property-decorator";
-import {vxm} from "@/store";
+import { vxm } from "@/store";
 
 @Component
 export default class TxModalFooter extends Vue {
@@ -53,6 +58,8 @@ export default class TxModalFooter extends Vue {
   @Prop() success?: string;
   @Prop() explorerName!: string;
   @Prop() explorerLink!: string;
+  @Prop({ default: "Wait for your Wallet to prompt and continue there" })
+  stepDescription!: string;
 
   @Emit("close")
   triggerClose() {}

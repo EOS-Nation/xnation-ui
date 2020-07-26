@@ -1,58 +1,117 @@
 <template>
-  <b-modal id="modal-login" class="modal" size="lg" centered hide-footer>
-    <template slot="modal-title">
-      SELECT WALLET PROVIDER
+  <b-modal
+    id="modal-login"
+    :content-class="darkMode ? 'bg-block-dark' : 'bg-block-light'"
+    size="md"
+    centered
+    hide-footer
+    hide-header-close
+    scrollable
+  >
+    <template slot="modal-header">
+      <h5 :class="darkMode ? 'text-body-dark' : 'text-body-light'" class="m-0">
+        Select a Wallet
+      </h5>
+      <font-awesome-icon
+        icon="times"
+        @click="$bvModal.hide('modal-login')"
+        class="cursor"
+        :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+      />
     </template>
     <transition name="slide-fade" mode="out-in">
-      <b-row
-        v-if="!loading && !error"
-        key="select"
-        class="d-flex align-items-center justify-content-center"
-      >
+      <b-row v-if="!loading && !error" key="select">
         <b-col
-          sm="12"
-          md="6"
-          v-for="provider in walletProviders"
+          sm="6"
+          v-for="(provider, index) in walletProviders"
           :key="provider.id"
-          class="text-center d-flex justify-content-between fail"
+          class="my-3"
         >
-          <b-container>
-            <b-row class="fail">
-              <b-col @click="initLogin(provider)">
-                <img
-                  @click="initLogin(provider)"
-                  class="img-avatar img-avatar-thumb cursor"
-                  :src="
-                    require('@/assets/media/logos/' + providerLogoUrl(provider))
-                  "
-                  alt="Provider Logo"
-                />
-              </b-col>
-              <b-col class="Aligner">
-                <h3
-                  @click="initLogin(provider)"
-                  class="mt-2 mb-5 cursor text-center align-middle Aligner-item"
-                >
-                  {{ provider.meta.name }}
-                </h3></b-col
-              >
-            </b-row>
-          </b-container>
+          <div
+            @click="initLogin(provider)"
+            class="cursor d-flex align-items-center"
+            :class="index % 2 ? '' : 'flex-sm-row-reverse'"
+          >
+            <img
+              class="img-avatar img-avatar48 mr-3 mr-sm-0"
+              :class="index % 2 ? 'mr-sm-3' : 'ml-sm-3'"
+              :src="
+                require('@/assets/media/logos/' + providerLogoUrl(provider))
+              "
+              alt="Provider Logo"
+            />
+            <h5
+              class="m-0 p-0"
+              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+            >
+              {{ provider.meta.name }}
+            </h5>
+          </div>
         </b-col>
       </b-row>
-      <b-row v-else-if="error" key="error" class="d-flex align-items-center">
-        <b-col>
-          <h3>{{ selectedProvider.meta.name }}</h3>
-          <h4>{{ selectedProvider.meta.name }}</h4>
-          <p v-if="error.message">{{ error.message }}</p>
-          <p v-else>{{ error }}</p>
-          <b-btn @click="error = false">Try Again</b-btn>
+      <b-row v-else-if="error" key="error">
+        <b-col class="text-center">
+          <div class="cursor d-flex justify-content-center align-items-center">
+            <img
+              class="img-avatar img-avatar48 mr-3"
+              :src="
+                require('@/assets/media/logos/' +
+                  providerLogoUrl(selectedProvider))
+              "
+              alt="Provider Logo"
+            />
+            <h5
+              class="m-0 p-0"
+              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+            >
+              {{ selectedProvider.meta.name }}
+            </h5>
+          </div>
+          <h3 class="mt-5 text-danger  text-center">
+            <font-awesome-icon icon="exclamation-circle" class="mr-2" />
+            Connection Error
+          </h3>
+          <p :class="darkMode ? 'text-body-dark' : 'text-body-light'">
+            {{ error.message ? error.message : error }}
+          </p>
+          <b-btn
+            @click="error = false"
+            size="lg"
+            variant="primary"
+            class="btn-block block-rounded"
+            >Try Again</b-btn
+          >
         </b-col>
       </b-row>
-      <b-row v-else key="loading" class="d-flex align-items-center">
-        <b-col>
-          <h3>{{ selectedProvider.meta.name }}</h3>
-          {{ loginStatus[0] }}
+      <b-row v-else key="loading">
+        <b-col class="text-center">
+          <div class="cursor d-flex justify-content-center align-items-center">
+            <img
+              class="img-avatar img-avatar48 mr-3"
+              :src="
+                require('@/assets/media/logos/' +
+                  providerLogoUrl(selectedProvider))
+              "
+              alt="Provider Logo"
+            />
+            <h5
+              class="m-0 p-0"
+              :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+            >
+              {{ selectedProvider.meta.name }}
+            </h5>
+          </div>
+          <h3
+            class="mt-5 text-center"
+            :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+          >
+            <font-awesome-icon
+              icon="circle-notch"
+              class="text-primary mr-3"
+              spin
+            />
+            {{ loginStatus[0] }} ...
+          </h3>
         </b-col>
       </b-row>
     </transition>
@@ -81,6 +140,10 @@ const isMobileCompatible = (mobileCompatibleIds: string[]) => (
 export default class ModalLogin extends Vue {
   loading = false;
   error: any = false;
+
+  get darkMode() {
+    return vxm.general.darkMode;
+  }
 
   get width() {
     return window.innerWidth;
@@ -134,6 +197,8 @@ export default class ModalLogin extends Vue {
         return "lynx.jpg";
       case "whalevault":
         return "whalevault.png";
+      case "anchor-link":
+        return "anchor.svg";
       default:
         return "eos.png";
     }
@@ -141,51 +206,7 @@ export default class ModalLogin extends Vue {
 }
 </script>
 
-<style lang="scss">
-@media only screen and (max-width: 768px) {
-  #modal-login {
-    width: 100%;
-  }
-}
-</style>
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style lang="scss">
-.fail {
-  display: flex;
-}
-
-@media (min-width: 768px) {
-  .fail {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-}
-</style>
-<style scoped lang="scss">
-.row {
-  min-height: 50vh;
-}
-
-.Aligner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  vertical-align: middle;
-}
-
-.Aligner-item {
-  vertical-align: middle;
-  text-align: center;
-}
-
-@media (min-width: 768px) {
-  .derp {
-    display: flex;
-    flex-direction: column;
-  }
-}
-
+<style lang="scss" scoped>
 .slide-fade-enter-active {
   transition: all 0.3s ease;
 }
@@ -194,7 +215,7 @@ export default class ModalLogin extends Vue {
 }
 .slide-fade-enter, .slide-fade-leave-to
     /* .slide-fade-leave-active below version 2.1.8 */ {
-  transform: translateX(10px);
+  //transform: translateX(10px);
   opacity: 0;
 }
 </style>

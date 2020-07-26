@@ -11,7 +11,10 @@
       @update:tokenOneAmount="tokenOneChanged"
       @update:tokenTwoAmount="tokenTwoChanged"
       :label="withdrawLiquidity ? 'Pool Balance:' : 'Wallet Balance:'"
-      :input-labels="[withdrawLiquidity ? 'Output' : 'Input', withdrawLiquidity ? 'Output' : 'Input']"
+      :input-labels="[
+        withdrawLiquidity ? 'Output' : 'Input',
+        withdrawLiquidity ? 'Output' : 'Input'
+      ]"
     >
       <template v-slot:liquidityActions>
         <b-row class="mb-4">
@@ -40,7 +43,7 @@
 
       <template slot="icon">
         <font-awesome-icon
-          :icon="withdrawLiquidity ? 'minus' : 'plus'"
+          icon="plus"
           class="text-primary"
           size="1x"
         />
@@ -117,15 +120,26 @@
             :rightTitle="`${token2Meta.symbol} ${token2Amount}`"
             :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
             rightSubtitle=""
+            :tx-busy="txBusy"
           >
             <template slot="icon">
               <font-awesome-icon
-                :icon="withdrawLiquidity ? 'minus' : 'plus'"
+                icon="plus"
                 class="text-primary"
                 size="1x"
               />
             </template>
             <template v-slot:footer>
+              <b-col md="12" v-if="!(txBusy || success || error)">
+                <div
+                  class="block block-rounded font-size-sm block-shadow"
+                  :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
+                >
+                  <div class="block-content py-2">
+                    <advanced-block-item v-for="item in advancedBlockItems" :key="item.label" :label="item.label" :value="item.value" />
+                  </div>
+                </div>
+              </b-col>
               <TxModalFooter
                 v-if="txBusy || error || success"
                 :error="error"
@@ -133,16 +147,18 @@
                 :explorerLink="explorerLink"
                 :explorerName="explorerName"
                 @close="txModal = false"
+                :step-description="sections.length ? sections[stepIndex].description : undefined"
               />
+              <span v-if="false">{{ sections[stepIndex].description }}</span>
               <b-col cols="12">
                 <b-btn
                   @click="withdrawLiquidity ? remove() : add()"
                   variant="primary"
                   class="btn-block block-rounded"
                   size="lg"
+                  :disabled="txBusy"
                 >
-                  Confirm
-                  {{ withdrawLiquidity ? "Remove Liquidity" : "Add Liquidity" }}
+                  {{ confirmButton }}
                 </b-btn>
               </b-col>
             </template>
@@ -169,6 +185,7 @@ import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
 import TwoTokenHero from "./TwoTokenHero.vue";
+import numeral from "numeral";
 import {
   OpposingLiquid,
   ViewToken,
@@ -189,12 +206,14 @@ import wait from "waait";
 import { compareString, findOrThrow } from "../../../api/helpers";
 import { sortByNetworkTokens } from "../../../api/sortByNetworkTokens";
 import { vxm } from "@/store";
+import AdvancedBlockItem from "@/components/common/AdvancedBlockItem.vue";
 
 const bancor = namespace("bancor");
 const wallet = namespace("wallet");
 
 @Component({
   components: {
+    AdvancedBlockItem,
     TokenAmountInput,
     RelayFeeAdjuster,
     ModalSelect,
@@ -222,6 +241,7 @@ export default class HeroRelay extends Vue {
   token1Error = "";
   token2Error = "";
   selectedMenu = this.menus[0][0];
+  numeral = numeral;
 
   feeAmount = 0;
   newOwner = "";
@@ -231,6 +251,16 @@ export default class HeroRelay extends Vue {
 
   get darkMode() {
     return vxm.general.darkMode;
+  }
+
+  get confirmButton() {
+    return this.error
+      ? "Try Again"
+      : this.success
+      ? "Close"
+      : this.txBusy
+      ? "processing ..."
+      : "Confirm Supply";
   }
 
   @bancor.Getter token!: TradingModule["token"];
@@ -295,6 +325,31 @@ export default class HeroRelay extends Vue {
 
   get owner() {
     return this.focusedRelay.owner;
+  }
+
+  get advancedBlockItems() {
+    return [
+      {
+        label: this.token1Meta.symbol + " Deposited",
+        value: this.token1Amount
+      },
+      {
+        label: this.token2Meta.symbol + " Deposited",
+        value: this.token2Amount
+      },
+      {
+        label: "Rates",
+        value: "????"
+      },
+      {
+        label: "",
+        value: "????"
+      },
+      {
+        label: "Share of Pool",
+        value: "????"
+      }
+    ]
   }
 
   get token1Meta() {
@@ -472,6 +527,16 @@ export default class HeroRelay extends Vue {
   }
 
   async remove() {
+    if (this.success) {
+      this.txModal = false;
+      return;
+    }
+
+    if (this.error) {
+      this.error = "";
+      return;
+    }
+
     this.sections = [];
     // this.txModal = true;
     this.error = "";
@@ -502,6 +567,16 @@ export default class HeroRelay extends Vue {
   }
 
   async add() {
+    if (this.success) {
+      this.txModal = false;
+      return;
+    }
+
+    if (this.error) {
+      this.error = "";
+      return;
+    }
+
     this.sections = [];
     // this.txModal = true;
     this.error = "";
