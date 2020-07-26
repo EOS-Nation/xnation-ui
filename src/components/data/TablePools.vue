@@ -33,10 +33,9 @@
       </template>
       <template v-slot:cell(symbol)="data">
         <img
-          :id="`tooltip-target-${data.item.reserveId}`"
           :key="reserve.reserveId"
           v-for="reserve in data.item.reserves"
-          class="img-avatar img-avatar32"
+          class="img-avatar img-avatar-thumb img-avatar32"
           :src="reserve.logo[0]"
           v-fallback="reserve.logo.slice(1)"
           :alt="`${reserve.symbol} Token Logo`"
@@ -52,12 +51,11 @@
       <template v-slot:cell(ratio)>
         50 - 50
       </template>
-      <template v-slot:cell(actions)="data">
+      <template v-slot:cell(actions)>
         <b-btn
           :to="{
             name: 'Relay'
           }"
-          variant="primary"
           class="mr-1"
         >
           Liquidity
