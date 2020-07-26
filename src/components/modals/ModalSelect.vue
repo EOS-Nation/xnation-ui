@@ -163,7 +163,7 @@ export default class ModalSelect extends Vue {
   }
 }
 </script>
-<style lang="scss">
+<style lang="scss" scoped>
 #select-token {
   margin-right: 12px;
 }

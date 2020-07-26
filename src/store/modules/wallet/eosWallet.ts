@@ -46,13 +46,13 @@ export class EosTransitModule extends VuexModule.With({
     },
     walletProviders: [
       scatter(),
+      anchor(appName),
       lynx(),
       ledger(),
       tp(),
       meetone(),
       whalevault(),
-      keycat(),
-      anchor(appName)
+      keycat()
     ]
   });
   isMobile = false;
