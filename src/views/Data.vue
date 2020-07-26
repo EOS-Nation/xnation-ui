@@ -18,21 +18,43 @@
       </b-col>
       <b-col>
         <content-block title="Data Table">
-
           <div>
             <div class="mb-3">
-              <b-btn :variant="!tokensTable ? darkMode ? 'dark' : 'light' : 'primary'" @click="tokensTable = !tokensTable" class="block-rounded mr-2">Tokens</b-btn>
-              <b-btn :variant="tokensTable ? darkMode ? 'dark' : 'light' : 'primary'" @click="tokensTable = !tokensTable" class="block-rounded">Pairs</b-btn>
+              <b-btn
+                :variant="
+                  !tokensTable ? (darkMode ? 'dark' : 'light') : 'primary'
+                "
+                @click="tokensTable = !tokensTable"
+                class="block-rounded mr-2"
+                >Tokens</b-btn
+              >
+              <b-btn
+                :variant="
+                  tokensTable ? (darkMode ? 'dark' : 'light') : 'primary'
+                "
+                @click="tokensTable = !tokensTable"
+                class="block-rounded"
+                >Pairs</b-btn
+              >
             </div>
             <b-form-input
               class="mb-3"
-              :class="!darkMode ? 'form-control-alt-light' : 'form-control-alt-dark'"
+              :class="
+                !darkMode ? 'form-control-alt-light' : 'form-control-alt-dark'
+              "
               debounce="500"
               v-model="filter"
               placeholder="Search Token"
             ></b-form-input>
-            <table-pools v-if="!tokensTable" :filter="filter" />
-            <tokens-table v-else scrollToTop :loading="false" :filter="filter" />
+            <keep-alive>
+              <table-pools v-if="!tokensTable" :filter="filter" />
+              <tokens-table
+                v-else
+                scrollToTop
+                :loading="false"
+                :filter="filter"
+              />
+            </keep-alive>
           </div>
         </content-block>
       </b-col>
@@ -57,14 +79,25 @@ import TablePools from "@/components/data/TablePools.vue";
     Statistics,
     ContentBlock,
     TokensTable
+  },
+  created() {
+    console.log("created called!!!!!");
+  },
+  beforeUpdate() {
+    console.log("beforeUpdate");
+    console.time("render");
+  },
+  updated() {
+    console.log("ABC");
+    console.timeEnd("render");
   }
 })
 export default class Data extends Vue {
-  tokensTable: boolean = true
-  filter: string = ""
+  tokensTable: boolean = true;
+  filter: string = "";
 
   get darkMode() {
-    return vxm.general.darkMode
+    return vxm.general.darkMode;
   }
 }
 </script>

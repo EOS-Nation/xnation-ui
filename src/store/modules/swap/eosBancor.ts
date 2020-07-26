@@ -986,6 +986,7 @@ export class EosBancorModule
           addLiquiditySupported: relay.isMultiContract,
           removeLiquiditySupported: true,
           focusAvailable: false,
+          v2: false,
           reserves: sortedReserves.map((reserve: AgnosticToken) => ({
             ...reserve,
             reserveId: relay.smartToken.symbol + reserve.symbol,

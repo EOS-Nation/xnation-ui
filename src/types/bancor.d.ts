@@ -212,6 +212,7 @@ export interface ViewRelay {
   addLiquiditySupported: boolean;
   removeLiquiditySupported: boolean;
   focusAvailable?: boolean;
+  v2: boolean;
 }
 
 export interface ContractMethods<T> extends Contract {
