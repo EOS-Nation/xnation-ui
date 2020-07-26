@@ -3430,7 +3430,6 @@ export class EthBancorModule
     );
 
     console.log({ overWroteVersions });
-
     const passedFirstHalfs = overWroteVersions
       .filter(hasTwoConnectors)
       .filter(reservesInTokenMeta(this.tokenMeta))
@@ -3975,6 +3974,7 @@ export class EthBancorModule
     this.buildPossibleReserveFeedsFromBancorApi(pools);
     this.updateRelayFeeds(reserveFeeds);
     this.setLoadingPools(false);
+
     const allTokenAddresses = uniqWith(
       pools.flatMap(tokensInRelay).map(token => token.contract),
       compareString
@@ -3982,6 +3982,7 @@ export class EthBancorModule
     allTokenAddresses.forEach(address =>
       this.getUserBalance({ tokenContractAddress: address })
     );
+
     console.timeEnd("addPoolsBulk");
     return { pools, reserveFeeds };
   }
