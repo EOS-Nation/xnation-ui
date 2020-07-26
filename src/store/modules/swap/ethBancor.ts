@@ -2273,15 +2273,6 @@ export class EthBancorModule
       })
     );
 
-    console.log(
-      data.map(x => ({
-        ...x,
-        poolUserBalance: new BigNumber(x.poolUserBalance).toString()
-      })),
-      relay.contract,
-      "is data"
-    );
-
     const maxWithdrawals = data.map(
       (x): ViewAmount => ({
         id: x.reserveId,
