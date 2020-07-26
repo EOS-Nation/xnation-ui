@@ -33,10 +33,9 @@
       </template>
       <template v-slot:cell(symbol)="data">
         <img
-          :id="`tooltip-target-${data.item.reserveId}`"
           :key="reserve.reserveId"
           v-for="reserve in data.item.reserves"
-          class="img-avatar img-avatar32"
+          class="img-avatar img-avatar-thumb img-avatar32"
           :src="reserve.logo[0]"
           v-fallback="reserve.logo.slice(1)"
           :alt="`${reserve.symbol} Token Logo`"
@@ -46,18 +45,17 @@
       <template v-slot:cell(index)="data">
         {{ data.index + 1 }}
       </template>
-      <template v-slot:cell(smartTokenSymbol)="data">
-        <span> {{ data.item.smartTokenSymbol }}</span>
+      <template v-slot:cell(v2)="data">
+        <span> {{ data.item.v2 ? "V2" : "V1" }}</span>
       </template>
       <template v-slot:cell(ratio)>
         50 - 50
       </template>
-      <template v-slot:cell(actions)="data">
+      <template v-slot:cell(actions)>
         <b-btn
           :to="{
             name: 'Relay'
           }"
-          variant="primary"
           class="mr-1"
         >
           Liquidity
@@ -103,7 +101,8 @@ export default class TablePools extends Vue {
       tdClass: ["tokenss", "align-middle"]
     },
     {
-      key: "smartTokenSymbol",
+      key: "v2",
+      label: "Version",
       sortable: false,
       thClass: "text-center",
       tdClass: ["text-center", "align-middle"]

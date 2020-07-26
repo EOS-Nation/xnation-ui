@@ -102,6 +102,31 @@ import BigNumber from "bignumber.js";
 import { knownVersions } from "@/api/knownConverterVersions";
 import { openDB, DBSchema } from "idb/with-async-ittr.js";
 
+const calculatePoolTokenWithdrawalWei = (
+  poolToken: Token,
+  reserveToken: Token,
+  reserveDecAmount: number
+): string => {
+  if (poolToken.decimals == reserveToken.decimals) {
+    return expandToken(reserveDecAmount, poolToken.decimals);
+  }
+  const precisionDifference = poolToken.decimals - reserveToken.decimals;
+  const expansion = poolToken.decimals - precisionDifference;
+  return expandToken(reserveDecAmount, expansion);
+};
+
+const getAnchorTokenAddresses = (relay: Relay): string[] => {
+  if (relay.converterType == PoolType.ChainLink) {
+    const actualRelay = relay as ChainLinkRelay;
+    return actualRelay.anchor.poolTokens.map(x => x.poolToken.contract);
+  } else if (relay.converterType == PoolType.Traditional) {
+    const actualRelay = relay as TraditionalRelay;
+    return [actualRelay.anchor.contract];
+  } else {
+    throw new Error("Failed to identify type of relay passed");
+  }
+};
+
 interface MyDB extends DBSchema {
   anchorPair: {
     key: string;
@@ -341,6 +366,11 @@ interface AbiTemplate {
 interface DecodedResult<T> {
   originAddress: string;
   data: T;
+}
+
+interface TokenWei {
+  tokenContract: string;
+  weiAmount: string;
 }
 
 const decodeCallGroup = <T>(
@@ -865,13 +895,8 @@ const polishTokens = (tokenMeta: TokenMeta[], tokens: Token[]) => {
     _ => ethReserveToken
   );
 
-  const trackedInMeta = ethHardCode.filter(token => {
-    if (compareString(token.contract, ethReserveAddress)) return true;
-    return tokenMeta.some(meta => compareString(meta.contract, token.contract));
-  });
-
   const symbolOveride = updateArray(
-    trackedInMeta,
+    ethHardCode,
     token => typeof token.symbol == "undefined" || token.symbol == "",
     token => ({
       ...token,
@@ -1157,11 +1182,11 @@ const getTokenMeta = async (currentNetwork: EthNetworks) => {
         symbol: "YYYY"
       },
       {
-        contract: "0x2Cc39FeAc566b4E6ddC4536990c4FF947AE80eCc",
+        contract: "0x5Dc5AeC22B8477164Af275F7d58FD3CFD2940d2f",
         symbol: "YYY"
       },
       {
-        contract: "0x72966FFD5d0F11f30918f65078AeD8E705CF4052",
+        contract: "0x13BCcc0ac4f7a458db5863dBbfd2586Df5eBD572",
         symbol: "XXX"
       },
       {
@@ -1639,7 +1664,9 @@ export class EthBancorModule
       onUpdate: poolParams.onUpdate
     })) as { reserves: WeiExtendedAsset[]; txId: string };
 
-    reserves.forEach(reserve => this.getUserBalance(reserve.contract));
+    reserves.forEach(reserve =>
+      this.getUserBalance({ tokenContractAddress: reserve.contract })
+    );
 
     wait(5000).then(() => this.init());
 
@@ -2062,8 +2089,10 @@ export class EthBancorModule
     );
 
     if (opposingReserveChangeNotRequired) {
+      console.log("Not changing opposite amount...");
       return { opposingAmount: undefined };
     } else {
+      console.log("Changing opposite amount...");
       const { opposingAmount } = await this.calculateOpposingDepositInfo(
         opposingDeposit
       );
@@ -2071,10 +2100,21 @@ export class EthBancorModule
     }
   }
 
-  @action async getUserBalance(tokenContractAddress: string) {
+  @action async getUserBalance({
+    tokenContractAddress,
+    userAddress,
+    keepWei = false
+  }: {
+    tokenContractAddress: string;
+    userAddress?: string;
+    keepWei?: boolean;
+  }) {
+    if (!tokenContractAddress)
+      throw new Error("Token contract address cannot be falsy");
     const balance = await vxm.ethWallet.getBalance({
-      accountHolder: vxm.wallet.isAuthenticated,
-      tokenContractAddress
+      accountHolder: userAddress || vxm.wallet.isAuthenticated,
+      tokenContractAddress,
+      keepWei
     });
     this.updateBalance([tokenContractAddress, Number(balance)]);
     return balance;
@@ -2091,9 +2131,9 @@ export class EthBancorModule
   ): Promise<UserPoolBalances> {
     const relay = await this.traditionalRelayById(relayId);
 
-    const smartTokenUserBalance = await this.getUserBalance(
-      relay.anchor.contract
-    );
+    const smartTokenUserBalance = await this.getUserBalance({
+      tokenContractAddress: relay.anchor.contract
+    });
 
     const { smartTokenSupplyWei, reserves } = await this.fetchRelayBalances(
       relay.anchor.contract
@@ -2159,39 +2199,74 @@ export class EthBancorModule
 
   @action async getUserBalancesChainLink(
     relayId: string
-    // @ts-ignore
   ): Promise<UserPoolBalances> {
     const relay = await this.chainLinkRelayById(relayId);
     const poolTokenBalances = await Promise.all(
-      relay.anchor.poolTokens.map(async reserveAndPool => ({
-        ...reserveAndPool,
-        poolUserBalance: Number(
-          await this.getUserBalance(reserveAndPool.poolToken.contract)
-        ),
-        reserveToken: findOrThrow(relay.reserves, reserve =>
-          compareString(reserve.contract, reserveAndPool.reserveId)
-        )
-      }))
-    );
+      relay.anchor.poolTokens.map(async reserveAndPool => {
+        const poolUserBalance = await this.getUserBalance({
+          tokenContractAddress: reserveAndPool.poolToken.contract,
+          keepWei: false
+        });
 
-    console.log(poolTokenBalances, "are the pool token balances");
+        BigNumber.config({ EXPONENTIAL_AT: 999 });
+        // console.log(
+        // poolUserBalance,
+        // "was the pool user balance",
+        // new BigNumber(poolUserBalance)
+        // .div(Math.pow(10, reserveAndPool.poolToken.decimals))
+        // .toString(),
+        // "is the string version with big number",
+        // reserveAndPool.poolToken.decimals,
+        // "are the decimals for it",
+        // reserveAndPool.reserveId,
+        // "was the reserve address",
+        // reserveAndPool.poolToken.symbol,
+        // "contract is",
+        // reserveAndPool.poolToken.contract
+        // );
+
+        return {
+          ...reserveAndPool,
+          poolUserBalance: Number(poolUserBalance),
+          reserveToken: findOrThrow(relay.reserves, reserve =>
+            compareString(reserve.contract, reserveAndPool.reserveId)
+          )
+        };
+      })
+    );
 
     const v2Converter = buildV2Converter(relay.contract);
     const data = await Promise.all(
       poolTokenBalances.map(async poolTokenBalance => {
-        const maxMaxwithdraw = await v2Converter.methods
+        const poolTokenBalanceWei = expandToken(
+          poolTokenBalance.poolUserBalance,
+          poolTokenBalance.poolToken.decimals
+        );
+
+        const maxWithdrawWei = await v2Converter.methods
           .removeLiquidityReturn(
-            relay.contract,
-            expandToken(
-              poolTokenBalance.poolUserBalance,
-              poolTokenBalance.poolToken.decimals
-            )
+            poolTokenBalance.poolToken.contract,
+            poolTokenBalanceWei
           )
           .call();
+
+        const weis = [poolTokenBalanceWei, maxWithdrawWei];
+        const dec = [
+          poolTokenBalance.poolUserBalance,
+          shrinkToken(maxWithdrawWei, poolTokenBalance.reserveToken.decimals)
+        ];
+        console.log(weis, "weis");
+        console.log(dec, "decs");
+        console.log(
+          poolTokenBalance.reserveId,
+          "is the reserve and pool is",
+          poolTokenBalance.poolToken.contract
+        );
+
         return {
           ...poolTokenBalance,
           maxWithdraw: shrinkToken(
-            maxMaxwithdraw,
+            maxWithdrawWei,
             poolTokenBalance.reserveToken.decimals
           )
         };
@@ -2208,9 +2283,11 @@ export class EthBancorModule
     const iouBalances = data.map(
       (x): ViewAmount => ({
         id: x.reserveId,
-        amount: String(x.poolUserBalance)
+        amount: new BigNumber(x.poolUserBalance).toString()
       })
     );
+
+    console.log({ iouBalances, maxWithdrawals });
 
     return { iouBalances, maxWithdrawals };
   }
@@ -2220,6 +2297,7 @@ export class EthBancorModule
       throw new Error("Cannot find users .isAuthenticated");
 
     const poolType = await this.getPoolType(relayId);
+    console.log("detected pool type is", poolType);
     return poolType == PoolType.Traditional
       ? this.getUserBalancesTraditional(relayId)
       : this.getUserBalancesChainLink(relayId);
@@ -2309,6 +2387,27 @@ export class EthBancorModule
     };
   }
 
+  @action async removeLiquidityV2({
+    converterAddress,
+    poolToken,
+    onHash
+  }: {
+    converterAddress: string;
+    poolToken: TokenWei;
+    onHash?: (hash: string) => void;
+  }) {
+    const contract = buildV2Converter(converterAddress);
+
+    return this.resolveTxOnConfirmation({
+      tx: contract.methods.removeLiquidity(
+        poolToken.tokenContract,
+        poolToken.weiAmount,
+        "1"
+      ),
+      onHash
+    });
+  }
+
   @action async liquidate({
     converterAddress,
     smartTokenAmount
@@ -2332,25 +2431,56 @@ export class EthBancorModule
 
     const postV28 = Number(relay.version) >= 28;
 
-    const { smartTokenAmount } = await this.calculateOpposingWithdrawInfo({
-      id: relayId,
-      reserve: reserves[0]
-    });
+    const withdraw = reserves.find(reserve => reserve.amount)!;
+    const converterAddress = relay.contract;
 
-    const hash = postV28
-      ? await this.removeLiquidityV28({
-          converterAddress: relay.contract,
-          smartTokensWei: smartTokenAmount.amount,
-          reserveTokenAddresses: relay.reserves.map(reserve => reserve.contract)
-        })
-      : await this.liquidate({
-          converterAddress: relay.contract,
-          smartTokenAmount: smartTokenAmount.amount
-        });
+    let hash: string;
+    if (postV28 && relay.converterType == PoolType.ChainLink) {
+      const v2Relay = await this.chainLinkRelayById(relayId);
+      const poolToken = findOrThrow(v2Relay.anchor.poolTokens, poolToken =>
+        compareString(poolToken.reserveId, withdraw.id)
+      );
+      const reserveToken = findOrThrow(v2Relay.reserves, reserve =>
+        compareString(reserve.contract, withdraw.id)
+      );
+      const reserveDecAmount = Number(withdraw.amount);
+      const weiAmount = calculatePoolTokenWithdrawalWei(
+        poolToken.poolToken,
+        reserveToken,
+        reserveDecAmount
+      );
+      console.log(weiAmount, "is the wei amount");
+
+      hash = await this.removeLiquidityV2({
+        converterAddress,
+        poolToken: { tokenContract: poolToken.poolToken.contract, weiAmount }
+      });
+    } else if (postV28 && relay.converterType == PoolType.Traditional) {
+      const { smartTokenAmount } = await this.calculateOpposingWithdrawInfo({
+        id: relayId,
+        reserve: reserves[0]
+      });
+      hash = await this.removeLiquidityV28({
+        converterAddress,
+        smartTokensWei: smartTokenAmount.amount,
+        reserveTokenAddresses: relay.reserves.map(reserve => reserve.contract)
+      });
+    } else {
+      const { smartTokenAmount } = await this.calculateOpposingWithdrawInfo({
+        id: relayId,
+        reserve: reserves[0]
+      });
+      hash = await this.liquidate({
+        converterAddress,
+        smartTokenAmount: smartTokenAmount.amount
+      });
+    }
+
+    const anchorTokens = getAnchorTokenAddresses(relay);
 
     const tokenAddressesChanged = [
       ...relay.reserves.map(reserve => reserve.contract),
-      smartTokenAmount.id
+      ...anchorTokens
     ];
     this.spamBalances(tokenAddressesChanged);
 
@@ -2395,7 +2525,7 @@ export class EthBancorModule
 
   @action async addLiquidityV28(par: {
     converterAddress: string;
-    reserves: { tokenContract: string; weiAmount: string }[];
+    reserves: TokenWei[];
     onHash?: (hash: string) => void;
   }) {
     const contract = buildV28ConverterContract(par.converterAddress);
@@ -2412,6 +2542,33 @@ export class EthBancorModule
       ),
       onHash: par.onHash,
       ...(newEthReserve && { value: newEthReserve.weiAmount })
+    });
+  }
+
+  @action async addLiquidityV2({
+    converterAddress,
+    reserve,
+    onHash
+  }: {
+    converterAddress: string;
+    reserve: TokenWei;
+    onHash?: (hash: string) => void;
+  }) {
+    const contract = buildV2Converter(converterAddress);
+
+    const newEthReserve = compareString(
+      reserve.tokenContract,
+      ethReserveAddress
+    );
+
+    return this.resolveTxOnConfirmation({
+      tx: contract.methods.addLiquidity(
+        reserve.tokenContract,
+        reserve.weiAmount,
+        "1"
+      ),
+      onHash: onHash,
+      ...(newEthReserve && { value: reserve.weiAmount })
     });
   }
 
@@ -2448,11 +2605,19 @@ export class EthBancorModule
 
     const postV28 = Number(relay.version) >= 28;
 
-    const matchedBalances = relay.reserves.map(reserve => ({
-      ...reserve,
-      amount: reserves.find(({ id }) => compareString(id, reserve.contract))!
-        .amount
-    }));
+    const matchedBalances = reserves
+      .filter(reserve => reserve.amount)
+      .map(reserve => {
+        const relayReserve = findOrThrow(
+          relay.reserves,
+          relayReserve => compareString(relayReserve.contract, reserve.id),
+          "failed to match passed reserves"
+        );
+        return {
+          ...relayReserve,
+          amount: reserve.amount
+        };
+      });
 
     const steps: Step[] = [
       {
@@ -2474,13 +2639,6 @@ export class EthBancorModule
     ];
 
     onUpdate!(0, steps);
-
-    const { smartTokenAmount } = await this.calculateOpposingDepositInfo({
-      reserve: reserves[0],
-      id: relayId
-    });
-
-    const fundAmount = smartTokenAmount;
 
     const converterAddress = relay.contract;
 
@@ -2506,7 +2664,8 @@ export class EthBancorModule
 
     let txHash: string;
 
-    if (postV28) {
+    if (postV28 && relay.converterType == PoolType.Traditional) {
+      console.log("treating as a traditional relay");
       txHash = await this.addLiquidityV28({
         converterAddress,
         reserves: matchedBalances.map(balance => ({
@@ -2515,7 +2674,25 @@ export class EthBancorModule
         })),
         onHash: () => onUpdate!(2, steps)
       });
+    } else if (postV28 && relay.converterType == PoolType.ChainLink) {
+      console.log("treating as a chainlink v2 relay");
+      txHash = await this.addLiquidityV2({
+        converterAddress,
+        reserve: matchedBalances.map(balance => ({
+          tokenContract: balance.contract,
+          weiAmount: expandToken(balance.amount, balance.decimals)
+        }))[0],
+        onHash: () => onUpdate!(2, steps)
+      });
     } else {
+      console.log("treating as an old tradtional relay");
+      const { smartTokenAmount } = await this.calculateOpposingDepositInfo({
+        reserve: reserves[0],
+        id: relayId
+      });
+
+      const fundAmount = smartTokenAmount;
+
       txHash = await this.fundRelay({
         converterAddress,
         fundAmount: fundAmount.amount,
@@ -2525,18 +2702,22 @@ export class EthBancorModule
 
     onUpdate!(3, steps);
 
+    const anchorTokens = getAnchorTokenAddresses(relay);
+
     const tokenAddressesChanged = [
       ...matchedBalances.map(x => x.contract),
-      fundAmount.id
+      ...anchorTokens
     ];
     this.spamBalances(tokenAddressesChanged);
     return txHash;
   }
 
   @action async spamBalances(tokenAddresses: string[]) {
-    for (var i = 0; i < 10; i++) {
-      this.getUserBalance(tokenAddresses[i]);
-      await wait(1000);
+    for (var i = 0; i < 5; i++) {
+      tokenAddresses.forEach(tokenContractAddress =>
+        this.getUserBalance({ tokenContractAddress })
+      );
+      await wait(1500);
     }
   }
 
@@ -3249,7 +3430,6 @@ export class EthBancorModule
     );
 
     console.log({ overWroteVersions });
-
     const passedFirstHalfs = overWroteVersions
       .filter(hasTwoConnectors)
       .filter(reservesInTokenMeta(this.tokenMeta))
@@ -3368,9 +3548,12 @@ export class EthBancorModule
             poolContainerAddress: rawPool.anchorAddress,
             poolTokens: rawPool.reserves.map(reserve => ({
               reserveId: reserve.reserveAddress,
-              poolToken: polishedReserveAndPoolTokens.find(poolToken =>
-                compareString(poolToken.contract, reserve.poolTokenAddress)
-              )!
+              poolToken: findOrThrow(
+                polishedReserveAndPoolTokens,
+                token =>
+                  compareString(token.contract, reserve.poolTokenAddress),
+                `failed to find the pool token for ${reserve.poolTokenAddress}`
+              )
             }))
           },
           contract: pool.converterAddress,
@@ -3582,6 +3765,11 @@ export class EthBancorModule
       return this.refresh();
     }
 
+    BigNumber.config({ EXPONENTIAL_AT: 999 });
+
+    const x = new BigNumber(11000000).div(Math.pow(10, 18)).toString();
+    console.log(x, "is the balane");
+
     const web3NetworkVersion = await web3.eth.getChainId();
     const currentNetwork: EthNetworks = web3NetworkVersion;
     console.log(currentNetwork, "is the current network");
@@ -3786,6 +3974,15 @@ export class EthBancorModule
     this.buildPossibleReserveFeedsFromBancorApi(pools);
     this.updateRelayFeeds(reserveFeeds);
     this.setLoadingPools(false);
+
+    const allTokenAddresses = uniqWith(
+      pools.flatMap(tokensInRelay).map(token => token.contract),
+      compareString
+    );
+    allTokenAddresses.forEach(address =>
+      this.getUserBalance({ tokenContractAddress: address })
+    );
+
     console.timeEnd("addPoolsBulk");
     return { pools, reserveFeeds };
   }
@@ -3916,18 +4113,18 @@ export class EthBancorModule
     this.tokenBalances = [];
   }
 
-  @action async onAuthChange(address: string) {
-    const previousBalances = this.tokenBalances;
+  @action async onAuthChange(userAddress: string) {
     this.wipeTokenBalances();
-    previousBalances.forEach(({ id }) =>
-      vxm.ethWallet
-        .getBalance({
-          accountHolder: address,
-          tokenContractAddress: id
-        })
-        .then(balanceAmount => {
-          this.updateBalance([id, Number(balanceAmount)]);
-        })
+    const allTokens = this.relaysList.flatMap(tokensInRelay);
+    const uniqueTokenAddresses = uniqWith(
+      allTokens.map(token => token.contract),
+      compareString
+    );
+    uniqueTokenAddresses.forEach(tokenContractAddress =>
+      this.getUserBalance({
+        tokenContractAddress,
+        userAddress
+      })
     );
   }
 
@@ -4106,7 +4303,7 @@ export class EthBancorModule
     onUpdate!(4, steps);
     wait(2000).then(() =>
       [fromTokenContract, toTokenContract].forEach(contract =>
-        this.getUserBalance(contract)
+        this.getUserBalance({ tokenContractAddress: contract })
       )
     );
     return confirmedHash;
