@@ -45,8 +45,8 @@
       <template v-slot:cell(index)="data">
         {{ data.index + 1 }}
       </template>
-      <template v-slot:cell(smartTokenSymbol)="data">
-        <span> {{ data.item.smartTokenSymbol }}</span>
+      <template v-slot:cell(v2)="data">
+        <span> {{ data.item.v2 ? "V2" : "V1" }}</span>
       </template>
       <template v-slot:cell(ratio)>
         50 - 50
@@ -101,7 +101,8 @@ export default class TablePools extends Vue {
       tdClass: ["tokenss", "align-middle"]
     },
     {
-      key: "smartTokenSymbol",
+      key: "v2",
+      label: "Version",
       sortable: false,
       thClass: "text-center",
       tdClass: ["text-center", "align-middle"]
