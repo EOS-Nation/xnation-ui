@@ -42,11 +42,7 @@
       </template>
 
       <template slot="icon">
-        <font-awesome-icon
-          icon="plus"
-          class="text-primary"
-          size="1x"
-        />
+        <font-awesome-icon icon="plus" class="text-primary" size="1x" />
       </template>
 
       <div class="w-100">
@@ -123,11 +119,7 @@
             :tx-busy="txBusy"
           >
             <template slot="icon">
-              <font-awesome-icon
-                icon="plus"
-                class="text-primary"
-                size="1x"
-              />
+              <font-awesome-icon icon="plus" class="text-primary" size="1x" />
             </template>
             <template v-slot:footer>
               <b-col md="12" v-if="!(txBusy || success || error)">
@@ -136,7 +128,12 @@
                   :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
                 >
                   <div class="block-content py-2">
-                    <advanced-block-item v-for="item in advancedBlockItems" :key="item.label" :label="item.label" :value="item.value" />
+                    <advanced-block-item
+                      v-for="item in advancedBlockItems"
+                      :key="item.label"
+                      :label="item.label"
+                      :value="item.value"
+                    />
                   </div>
                 </div>
               </b-col>
@@ -147,7 +144,9 @@
                 :explorerLink="explorerLink"
                 :explorerName="explorerName"
                 @close="txModal = false"
-                :step-description="sections.length ? sections[stepIndex].description : undefined"
+                :step-description="
+                  sections.length ? sections[stepIndex].description : undefined
+                "
               />
               <span v-if="false">{{ sections[stepIndex].description }}</span>
               <b-col cols="12">
@@ -349,7 +348,7 @@ export default class HeroRelay extends Vue {
         label: "Share of Pool",
         value: "????"
       }
-    ]
+    ];
   }
 
   get token1Meta() {

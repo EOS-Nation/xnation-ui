@@ -93,7 +93,12 @@
                 :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
               >
                 <div class="block-content py-2">
-                  <advanced-block-item v-for="item in advancedBlockItems" :key="item.label" :label="item.label" :value="item.value" />
+                  <advanced-block-item
+                    v-for="item in advancedBlockItems"
+                    :key="item.label"
+                    :label="item.label"
+                    :value="item.value"
+                  />
                 </div>
               </div>
             </b-col>
