@@ -8,6 +8,7 @@
     </template>
 
     <pool-actions-add v-if="!withdrawLiquidity" :pool="pool" />
+    <pool-actions-remove v-else :pool="pool" />
   </content-block>
 </template>
 
@@ -18,9 +19,15 @@ import ContentBlock from "@/components/common/ContentBlock.vue";
 import { ViewRelay } from "@/types/bancor";
 import PoolActionsHeader from "@/components/pool/PoolActionsHeader.vue";
 import PoolActionsAdd from "@/components/pool/PoolActionsAdd.vue";
+import PoolActionsRemove from "@/components/pool/PoolActionsRemove.vue";
 
 @Component({
-  components: { PoolActionsAdd, PoolActionsHeader, ContentBlock }
+  components: {
+    PoolActionsAdd,
+    PoolActionsRemove,
+    PoolActionsHeader,
+    ContentBlock
+  }
 })
 export default class PoolActions extends Vue {
   withdrawLiquidity = true;
