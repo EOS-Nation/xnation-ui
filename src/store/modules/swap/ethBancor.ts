@@ -1926,7 +1926,6 @@ export class EthBancorModule
               smartTokenSymbol: poolContainerAddress
             };
           }),
-          smartTokenSymbol: poolContainerAddress.slice(0, 5) + " V2",
           fee: relay.fee / 100,
           liqDepth: relayFeed.liqDepth,
           owner: relay.owner,
@@ -1972,7 +1971,6 @@ export class EthBancorModule
               smartTokenSymbol: relay.anchor.contract
             };
           }),
-          smartTokenSymbol,
           fee: relay.fee / 100,
           liqDepth: relayFeed.liqDepth,
           owner: relay.owner,

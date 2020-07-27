@@ -990,7 +990,6 @@ export class EosBancorModule
             symbol: relay.smartToken.symbol
           }),
           symbol: sortedReserves[1].symbol,
-          smartTokenSymbol: relay.smartToken.symbol,
           liqDepth: relayFeed && relayFeed.liqDepth,
           addLiquiditySupported: relay.isMultiContract,
           removeLiquiditySupported: true,

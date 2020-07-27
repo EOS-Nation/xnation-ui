@@ -204,7 +204,6 @@ export interface ViewReserve {
 export interface ViewRelay {
   id: string;
   symbol: string;
-  smartTokenSymbol: string;
   liqDepth: number;
   reserves: ViewReserve[];
   fee: number;
