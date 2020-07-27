@@ -194,7 +194,6 @@ interface TokenWithLogo extends AgnosticToken {
 export interface ViewReserve {
   reserveId: string;
   id: string;
-  smartTokenSymbol: string;
   logo: string[];
   symbol: string;
   contract: string;

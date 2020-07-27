@@ -955,7 +955,6 @@ export class EosBancorModule
   }
 
   get relays(): ViewRelay[] {
-    // @ts-ignore
     return this.relaysList
       .filter(
         relayIncludesBothTokens(
@@ -967,6 +966,17 @@ export class EosBancorModule
         )
       )
       .filter(reservesIncludeTokenMeta(this.tokenMeta))
+      .filter(relay =>
+        this.relayFeed.some(feed =>
+          compareString(
+            feed.smartTokenId,
+            buildTokenId({
+              contract: relay.smartToken.contract,
+              symbol: relay.smartToken.symbol
+            })
+          )
+        )
+      )
       .map(relay => {
         const relayFeed = this.relayFeed.find(feed =>
           compareString(
@@ -976,7 +986,7 @@ export class EosBancorModule
               symbol: relay.smartToken.symbol
             })
           )
-        );
+        )!;
 
         const sortedReserves = sortByNetworkTokens(
           relay.reserves,
@@ -997,7 +1007,7 @@ export class EosBancorModule
           v2: false,
           reserves: sortedReserves.map((reserve: AgnosticToken) => ({
             ...reserve,
-            reserveId: relay.smartToken.symbol + reserve.symbol,
+            reserveId: relay.id + reserve.id,
             logo: [this.token(reserve.id).logo],
             ...(reserve.amount && { balance: reserve.amount })
           }))
