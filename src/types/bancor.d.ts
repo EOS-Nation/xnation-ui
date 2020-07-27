@@ -289,6 +289,9 @@ export interface LiquidityModule {
   readonly supportedFeatures: (arg0: string) => string[];
   readonly morePoolsAvailable: boolean;
   readonly loadingPools: boolean;
+  readonly stats: {
+    totalLiquidityDepth: number;
+  };
   loadMorePools: () => Promise<void>;
   calculateOpposingDeposit: (
     opposingDeposit: OpposingLiquidParams

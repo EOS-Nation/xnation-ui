@@ -179,6 +179,11 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["wallet"];
   }
 
+  get stats() {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["stats"];
+  }
+
   @mutation updateModule({
     id,
     updater

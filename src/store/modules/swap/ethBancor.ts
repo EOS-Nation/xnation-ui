@@ -1265,6 +1265,15 @@ export class EthBancorModule
   currentNetwork: EthNetworks = EthNetworks.Mainnet;
   slippageTolerance = 0;
 
+  get stats() {
+    return {
+      totalLiquidityDepth: this.relays.reduce(
+        (acc, item) => acc + item.liqDepth,
+        0
+      )
+    };
+  }
+
   @mutation setTolerance(tolerance: number) {
     this.slippageTolerance = tolerance;
   }
