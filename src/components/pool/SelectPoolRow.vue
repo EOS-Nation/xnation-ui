@@ -3,21 +3,13 @@
     class="font-w600 font-size-14 d-flex align-items-center justify-content-between"
     :class="darkMode ? 'text-dark' : 'text-light'"
   >
-    <div>
-      <img
-        class="img-avatar img-avatar32 bg-white"
-        :src="pool.reserves[0].logo"
-        alt="Token Logo"
-      />
-      <img
-        class="img-avatar img-avatar32 bg-white overlap"
-        :src="pool.reserves[1].logo"
-        alt="Token Logo"
-      />
-      <span class="ml-2 mr-2">{{ pool.smartTokenSymbol }}</span>
-      <b-badge variant="primary" class="px-2">{{
-        pool.v2 ? "V2" : "V1"
-      }}</b-badge>
+    <div class="d-flex justify-content-center">
+      <pool-logos :pool="pool" />
+      <div>
+        <b-badge variant="primary" class="px-2">{{
+          pool.v2 ? "V2" : "V1"
+        }}</b-badge>
+      </div>
     </div>
     <span>~$??.??</span>
   </div>
@@ -27,9 +19,10 @@
 import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import { ViewRelay } from "@/types/bancor";
 import { vxm } from "@/store";
+import PoolLogos from "@/components/common/PoolLogos.vue";
 
 @Component({
-  components: {}
+  components: { PoolLogos }
 })
 export default class SelectPoolRow extends Vue {
   @Prop() pool!: ViewRelay;
