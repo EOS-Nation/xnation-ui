@@ -2,7 +2,7 @@
   <b-btn
     :variant="variant"
     class="block-rounded btn-block"
-    :class="{ 'btn-large': large }"
+    :class="{ 'btn-large': large, 'btn-sm': small }"
     :disabled="disabled"
   >
     <span v-if="label">{{ label }}</span>
@@ -20,6 +20,7 @@ export default class MainButton extends Vue {
   @Prop({ default: false }) active!: boolean;
   @Prop({ default: false }) large!: boolean;
   @Prop({ default: false }) disabled!: boolean;
+  @Prop({ default: false }) small!: boolean;
 
   get darkMode() {
     return vxm.general.darkMode;
