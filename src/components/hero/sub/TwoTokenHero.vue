@@ -88,7 +88,7 @@ interface TokenMeta {
     TokenField
   }
 })
-export default class HeroConvert extends Vue {
+export default class TwoTokenHero extends Vue {
   @PropSync("tokenOneId", { type: String }) idOne!: string;
   @PropSync("tokenOneAmount", { type: String }) amountOne!: string;
   @Prop(Object) tokenOneMeta!: TokenMeta;
