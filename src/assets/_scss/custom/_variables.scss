@@ -10,3 +10,30 @@
 // For example, changing the primary color
 // $dark: #324856;
 $border-radius: 10px;
+
+$modal-sm: 379px;
+
+$modal-backdrop-bg: #1d3144;
+$modal-backdrop-opacity: 0.7;
+
+$text-color-light: #0a2540;
+$text-color-dark: #cdd1d6;
+
+$text-muted-light: #6b7c93;
+$text-muted-dark: #cdd1d6;
+
+.text-light {
+  color: $text-color-light !important;
+}
+
+.text-dark {
+  color: $text-color-dark !important;
+}
+
+.text-muted-light {
+  color: $text-muted-light !important;
+}
+
+.text-muted-dark {
+  color: $text-muted-dark !important;
+}
