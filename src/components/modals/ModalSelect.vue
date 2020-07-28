@@ -69,6 +69,7 @@
           @click="setToken(token.id)"
         >
           <token-balance-block
+            :dark="darkMode"
             :symbol="token.symbol"
             :balance="token.balance"
             :img="token.img"
