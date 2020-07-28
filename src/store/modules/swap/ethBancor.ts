@@ -953,7 +953,6 @@ const polishTokens = (tokenMeta: TokenMeta[], tokens: Token[]) => {
 };
 
 const seperateMiniTokens = (tokens: AbiCentralPoolToken[]) => {
-  console.log(tokens, "are tokenssss");
   const smartTokens = tokens
     .filter(token => !token.poolTokens)
     .map(pickEthToken);
