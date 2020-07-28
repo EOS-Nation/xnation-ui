@@ -10,11 +10,7 @@
         src="@/assets/media/logos/bancor-white.png"
         height="85px"
       />
-      <img
-        v-else
-        src="@/assets/media/logos/bancor-black.png"
-        height="85px"
-      />
+      <img v-else src="@/assets/media/logos/bancor-black.png" height="85px" />
       <div class="d-flex justify-content-center align-items-center my-5">
         <b-spinner
           style="display: block; width: 2rem; height: 2rem;"
@@ -75,7 +71,7 @@
     <div>
       <my-footer v-if="false"></my-footer>
       <modal-login />
-      <modal-tx />
+      <modal-join-pool />
     </div>
   </div>
 </template>
@@ -88,9 +84,11 @@ import MyFooter from "@/components/common/MyFooter.vue";
 import { vxm } from "@/store/";
 import { WalletProvider } from "eos-transit";
 import wait from "waait";
+import ModalJoinPool from "@/components/pool/ModalJoinPool.vue";
 
 @Component({
   components: {
+    ModalJoinPool,
     ModalLogin,
     ModalTx,
     MyFooter

@@ -14,6 +14,8 @@ import HeroCreate from "@/components/hero/sub/HeroCreate.vue";
 import Navigation from "@/components/layout/Navigation.vue";
 import Privacy from "@/components/common/Privacy.vue";
 import { services } from "@/api/helpers";
+import PoolHome from "@/components/pool/PoolHome.vue";
+import PoolActions from "@/components/pool/PoolActions.vue";
 
 Vue.use(Router);
 
@@ -89,6 +91,30 @@ export const router = new Router({
       props: true
     },
     {
+      path: "/:service/pool",
+      name: "Pool",
+      components: {
+        Nav: Navigation,
+        Hero: PoolHome
+      },
+      props: true,
+      meta: {
+        feature: "Liquidity"
+      }
+    },
+    {
+      path: "/:service/pool/:poolAction/:account",
+      name: "PoolAction",
+      components: {
+        Nav: Navigation,
+        Hero: PoolActions
+      },
+      props: true,
+      meta: {
+        feature: "Liquidity"
+      }
+    },
+    {
       path: "/:service/pools",
       name: "Relays",
       components: {
@@ -101,7 +127,7 @@ export const router = new Router({
       }
     },
     {
-      path: "/:service/pool/:account/detail",
+      path: "/:service/pools/:account/detail",
       name: "RelayDetail",
       components: {
         Nav: Navigation,
@@ -110,7 +136,7 @@ export const router = new Router({
       props: true
     },
     {
-      path: "/:service/pool/:account",
+      path: "/:service/pools/:account",
       name: "Relay",
       components: {
         Nav: Navigation,
@@ -138,7 +164,7 @@ export const router = new Router({
       name: "Data",
       components: {
         Nav: Navigation,
-        default: Data,
+        default: Data
       },
       props: true,
       meta: {
