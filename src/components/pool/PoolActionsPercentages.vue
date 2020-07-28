@@ -11,6 +11,7 @@
       id="range-1"
       v-model="percentageAmount"
       type="range"
+      debounce="300"
       min="0"
       max="100"
       class="my-2"
