@@ -1,10 +1,35 @@
 <template>
   <base-modal id="modal-pool-action" title="You will receive">
-    <b-row class="d-flex align-items-center justify-content-center">
+    <b-row class="d-flex justify-content-center">
       <div v-if="!(txBusy || success || error)">
-        <b-col cols="12">
-          <span>{{ amountsArray[0] }}</span
-          ><pool-logos :pool="pool" />
+        <b-col
+          v-if="!withdrawLiquidity"
+          cols="12"
+          class="d-flex align-items-center justify-content-center"
+        >
+          <span
+            class="font-size-24 font-w600 mr-2"
+            :class="darkMode ? 'text-dark' : 'text-light'"
+          >
+            {{ amountsArray[0] }}
+          </span>
+          <pool-logos :pool="pool" />
+        </b-col>
+
+        <b-col v-else cols="12" class="text-center">
+          <div
+            class="font-size-24 font-w600 mr-2"
+            :class="darkMode ? 'text-dark' : 'text-light'"
+          >
+            ????.????
+          </div>
+          <font-awesome-icon icon="plus" class="text-primary" />
+          <div
+            class="font-size-24 font-w600 mr-2"
+            :class="darkMode ? 'text-dark' : 'text-light'"
+          >
+            ????.????
+          </div>
         </b-col>
 
         <b-col cols="12">
@@ -95,6 +120,7 @@ export default class ModalPoolAction extends Vue {
 
   @Prop() amountsArray!: string[];
   @Prop() selectedToken?: ViewReserve;
+  @Prop() advancedBlockItems!: any[];
 
   txBusy = false;
   success = "";
@@ -109,32 +135,7 @@ export default class ModalPoolAction extends Vue {
       ? "Close"
       : this.txBusy
       ? "processing ..."
-      : "Confirm Supply";
-  }
-
-  get advancedBlockItems() {
-    return [
-      {
-        label: this.pool.reserves[0].symbol + " Deposited",
-        value: "0"
-      },
-      {
-        label: this.pool.reserves[1].symbol + " Deposited",
-        value: "0"
-      },
-      {
-        label: "Rates",
-        value: "????"
-      },
-      {
-        label: "",
-        value: "????"
-      },
-      {
-        label: "Share of Pool",
-        value: "????"
-      }
-    ];
+      : "Confirm";
   }
 
   get pool(): ViewRelay {
