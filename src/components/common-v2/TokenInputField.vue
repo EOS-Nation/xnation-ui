@@ -1,7 +1,9 @@
 <template>
   <div>
     <label-content-split :label="label" class="mb-1">
-      <span class="font-size-12 font-w500">Balance: ???.??? (~$??.??)</span>
+      <span v-if="isAuthenticated" class="font-size-12 font-w500"
+        >Balance: {{ balance }} (~$??.??)</span
+      >
     </label-content-split>
     <b-input-group>
       <b-form-input
@@ -54,13 +56,33 @@ export default class TokenInputField extends Vue {
   @PropSync("amount", { type: String }) tokenAmount!: string;
   @Prop({ default: false }) dropdown!: boolean;
 
+  balance = "0"
+
   get darkMode() {
     return vxm.general.darkMode;
   }
 
+  get isAuthenticated() {
+    return vxm.wallet.isAuthenticated
+  }
+
+  async getBalance() {
+    if (!this.isAuthenticated) return
+    if (this.pool) {
+      const {maxWithdrawals, iouBalances} = await vxm.bancor.getUserBalances(this.pool.id)
+      this.balance = iouBalances[0].amount;
+    } else this.balance = vxm.bancor.token(this.token?.id).balance;
+  }
+
   @Watch("token")
   async onTokenChange(token: ViewReserve) {
-    // update balance
+    console.log("change")
+    await this.getBalance()
+
+  }
+
+  async created() {
+    await this.getBalance()
   }
 }
 </script>
