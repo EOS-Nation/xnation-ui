@@ -39,7 +39,17 @@
       class="mb-3"
     />
     <label-content-split label="Prices and Pool Share" class="mb-1" />
-    <main-button label="Supply" :active="true" :large="true" class="mt-3" />
+    <main-button
+      @click.native="$bvModal.show('modal-pool-action')"
+      label="Supply"
+      :active="true"
+      :large="true"
+      class="mt-3"
+    />
+    <modal-pool-action
+      :selected-token="selectedToken"
+      :amounts-array="[amount]"
+    />
   </div>
 </template>
 
@@ -51,8 +61,10 @@ import PoolLogos from "@/components/common/PoolLogos.vue";
 import TokenInputField from "@/components/common-v2/TokenInputField.vue";
 import MainButton from "@/components/common/Button.vue";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
+import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
 @Component({
   components: {
+    ModalPoolAction,
     LabelContentSplit,
     TokenInputField,
     PoolLogos,
