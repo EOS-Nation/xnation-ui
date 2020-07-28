@@ -127,12 +127,6 @@ export default class PoolActionsAddV1 extends Vue {
   get darkMode() {
     return vxm.general.darkMode;
   }
-
-  @Watch("pool")
-  async updateSelection(pool: ViewRelay) {
-    if (pool.reserves[0] === this.selectedToken) return;
-    this.selectedToken = pool.reserves[0];
-  }
 }
 </script>
 
