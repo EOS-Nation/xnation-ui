@@ -2242,21 +2242,6 @@ export class EthBancorModule
         });
 
         BigNumber.config({ EXPONENTIAL_AT: 999 });
-        // console.log(
-        // poolUserBalance,
-        // "was the pool user balance",
-        // new BigNumber(poolUserBalance)
-        // .div(Math.pow(10, reserveAndPool.poolToken.decimals))
-        // .toString(),
-        // "is the string version with big number",
-        // reserveAndPool.poolToken.decimals,
-        // "are the decimals for it",
-        // reserveAndPool.reserveId,
-        // "was the reserve address",
-        // reserveAndPool.poolToken.symbol,
-        // "contract is",
-        // reserveAndPool.poolToken.contract
-        // );
 
         return {
           ...reserveAndPool,
@@ -2282,19 +2267,6 @@ export class EthBancorModule
             poolTokenBalanceWei
           )
           .call();
-
-        const weis = [poolTokenBalanceWei, maxWithdrawWei];
-        const dec = [
-          poolTokenBalance.poolUserBalance,
-          shrinkToken(maxWithdrawWei, poolTokenBalance.reserveToken.decimals)
-        ];
-        console.log(weis, "weis");
-        console.log(dec, "decs");
-        console.log(
-          poolTokenBalance.reserveId,
-          "is the reserve and pool is",
-          poolTokenBalance.poolToken.contract
-        );
 
         return {
           ...poolTokenBalance,
