@@ -89,6 +89,8 @@ export interface OpposingLiquidParams {
 
 export interface OpposingLiquid {
   opposingAmount?: string;
+  shareOfPool: number;
+  singleUnitCosts: ViewAmount[];
 }
 
 export interface Section {

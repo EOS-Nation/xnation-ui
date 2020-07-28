@@ -705,6 +705,8 @@ const sortSmartTokenAddressesByHighestLiquidity = (
 interface EthOpposingLiquid {
   smartTokenAmount: ViewAmount;
   opposingAmount: string;
+  shareOfPool: number;
+  singleUnitCosts: ViewAmount[];
 }
 
 interface Handler {
@@ -2059,14 +2061,27 @@ export class EthBancorModule
     );
     const shareOfPool = fundRewardDec / smartSupplyDec;
 
-    console.log(
-      { fundReward, fundRewardDec, smartSupplyDec, shareOfPool },
-      "x"
+    const sameReserveCost = shrinkToken(
+      new BigNumber(opposingReserve.weiAmount)
+        .div(sameReserve.weiAmount)
+        .toNumber(),
+      sameReserve.decimals
+    );
+    const opposingReserveCost = shrinkToken(
+      new BigNumber(sameReserve.weiAmount)
+        .div(opposingReserve.weiAmount)
+        .toNumber(),
+      opposingReserve.decimals
     );
 
     return {
       opposingAmount: shrinkToken(opposingAmount, opposingReserve.decimals),
-      smartTokenAmount: { id: smartTokenAddress, amount: fundReward }
+      smartTokenAmount: { id: smartTokenAddress, amount: fundReward },
+      shareOfPool,
+      singleUnitCosts: [
+        { id: sameReserve.contract, amount: sameReserveCost },
+        { id: opposingReserve.contract, amount: opposingReserveCost }
+      ]
     };
   }
 
@@ -2080,22 +2095,21 @@ export class EthBancorModule
     return poolType == PoolType.ChainLink;
   }
 
+  @action async calculateOpposingDepositV2(
+    opposingDeposit: OpposingLiquidParams
+  ): Promise<OpposingLiquid> {
+    return this.calculateOpposingWithdrawV2(opposingDeposit);
+  }
+
   @action async calculateOpposingDeposit(
     opposingDeposit: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
-    const opposingReserveChangeNotRequired = await this.opposingReserveChangeNotRequired(
-      opposingDeposit.id
-    );
+    const relay = await this.relayById(opposingDeposit.id);
 
-    if (opposingReserveChangeNotRequired) {
-      console.log("Not changing opposite amount...");
-      return { opposingAmount: undefined };
+    if (relay.converterType == PoolType.ChainLink) {
+      return this.calculateOpposingDepositV2(opposingDeposit);
     } else {
-      console.log("Changing opposite amount...");
-      const { opposingAmount } = await this.calculateOpposingDepositInfo(
-        opposingDeposit
-      );
-      return { opposingAmount };
+      return this.calculateOpposingDepositInfo(opposingDeposit);
     }
   }
 
@@ -2302,14 +2316,76 @@ export class EthBancorModule
       : this.getUserBalancesChainLink(relayId);
   }
 
+  @action async calculateOpposingWithdrawV2(
+    opposingWithdraw: OpposingLiquidParams
+  ): Promise<OpposingLiquid> {
+    const relay = await this.chainLinkRelayById(opposingWithdraw.id);
+
+    const [[stakedAndReserveWeight]] = (await this.smartMulti([
+      stakedAndReserveHandler([
+        {
+          converterAdress: relay.contract,
+          reserveOne: relay.anchor.poolTokens[0].poolToken.contract,
+          reserveTwo: relay.anchor.poolTokens[1].poolToken.contract
+        }
+      ])
+    ])) as [StakedAndReserve[]];
+
+    const [biggerWeight, smallerWeight] = stakedAndReserveWeight.reserves
+      .map(reserve => ({
+        ...reserve,
+        decReserveWeight: new BigNumber(reserve.reserveWeight).div(oneMillion),
+        token: findOrThrow(relay.reserves, r =>
+          compareString(r.contract, reserve.reserveAddress)
+        )
+      }))
+      .sort((a, b) => b.decReserveWeight.minus(a.reserveWeight).toNumber());
+
+    const distanceFromMiddle = biggerWeight.decReserveWeight.minus(0.5);
+
+    const adjustedBiggerWeight = new BigNumber(biggerWeight.stakedBalance).div(
+      new BigNumber(1).minus(distanceFromMiddle)
+    );
+    const adjustedSmallerWeight = new BigNumber(
+      smallerWeight.stakedBalance
+    ).div(new BigNumber(1).plus(distanceFromMiddle));
+
+    const singleUnitCosts = [
+      {
+        id: biggerWeight.reserveAddress,
+        amount: shrinkToken(
+          adjustedBiggerWeight.toString(),
+          biggerWeight.token.decimals
+        )
+      },
+      {
+        id: smallerWeight.reserveAddress,
+        amount: shrinkToken(
+          adjustedSmallerWeight.toString(),
+          smallerWeight.token.decimals
+        )
+      }
+    ];
+
+    const sameReserve = findOrThrow([biggerWeight, smallerWeight], weight =>
+      compareString(weight.reserveAddress, opposingWithdraw.reserve.id)
+    );
+
+    const shareOfPool =
+      Number(opposingWithdraw.reserve.amount) /
+      Number(
+        shrinkToken(sameReserve.stakedBalance, sameReserve.token.decimals)
+      );
+
+    return { opposingAmount: undefined, shareOfPool, singleUnitCosts };
+  }
+
   @action async calculateOpposingWithdraw(
     opposingWithdraw: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
-    const changedNotRequired = await this.opposingReserveChangeNotRequired(
-      opposingWithdraw.id
-    );
-    if (changedNotRequired) {
-      return { opposingAmount: undefined };
+    const relay = await this.relayById(opposingWithdraw.id);
+    if (relay.converterType == PoolType.ChainLink) {
+      return this.calculateOpposingWithdrawV2(opposingWithdraw);
     } else {
       return this.calculateOpposingWithdrawInfo(opposingWithdraw);
     }
@@ -2349,6 +2425,9 @@ export class EthBancorModule
     );
 
     const sameReserveWei = expandToken(tokenAmount, sameReserve.decimals);
+    const shareOfPool = new BigNumber(sameReserveWei)
+      .div(new BigNumber(sameReserve.weiAmount))
+      .toNumber();
 
     const opposingValue = calculateOppositeLiquidateRequirement(
       sameReserveWei,
@@ -2377,12 +2456,31 @@ export class EthBancorModule
     } else {
       smartTokenAmount = liquidateCost;
     }
+
+    const sameReserveCost = shrinkToken(
+      new BigNumber(opposingReserve.weiAmount)
+        .div(sameReserve.weiAmount)
+        .toNumber(),
+      sameReserve.decimals
+    );
+    const opposingReserveCost = shrinkToken(
+      new BigNumber(sameReserve.weiAmount)
+        .div(opposingReserve.weiAmount)
+        .toNumber(),
+      opposingReserve.decimals
+    );
+
     return {
       opposingAmount: shrinkToken(opposingValue, opposingReserve.decimals),
+      shareOfPool,
       smartTokenAmount: {
         id: smartTokenAddress,
         amount: smartTokenAmount
-      }
+      },
+      singleUnitCosts: [
+        { id: sameReserve.contract, amount: sameReserveCost },
+        { id: opposingReserve.contract, amount: opposingReserveCost }
+      ]
     };
   }
 
@@ -3978,12 +4076,17 @@ export class EthBancorModule
       pools.flatMap(tokensInRelay).map(token => token.contract),
       compareString
     );
-    allTokenAddresses.forEach(address =>
-      this.getUserBalance({ tokenContractAddress: address })
-    );
-
+    if (this.isAuthenticated) {
+      this.fetchBulkTokenBalances(allTokenAddresses);
+    }
     console.timeEnd("addPoolsBulk");
     return { pools, reserveFeeds };
+  }
+
+  @action async fetchBulkTokenBalances(tokenContractAddresses: string[]) {
+    tokenContractAddresses.forEach(address =>
+      this.getUserBalance({ tokenContractAddress: address })
+    );
   }
 
   @action async addPoolsContainingTokenAddresses(tokenAddresses: string[]) {

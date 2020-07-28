@@ -118,6 +118,10 @@ export class EthereumModule extends VuexModule.With({
     tokenContractAddress: EthAddress;
     keepWei?: boolean;
   }) {
+    if (!accountHolder || !tokenContractAddress)
+      throw new Error(
+        "Cannot get balance without both the account holder and token contract address"
+      );
     if (
       compareString(
         tokenContractAddress,
