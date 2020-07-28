@@ -80,6 +80,10 @@
     </div>
 
     <main-button label="Remove" :active="true" :large="true" class="mt-1" />
+
+    <modal-pool-action
+      :amounts-array="[amountSmartToken, amountToken1, amountToken2]"
+    />
   </div>
 </template>
 
@@ -92,8 +96,10 @@ import TokenInputField from "@/components/common-v2/TokenInputField.vue";
 import MainButton from "@/components/common/Button.vue";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
 import PoolActionsPercentages from "@/components/pool/PoolActionsPercentages.vue";
+import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
 @Component({
   components: {
+    ModalPoolAction,
     PoolActionsPercentages,
     LabelContentSplit,
     TokenInputField,
@@ -105,33 +111,17 @@ export default class PoolActionsRemoveV2 extends Vue {
   @Prop() pool!: ViewRelay;
 
   advanced = false;
-  selectedToken: ViewReserve = this.pool.reserves[0];
-  percentage: number = 50;
+  percentage: string = "50";
   rate = "??????.?????";
 
-  amountSmartToken = 0;
-  amountToken1 = 0;
-  amountToken2 = 0;
+  amountSmartToken = "0";
+  amountToken1 = "0";
+  amountToken2 = "0";
 
   get darkMode() {
     return vxm.general.darkMode;
   }
-
-  @Watch("pool")
-  async updateSelection(pool: ViewRelay) {
-    if (pool.reserves[0] === this.selectedToken) return;
-    this.selectedToken = pool.reserves[0];
-  }
 }
 </script>
 
-<style lang="scss">
-.custom-control-inline {
-  margin-right: 0 !important;
-  margin-left: 1rem !important;
-}
-.custom-control-label {
-  display: inline-flex !important;
-  align-items: center !important;
-}
-</style>
+<style lang="scss"></style>
