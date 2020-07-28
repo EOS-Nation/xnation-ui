@@ -89,6 +89,10 @@ export interface OpposingLiquidParams {
 
 export interface OpposingLiquid {
   opposingAmount?: string;
+  shareOfPool: number;
+  singleUnitCosts: ViewAmount[];
+  withdrawFee?: ViewAmount;
+  expectedReturn?: ViewAmount;
 }
 
 export interface Section {
@@ -194,7 +198,6 @@ interface TokenWithLogo extends AgnosticToken {
 export interface ViewReserve {
   reserveId: string;
   id: string;
-  smartTokenSymbol: string;
   logo: string[];
   symbol: string;
   contract: string;
@@ -204,7 +207,6 @@ export interface ViewReserve {
 export interface ViewRelay {
   id: string;
   symbol: string;
-  smartTokenSymbol: string;
   liqDepth: number;
   reserves: ViewReserve[];
   fee: number;

@@ -315,7 +315,9 @@ const decodeHex = (hex: string, type: string | any[]) => {
       return web3.eth.abi.decodeParameter(type as string, hex);
     }
   } catch (e) {
-    console.warn(e);
+    console.warn(
+      `Failed to decode hex ${hex} treating it as type ${type}. ${e.message}`
+    );
     return undefined;
   }
 };
@@ -332,9 +334,6 @@ const relayTemplate = (): AbiTemplate => {
     connectorToken2: contract.methods.connectorTokens(1)
   };
 };
-
-// finish building this
-// be sure to match the template keys to the existing expected code
 
 const v2PoolBalanceTemplate = (reserves: string[]): AbiTemplate => {
   const contract = buildV2Converter();
@@ -386,10 +385,15 @@ const decodeCallGroup = <T>(
   if (props.length !== calls.length)
     throw new Error("Was expecting as many calls as props");
 
-  const methods: { name: string; type: string }[] = props.map(prop => ({
-    name: prop,
-    type: template[prop]._method.outputs[0].type
-  }));
+  const methods: { name: string; type: string | string[] }[] = props.map(
+    prop => ({
+      name: prop,
+      type:
+        template[prop]._method.outputs.length == 1
+          ? template[prop]._method.outputs[0].type
+          : template[prop]._method.outputs.map(x => x.type)
+    })
+  );
 
   const obj = methods.reduce(
     (acc, item, index) => {
@@ -705,6 +709,8 @@ const sortSmartTokenAddressesByHighestLiquidity = (
 interface EthOpposingLiquid {
   smartTokenAmount: ViewAmount;
   opposingAmount: string;
+  shareOfPool: number;
+  singleUnitCosts: ViewAmount[];
 }
 
 interface Handler {
@@ -1926,7 +1932,6 @@ export class EthBancorModule
               smartTokenSymbol: poolContainerAddress
             };
           }),
-          smartTokenSymbol: poolContainerAddress.slice(0, 5) + " V2",
           fee: relay.fee / 100,
           liqDepth: relayFeed.liqDepth,
           owner: relay.owner,
@@ -1972,7 +1977,6 @@ export class EthBancorModule
               smartTokenSymbol: relay.anchor.contract
             };
           }),
-          smartTokenSymbol,
           fee: relay.fee / 100,
           liqDepth: relayFeed.liqDepth,
           owner: relay.owner,
@@ -2061,14 +2065,27 @@ export class EthBancorModule
     );
     const shareOfPool = fundRewardDec / smartSupplyDec;
 
-    console.log(
-      { fundReward, fundRewardDec, smartSupplyDec, shareOfPool },
-      "x"
+    const sameReserveCost = shrinkToken(
+      new BigNumber(opposingReserve.weiAmount)
+        .div(sameReserve.weiAmount)
+        .toNumber(),
+      sameReserve.decimals
+    );
+    const opposingReserveCost = shrinkToken(
+      new BigNumber(sameReserve.weiAmount)
+        .div(opposingReserve.weiAmount)
+        .toNumber(),
+      opposingReserve.decimals
     );
 
     return {
       opposingAmount: shrinkToken(opposingAmount, opposingReserve.decimals),
-      smartTokenAmount: { id: smartTokenAddress, amount: fundReward }
+      smartTokenAmount: { id: smartTokenAddress, amount: fundReward },
+      shareOfPool,
+      singleUnitCosts: [
+        { id: sameReserve.contract, amount: sameReserveCost },
+        { id: opposingReserve.contract, amount: opposingReserveCost }
+      ]
     };
   }
 
@@ -2082,22 +2099,21 @@ export class EthBancorModule
     return poolType == PoolType.ChainLink;
   }
 
+  @action async calculateOpposingDepositV2(
+    opposingDeposit: OpposingLiquidParams
+  ): Promise<OpposingLiquid> {
+    return this.calculateOpposingWithdrawV2(opposingDeposit);
+  }
+
   @action async calculateOpposingDeposit(
     opposingDeposit: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
-    const opposingReserveChangeNotRequired = await this.opposingReserveChangeNotRequired(
-      opposingDeposit.id
-    );
+    const relay = await this.relayById(opposingDeposit.id);
 
-    if (opposingReserveChangeNotRequired) {
-      console.log("Not changing opposite amount...");
-      return { opposingAmount: undefined };
+    if (relay.converterType == PoolType.ChainLink) {
+      return this.calculateOpposingDepositV2(opposingDeposit);
     } else {
-      console.log("Changing opposite amount...");
-      const { opposingAmount } = await this.calculateOpposingDepositInfo(
-        opposingDeposit
-      );
-      return { opposingAmount };
+      return this.calculateOpposingDepositInfo(opposingDeposit);
     }
   }
 
@@ -2161,13 +2177,13 @@ export class EthBancorModule
   }
 
   @action async liquidationLimit({
-    anchorContract,
+    converterContract,
     poolTokenAddress
   }: {
-    anchorContract: string;
+    converterContract: string;
     poolTokenAddress: string;
   }) {
-    const contract = buildV2Converter(anchorContract);
+    const contract = buildV2Converter(converterContract);
     return contract.methods.liquidationLimit(poolTokenAddress).call();
   }
 
@@ -2196,6 +2212,22 @@ export class EthBancorModule
       relay.converterType == PoolType.ChainLink
       ? PoolType.ChainLink
       : PoolType.Traditional;
+  }
+
+  @action async removeLiquidityReturn({
+    converterAddress,
+    poolTokenWei,
+    poolTokenContract
+  }: {
+    converterAddress: string;
+    poolTokenWei: string;
+    poolTokenContract: string;
+  }) {
+    const v2Converter = buildV2Converter(converterAddress);
+
+    return v2Converter.methods
+      .removeLiquidityReturn(poolTokenContract, poolTokenWei)
+      .call();
   }
 
   @action async getUserBalancesChainLink(
@@ -2304,14 +2336,144 @@ export class EthBancorModule
       : this.getUserBalancesChainLink(relayId);
   }
 
+  @action async getTokenSupply(tokenAddress: string) {
+    const contract = buildTokenContract(tokenAddress);
+    return contract.methods.totalSupply().call();
+  }
+
+  @action async calculateOpposingWithdrawV2(
+    opposingWithdraw: OpposingLiquidParams
+  ): Promise<OpposingLiquid> {
+    const relay = await this.chainLinkRelayById(opposingWithdraw.id);
+
+    const suggestedWithdrawDec = opposingWithdraw.reserve.amount;
+
+    const [[stakedAndReserveWeight]] = (await this.smartMulti([
+      stakedAndReserveHandler([
+        {
+          converterAdress: relay.contract,
+          reserveOne: relay.reserves[0].contract,
+          reserveTwo: relay.reserves[1].contract
+        }
+      ])
+    ])) as [StakedAndReserve[]];
+
+    const [biggerWeight, smallerWeight] = stakedAndReserveWeight.reserves
+      .map(reserve => ({
+        ...reserve,
+        decReserveWeight: new BigNumber(reserve.reserveWeight).div(oneMillion),
+        token: findOrThrow(relay.reserves, r =>
+          compareString(r.contract, reserve.reserveAddress)
+        )
+      }))
+      .sort((a, b) => b.decReserveWeight.minus(a.reserveWeight).toNumber());
+
+    const weightsEqualOneMillion = new BigNumber(biggerWeight.reserveWeight)
+      .plus(smallerWeight.reserveWeight)
+      .eq(oneMillion);
+    if (!weightsEqualOneMillion)
+      throw new Error("Was expecting reserve weights to equal 100%");
+    const distanceFromMiddle = biggerWeight.decReserveWeight.minus(0.5);
+
+    const adjustedBiggerWeight = new BigNumber(biggerWeight.stakedBalance).div(
+      new BigNumber(1).minus(distanceFromMiddle)
+    );
+    const adjustedSmallerWeight = new BigNumber(
+      smallerWeight.stakedBalance
+    ).div(new BigNumber(1).plus(distanceFromMiddle));
+
+    const singleUnitCosts = [
+      {
+        id: biggerWeight.reserveAddress,
+        amount: shrinkToken(
+          adjustedBiggerWeight.toString(),
+          biggerWeight.token.decimals
+        )
+      },
+      {
+        id: smallerWeight.reserveAddress,
+        amount: shrinkToken(
+          adjustedSmallerWeight.toString(),
+          smallerWeight.token.decimals
+        )
+      }
+    ];
+
+    const sameReserve = findOrThrow([biggerWeight, smallerWeight], weight =>
+      compareString(weight.reserveAddress, opposingWithdraw.reserve.id)
+    );
+
+    const shareOfPool =
+      Number(opposingWithdraw.reserve.amount) /
+      Number(
+        shrinkToken(sameReserve.stakedBalance, sameReserve.token.decimals)
+      );
+
+    const suggestedWithdrawWei = expandToken(
+      suggestedWithdrawDec,
+      sameReserve.token.decimals
+    );
+
+    const [
+      removeLiquidityReturnWei,
+      poolTokenSupplyWei,
+      liquidatationLimit
+    ] = await Promise.all([
+      this.removeLiquidityReturn({
+        converterAddress: relay.contract,
+        poolTokenContract: sameReserve.poolTokenAddress,
+        poolTokenWei: suggestedWithdrawWei
+      }),
+      this.getTokenSupply(sameReserve.poolTokenAddress),
+      this.liquidationLimit({
+        converterContract: relay.contract,
+        poolTokenAddress: sameReserve.poolTokenAddress
+      })
+    ]);
+
+    if (new BigNumber(suggestedWithdrawWei).gt(liquidatationLimit))
+      throw new Error("Withdrawal amount above current liquidation limit");
+
+    const noFeeLiquidityReturn = new BigNumber(suggestedWithdrawWei)
+      .times(sameReserve.stakedBalance)
+      .div(poolTokenSupplyWei);
+
+    const feeAmountWei = noFeeLiquidityReturn.minus(removeLiquidityReturnWei);
+    const feeAmountDec = shrinkToken(
+      feeAmountWei.toString(),
+      sameReserve.token.decimals
+    );
+
+    // (Liquidation Amount * StakedBalance) / PoolTokenSupply
+
+    const removeLiquidityReturnDec = shrinkToken(
+      removeLiquidityReturnWei,
+      sameReserve.token.decimals
+    );
+
+    const result = {
+      opposingAmount: undefined,
+      shareOfPool,
+      singleUnitCosts,
+      withdrawFee: {
+        id: sameReserve.token.contract,
+        amount: String(Number(feeAmountDec))
+      },
+      expectedReturn: {
+        id: sameReserve.token.contract,
+        amount: String(Number(removeLiquidityReturnDec))
+      }
+    };
+    console.log(result, "was the result");
+    return result;
+  }
+
   @action async calculateOpposingWithdraw(
     opposingWithdraw: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
-    const changedNotRequired = await this.opposingReserveChangeNotRequired(
-      opposingWithdraw.id
-    );
-    if (changedNotRequired) {
-      return { opposingAmount: undefined };
+    const relay = await this.relayById(opposingWithdraw.id);
+    if (relay.converterType == PoolType.ChainLink) {
+      return this.calculateOpposingWithdrawV2(opposingWithdraw);
     } else {
       return this.calculateOpposingWithdrawInfo(opposingWithdraw);
     }
@@ -2351,6 +2513,9 @@ export class EthBancorModule
     );
 
     const sameReserveWei = expandToken(tokenAmount, sameReserve.decimals);
+    const shareOfPool = new BigNumber(sameReserveWei)
+      .div(new BigNumber(sameReserve.weiAmount))
+      .toNumber();
 
     const opposingValue = calculateOppositeLiquidateRequirement(
       sameReserveWei,
@@ -2379,12 +2544,31 @@ export class EthBancorModule
     } else {
       smartTokenAmount = liquidateCost;
     }
+
+    const sameReserveCost = shrinkToken(
+      new BigNumber(opposingReserve.weiAmount)
+        .div(sameReserve.weiAmount)
+        .toNumber(),
+      sameReserve.decimals
+    );
+    const opposingReserveCost = shrinkToken(
+      new BigNumber(sameReserve.weiAmount)
+        .div(opposingReserve.weiAmount)
+        .toNumber(),
+      opposingReserve.decimals
+    );
+
     return {
       opposingAmount: shrinkToken(opposingValue, opposingReserve.decimals),
+      shareOfPool,
       smartTokenAmount: {
         id: smartTokenAddress,
         amount: smartTokenAmount
-      }
+      },
+      singleUnitCosts: [
+        { id: sameReserve.contract, amount: sameReserveCost },
+        { id: opposingReserve.contract, amount: opposingReserveCost }
+      ]
     };
   }
 
@@ -3059,18 +3243,23 @@ export class EthBancorModule
   }
 
   @action async loadMoreTokens(tokenIds?: string[]) {
-    console.log("load more triggered at", new Date().getTime());
-    console.log("load more tokens received", tokenIds);
     if (tokenIds && tokenIds.length > 0) {
       const anchorAddresses = await Promise.all(
         tokenIds.map(id => this.relaysContainingToken(id))
       );
-      const addresses = anchorAddresses.flat(1);
-      const convertersAndAnchors = await this.addConvertersToAnchors(addresses);
+      const anchorAddressesNotLoaded = anchorAddresses
+        .flat(1)
+        .filter(
+          anchorAddress =>
+            !this.relaysList.some(relay =>
+              compareString(relay.id, anchorAddress)
+            )
+        );
+      const convertersAndAnchors = await this.addConvertersToAnchors(
+        anchorAddressesNotLoaded
+      );
       await this.addPoolsV2(convertersAndAnchors);
-      console.log("should be resolving loadMore at", new Date().getTime());
     } else {
-      console.log("just loading random pools...");
       await this.loadMorePools();
     }
   }
@@ -3881,12 +4070,6 @@ export class EthBancorModule
 
       console.log({ priorityAnchors });
 
-      const sortedAnchorsAndConverters = sortAlongSide(
-        passedAnchorAndConvertersMatched,
-        anchor => anchor.anchorAddress,
-        priorityAnchors
-      );
-
       const initialLoad = _.uniqWith(
         [...requiredAnchors],
         compareAnchorAndConverter
@@ -3931,7 +4114,6 @@ export class EthBancorModule
         );
 
         console.log({ newSet });
-
         this.addPoolsBulk(newSet);
       }
       this.moduleInitiated();
@@ -3970,6 +4152,9 @@ export class EthBancorModule
       "% success rate."
     );
     console.log(poolsFailed, "are pools failed");
+    this.updateFailedPools(
+      poolsFailed.map(failedPool => failedPool.anchorAddress)
+    );
     console.log(pools, "are the pools");
     this.updateRelays(pools);
     this.buildPossibleReserveFeedsFromBancorApi(pools);
@@ -3980,12 +4165,17 @@ export class EthBancorModule
       pools.flatMap(tokensInRelay).map(token => token.contract),
       compareString
     );
-    allTokenAddresses.forEach(address =>
-      this.getUserBalance({ tokenContractAddress: address })
-    );
-
+    if (this.isAuthenticated) {
+      this.fetchBulkTokenBalances(allTokenAddresses);
+    }
     console.timeEnd("addPoolsBulk");
     return { pools, reserveFeeds };
+  }
+
+  @action async fetchBulkTokenBalances(tokenContractAddresses: string[]) {
+    tokenContractAddresses.forEach(address =>
+      this.getUserBalance({ tokenContractAddress: address })
+    );
   }
 
   @action async addPoolsContainingTokenAddresses(tokenAddresses: string[]) {
