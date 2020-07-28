@@ -315,7 +315,7 @@ const decodeHex = (hex: string, type: string | any[]) => {
       return web3.eth.abi.decodeParameter(type as string, hex);
     }
   } catch (e) {
-    console.warn(e);
+    console.warn(`Failed to decode hex ${hex} treating it as type ${type}. ${e.message}`)
     return undefined;
   }
 };
@@ -3155,18 +3155,23 @@ export class EthBancorModule
   }
 
   @action async loadMoreTokens(tokenIds?: string[]) {
-    console.log("load more triggered at", new Date().getTime());
-    console.log("load more tokens received", tokenIds);
     if (tokenIds && tokenIds.length > 0) {
       const anchorAddresses = await Promise.all(
         tokenIds.map(id => this.relaysContainingToken(id))
       );
-      const addresses = anchorAddresses.flat(1);
-      const convertersAndAnchors = await this.addConvertersToAnchors(addresses);
+      const anchorAddressesNotLoaded = anchorAddresses
+        .flat(1)
+        .filter(
+          anchorAddress =>
+            !this.relaysList.some(relay =>
+              compareString(relay.id, anchorAddress)
+            )
+        );
+      const convertersAndAnchors = await this.addConvertersToAnchors(
+        anchorAddressesNotLoaded
+      );
       await this.addPoolsV2(convertersAndAnchors);
-      console.log("should be resolving loadMore at", new Date().getTime());
     } else {
-      console.log("just loading random pools...");
       await this.loadMorePools();
     }
   }
@@ -3977,12 +3982,6 @@ export class EthBancorModule
 
       console.log({ priorityAnchors });
 
-      const sortedAnchorsAndConverters = sortAlongSide(
-        passedAnchorAndConvertersMatched,
-        anchor => anchor.anchorAddress,
-        priorityAnchors
-      );
-
       const initialLoad = _.uniqWith(
         [...requiredAnchors],
         compareAnchorAndConverter
@@ -4027,7 +4026,6 @@ export class EthBancorModule
         );
 
         console.log({ newSet });
-
         this.addPoolsBulk(newSet);
       }
       this.moduleInitiated();
@@ -4066,6 +4064,9 @@ export class EthBancorModule
       "% success rate."
     );
     console.log(poolsFailed, "are pools failed");
+    this.updateFailedPools(
+      poolsFailed.map(failedPool => failedPool.anchorAddress)
+    );
     console.log(pools, "are the pools");
     this.updateRelays(pools);
     this.buildPossibleReserveFeedsFromBancorApi(pools);
