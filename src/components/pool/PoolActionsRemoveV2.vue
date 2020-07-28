@@ -2,9 +2,16 @@
   <div>
     <pool-actions-percentages :percentage.sync="percentage" />
 
+    <div v-if="!advanced" class="text-center my-3">
+      <font-awesome-icon
+        icon="long-arrow-alt-down"
+        class="text-primary font-size-16"
+      />
+    </div>
+
     <div
       v-if="!advanced"
-      class="block block-rounded block-bordered my-4"
+      class="block block-rounded block-bordered mb-4"
       :class="darkMode ? 'block-light-blue-dark' : 'block-light-blue-light'"
     >
       <div
@@ -45,12 +52,23 @@
         class="mt-4"
       />
 
+      <div class="text-center my-3">
+        <font-awesome-icon
+          icon="long-arrow-alt-down"
+          class="text-primary font-size-16"
+        />
+      </div>
+
       <token-input-field
         label="Input"
         :amount.sync="amountToken1"
         :token="pool.reserves[0]"
         class="my-3"
       />
+
+      <div class="text-center my-3">
+        <font-awesome-icon icon="plus" class="text-primary font-size-16" />
+      </div>
 
       <token-input-field
         label="Input"
