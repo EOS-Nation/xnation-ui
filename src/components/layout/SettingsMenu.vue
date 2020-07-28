@@ -39,11 +39,28 @@
             class="mr-1 rounded btn-block"
             >1.0%</b-btn
           >
-          <b-btn @click="customSlippage = '3'" size="sm" :variant="!(slippage === 0.01 || slippage === 0.005 || slippage === 0.001) ? 'primary' : 'light'" class="mr-1 rounded btn-block"
+          <b-btn
+            @click="customSlippage = '3'"
+            size="sm"
+            :variant="
+              !(slippage === 0.01 || slippage === 0.005 || slippage === 0.001)
+                ? 'primary'
+                : 'light'
+            "
+            class="mr-1 rounded btn-block"
             >Custom</b-btn
           >
         </div>
-        <b-input debounce="500" v-if="!(slippage === 0.01 || slippage === 0.005 || slippage === 0.001)" v-model="customSlippage" placeholder="Enter Percentage" class="form-control-alt-light font-size-sm mt-2" style="height: 30px"></b-input>
+        <b-input
+          debounce="500"
+          v-if="
+            !(slippage === 0.01 || slippage === 0.005 || slippage === 0.001)
+          "
+          v-model="customSlippage"
+          placeholder="Enter Percentage"
+          class="form-control-alt-light font-size-sm mt-2"
+          style="height: 30px"
+        ></b-input>
       </b-dropdown-text>
     </b-dropdown-group>
     <b-dropdown-divider></b-dropdown-divider>
@@ -97,7 +114,7 @@ export default class SettingsMenu extends Vue {
     return vxm.bancor.slippageTolerance;
   }
 
-  customSlippage: string = ""
+  customSlippage: string = "";
 
   setSlippage(slippage: number) {
     vxm.bancor.setSlippageTolerance(slippage);
@@ -105,9 +122,9 @@ export default class SettingsMenu extends Vue {
 
   @Watch("customSlippage")
   updateCustomSlippage(newSlippage: string) {
-    console.log(newSlippage)
-    if (!newSlippage) return
-    this.setSlippage(parseFloat(newSlippage)/100)
+    console.log(newSlippage);
+    if (!newSlippage) return;
+    this.setSlippage(parseFloat(newSlippage) / 100);
   }
 
   toggleDarkMode() {

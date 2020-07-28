@@ -141,6 +141,22 @@ const compareEosTokenSymbol = (
   b: DryRelay["smartToken"]
 ) => compareString(a.contract, b.contract) && a.symbol.isEqual(b.symbol);
 
+const singleUnitCost = (
+  returningBalance: Asset,
+  opposingBalance: Asset
+): Asset => {
+  const returningBalanceNumber = asset_to_number(returningBalance);
+  const opposingBalanceNumber = asset_to_number(opposingBalance);
+  const decAmount = returningBalanceNumber / opposingBalanceNumber;
+  return number_to_asset(decAmount, new Sym(returningBalance.symbol));
+};
+
+const tokenAmountToId = (tokenAmount: TokenAmount) =>
+  buildTokenId({
+    contract: tokenAmount.contract,
+    symbol: tokenAmount.amount.symbol.code().to_string()
+  });
+
 const reservesIncludeTokenMetaDry = (tokenMeta: TokenMeta[]) => (
   relay: DryRelay
 ) => {
@@ -935,6 +951,15 @@ export class EosBancorModule
     };
   }
 
+  get stats() {
+    return {
+      totalLiquidityDepth: this.relays.reduce(
+        (acc, item) => acc + item.liqDepth,
+        0
+      )
+    };
+  }
+
   get relay() {
     return (id: string) => {
       return findOrThrow(
@@ -946,7 +971,6 @@ export class EosBancorModule
   }
 
   get relays(): ViewRelay[] {
-    // @ts-ignore
     return this.relaysList
       .filter(
         relayIncludesBothTokens(
@@ -958,6 +982,17 @@ export class EosBancorModule
         )
       )
       .filter(reservesIncludeTokenMeta(this.tokenMeta))
+      .filter(relay =>
+        this.relayFeed.some(feed =>
+          compareString(
+            feed.smartTokenId,
+            buildTokenId({
+              contract: relay.smartToken.contract,
+              symbol: relay.smartToken.symbol
+            })
+          )
+        )
+      )
       .map(relay => {
         const relayFeed = this.relayFeed.find(feed =>
           compareString(
@@ -967,7 +1002,7 @@ export class EosBancorModule
               symbol: relay.smartToken.symbol
             })
           )
-        );
+        )!;
 
         const sortedReserves = sortByNetworkTokens(
           relay.reserves,
@@ -981,7 +1016,6 @@ export class EosBancorModule
             symbol: relay.smartToken.symbol
           }),
           symbol: sortedReserves[1].symbol,
-          smartTokenSymbol: relay.smartToken.symbol,
           liqDepth: relayFeed && relayFeed.liqDepth,
           addLiquiditySupported: relay.isMultiContract,
           removeLiquiditySupported: true,
@@ -989,7 +1023,7 @@ export class EosBancorModule
           v2: false,
           reserves: sortedReserves.map((reserve: AgnosticToken) => ({
             ...reserve,
-            reserveId: relay.smartToken.symbol + reserve.symbol,
+            reserveId: relay.id + reserve.id,
             logo: [this.token(reserve.id).logo],
             ...(reserve.amount && { balance: reserve.amount })
           }))
@@ -1857,28 +1891,29 @@ export class EosBancorModule
     const tokenAmount = suggestedDeposit.reserve.amount;
 
     const [sameReserve, opposingReserve] = sortByNetworkTokens(
-      reserves.map(reserve => reserve.amount),
-      assetToSymbolName,
+      reserves,
+      reserve => assetToSymbolName(reserve.amount),
       [assetToSymbolName(sameAsset)]
     );
 
-    const reserveBalance = asset_to_number(sameReserve);
+    const reserveBalance = asset_to_number(sameReserve.amount);
     const percent = Number(tokenAmount) / reserveBalance;
-    const opposingNumberAmount = percent * asset_to_number(opposingReserve);
+    const opposingNumberAmount =
+      percent * asset_to_number(opposingReserve.amount);
 
     const opposingAsset = number_to_asset(
       opposingNumberAmount,
-      opposingReserve.symbol
+      opposingReserve.amount.symbol
     );
 
     const sameReserveFundReturn = calculateFundReturn(
       sameAsset,
-      sameReserve,
+      sameReserve.amount,
       supply
     );
     const opposingReserveFundReturn = calculateFundReturn(
       opposingAsset,
-      opposingReserve,
+      opposingReserve.amount,
       supply
     );
 
@@ -1889,6 +1924,25 @@ export class EosBancorModule
 
     return {
       opposingAmount: String(asset_to_number(opposingAsset)),
+      shareOfPool: percent,
+      singleUnitCosts: [
+        {
+          id: tokenAmountToId(sameReserve),
+          amount: String(
+            asset_to_number(
+              singleUnitCost(sameReserve.amount, opposingReserve.amount)
+            )
+          )
+        },
+        {
+          id: tokenAmountToId(opposingReserve),
+          amount: String(
+            asset_to_number(
+              singleUnitCost(opposingReserve.amount, sameReserve.amount)
+            )
+          )
+        }
+      ],
       smartTokenAmount: lowerAsset
     };
   }
@@ -1928,24 +1982,44 @@ export class EosBancorModule
     const smartSupply = asset_to_number(supply.supply);
 
     const [sameReserve, opposingReserve] = sortByNetworkTokens(
-      reserves.map(reserve => reserve.amount),
-      assetToSymbolName,
+      reserves,
+      reserve => assetToSymbolName(reserve.amount),
       [assetToSymbolName(sameAmountAsset)]
     );
 
-    const reserveBalance = asset_to_number(sameReserve);
+    const reserveBalance = asset_to_number(sameReserve.amount);
     const percent = Number(tokenAmount) / reserveBalance;
 
     const smartTokenAmount = percent * smartSupply;
 
-    const opposingAmountNumber = percent * asset_to_number(opposingReserve);
+    const opposingAmountNumber =
+      percent * asset_to_number(opposingReserve.amount);
     const opposingAsset = number_to_asset(
       opposingAmountNumber,
-      opposingReserve.symbol
+      opposingReserve.amount.symbol
     );
 
     return {
       opposingAmount: String(asset_to_number(opposingAsset)),
+      shareOfPool: percent,
+      singleUnitCosts: [
+        {
+          id: tokenAmountToId(sameReserve),
+          amount: String(
+            asset_to_number(
+              singleUnitCost(sameReserve.amount, opposingReserve.amount)
+            )
+          )
+        },
+        {
+          id: tokenAmountToId(opposingReserve),
+          amount: String(
+            asset_to_number(
+              singleUnitCost(opposingReserve.amount, sameReserve.amount)
+            )
+          )
+        }
+      ],
       smartTokenAmount:
         smartTokenAmount / asset_to_number(smartUserBalance) > 0.99
           ? smartUserBalance
