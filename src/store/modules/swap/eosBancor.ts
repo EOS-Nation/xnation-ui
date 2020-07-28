@@ -935,6 +935,15 @@ export class EosBancorModule
     };
   }
 
+  get stats() {
+    return {
+      totalLiquidityDepth: this.relays.reduce(
+        (acc, item) => acc + item.liqDepth,
+        0
+      )
+    };
+  }
+
   get relay() {
     return (id: string) => {
       return findOrThrow(

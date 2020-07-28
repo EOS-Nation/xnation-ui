@@ -1075,19 +1075,11 @@ const relayReservesIncludedInTokenMeta = (tokenMeta: TokenMeta[]) => (
     tokenMeta.some(meta => compareString(reserve.contract, meta.contract))
   );
 
-const percentageOfReserve = (
-  percent: number,
-  existingSupply: string
-): string => {
-  return new Decimal(percent).times(existingSupply).toFixed(0);
-};
+const percentageOfReserve = (percent: number, existingSupply: string): string =>
+  new Decimal(percent).times(existingSupply).toFixed(0);
 
-const percentageIncrease = (
-  deposit: string,
-  existingSupply: string
-): number => {
-  return new Decimal(deposit).div(existingSupply).toNumber();
-};
+const percentageIncrease = (deposit: string, existingSupply: string): number =>
+  new Decimal(deposit).div(existingSupply).toNumber();
 
 const calculateOppositeFundRequirement = (
   deposit: string,
@@ -1272,6 +1264,15 @@ export class EthBancorModule
   failedPools: string[] = [];
   currentNetwork: EthNetworks = EthNetworks.Mainnet;
   slippageTolerance = 0;
+
+  get stats() {
+    return {
+      totalLiquidityDepth: this.relays.reduce(
+        (acc, item) => acc + item.liqDepth,
+        0
+      )
+    };
+  }
 
   @mutation setTolerance(tolerance: number) {
     this.slippageTolerance = tolerance;

@@ -92,7 +92,6 @@
         </b-btn>
       </div>
     </two-token-hero2>
-
     <modal-tx
       :title="`${withdrawLiquidity ? 'Remove Liquidity' : 'Add Liquidity'}`"
       v-model="txModal"
