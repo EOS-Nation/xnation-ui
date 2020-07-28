@@ -1,12 +1,13 @@
 <template>
   <div>
-    <label-content-split label="Pool" class="mb-3">
+    <label-content-split label="Pool" class="mb-4">
       <pool-logos
         @click.native="$bvModal.show('modal-join-pool')"
         :pool="pool"
         :dropdown="true"
       />
     </label-content-split>
+
     <label-content-split label="Select a Token" class="mb-3">
       <b-form-group class="m-0" :class="darkMode ? 'text-dark' : 'text-light'">
         <b-form-radio-group
@@ -32,23 +33,29 @@
         </b-form-radio-group>
       </b-form-group>
     </label-content-split>
+
     <token-input-field
       label="Input"
       :token="selectedToken"
       :amount.sync="amount"
       class="mb-3"
     />
-    <label-content-split label="Prices and Pool Share" class="mb-1" />
+
+    <rate-share-block :pool="pool" :share-of-pool="0" />
+
     <main-button
       @click.native="$bvModal.show('modal-pool-action')"
       label="Supply"
       :active="true"
       :large="true"
       class="mt-3"
+      :disabled="!amount"
+      :loading="rateLoading"
     />
     <modal-pool-action
       :selected-token="selectedToken"
       :amounts-array="[amount]"
+      :advanced-block-items="advancedBlockItems"
     />
   </div>
 </template>
@@ -62,8 +69,10 @@ import TokenInputField from "@/components/common-v2/TokenInputField.vue";
 import MainButton from "@/components/common/Button.vue";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
 import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
+import RateShareBlock from "@/components/common-v2/RateShareBlock.vue";
 @Component({
   components: {
+    RateShareBlock,
     ModalPoolAction,
     LabelContentSplit,
     TokenInputField,
@@ -76,6 +85,25 @@ export default class PoolActionsAddV2 extends Vue {
 
   selectedToken: ViewReserve = this.pool.reserves[0];
   amount: string = "";
+
+  rateLoading = false;
+
+  get advancedBlockItems() {
+    return [
+      {
+        label: this.selectedToken.symbol + " Deposit",
+        value: this.amount
+      },
+      {
+        label: "Rate",
+        value: "????"
+      },
+      {
+        label: "Share of Pool",
+        value: "??.??%"
+      }
+    ];
+  }
 
   get darkMode() {
     return vxm.general.darkMode;
