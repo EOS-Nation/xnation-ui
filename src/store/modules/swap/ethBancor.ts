@@ -315,7 +315,9 @@ const decodeHex = (hex: string, type: string | any[]) => {
       return web3.eth.abi.decodeParameter(type as string, hex);
     }
   } catch (e) {
-    console.warn(`Failed to decode hex ${hex} treating it as type ${type}. ${e.message}`)
+    console.warn(
+      `Failed to decode hex ${hex} treating it as type ${type}. ${e.message}`
+    );
     return undefined;
   }
 };
@@ -332,9 +334,6 @@ const relayTemplate = (): AbiTemplate => {
     connectorToken2: contract.methods.connectorTokens(1)
   };
 };
-
-// finish building this
-// be sure to match the template keys to the existing expected code
 
 const v2PoolBalanceTemplate = (reserves: string[]): AbiTemplate => {
   const contract = buildV2Converter();
@@ -386,10 +385,15 @@ const decodeCallGroup = <T>(
   if (props.length !== calls.length)
     throw new Error("Was expecting as many calls as props");
 
-  const methods: { name: string; type: string }[] = props.map(prop => ({
-    name: prop,
-    type: template[prop]._method.outputs[0].type
-  }));
+  const methods: { name: string; type: string | string[] }[] = props.map(
+    prop => ({
+      name: prop,
+      type:
+        template[prop]._method.outputs.length == 1
+          ? template[prop]._method.outputs[0].type
+          : template[prop]._method.outputs.map(x => x.type)
+    })
+  );
 
   const obj = methods.reduce(
     (acc, item, index) => {
@@ -2173,13 +2177,13 @@ export class EthBancorModule
   }
 
   @action async liquidationLimit({
-    anchorContract,
+    converterContract,
     poolTokenAddress
   }: {
-    anchorContract: string;
+    converterContract: string;
     poolTokenAddress: string;
   }) {
-    const contract = buildV2Converter(anchorContract);
+    const contract = buildV2Converter(converterContract);
     return contract.methods.liquidationLimit(poolTokenAddress).call();
   }
 
@@ -2208,6 +2212,22 @@ export class EthBancorModule
       relay.converterType == PoolType.ChainLink
       ? PoolType.ChainLink
       : PoolType.Traditional;
+  }
+
+  @action async removeLiquidityReturn({
+    converterAddress,
+    poolTokenWei,
+    poolTokenContract
+  }: {
+    converterAddress: string;
+    poolTokenWei: string;
+    poolTokenContract: string;
+  }) {
+    const v2Converter = buildV2Converter(converterAddress);
+
+    return v2Converter.methods
+      .removeLiquidityReturn(poolTokenContract, poolTokenWei)
+      .call();
   }
 
   @action async getUserBalancesChainLink(
@@ -2316,17 +2336,24 @@ export class EthBancorModule
       : this.getUserBalancesChainLink(relayId);
   }
 
+  @action async getTokenSupply(tokenAddress: string) {
+    const contract = buildTokenContract(tokenAddress);
+    return contract.methods.totalSupply().call();
+  }
+
   @action async calculateOpposingWithdrawV2(
     opposingWithdraw: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
     const relay = await this.chainLinkRelayById(opposingWithdraw.id);
 
+    const suggestedWithdrawDec = opposingWithdraw.reserve.amount;
+
     const [[stakedAndReserveWeight]] = (await this.smartMulti([
       stakedAndReserveHandler([
         {
           converterAdress: relay.contract,
-          reserveOne: relay.anchor.poolTokens[0].poolToken.contract,
-          reserveTwo: relay.anchor.poolTokens[1].poolToken.contract
+          reserveOne: relay.reserves[0].contract,
+          reserveTwo: relay.reserves[1].contract
         }
       ])
     ])) as [StakedAndReserve[]];
@@ -2341,6 +2368,11 @@ export class EthBancorModule
       }))
       .sort((a, b) => b.decReserveWeight.minus(a.reserveWeight).toNumber());
 
+    const weightsEqualOneMillion = new BigNumber(biggerWeight.reserveWeight)
+      .plus(smallerWeight.reserveWeight)
+      .eq(oneMillion);
+    if (!weightsEqualOneMillion)
+      throw new Error("Was expecting reserve weights to equal 100%");
     const distanceFromMiddle = biggerWeight.decReserveWeight.minus(0.5);
 
     const adjustedBiggerWeight = new BigNumber(biggerWeight.stakedBalance).div(
@@ -2377,7 +2409,63 @@ export class EthBancorModule
         shrinkToken(sameReserve.stakedBalance, sameReserve.token.decimals)
       );
 
-    return { opposingAmount: undefined, shareOfPool, singleUnitCosts };
+    const suggestedWithdrawWei = expandToken(
+      suggestedWithdrawDec,
+      sameReserve.token.decimals
+    );
+
+    const [
+      removeLiquidityReturnWei,
+      poolTokenSupplyWei,
+      liquidatationLimit
+    ] = await Promise.all([
+      this.removeLiquidityReturn({
+        converterAddress: relay.contract,
+        poolTokenContract: sameReserve.poolTokenAddress,
+        poolTokenWei: suggestedWithdrawWei
+      }),
+      this.getTokenSupply(sameReserve.poolTokenAddress),
+      this.liquidationLimit({
+        converterContract: relay.contract,
+        poolTokenAddress: sameReserve.poolTokenAddress
+      })
+    ]);
+
+    if (new BigNumber(suggestedWithdrawWei).gt(liquidatationLimit))
+      throw new Error("Withdrawal amount above current liquidation limit");
+
+    const noFeeLiquidityReturn = new BigNumber(suggestedWithdrawWei)
+      .times(sameReserve.stakedBalance)
+      .div(poolTokenSupplyWei);
+
+    const feeAmountWei = noFeeLiquidityReturn.minus(removeLiquidityReturnWei);
+    const feeAmountDec = shrinkToken(
+      feeAmountWei.toString(),
+      sameReserve.token.decimals
+    );
+
+    // (Liquidation Amount * StakedBalance) / PoolTokenSupply
+
+    const removeLiquidityReturnDec = shrinkToken(
+      removeLiquidityReturnWei,
+      sameReserve.token.decimals
+    );
+
+    const result = {
+      opposingAmount: undefined,
+      shareOfPool,
+      singleUnitCosts,
+      withdrawFee: {
+        id: sameReserve.token.contract,
+        amount: String(Number(feeAmountDec))
+      },
+      expectedReturn: {
+        id: sameReserve.token.contract,
+        amount: String(Number(removeLiquidityReturnDec))
+      }
+    };
+    console.log(result, "was the result");
+    return result;
   }
 
   @action async calculateOpposingWithdraw(
