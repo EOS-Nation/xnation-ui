@@ -24,7 +24,11 @@
               :src="token.logo"
               alt="Token Logo"
             />
-            <span class="px-1">{{ token.symbol }}</span>
+            <span
+              class="px-1 font-size-14 font-w600"
+              :class="darkMode ? 'text-dark' : 'text-light'"
+              >{{ token.symbol }}</span
+            >
           </div>
           <div v-else>
             <pool-logos
