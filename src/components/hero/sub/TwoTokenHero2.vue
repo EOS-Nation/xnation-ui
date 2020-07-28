@@ -3,18 +3,18 @@
     <b-row>
       <b-col md="12" cols="mt-2">
         <token-field
-                :tokenId.sync="idOne"
-                :symbol="tokenOneMeta.symbol"
-                :amount.sync="amountOne"
-                :clickable="tokenOneClickable"
-                @clicked="tokenOneClicked"
-                :balance="tokenOneMeta.balance"
-                :img="tokenOneMeta.img"
-                :choices="tokenOneMeta.choices"
-                :input-label="inputLabels[0]"
-                :label="label"
-                :errors="tokenOneMeta.errors"
-                :warnBalance="warnBalance"
+          :tokenId.sync="idOne"
+          :symbol="tokenOneMeta.symbol"
+          :amount.sync="amountOne"
+          :clickable="tokenOneClickable"
+          @clicked="tokenOneClicked"
+          :balance="tokenOneMeta.balance"
+          :img="tokenOneMeta.img"
+          :choices="tokenOneMeta.choices"
+          :input-label="inputLabels[0]"
+          :label="label"
+          :errors="tokenOneMeta.errors"
+          :warnBalance="warnBalance"
         />
       </b-col>
     </b-row>
@@ -28,18 +28,18 @@
     <b-row>
       <b-col md="12" class="mb-3">
         <token-field
-                :tokenId.sync="idTwo"
-                :symbol="tokenTwoMeta.symbol"
-                :amount.sync="amountTwo"
-                :clickable="tokenTwoClickable"
-                @clicked="tokenTwoClicked"
-                :balance="tokenTwoMeta.balance"
-                :img="tokenTwoMeta.img"
-                :choices="tokenTwoMeta.choices"
-                :input-label="inputLabels[1]"
-                :label="label"
-                :errors="tokenTwoMeta.errors"
-                :warnBalance="warnBalance"
+          :tokenId.sync="idTwo"
+          :symbol="tokenTwoMeta.symbol"
+          :amount.sync="amountTwo"
+          :clickable="tokenTwoClickable"
+          @clicked="tokenTwoClicked"
+          :balance="tokenTwoMeta.balance"
+          :img="tokenTwoMeta.img"
+          :choices="tokenTwoMeta.choices"
+          :input-label="inputLabels[1]"
+          :label="label"
+          :errors="tokenTwoMeta.errors"
+          :warnBalance="warnBalance"
         />
       </b-col>
     </b-row>
