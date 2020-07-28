@@ -1,6 +1,7 @@
 <template>
   <div>
-    <two-token-hero
+    <two-token-hero2
+      v-if="!focusedRelay.v2"
       :tokenOneId.sync="token1Id"
       :tokenTwoId.sync="token2Id"
       :tokenOneMeta="token1Meta"
@@ -19,6 +20,7 @@
       <template v-slot:liquidityActions>
         <b-row class="mb-4">
           <b-col sm="12">
+            {{ focusedRelay.v2 }}
             <b-btn
               :variant="
                 withdrawLiquidity ? (darkMode ? 'dark' : 'light') : 'primary'
@@ -89,92 +91,81 @@
           <span class="font-w700">Continue</span>
         </b-btn>
       </div>
+    </two-token-hero2>
+    <modal-tx
+      :title="`${withdrawLiquidity ? 'Remove Liquidity' : 'Add Liquidity'}`"
+      v-model="txModal"
+      @input="modalClosed"
+      :busy="txBusy"
+    >
+      <div>
+        <stepper
+          v-if="false && sections.length > 1"
+          :selectedStep="stepIndex"
+          :steps="sections"
+          :label="sections[stepIndex].description"
+          :numbered="true"
+        />
 
-      <modal-tx
-        :title="`${withdrawLiquidity ? 'Remove Liquidity' : 'Add Liquidity'}`"
-        v-model="txModal"
-        @input="modalClosed"
-        :busy="txBusy"
-      >
-        <div>
-          <stepper
-            v-if="false && sections.length > 1"
-            :selectedStep="stepIndex"
-            :steps="sections"
-            :label="sections[stepIndex].description"
-            :numbered="true"
-          />
-
-          <token-swap
-            :error="error"
-            :success="success"
-            :leftHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
-            :leftImg="token1Meta.img"
-            :leftTitle="`${token1Meta.symbol} ${token1Amount}`"
-            leftSubtitle=""
-            :rightImg="token2Meta.img"
-            :rightTitle="`${token2Meta.symbol} ${token2Amount}`"
-            :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
-            rightSubtitle=""
-            :tx-busy="txBusy"
-          >
-            <template slot="icon">
-              <font-awesome-icon icon="plus" class="text-primary" size="1x" />
-            </template>
-            <template v-slot:footer>
-              <b-col md="12" v-if="!(txBusy || success || error)">
-                <div
-                  class="block block-rounded font-size-sm block-shadow"
-                  :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
-                >
-                  <div class="block-content py-2">
-                    <advanced-block-item
-                      v-for="item in advancedBlockItems"
-                      :key="item.label"
-                      :label="item.label"
-                      :value="item.value"
-                    />
-                  </div>
+        <token-swap
+          :error="error"
+          :success="success"
+          :leftHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
+          :leftImg="token1Meta.img"
+          :leftTitle="`${token1Meta.symbol} ${token1Amount}`"
+          leftSubtitle=""
+          :rightImg="token2Meta.img"
+          :rightTitle="`${token2Meta.symbol} ${token2Amount}`"
+          :rightHeader="withdrawLiquidity ? 'Withdraw' : 'Deposit'"
+          rightSubtitle=""
+          :tx-busy="txBusy"
+        >
+          <template slot="icon">
+            <font-awesome-icon icon="plus" class="text-primary" size="1x" />
+          </template>
+          <template v-slot:footer>
+            <b-col md="12" v-if="!(txBusy || success || error)">
+              <div
+                class="block block-rounded font-size-sm block-shadow"
+                :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
+              >
+                <div class="block-content py-2">
+                  <advanced-block-item
+                    v-for="item in advancedBlockItems"
+                    :key="item.label"
+                    :label="item.label"
+                    :value="item.value"
+                  />
                 </div>
-              </b-col>
-              <TxModalFooter
-                v-if="txBusy || error || success"
-                :error="error"
-                :success="success"
-                :explorerLink="explorerLink"
-                :explorerName="explorerName"
-                @close="txModal = false"
-                :step-description="
-                  sections.length ? sections[stepIndex].description : undefined
-                "
-              />
-              <span v-if="false">{{ sections[stepIndex].description }}</span>
-              <b-col cols="12">
-                <b-btn
-                  @click="withdrawLiquidity ? remove() : add()"
-                  variant="primary"
-                  class="btn-block block-rounded"
-                  size="lg"
-                  :disabled="txBusy"
-                >
-                  {{ confirmButton }}
-                </b-btn>
-              </b-col>
-            </template>
-          </token-swap>
-        </div>
-      </modal-tx>
-    </two-token-hero>
-
-    <div class="d-flex justify-content-center">
-      <router-link
-        :to="{ name: 'Create' }"
-        class="cursor font-w700 mb-3"
-        :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-      >
-        <font-awesome-icon icon="plus" class="mr-2" />Create Pool
-      </router-link>
-    </div>
+              </div>
+            </b-col>
+            <TxModalFooter
+              v-if="txBusy || error || success"
+              :error="error"
+              :success="success"
+              :explorerLink="explorerLink"
+              :explorerName="explorerName"
+              @close="txModal = false"
+              :step-description="
+                sections.length ? sections[stepIndex].description : undefined
+              "
+            />
+            <span v-if="false">{{ sections[stepIndex].description }}</span>
+            <b-col cols="12">
+              <b-btn
+                @click="withdrawLiquidity ? remove() : add()"
+                variant="primary"
+                class="btn-block block-rounded"
+                size="lg"
+                :disabled="txBusy"
+              >
+                {{ confirmButton }}
+              </b-btn>
+            </b-col>
+          </template>
+        </token-swap>
+      </div>
+    </modal-tx>
   </div>
 </template>
 
@@ -183,7 +174,7 @@ import { Watch, Component, Vue } from "vue-property-decorator";
 import TokenAmountInput from "@/components/convert/TokenAmountInput.vue";
 import HeroWrapper from "@/components/hero/HeroWrapper.vue";
 import ModalSelect from "@/components/modals/ModalSelect.vue";
-import TwoTokenHero from "./TwoTokenHero.vue";
+import TwoTokenHero2 from "./TwoTokenHero2.vue";
 import numeral from "numeral";
 import {
   OpposingLiquid,
@@ -218,7 +209,7 @@ const wallet = namespace("wallet");
     ModalSelect,
     DynamicDropdown,
     HeroWrapper,
-    TwoTokenHero,
+    TwoTokenHero2,
     ModalTx,
     TokenSwap,
     Stepper,

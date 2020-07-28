@@ -1,5 +1,6 @@
 <template>
   <b-modal
+    id="modal-select"
     scrollable
     :visible="value"
     size="md"
@@ -73,6 +74,7 @@
             :symbol="token.symbol"
             :balance="token.balance"
             :img="token.img"
+            :v2="token.v2"
           />
         </b-col>
       </b-row>

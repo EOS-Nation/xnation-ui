@@ -1,63 +1,55 @@
 <template>
-  <content-block class="mb-3">
-    <template slot="header">
-      <sub-navigation />
-    </template>
+  <div>
+    <b-row>
+      <b-col md="12" cols="mt-2">
+        <token-field
+                :tokenId.sync="idOne"
+                :symbol="tokenOneMeta.symbol"
+                :amount.sync="amountOne"
+                :clickable="tokenOneClickable"
+                @clicked="tokenOneClicked"
+                :balance="tokenOneMeta.balance"
+                :img="tokenOneMeta.img"
+                :choices="tokenOneMeta.choices"
+                :input-label="inputLabels[0]"
+                :label="label"
+                :errors="tokenOneMeta.errors"
+                :warnBalance="warnBalance"
+        />
+      </b-col>
+    </b-row>
 
-    <div>
-      <slot name="liquidityActions"></slot>
+    <b-row>
+      <b-col class="text-center">
+        <slot name="icon"></slot>
+      </b-col>
+    </b-row>
 
-      <b-row>
-        <b-col md="12" cols="mt-2">
-          <token-field
-            :tokenId.sync="idOne"
-            :symbol="tokenOneMeta.symbol"
-            :amount.sync="amountOne"
-            :clickable="tokenOneClickable"
-            @clicked="tokenOneClicked"
-            :balance="tokenOneMeta.balance"
-            :img="tokenOneMeta.img"
-            :choices="tokenOneMeta.choices"
-            :input-label="inputLabels[0]"
-            :label="label"
-            :errors="tokenOneMeta.errors"
-            :warnBalance="warnBalance"
-          />
-        </b-col>
-      </b-row>
+    <b-row>
+      <b-col md="12" class="mb-3">
+        <token-field
+                :tokenId.sync="idTwo"
+                :symbol="tokenTwoMeta.symbol"
+                :amount.sync="amountTwo"
+                :clickable="tokenTwoClickable"
+                @clicked="tokenTwoClicked"
+                :balance="tokenTwoMeta.balance"
+                :img="tokenTwoMeta.img"
+                :choices="tokenTwoMeta.choices"
+                :input-label="inputLabels[1]"
+                :label="label"
+                :errors="tokenTwoMeta.errors"
+                :warnBalance="warnBalance"
+        />
+      </b-col>
+    </b-row>
 
-      <b-row>
-        <b-col class="text-center">
-          <slot name="icon"></slot>
-        </b-col>
-      </b-row>
-
-      <b-row>
-        <b-col md="12" class="mb-3">
-          <token-field
-            :tokenId.sync="idTwo"
-            :symbol="tokenTwoMeta.symbol"
-            :amount.sync="amountTwo"
-            :clickable="tokenTwoClickable"
-            @clicked="tokenTwoClicked"
-            :balance="tokenTwoMeta.balance"
-            :img="tokenTwoMeta.img"
-            :choices="tokenTwoMeta.choices"
-            :input-label="inputLabels[1]"
-            :label="label"
-            :errors="tokenTwoMeta.errors"
-            :warnBalance="warnBalance"
-          />
-        </b-col>
-      </b-row>
-
-      <b-row>
-        <b-col md="12" class="d-flex justify-content-center align-items-center">
-          <slot></slot>
-        </b-col>
-      </b-row>
-    </div>
-  </content-block>
+    <b-row>
+      <b-col md="12" class="d-flex justify-content-center align-items-center">
+        <slot></slot>
+      </b-col>
+    </b-row>
+  </div>
 </template>
 <script lang="ts">
 import {
@@ -88,7 +80,7 @@ interface TokenMeta {
     TokenField
   }
 })
-export default class TwoTokenHero extends Vue {
+export default class TwoTokenHero2 extends Vue {
   @PropSync("tokenOneId", { type: String }) idOne!: string;
   @PropSync("tokenOneAmount", { type: String }) amountOne!: string;
   @Prop(Object) tokenOneMeta!: TokenMeta;

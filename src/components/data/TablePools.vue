@@ -41,6 +41,7 @@
           :alt="`${reserve.symbol} Token Logo`"
         />
         {{ data.item.symbol }}
+        <b-badge variant="primary"> {{ data.item.v2 ? "V2" : "V1" }}</b-badge>
       </template>
       <template v-slot:cell(index)="data">
         {{ data.index + 1 }}
@@ -100,19 +101,12 @@ export default class TablePools extends Vue {
       label: "Token",
       tdClass: ["tokenss", "align-middle"]
     },
-    {
-      key: "v2",
-      label: "Version",
-      sortable: false,
-      thClass: "text-center",
-      tdClass: ["text-center", "align-middle"]
-    },
-    {
-      key: "owner",
-      thClass: "text-center",
-      tdClass: ["text-center", "align-middle"],
-      formatter: (value: any) => this.shortenEthAddress(value)
-    },
+    // {
+    //   key: "owner",
+    //   thClass: "text-center",
+    //   tdClass: ["text-center", "align-middle"],
+    //   formatter: (value: any) => this.shortenEthAddress(value)
+    // },
     {
       key: "ratio",
       tdClass: ["align-middle"],
