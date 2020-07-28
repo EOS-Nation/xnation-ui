@@ -1,0 +1,96 @@
+<template>
+  <b-modal
+    id="modal-join-pool"
+    scrollable
+    size="sm"
+    centered
+    hide-footer
+    :content-class="darkMode ? 'bg-block-dark' : 'bg-block-light'"
+  >
+    <template slot="modal-header">
+      <span
+        class="font-size-14 font-w600"
+        :class="darkMode ? 'text-dark' : 'text-light'"
+        >Select a Pool</span
+      >
+      <font-awesome-icon
+        class="cursor font-size-lg"
+        :class="darkMode ? 'text-dark' : 'text-light'"
+        @click="$bvModal.hide('modal-join-pool')"
+        icon="times"
+      />
+    </template>
+
+    <div>
+      <b-row>
+        <b-col class="mb-3">
+          <b-input-group>
+            <b-form-input
+              v-model="tokenSearch"
+              placeholder="Search"
+              class="form-control-alt"
+            ></b-form-input>
+          </b-input-group>
+        </b-col>
+      </b-row>
+      <b-row>
+        <b-col cols="12">
+          <span
+            class="text-uppercase font-w500 font-size-12"
+            :class="darkMode ? 'text-muted-dark' : 'text-muted-light'"
+          >
+            Pool Name
+          </span>
+        </b-col>
+        <b-col
+          cols="12"
+          v-for="pool in pools"
+          :key="pool.id"
+          class="my-3 cursor"
+        >
+          <select-pool-row @click.native="selectPool(pool)" :pool="pool" />
+        </b-col>
+      </b-row>
+    </div>
+  </b-modal>
+</template>
+
+<script lang="ts">
+import { Component, Vue } from "vue-property-decorator";
+import { vxm } from "@/store/";
+import { ViewRelay } from "@/types/bancor";
+import SelectPoolRow from "@/components/pool/SelectPoolRow.vue";
+
+@Component({
+  components: { SelectPoolRow }
+})
+export default class ModalJoinPool extends Vue {
+  tokenSearch: string = "";
+
+  selectPool(pool: ViewRelay): void {
+    this.$router.push({
+      name: "PoolAction",
+      params: {
+        poolAction: "add",
+        account: pool.id
+      }
+    });
+    this.$bvModal.hide("modal-join-pool");
+  }
+
+  get pools(): ViewRelay[] {
+    return vxm.bancor.relays;
+  }
+
+  get darkMode(): boolean {
+    return vxm.general.darkMode;
+  }
+
+  created() {}
+}
+</script>
+<style lang="scss">
+.modal-body {
+  padding-top: 0 !important;
+}
+</style>
