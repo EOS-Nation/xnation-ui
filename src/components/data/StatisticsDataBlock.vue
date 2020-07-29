@@ -7,12 +7,12 @@
       {{ title }}
     </span>
     <div>
-      <span
-        :class="darkMode ? 'text-body-dark' : 'text-body-light'"
-      >
+      <span :class="darkMode ? 'text-body-dark' : 'text-body-light'">
         {{ value }}
       </span>
-      <span :class="percentage >= 0 ? 'text-success' : 'text-danger'"
+      <span
+        v-if="typeof percentage !== 'undefined'"
+        :class="percentage >= 0 ? 'text-success' : 'text-danger'"
         >{{ percentage }}%</span
       >
     </div>
@@ -23,21 +23,11 @@ a
 import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store";
 
-@Component({
-  components: {}
-})
+@Component
 export default class StatisticsDataBlock extends Vue {
   @Prop(String) title!: string;
   @Prop(String) value!: string;
-  @Prop(Number) percentage!: Number;
-
-  get network() {
-    return this.$route.params.service;
-  }
-
-  get name() {
-    return this.network.toUpperCase();
-  }
+  @Prop(Number) percentage?: number;
 
   get darkMode() {
     return vxm.general.darkMode;

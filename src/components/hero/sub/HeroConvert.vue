@@ -284,7 +284,8 @@ export default class HeroConvert extends Vue {
       ...this.fromToken,
       img: this.fromToken.logo,
       errors: this.fromTokenErrors,
-      choices: this.choices
+      choices: this.choices,
+      warnBalance: true
     };
   }
 
@@ -293,36 +294,23 @@ export default class HeroConvert extends Vue {
       ...this.toToken,
       img: this.toToken.logo,
       errors: this.fromTokenErrors,
-      choices: this.choices
+      choices: this.choices,
+      warnBalance: false
     };
   }
 
   get fromTokenErrors() {
     return [
       ...(this.fromTokenError ? [this.fromTokenError] : []),
-      ...(this.fromTokenBalanceInsuffient ? ["Insufficient Balance"] : [])
     ];
   }
 
   get toTokenErrors() {
     return [
       ...(this.toTokenError ? [this.toTokenError] : []),
-      ...(this.toTokenBalanceInsufficient ? ["Insufficient Balance"] : [])
     ];
   }
 
-  get fromTokenBalanceInsuffient() {
-    return (
-      this.fromTokenBalance &&
-      Number(this.fromTokenAmount) > this.fromTokenBalance
-    );
-  }
-
-  get toTokenBalanceInsufficient() {
-    return (
-      this.toTokenBalance && Number(this.toTokenBalance) > this.toTokenBalance
-    );
-  }
 
   get currentNetwork() {
     return this.$route.params.service;

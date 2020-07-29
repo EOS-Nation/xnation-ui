@@ -41,7 +41,7 @@
       class="mb-3"
     />
 
-    <rate-share-block :pool="pool" :share-of-pool="0" />
+    <!-- <rate-share-block :pool="pool" :share-of-pool="0" /> -->
 
     <main-button
       @click.native="$bvModal.show('modal-pool-action')"

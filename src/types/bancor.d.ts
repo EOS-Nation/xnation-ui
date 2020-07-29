@@ -68,12 +68,6 @@ export interface ViewAmount {
   amount: string;
 }
 
-// Add ViewAmount to getting max smart user balances and remove userBalances
-// Maybe utilise ViewAmount on Converts as well
-// Bonus:
-// Utilise ID over symbol more
-// TODO
-
 type OnUpdate = (index: number, sections: Section[]) => void;
 
 export interface LiquidityParams {
@@ -91,7 +85,7 @@ export interface OpposingLiquid {
   opposingAmount?: string;
   shareOfPool: number;
   singleUnitCosts: ViewAmount[];
-  withdrawFee?: ViewAmount;
+  withdrawFee?: number;
   expectedReturn?: ViewAmount;
 }
 
@@ -202,6 +196,7 @@ export interface ViewReserve {
   symbol: string;
   contract: string;
   balance?: number;
+  reserveWeight: number;
 }
 
 export interface ViewRelay {

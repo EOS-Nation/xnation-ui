@@ -953,7 +953,6 @@ const polishTokens = (tokenMeta: TokenMeta[], tokens: Token[]) => {
 };
 
 const seperateMiniTokens = (tokens: AbiCentralPoolToken[]) => {
-  console.log(tokens, "are tokenssss");
   const smartTokens = tokens
     .filter(token => !token.poolTokens)
     .map(pickEthToken);
@@ -1273,8 +1272,8 @@ export class EthBancorModule
 
   get stats() {
     return {
-      totalLiquidityDepth: this.relays.reduce(
-        (acc, item) => acc + item.liqDepth,
+      totalLiquidityDepth: this.tokens.reduce(
+        (acc, item) => acc + (item.liqDepth || 0),
         0
       )
     };
@@ -1924,6 +1923,7 @@ export class EthBancorModule
           reserves: [networkReserve, tokenReserve].map(reserve => {
             const meta = this.tokenMetaObj(reserve.contract);
             return {
+              reserveWeight: reserve.reserveWeight,
               id: reserve.contract,
               reserveId: poolContainerAddress + reserve.contract,
               logo: [meta.image],
@@ -1970,6 +1970,7 @@ export class EthBancorModule
             const meta = this.tokenMetaObj(reserve.contract);
             return {
               id: reserve.contract,
+              reserveWeight: reserve.reserveWeight,
               reserveId: relay.anchor.contract + reserve.contract,
               logo: [meta.image],
               symbol: reserve.symbol,
@@ -2065,17 +2066,20 @@ export class EthBancorModule
     );
     const shareOfPool = fundRewardDec / smartSupplyDec;
 
-    const sameReserveCost = shrinkToken(
-      new BigNumber(opposingReserve.weiAmount)
-        .div(sameReserve.weiAmount)
-        .toNumber(),
-      sameReserve.decimals
-    );
-    const opposingReserveCost = shrinkToken(
-      new BigNumber(sameReserve.weiAmount)
-        .div(opposingReserve.weiAmount)
-        .toNumber(),
-      opposingReserve.decimals
+    const sameReserveCostDec = new BigNumber(opposingReserve.weiAmount)
+      .div(sameReserve.weiAmount)
+      .toString();
+
+    const opposingReserveCostDec = new BigNumber(sameReserve.weiAmount)
+      .div(opposingReserve.weiAmount)
+      .toString();
+
+    console.log(
+      opposingReserve.weiAmount,
+      sameReserve.weiAmount,
+      "should be wei amounts",
+      sameReserveCostDec,
+      opposingReserveCostDec
     );
 
     return {
@@ -2083,8 +2087,8 @@ export class EthBancorModule
       smartTokenAmount: { id: smartTokenAddress, amount: fundReward },
       shareOfPool,
       singleUnitCosts: [
-        { id: sameReserve.contract, amount: sameReserveCost },
-        { id: opposingReserve.contract, amount: opposingReserveCost }
+        { id: sameReserve.contract, amount: sameReserveCostDec },
+        { id: opposingReserve.contract, amount: opposingReserveCostDec }
       ]
     };
   }
@@ -2242,21 +2246,6 @@ export class EthBancorModule
         });
 
         BigNumber.config({ EXPONENTIAL_AT: 999 });
-        // console.log(
-        // poolUserBalance,
-        // "was the pool user balance",
-        // new BigNumber(poolUserBalance)
-        // .div(Math.pow(10, reserveAndPool.poolToken.decimals))
-        // .toString(),
-        // "is the string version with big number",
-        // reserveAndPool.poolToken.decimals,
-        // "are the decimals for it",
-        // reserveAndPool.reserveId,
-        // "was the reserve address",
-        // reserveAndPool.poolToken.symbol,
-        // "contract is",
-        // reserveAndPool.poolToken.contract
-        // );
 
         return {
           ...reserveAndPool,
@@ -2282,19 +2271,6 @@ export class EthBancorModule
             poolTokenBalanceWei
           )
           .call();
-
-        const weis = [poolTokenBalanceWei, maxWithdrawWei];
-        const dec = [
-          poolTokenBalance.poolUserBalance,
-          shrinkToken(maxWithdrawWei, poolTokenBalance.reserveToken.decimals)
-        ];
-        console.log(weis, "weis");
-        console.log(dec, "decs");
-        console.log(
-          poolTokenBalance.reserveId,
-          "is the reserve and pool is",
-          poolTokenBalance.poolToken.contract
-        );
 
         return {
           ...poolTokenBalance,
@@ -2439,11 +2415,9 @@ export class EthBancorModule
       .div(poolTokenSupplyWei);
 
     const feeAmountWei = noFeeLiquidityReturn.minus(removeLiquidityReturnWei);
-    const feeAmountDec = shrinkToken(
-      feeAmountWei.toString(),
-      sameReserve.token.decimals
-    );
-
+    const feePercent = new BigNumber(feeAmountWei)
+      .div(noFeeLiquidityReturn)
+      .toNumber();
     // (Liquidation Amount * StakedBalance) / PoolTokenSupply
 
     const removeLiquidityReturnDec = shrinkToken(
@@ -2455,10 +2429,7 @@ export class EthBancorModule
       opposingAmount: undefined,
       shareOfPool,
       singleUnitCosts,
-      withdrawFee: {
-        id: sameReserve.token.contract,
-        amount: String(Number(feeAmountDec))
-      },
+      withdrawFee: feePercent,
       expectedReturn: {
         id: sameReserve.token.contract,
         amount: String(Number(removeLiquidityReturnDec))
@@ -2548,13 +2519,13 @@ export class EthBancorModule
     const sameReserveCost = shrinkToken(
       new BigNumber(opposingReserve.weiAmount)
         .div(sameReserve.weiAmount)
-        .toNumber(),
+        .toString(),
       sameReserve.decimals
     );
     const opposingReserveCost = shrinkToken(
       new BigNumber(sameReserve.weiAmount)
         .div(opposingReserve.weiAmount)
-        .toNumber(),
+        .toString(),
       opposingReserve.decimals
     );
 
@@ -3554,7 +3525,7 @@ export class EthBancorModule
     throw new Error("Multi call in chunks failed");
   }
 
-  @action async multiCallShit(
+  @action async multiCallSmart(
     calls: MultiCall[][]
   ): Promise<MultiCallReturn[][]> {
     if (!calls || calls.length == 0) {
@@ -3765,7 +3736,10 @@ export class EthBancorModule
           isMultiContract: false,
           network: "ETH",
           owner: pool.owner,
-          reserves: rawPool.reserves.map(reserve => reserve.token),
+          reserves: rawPool.reserves.map(reserve => ({
+            ...reserve.token,
+            reserveWeight: Number(reserve.reserveWeight) / oneMillion.toNumber()
+          })),
           version: String(pool.version),
           fee: Number(pool.conversionFee) / 10000
         };
@@ -3814,7 +3788,7 @@ export class EthBancorModule
 
       const relay: RelayWithReserveBalances = {
         id: smartTokenAddress,
-        reserves: reserveTokens,
+        reserves: reserveTokens.map(x => ({ ...x, reserveWeight: 0.5 })),
         reserveBalances: zippedReserveBalances.map(zip => ({
           amount: zip.amount,
           id: zip.contract
@@ -3948,7 +3922,7 @@ export class EthBancorModule
     const allCallGroups = handlers.map(callSection => callSection.callGroups);
     const indexes = createIndexes(allCallGroups);
     const flattened = allCallGroups.flat(1);
-    const allCalls = await this.multiCallShit(flattened);
+    const allCalls = await this.multiCallSmart(flattened);
 
     const rebuilt = rebuildFromIndex(allCalls, indexes);
 

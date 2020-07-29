@@ -104,6 +104,19 @@ export const compareToken = (
 ): boolean =>
   compareString(a.contract, b.contract) && compareString(a.symbol, b.symbol);
 
+const replaceLastChar = (str: string, char: string) => {
+  return str.slice(0, str.length - 1) + char;
+};
+
+export const formatNumber = (num: number, size: number = 4) => {
+  const reduced = num.toFixed(size);
+  const isZero = Number(reduced) == 0;
+  if (isZero) {
+    return `< ${replaceLastChar(reduced, "1")}`;
+  }
+  return reduced;
+};
+
 export const compareString = (stringOne: string, stringTwo: string) => {
   const strings = [stringOne, stringTwo];
   if (!strings.every(str => typeof str == "string"))
@@ -382,9 +395,12 @@ export interface PoolContainer {
 export type SmartToken = Token;
 export type Anchor = SmartToken | PoolContainer;
 
+interface TokenWithWeight extends Token {
+  reserveWeight: number;
+}
 export interface Relay {
   id: string;
-  reserves: Token[];
+  reserves: TokenWithWeight[];
   anchor: Anchor;
   contract: ContractAccount;
   isMultiContract: boolean;
