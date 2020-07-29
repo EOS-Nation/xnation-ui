@@ -38,10 +38,11 @@
       label="Input"
       :token="selectedToken"
       :amount.sync="amount"
+      @update:amount="loadPrices(amount)"
       class="mb-3"
     />
 
-    <!-- <rate-share-block :pool="pool" :share-of-pool="0" /> -->
+    <rate-share-block :items="shareBlockItems" label="Prices and Pool Share" />
 
     <main-button
       @click.native="$bvModal.show('modal-pool-action')"
@@ -63,13 +64,24 @@
 <script lang="ts">
 import { Component, Vue, Prop, Watch } from "vue-property-decorator";
 import { vxm } from "@/store/";
-import { ViewRelay, ViewReserve } from "@/types/bancor";
+import {
+  LiquidityModule,
+  ViewAmount,
+  ViewRelay,
+  ViewReserve
+} from "@/types/bancor";
 import PoolLogos from "@/components/common/PoolLogos.vue";
 import TokenInputField from "@/components/common-v2/TokenInputField.vue";
 import MainButton from "@/components/common/Button.vue";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
 import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
 import RateShareBlock from "@/components/common-v2/RateShareBlock.vue";
+import { compareString, formatNumber } from "@/api/helpers";
+import { namespace } from "vuex-class";
+import numeral from "numeral";
+
+const bancor = namespace("bancor");
+
 @Component({
   components: {
     RateShareBlock,
@@ -81,12 +93,74 @@ import RateShareBlock from "@/components/common-v2/RateShareBlock.vue";
   }
 })
 export default class PoolActionsAddV2 extends Vue {
+  @bancor.Action
+  calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
+
   @Prop() pool!: ViewRelay;
 
   selectedToken: ViewReserve = this.pool.reserves[0];
   amount: string = "";
 
   rateLoading = false;
+  singleUnitCosts: any[] = [];
+  shareOfPool = 0;
+
+  get shareBlockItems() {
+    if (this.shareOfPool > 0) {
+      return [
+        ...this.singleUnitCosts,
+        {
+          id: "poolShare",
+          title: `${formatNumber(this.shareOfPool)}%`,
+          label: "Share of Pool"
+        }
+      ];
+    } else {
+      return [
+        ...this.singleUnitCosts,
+        {
+          id: "poolShare",
+          label: "Share of Pool",
+          title: "?"
+        }
+      ];
+    }
+  }
+  get share() {
+    if (this.shareOfPool === 0) return "0";
+    else {
+      const share = this.shareOfPool;
+      if (share < 0.00001) return "< 0.00001";
+      else if (share < 1) return numeral(share).format("0.00000");
+      else return numeral(share).format("0.00");
+    }
+  }
+
+  setSingleUnitCosts(units: ViewAmount[]) {
+    const items = units.map(unit => {
+      const token = this.pool.reserves.find(reserve =>
+        compareString(unit.id, reserve.id)
+      )!;
+      const opposingToken = this.pool.reserves.find(
+        reserve => !compareString(unit.id, reserve.id)
+      )!;
+      return {
+        id: token.id,
+        title: formatNumber(Number(unit.amount)),
+        label: `${opposingToken.symbol} per ${token.symbol}`
+      };
+    });
+    this.singleUnitCosts = items;
+  }
+
+  async loadPrices(amount: string) {
+    const results = await this.calculateOpposingDeposit({
+      id: this.pool.id,
+      reserve: { id: this.selectedToken.id, amount: amount ? amount : "0" }
+    });
+    if (amount !== "0" && amount !== "") this.shareOfPool = results.shareOfPool;
+    this.setSingleUnitCosts(results.singleUnitCosts);
+  }
 
   get advancedBlockItems() {
     return [
@@ -95,12 +169,22 @@ export default class PoolActionsAddV2 extends Vue {
         value: this.amount
       },
       {
-        label: "Rate",
-        value: "????"
+        label: "Rates",
+        value:
+          this.singleUnitCosts.length > 1
+            ? `${this.singleUnitCosts[0].title} ${this.singleUnitCosts[0].label}`
+            : "0"
+      },
+      {
+        label: "",
+        value:
+          this.singleUnitCosts.length > 1
+            ? `${this.singleUnitCosts[1].title} ${this.singleUnitCosts[1].label}`
+            : "0"
       },
       {
         label: "Share of Pool",
-        value: "??.??%"
+        value: `${formatNumber(this.shareOfPool)}%`
       }
     ];
   }
@@ -113,6 +197,10 @@ export default class PoolActionsAddV2 extends Vue {
   async updateSelection(pool: ViewRelay) {
     if (pool.reserves[0] === this.selectedToken) return;
     this.selectedToken = pool.reserves[0];
+  }
+
+  created() {
+    this.loadPrices("0");
   }
 }
 </script>
