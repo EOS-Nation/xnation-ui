@@ -83,6 +83,9 @@
 
     <modal-pool-action :amounts-array="[amountSmartToken, poolTokenAmount]" />
   </div>
+  <div v-else>
+    <h3>Loading...</h3>
+  </div>
 </template>
 
 <script lang="ts">
@@ -126,7 +129,7 @@ export default class PoolActionsRemoveV2 extends Vue {
   amountSmartToken = "";
   poolTokenAmount = "";
 
-  expectedReturn = "43.343";
+  expectedReturn = "";
 
   poolTokens: PoolTokenUI[] = [];
 
@@ -196,8 +199,13 @@ export default class PoolActionsRemoveV2 extends Vue {
     this.expectedReturn = res.expectedReturn!.amount;
 
     if (res.withdrawFee) {
-      this.exitFee = res.withdrawFee;
+      this.exitFee = Number(res.withdrawFee.toFixed(4));
     }
+
+    const percentOfBalance = Number.parseInt(
+      String((Number(amount) / this.selectedPoolToken.balance) * 100)
+    );
+    this.percentage = String(percentOfBalance);
   }
 
   async removeLiquidity() {
