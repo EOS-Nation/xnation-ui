@@ -13,7 +13,8 @@ import {
   ModuleParam,
   UserPoolBalances,
   OpposingLiquid,
-  PoolTokenPosition
+  PoolTokenPosition,
+  ViewRelay
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -122,7 +123,7 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["token"];
   }
 
-  get relays() {
+  get relays(): ViewRelay[] {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["relays"];
   }

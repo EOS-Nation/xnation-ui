@@ -59,7 +59,7 @@ export default class ModalJoinPool extends Vue {
   }
 
   get pools(): ViewRelay[] {
-    return vxm.bancor.relays;
+    return vxm.bancor.relays.filter(relay => relay.addLiquiditySupported);
   }
 
   get darkMode(): boolean {
