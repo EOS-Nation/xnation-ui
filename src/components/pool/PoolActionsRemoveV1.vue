@@ -1,6 +1,6 @@
 <template>
   <div>
-    <pool-actions-percentages :percentage.sync="percentage" />
+    <pool-actions-percentages v-if="!advanced" :percentage.sync="percentage" />
 
     <div v-if="!advanced" class="text-center my-3">
       <font-awesome-icon
@@ -15,6 +15,7 @@
       :class="darkMode ? 'block-light-blue-dark' : 'block-light-blue-light'"
     >
       <div
+        v-if="!advanced"
         class="block-content d-flex justify-content-between align-items-center font-size-14 font-w600 pt-2"
         :class="darkMode ? 'text-dark' : 'text-light'"
       >
@@ -28,7 +29,9 @@
           <span class="ml-2">{{ pool.reserves[0].symbol }}</span>
         </div>
       </div>
+
       <div
+        v-if="!advanced"
         class="block-content d-flex justify-content-between align-items-center font-size-14 font-w600 py-2"
         :class="darkMode ? 'text-dark' : 'text-light'"
       >
@@ -46,13 +49,14 @@
 
     <div v-else>
       <token-input-field
+        v-if="!advanced"
         label="Input"
         :amount.sync="amountSmartToken"
         :pool="pool"
         class="mt-4"
       />
 
-      <div class="text-center my-3">
+      <div v-if="!advanced" class="text-center my-3">
         <font-awesome-icon
           icon="long-arrow-alt-down"
           class="text-primary font-size-16"
@@ -61,6 +65,7 @@
       <token-input-field
         label="Output"
         :amount.sync="amountToken1"
+        @update:amount="tokenOneChanged"
         :token="pool.reserves[0]"
         class="my-3"
       />
@@ -71,6 +76,7 @@
       <token-input-field
         label="Output"
         :amount.sync="amountToken2"
+        @update:amount="tokenTwoChanged"
         :token="pool.reserves[1]"
       />
     </div>
@@ -87,6 +93,7 @@
     </label-content-split>
 
     <div
+      v-if="!advanced"
       class="font-size-12 font-w600 text-center"
       :class="darkMode ? 'text-link-dark' : 'text-link-light'"
     >
@@ -101,6 +108,7 @@
       :active="true"
       :large="true"
       class="mt-1"
+      :disabled="!(amountToken1 && amountToken2)"
     />
 
     <modal-pool-action
@@ -113,13 +121,17 @@
 <script lang="ts">
 import { Component, Vue, Prop, Watch } from "vue-property-decorator";
 import { vxm } from "@/store/";
-import { ViewRelay, ViewReserve } from "@/types/bancor";
+import { LiquidityModule, ViewRelay, ViewReserve } from "@/types/bancor";
 import PoolLogos from "@/components/common/PoolLogos.vue";
 import TokenInputField from "@/components/common-v2/TokenInputField.vue";
 import MainButton from "@/components/common/Button.vue";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
 import PoolActionsPercentages from "@/components/pool/PoolActionsPercentages.vue";
 import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
+import { namespace } from "vuex-class";
+
+const bancor = namespace("bancor");
+
 @Component({
   components: {
     ModalPoolAction,
@@ -131,16 +143,26 @@ import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
   }
 })
 export default class PoolActionsRemoveV1 extends Vue {
+  @bancor.Action
+  calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
+  @bancor.Action
+  calculateOpposingWithdraw!: LiquidityModule["calculateOpposingWithdraw"];
+
   @Prop() pool!: ViewRelay;
 
-  advanced = false;
-  selectedToken: ViewReserve = this.pool.reserves[0];
+  advanced = true;
+  rateLoading = false;
+
+  // selectedToken: ViewReserve = this.pool.reserves[0];
   percentage: string = "50";
   rate = "??????.?????";
 
   amountSmartToken = "";
   amountToken1 = "";
   amountToken2 = "";
+
+  token1Error = "";
+  token2Error = "";
 
   get advancedBlockItems() {
     return [
@@ -159,15 +181,65 @@ export default class PoolActionsRemoveV1 extends Vue {
     ];
   }
 
+  async tokenOneChanged(tokenAmount: string) {
+    if (tokenAmount === "") {
+      this.amountToken2 = "";
+      return;
+    }
+    this.rateLoading = true;
+    try {
+      const results = await this.calculateOpposingWithdraw({
+        id: this.pool.id,
+        reserve: { id: this.pool.reserves[0].id, amount: this.amountToken1 }
+      });
+      this.token1Error = "";
+      this.token2Error = "";
+      if (typeof results.opposingAmount !== "undefined") {
+        this.amountToken2 = results.opposingAmount;
+      }
+      // this.shareOfPool = results.shareOfPool;
+      // this.setSingleUnitCosts(results.singleUnitCosts);
+    } catch (e) {
+      this.token1Error = e.message;
+      this.token2Error = "";
+    }
+    this.rateLoading = false;
+  }
+
+  async tokenTwoChanged(tokenAmount: string) {
+    if (tokenAmount === "") {
+      this.amountToken1 = "";
+      return;
+    }
+    this.rateLoading = true;
+    try {
+      const results = await this.calculateOpposingWithdraw({
+        id: this.pool.id,
+        reserve: { id: this.pool.reserves[1].id, amount: this.amountToken2 }
+      });
+      this.token1Error = "";
+      this.token2Error = "";
+      if (typeof results.opposingAmount !== "undefined") {
+        this.amountToken1 = results.opposingAmount;
+      }
+      // this.shareOfPool = results.shareOfPool;
+      // this.setSingleUnitCosts(results.singleUnitCosts);
+    } catch (e) {
+      this.token1Error = e.message;
+      this.token2Error = "";
+    }
+    this.rateLoading = false;
+  }
+
   get darkMode() {
     return vxm.general.darkMode;
   }
 
-  @Watch("pool")
-  async updateSelection(pool: ViewRelay) {
-    if (pool.reserves[0] === this.selectedToken) return;
-    this.selectedToken = pool.reserves[0];
-  }
+  // @Watch("pool")
+  // async updateSelection(pool: ViewRelay) {
+  //   if (pool.reserves[0] === this.selectedToken) return;
+  //   this.selectedToken = pool.reserves[0];
+  // }
 }
 </script>
 
