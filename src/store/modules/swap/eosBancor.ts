@@ -28,7 +28,8 @@ import {
   ModuleParam,
   TokenBalanceParam,
   TokenBalanceReturn,
-  UserPoolBalances
+  UserPoolBalances,
+  PoolTokenPosition
 } from "@/types/bancor";
 import { bancorApi, ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -589,6 +590,29 @@ export class EosBancorModule
 
   get wallet() {
     return "eos";
+  }
+
+  get poolTokenPositions(): PoolTokenPosition[] {
+    const smartTokensIds = this.relaysList.map(relay => relay.smartToken.id);
+    const smartTokenBalances = vxm.eosNetwork.balances.filter(balance =>
+      smartTokensIds.some(id =>
+        compareString(
+          buildTokenId({ contract: balance.contract, symbol: balance.symbol }),
+          id
+        )
+      )
+    );
+    return smartTokenBalances.map(balance => {
+      const smartTokenId = buildTokenId(balance);
+      const relay = this.relaysList.find(relay =>
+        compareString(buildTokenId(relay.smartToken), smartTokenId)
+      )!;
+      const viewRelay = this.relay(relay.id);
+      return {
+        relay: viewRelay,
+        smartTokenAmount: balance.balance
+      };
+    });
   }
 
   get balance() {

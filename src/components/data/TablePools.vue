@@ -4,7 +4,6 @@
       id="relays-table"
       :dark="darkMode ? true : false"
       striped
-      :key="dynamicId"
       stacked="sm"
       :items="tokens"
       :fields="fields"
@@ -91,7 +90,6 @@ export default class TablePools extends Vue {
   numeral = numeral;
   @Prop({ default: "" }) filter!: string;
   small = false;
-  dynamicId = "buddy";
   @bancor.Action loadMorePools!: LiquidityModule["loadMorePools"];
   @bancor.Getter morePoolsAvailable!: LiquidityModule["morePoolsAvailable"];
   @bancor.Getter loadingPools!: LiquidityModule["loadingPools"];
@@ -226,21 +224,6 @@ export default class TablePools extends Vue {
 
   handleResize() {
     this.small = window.innerWidth < 768;
-  }
-
-  refreshTable() {
-    const reverseString = this.dynamicId
-      .split("")
-      .reverse()
-      .join();
-    this.dynamicId = reverseString;
-  }
-
-  tokensChanged = _.debounce(() => this.refreshTable(), 2000);
-
-  @Watch("tokens")
-  onChange() {
-    this.tokensChanged();
   }
 
   created() {

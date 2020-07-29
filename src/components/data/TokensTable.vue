@@ -4,7 +4,6 @@
       id="tokens-table"
       :dark="darkMode ? true : false"
       striped
-      :key="dynamicId"
       stacked="sm"
       :items="tokens"
       :fields="filteredFields"
@@ -52,7 +51,7 @@
           <span v-else>{{ numeral(data.item.price).format("$0,0.00") }}</span>
         </span>
       </template>
-      <template v-slot:cell(actions)="data">
+      <template v-slot:cell(actions)>
         <b-btn
           :to="{
             name: 'Tokens'
@@ -106,8 +105,6 @@ export default class TokensTable extends Vue {
   @Prop(Boolean) scrollToTop?: boolean;
 
   @Prop({ default: "" }) filter!: string;
-
-  dynamicId = "mate";
 
   small = false;
 
@@ -224,21 +221,6 @@ export default class TokensTable extends Vue {
 
   handleResize() {
     this.small = window.innerWidth < 768;
-  }
-
-  refreshTable() {
-    const reverseString = this.dynamicId
-      .split("")
-      .reverse()
-      .join();
-    this.dynamicId = reverseString;
-  }
-
-  tokensChanged = debounce(() => this.refreshTable(), 2000);
-
-  @Watch("tokens")
-  onChange() {
-    this.tokensChanged();
   }
 
   onConvert(symbolName: string) {

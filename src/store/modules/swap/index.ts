@@ -12,7 +12,9 @@ import {
   ProposedFromTransaction,
   ModuleParam,
   UserPoolBalances,
-  OpposingLiquid
+  OpposingLiquid,
+  PoolTokenPosition,
+  ViewRelay
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -121,7 +123,7 @@ export class BancorModule extends VuexModule.With({
     return vxm[`${this.currentNetwork}Bancor`]["token"];
   }
 
-  get relays() {
+  get relays(): ViewRelay[] {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["relays"];
   }
@@ -184,6 +186,11 @@ export class BancorModule extends VuexModule.With({
   get stats() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["stats"];
+  }
+
+  get poolTokenPositions(): PoolTokenPosition[] {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["poolTokenPositions"];
   }
 
   @mutation updateModule({

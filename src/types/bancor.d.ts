@@ -277,6 +277,15 @@ export interface UserPoolBalances {
   iouBalances: ViewAmount[];
 }
 
+interface PoolTokenPosition {
+  relay: ViewRelay;
+  smartTokenAmount?: number;
+  poolTokens?: {
+    reserveId: string;
+    balance: number;
+  }[];
+}
+
 export interface LiquidityModule {
   init: (param: ModuleParam) => Promise<void>;
   readonly primaryReserveChoices: (secondaryChoiceId: string) => ModalChoice[];
@@ -289,6 +298,7 @@ export interface LiquidityModule {
   readonly stats: {
     totalLiquidityDepth: number;
   };
+  readonly poolTokenPositions: PoolTokenPosition[];
   loadMorePools: () => Promise<void>;
   calculateOpposingDeposit: (
     opposingDeposit: OpposingLiquidParams
