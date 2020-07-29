@@ -18,17 +18,31 @@
 
         <b-col v-else cols="12" class="text-center">
           <div
+            v-if="selectedToken && pool.v2"
             class="font-size-24 font-w600 mr-2"
             :class="darkMode ? 'text-dark' : 'text-light'"
           >
-            ????.????
+            {{ amountsArray[0] }} {{ selectedToken.symbol }}
           </div>
-          <font-awesome-icon icon="plus" class="text-primary" />
-          <div
-            class="font-size-24 font-w600 mr-2"
-            :class="darkMode ? 'text-dark' : 'text-light'"
-          >
-            ????.????
+          <div v-else>
+            <div
+              class="font-size-24 font-w600 mr-2"
+              :class="darkMode ? 'text-dark' : 'text-light'"
+            >
+              {{ amountsArray[1] }} {{ pool.reserves[0].symbol }}
+            </div>
+            <font-awesome-icon
+              v-if="!pool.v2"
+              icon="plus"
+              class="text-primary"
+            />
+            <div
+              v-if="!pool.v2"
+              class="font-size-24 font-w600 mr-2"
+              :class="darkMode ? 'text-dark' : 'text-light'"
+            >
+              {{ amountsArray[2] }} {{ pool.reserves[1].symbol }}
+            </div>
           </div>
         </b-col>
 
@@ -185,14 +199,20 @@ export default class ModalPoolAction extends Vue {
     }
 
     // Add Liquidity V2
-    if (this.selectedToken) {
+    if (this.selectedToken && !this.pool.v2) {
       params.reserves.push({
         id: this.selectedToken.id,
         amount: this.amountsArray[0]
       });
+    } else {
+      // Remove Liquidity V2
+      if (this.selectedToken) {
+        params.reserves.push({
+          id: this.selectedToken.id,
+          amount: this.amountsArray[0]
+        });
+      }
     }
-
-    // Remove Liquidity V2
 
     try {
       this.txBusy = true;
