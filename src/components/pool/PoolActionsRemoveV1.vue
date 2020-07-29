@@ -81,17 +81,13 @@
       />
     </div>
 
-    <label-content-split label="Price" class="my-3">
-      <span
-        class="font-size-12 font-w600"
-        :class="darkMode ? 'text-dark' : 'text-light'"
-      >
-        {{
-          `1 ${pool.reserves[1].symbol} = ${rate} ${pool.reserves[0].symbol}`
-        }}
-      </span>
-    </label-content-split>
-
+    <label-content-split
+      label="Price"
+      :value="
+        `1 ${pool.reserves[1].symbol} = ${rate} ${pool.reserves[0].symbol}`
+      "
+      class="my-3"
+    />
     <div
       v-if="!advanced"
       class="font-size-12 font-w600 text-center"
