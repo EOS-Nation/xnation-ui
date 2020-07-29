@@ -1,54 +1,45 @@
 <template>
-  <div>
-    <pool-actions-percentages :percentage.sync="percentage" />
+  <div v-if="selectedToken">
+    <label-content-split label="Select a Pool Token" class="mb-3">
+      <b-form-group class="m-0" :class="darkMode ? 'text-dark' : 'text-light'">
+        <b-form-radio-group
+          id="radio-group"
+          v-model="selectedToken"
+          name="radio-component"
+        >
+          <b-form-radio
+            v-for="reserve in poolTokens"
+            :name="reserve.symbol"
+            :value="reserve.id"
+            :key="reserve.id"
+            :disabled="reserve.disabled"
+          >
+            <div class="d-flex align-items-center">
+              <img
+                class="img-avatar img-avatar20 mr-1"
+                :src="reserve.logo"
+                alt="Token Logo"
+              />
+              <span class="font-w600 font-size-14">{{ reserve.symbol }}</span>
+            </div>
+          </b-form-radio>
+        </b-form-radio-group>
+      </b-form-group>
+    </label-content-split>
 
-    <div v-if="!advanced" class="text-center my-3">
-      <font-awesome-icon
-        icon="long-arrow-alt-down"
-        class="text-primary font-size-16"
-      />
-    </div>
+    <pool-actions-percentages
+      :percentage.sync="percentage"
+      @update:percentage="setPercentage"
+    />
 
-    <div
-      v-if="!advanced"
-      class="block block-rounded block-bordered mb-4"
-      :class="darkMode ? 'block-light-blue-dark' : 'block-light-blue-light'"
-    >
-      <div
-        class="block-content d-flex justify-content-between align-items-center font-size-14 font-w600 pt-2"
-        :class="darkMode ? 'text-dark' : 'text-light'"
-      >
-        <span>?????.??????? <span>(~$??.??)</span></span>
-        <div class="d-flex align-items-center">
-          <img
-            :src="pool.reserves[0].logo"
-            class="img-avatar img-avatar20"
-            alt="Token Logo"
-          />
-          <span class="ml-2">{{ pool.reserves[0].symbol }}</span>
-        </div>
-      </div>
-      <div
-        class="block-content d-flex justify-content-between align-items-center font-size-14 font-w600 py-2"
-        :class="darkMode ? 'text-dark' : 'text-light'"
-      >
-        <span>?????.??????? <span>(~$??.??)</span></span>
-        <div class="d-flex align-items-center">
-          <img
-            :src="pool.reserves[1].logo"
-            class="img-avatar img-avatar20"
-            alt="Token Logo"
-          />
-          <span class="ml-2">{{ pool.reserves[1].symbol }}</span>
-        </div>
-      </div>
-    </div>
-
-    <div v-else>
-      <token-input-field
+    <div>
+      <plain-token-input-field
         label="Input"
+        :balance="selectedPoolToken.balance"
         :amount.sync="amountSmartToken"
-        :pool="pool"
+        @update:amount="poolTokenChange"
+        :logo="selectedPoolToken.logo[0]"
+        :symbol="`Pool ${selectedPoolToken.symbol}`"
         class="mt-4"
       />
 
@@ -58,50 +49,39 @@
           class="text-primary font-size-16"
         />
       </div>
-
-      <token-input-field
-        label="Input"
-        :amount.sync="amountToken1"
-        :token="pool.reserves[0]"
-        class="my-3"
-      />
-
-      <div class="text-center my-3">
-        <font-awesome-icon icon="plus" class="text-primary font-size-16" />
-      </div>
-
-      <token-input-field
-        label="Input"
-        :amount.sync="amountToken2"
-        :token="pool.reserves[1]"
-      />
+      <label-content-split label="Output" class="my-3">
+        <span
+          class="font-size-12 font-w600"
+          :class="darkMode ? 'text-dark' : 'text-light'"
+        >
+          {{ expectedReturn }} {{ selectedPoolToken.symbol }}
+        </span>
+      </label-content-split>
+      <label-content-split v-if="exitFee !== 0" label="Exit Fee" class="my-3">
+        <span
+          class="font-size-12 font-w600"
+          :class="darkMode ? 'text-dark' : 'text-light'"
+        >
+          {{ exitFee }}%
+        </span>
+      </label-content-split>
     </div>
 
-    <label-content-split label="Price" class="my-3">
-      <span
-        class="font-size-12 font-w600"
-        :class="darkMode ? 'text-dark' : 'text-light'"
-      >
-        {{
-          `1 ${pool.reserves[1].symbol} = ${rate} ${pool.reserves[0].symbol}`
-        }}
-      </span>
-    </label-content-split>
-
-    <div
-      class="font-size-12 font-w600 text-center"
-      :class="darkMode ? 'text-link-dark' : 'text-link-light'"
-    >
-      <span class="cursor" @click="advanced = !advanced">
-        {{ advanced ? "Simple" : "Advanced" }}
-      </span>
+    <div v-if="exitFee !== 0">
+      <p>
+        Pool is not balanced. Recommended to wait until it will be balanced.
+      </p>
     </div>
 
-    <main-button label="Remove" :active="true" :large="true" class="mt-1" />
-
-    <modal-pool-action
-      :amounts-array="[amountSmartToken, amountToken1, amountToken2]"
+    <main-button
+      label="Remove"
+      @click.native="removeLiquidity"
+      :active="true"
+      :large="true"
+      class="mt-1"
     />
+
+    <modal-pool-action :amounts-array="[amountSmartToken, poolTokenAmount]" />
   </div>
 </template>
 
@@ -110,17 +90,27 @@ import { Component, Vue, Prop, Watch } from "vue-property-decorator";
 import { vxm } from "@/store/";
 import { ViewRelay, ViewReserve } from "@/types/bancor";
 import PoolLogos from "@/components/common/PoolLogos.vue";
-import TokenInputField from "@/components/common-v2/TokenInputField.vue";
+import PlainTokenInputField from "@/components/common-v2/PlainTokenInputField.vue";
 import MainButton from "@/components/common/Button.vue";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
 import PoolActionsPercentages from "@/components/pool/PoolActionsPercentages.vue";
 import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
+import { compareString } from "../../api/helpers";
+
+interface PoolTokenUI {
+  disabled: boolean;
+  balance: number;
+  id: string;
+  symbol: string;
+  logo: string[];
+}
+
 @Component({
   components: {
     ModalPoolAction,
     PoolActionsPercentages,
     LabelContentSplit,
-    TokenInputField,
+    PlainTokenInputField,
     PoolLogos,
     MainButton
   }
@@ -128,16 +118,109 @@ import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
 export default class PoolActionsRemoveV2 extends Vue {
   @Prop() pool!: ViewRelay;
 
-  advanced = false;
   percentage: string = "50";
-  rate = "??????.?????";
+  exitFee = 0;
 
-  amountSmartToken = "0";
-  amountToken1 = "0";
-  amountToken2 = "0";
+  selectedToken: string = "";
+
+  amountSmartToken = "";
+  poolTokenAmount = "";
+
+  expectedReturn = "43.343";
+
+  poolTokens: PoolTokenUI[] = [];
+
+  get selectedPoolToken() {
+    const selectedToken = this.poolTokens.find(
+      token => token.id == this.selectedToken
+    );
+    console.log("returning", selectedToken);
+    return selectedToken!;
+  }
 
   get darkMode() {
     return vxm.general.darkMode;
+  }
+
+  get isAuthenticated() {
+    return vxm.wallet.isAuthenticated;
+  }
+
+  @Watch("isAuthenticated")
+  authChange(isAuthenticated: string | boolean) {
+    if (isAuthenticated) {
+      this.getPoolBalances();
+    }
+  }
+
+  async getPoolBalances() {
+    if (!this.isAuthenticated) return;
+    const res = await vxm.bancor.getUserBalances(this.pool.id);
+    const contrastAgainstReserves = {
+      ...res,
+      iouBalances: res.iouBalances.map(maxWithdraw => ({
+        ...maxWithdraw,
+        token: this.pool.reserves.find(reserve =>
+          compareString(reserve.id, maxWithdraw.id)
+        )!
+      }))
+    };
+
+    const poolTokens: PoolTokenUI[] = contrastAgainstReserves.iouBalances.map(
+      iouBalance => {
+        const { id, logo, symbol } = iouBalance.token;
+        return {
+          disabled: Number(iouBalance.amount) == 0,
+          balance: Number(iouBalance.amount),
+          id,
+          logo,
+          symbol
+        };
+      }
+    );
+
+    this.poolTokens = poolTokens;
+    const tokenToSelect = poolTokens.find(token => !token.disabled);
+    this.selectedToken = tokenToSelect!.id;
+  }
+
+  async poolTokenChange(amount: string) {
+    console.log(amount, "was in");
+    const res = await vxm.bancor.calculateOpposingWithdraw({
+      id: this.pool.id,
+      reserve: {
+        amount,
+        id: this.selectedPoolToken.id
+      }
+    });
+
+    this.expectedReturn = res.expectedReturn!.amount;
+
+    if (res.withdrawFee) {
+      this.exitFee = 0.043;
+    }
+  }
+
+  async removeLiquidity() {
+    console.log("button pressed");
+    await vxm.bancor.removeLiquidity({
+      id: this.pool.id,
+      reserves: [
+        { id: this.selectedPoolToken.id, amount: this.amountSmartToken }
+      ]
+    });
+  }
+
+  setPercentage(percent: string) {
+    const decPercent = Number(percent) / 100;
+    const poolTokenAmount = String(this.selectedPoolToken.balance * decPercent);
+    this.amountSmartToken = poolTokenAmount;
+    this.poolTokenChange(poolTokenAmount);
+  }
+
+  created() {
+    this.getPoolBalances();
+    this.setPercentage(this.percentage);
   }
 }
 </script>
