@@ -12,6 +12,14 @@
     />
     <modal-swap-select name="token1" />
 
+    <div class="text-center my-3">
+      <font-awesome-icon
+        icon="exchange-alt"
+        rotation="90"
+        class="text-primary font-size-16"
+      />
+    </div>
+
     <token-input-field
       label="To (Estimated)"
       :amount.sync="amount2"
@@ -24,8 +32,17 @@
     />
     <modal-swap-select name="token2" />
 
+    <div class="my-3">
+      <label-content-split
+        v-if="slippage !== null"
+        label="Slippage"
+        :value="slippage"
+      />
+      <label-content-split v-if="fee !== null" label="Slippage" :value="fee" />
+    </div>
+
     <main-button
-      @click.native="$bvModal.show('modal-join-pool')"
+      @click.native="changeModule('eos')"
       label="Continue"
       :active="true"
       :large="true"
@@ -40,9 +57,12 @@ import MainButton from "@/components/common/Button.vue";
 import TokenInputField from "@/components/common-v2/TokenInputField.vue";
 import { ViewReserve } from "@/types/bancor";
 import ModalSwapSelect from "@/components/swap/ModalSwapSelect.vue";
+import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
+import { compareString, findOrThrow } from "@/api/helpers";
 
 @Component({
   components: {
+    LabelContentSplit,
     ModalSwapSelect,
     TokenInputField,
     MainButton
@@ -70,8 +90,7 @@ export default class SwapAction extends Vue {
 
   async updatePriceReturn(amount: string) {
     if (!amount || amount === "0") {
-      this.amount1 = "";
-      this.amount2 = "";
+      this.setDefault();
       return;
     }
     try {
@@ -97,19 +116,23 @@ export default class SwapAction extends Vue {
     }
   }
 
+  setDefault() {
+    this.amount1 = this.amount2 = "";
+    this.fee = this.slippage = null;
+  }
+
   async updatePriceCost(amount: string) {
     if (!amount || amount === "0") {
-      this.amount1 = "";
-      this.amount2 = "";
+      this.setDefault();
       return;
     }
     try {
-      const reward = await vxm.bancor.getReturn({
-        from: {
+      const reward = await vxm.bancor.getCost({
+        to: {
           id: this.token2.id,
           amount: this.amount2
         },
-        toId: this.token1.id
+        fromId: this.token1.id
       });
       if (reward.slippage) {
         this.slippage = reward.slippage;
@@ -139,12 +162,29 @@ export default class SwapAction extends Vue {
   async onTokenChange(query: any) {
     this.token1 = vxm.bancor.token(query.from);
     this.token2 = vxm.bancor.token(query.to);
+    await this.updatePriceReturn(this.amount1);
     await this.loadBalances();
   }
 
   async created() {
     if (this.$route.query.to && this.$route.query.from)
       await this.onTokenChange(this.$route.query);
+    else {
+      const from =
+        vxm.bancor.currentNetwork === "eth"
+          ? "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c"
+          : "bntbntbntbnt-BNT";
+
+      const to =
+        vxm.bancor.currentNetwork === "eth"
+          ? "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+          : "eosio.token-EOS";
+
+      await this.$router.push({
+        name: "Swap",
+        query: { from, to }
+      });
+    }
     await this.loadBalances();
   }
 }
