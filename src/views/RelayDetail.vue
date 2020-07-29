@@ -345,7 +345,7 @@ export default class RelayDetail extends Vue {
         inputEnabled: true
       },
       title: {
-        text: this.relay.smartTokenSymbol
+        text: this.relay.reserves.map(r => r.symbol).join("-")
       },
       subtitle: {
         text: "ROI"
@@ -393,8 +393,7 @@ export default class RelayDetail extends Vue {
 
   async fetchData() {
     this.loading = true;
-    const { smartTokenSymbol } = this.relay;
-    const data = await vxm.bancor.fetchHistoryData(smartTokenSymbol);
+    const data = await vxm.bancor.fetchHistoryData(this.relay.id);
     this.data = data;
     this.setChartData(data);
   }

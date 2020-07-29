@@ -1597,8 +1597,12 @@ export class EthBancorModule
     });
   }
 
-  @action async fetchHistoryData(smartTokenSymbol: string) {
-    return getSmartTokenHistory(smartTokenSymbol.toLowerCase());
+  @action async fetchHistoryData(poolId: string) {
+    const pool = await this.relayById(poolId);
+    const reserveSymbols = pool.reserves.map(reserve => reserve.symbol);
+    const sortedSymbols = sortByNetworkTokens(reserveSymbols, x => x);
+    const [networkToken, primaryReserveToken] = sortedSymbols;
+    return getSmartTokenHistory(primaryReserveToken.toLowerCase());
   }
 
   @action async createPool(poolParams: CreatePoolParams) {
