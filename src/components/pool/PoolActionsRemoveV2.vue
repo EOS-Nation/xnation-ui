@@ -1,5 +1,13 @@
 <template>
   <div v-if="selectedToken">
+    <label-content-split label="Pool" class="my-4">
+      <pool-logos
+        @click.native="$bvModal.show('modal-join-pool')"
+        :pool="pool"
+        :dropdown="true"
+      />
+    </label-content-split>
+
     <label-content-split label="Select a Pool Token" class="mb-3">
       <b-form-group class="m-0" :class="darkMode ? 'text-dark' : 'text-light'">
         <b-form-radio-group
@@ -33,13 +41,12 @@
     />
 
     <div>
-      <plain-token-input-field
+      <token-input-field
         label="Input"
-        :balance="selectedPoolToken.balance"
+        :token="selectedPoolToken"
         :amount.sync="amountSmartToken"
         @update:amount="poolTokenChange"
-        :logo="selectedPoolToken.logo[0]"
-        :symbol="`Pool ${selectedPoolToken.symbol}`"
+        :balance="selectedPoolToken.balance"
         class="mt-4"
       />
 
@@ -83,13 +90,15 @@
     />
 
     <modal-pool-action
-      :amounts-array="[expectedReturn, amountSmartToken]"
+      :amounts-array="[amountSmartToken, expectedReturn]"
       :selected-token="selectedPoolToken"
       :advanced-block-items="advancedBlockItems"
     />
   </div>
   <div v-else>
-    <h3>Loading...</h3>
+    <h3 class="text-center my-5">
+      <font-awesome-icon icon="circle-notch" spin class="text-primary" />
+    </h3>
   </div>
 </template>
 
@@ -104,6 +113,7 @@ import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
 import PoolActionsPercentages from "@/components/pool/PoolActionsPercentages.vue";
 import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
 import { compareString } from "../../api/helpers";
+import TokenInputField from "@/components/common-v2/TokenInputField.vue";
 
 interface PoolTokenUI {
   disabled: boolean;
@@ -115,6 +125,7 @@ interface PoolTokenUI {
 
 @Component({
   components: {
+    TokenInputField,
     ModalPoolAction,
     PoolActionsPercentages,
     LabelContentSplit,
@@ -132,7 +143,6 @@ export default class PoolActionsRemoveV2 extends Vue {
   selectedToken: string = "";
 
   amountSmartToken = "";
-  poolTokenAmount = "";
 
   expectedReturn = "";
 
@@ -142,8 +152,6 @@ export default class PoolActionsRemoveV2 extends Vue {
     const selectedToken = this.poolTokens.find(
       token => token.id == this.selectedToken
     );
-    console.log("returning", selectedToken);
-    console.log("returning2", this.selectedToken);
     return selectedToken!;
   }
 
@@ -232,6 +240,13 @@ export default class PoolActionsRemoveV2 extends Vue {
     const poolTokenAmount = String(this.selectedPoolToken.balance * decPercent);
     this.amountSmartToken = poolTokenAmount;
     this.poolTokenChange(poolTokenAmount);
+  }
+
+  @Watch("pool")
+  async updateSelection(pool: ViewRelay) {
+    this.selectedToken = "";
+    await this.getPoolBalances();
+    this.setPercentage(this.percentage);
   }
 
   async created() {
