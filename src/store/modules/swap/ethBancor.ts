@@ -2634,11 +2634,24 @@ export class EthBancorModule
         reserveToken,
         reserveDecAmount
       );
-      console.log(weiAmount, "is the wei amount");
+
+      const weiPoolTokenBalance = (await this.getUserBalance({
+        tokenContractAddress: poolToken.poolToken.contract,
+        keepWei: true
+      })) as string;
+
+      const roundedWeiAmount = new BigNumber(weiAmount).gt(
+        new BigNumber(weiPoolTokenBalance).times(0.995)
+      )
+        ? weiPoolTokenBalance
+        : weiAmount;
 
       hash = await this.removeLiquidityV2({
         converterAddress,
-        poolToken: { tokenContract: poolToken.poolToken.contract, weiAmount }
+        poolToken: {
+          tokenContract: poolToken.poolToken.contract,
+          weiAmount: roundedWeiAmount
+        }
       });
     } else if (postV28 && relay.converterType == PoolType.Traditional) {
       const { smartTokenAmount } = await this.calculateOpposingWithdrawInfo({
