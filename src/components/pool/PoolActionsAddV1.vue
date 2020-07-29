@@ -16,7 +16,7 @@
       class="mb-3"
       @update:amount="tokenTwoChanged"
     />
-    <rate-share-block :pool="pool" :share-of-pool="shareOfPool" />
+    <rate-share-block :items="shareBlockItems" label="Prices and Pool Share" />
     <main-button
       @click.native="$bvModal.show('modal-pool-action')"
       label="Supply"
@@ -40,7 +40,8 @@ import {
   LiquidityModule,
   OpposingLiquid,
   ViewRelay,
-  ViewReserve
+  ViewReserve,
+  ViewAmount
 } from "@/types/bancor";
 import PoolLogos from "@/components/common/PoolLogos.vue";
 import TokenInputField from "@/components/common-v2/TokenInputField.vue";
@@ -50,6 +51,7 @@ import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
 import { namespace } from "vuex-class";
 import RateShareBlock from "@/components/common-v2/RateShareBlock.vue";
 import numeral from "numeral";
+import { compareString, formatNumber } from "../../api/helpers";
 
 const bancor = namespace("bancor");
 
@@ -75,6 +77,7 @@ export default class PoolActionsAddV1 extends Vue {
   amount1: string = "";
   amount2: string = "";
 
+  singleUnitCosts: any[] = [];
   shareOfPool = 0;
 
   rateLoading = false;
@@ -94,6 +97,17 @@ export default class PoolActionsAddV1 extends Vue {
       else if (share < 1) return numeral(share).format("0.00000");
       else return numeral(share).format("0.00");
     }
+  }
+
+  get shareBlockItems() {
+    return [
+      ...this.singleUnitCosts,
+      {
+        id: "poolShare",
+        title: `${formatNumber(this.shareOfPool)}%`,
+        label: "Share of Pool"
+      }
+    ];
   }
 
   get advancedBlockItems() {
@@ -138,14 +152,30 @@ export default class PoolActionsAddV1 extends Vue {
       if (typeof results.opposingAmount !== "undefined") {
         this.amount2 = results.opposingAmount;
       }
-      if (typeof results.shareOfPool !== "undefined") {
-        this.shareOfPool = results.shareOfPool;
-      }
+      this.shareOfPool = results.shareOfPool;
+      this.setSingleUnitCosts(results.singleUnitCosts);
     } catch (e) {
       this.token1Error = e.message;
       this.token2Error = "";
     }
     this.rateLoading = false;
+  }
+
+  setSingleUnitCosts(units: ViewAmount[]) {
+    const items = units.map(unit => {
+      const token = this.pool.reserves.find(reserve =>
+        compareString(unit.id, reserve.id)
+      )!;
+      const opposingToken = this.pool.reserves.find(
+        reserve => !compareString(unit.id, reserve.id)
+      )!;
+      return {
+        id: token.id,
+        title: `${unit.amount}`,
+        label: `${opposingToken.symbol} per ${token.symbol}`
+      };
+    });
+    this.singleUnitCosts = items;
   }
 
   async tokenTwoChanged(tokenAmount: string) {
@@ -160,14 +190,14 @@ export default class PoolActionsAddV1 extends Vue {
         id: this.pool.id,
         reserve: { id: this.pool.reserves[1].id, amount: this.amount2 }
       });
+      console.log(results, "are the results");
       this.token1Error = "";
       this.token2Error = "";
       if (typeof results.opposingAmount !== "undefined") {
         this.amount1 = results.opposingAmount;
       }
-      if (typeof results.shareOfPool !== "undefined") {
-        this.shareOfPool = results.shareOfPool;
-      }
+      this.shareOfPool = results.shareOfPool;
+      this.setSingleUnitCosts(results.singleUnitCosts);
     } catch (e) {
       this.token1Error = e.message;
       this.token2Error = "";
