@@ -22,7 +22,7 @@
             class="font-size-24 font-w600 mr-2"
             :class="darkMode ? 'text-dark' : 'text-light'"
           >
-            {{ amountsArray[0] }} {{ selectedToken.symbol }}
+            {{ amountsArray[1] }} {{ selectedToken.symbol }}
           </div>
           <div v-else>
             <div
@@ -202,7 +202,7 @@ export default class ModalPoolAction extends Vue {
     if (this.selectedToken && !this.pool.v2) {
       params.reserves.push({
         id: this.selectedToken.id,
-        amount: this.amountsArray[0]
+        amount: this.amountsArray[1]
       });
     } else {
       // Remove Liquidity V2
