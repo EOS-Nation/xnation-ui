@@ -108,8 +108,8 @@ const replaceLastChar = (str: string, char: string) => {
   return str.slice(0, str.length - 1) + char;
 };
 
-export const formatNumber = (percent: number, size: number = 4) => {
-  const reduced = percent.toFixed(size);
+export const formatNumber = (num: number, size: number = 4) => {
+  const reduced = num.toFixed(size);
   const isZero = Number(reduced) == 0;
   if (isZero) {
     return `< ${replaceLastChar(reduced, "1")}`;

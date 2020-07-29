@@ -2064,17 +2064,20 @@ export class EthBancorModule
     );
     const shareOfPool = fundRewardDec / smartSupplyDec;
 
-    const sameReserveCost = shrinkToken(
-      new BigNumber(opposingReserve.weiAmount)
-        .div(sameReserve.weiAmount)
-        .toNumber(),
-      sameReserve.decimals
-    );
-    const opposingReserveCost = shrinkToken(
-      new BigNumber(sameReserve.weiAmount)
-        .div(opposingReserve.weiAmount)
-        .toNumber(),
-      opposingReserve.decimals
+    const sameReserveCostDec = new BigNumber(opposingReserve.weiAmount)
+      .div(sameReserve.weiAmount)
+      .toString();
+
+    const opposingReserveCostDec = new BigNumber(sameReserve.weiAmount)
+      .div(opposingReserve.weiAmount)
+      .toString();
+
+    console.log(
+      opposingReserve.weiAmount,
+      sameReserve.weiAmount,
+      "should be wei amounts",
+      sameReserveCostDec,
+      opposingReserveCostDec
     );
 
     return {
@@ -2082,8 +2085,8 @@ export class EthBancorModule
       smartTokenAmount: { id: smartTokenAddress, amount: fundReward },
       shareOfPool,
       singleUnitCosts: [
-        { id: sameReserve.contract, amount: sameReserveCost },
-        { id: opposingReserve.contract, amount: opposingReserveCost }
+        { id: sameReserve.contract, amount: sameReserveCostDec },
+        { id: opposingReserve.contract, amount: opposingReserveCostDec }
       ]
     };
   }
@@ -2514,13 +2517,13 @@ export class EthBancorModule
     const sameReserveCost = shrinkToken(
       new BigNumber(opposingReserve.weiAmount)
         .div(sameReserve.weiAmount)
-        .toNumber(),
+        .toString(),
       sameReserve.decimals
     );
     const opposingReserveCost = shrinkToken(
       new BigNumber(sameReserve.weiAmount)
         .div(opposingReserve.weiAmount)
-        .toNumber(),
+        .toString(),
       opposingReserve.decimals
     );
 

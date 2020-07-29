@@ -171,7 +171,7 @@ export default class PoolActionsAddV1 extends Vue {
       )!;
       return {
         id: token.id,
-        title: `${unit.amount}`,
+        title: formatNumber(Number(unit.amount)),
         label: `${opposingToken.symbol} per ${token.symbol}`
       };
     });
