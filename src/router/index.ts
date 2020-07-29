@@ -16,6 +16,7 @@ import Privacy from "@/components/common/Privacy.vue";
 import { services } from "@/api/helpers";
 import PoolHome from "@/components/pool/PoolHome.vue";
 import PoolActions from "@/components/pool/PoolActions.vue";
+import SwapHome from "@/components/swap/SwapHome.vue";
 
 Vue.use(Router);
 
@@ -97,10 +98,7 @@ export const router = new Router({
         Nav: Navigation,
         Hero: PoolHome
       },
-      props: true,
-      meta: {
-        feature: "Liquidity"
-      }
+      props: true
     },
     {
       path: "/:service/pool/:poolAction/:account",
@@ -149,16 +147,25 @@ export const router = new Router({
     },
     {
       path: "/:service",
-      name: "Tokens",
+      name: "Swap",
       components: {
         Nav: Navigation,
-        Hero: HeroConvert
+        Hero: SwapHome
       },
-      props: true,
-      meta: {
-        feature: "Trade"
-      }
+      props: true
     },
+    // {
+    //   path: "/:service",
+    //   name: "Tokens",
+    //   components: {
+    //     Nav: Navigation,
+    //     Hero: HeroConvert
+    //   },
+    //   props: true,
+    //   meta: {
+    //     feature: "Trade"
+    //   }
+    // },
     {
       path: "/:service/data",
       name: "Data",
