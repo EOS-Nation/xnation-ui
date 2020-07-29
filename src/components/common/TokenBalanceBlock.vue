@@ -17,7 +17,6 @@
           :class="props.dark ? 'text-body-dark' : 'text-body-light'"
         >
           {{ props.symbol }}
-          <b-badge variant="primary">{{ props.v2 ? "V2" : "V1" }}</b-badge>
         </h3>
         <h5
           class="mb-0 mt-0"
