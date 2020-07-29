@@ -5,6 +5,7 @@
       :token="pool.reserves[0]"
       :amount.sync="amount1"
       @update:amount="tokenOneChanged"
+      :balance="balanceToken1"
     />
     <div class="text-center my-3">
       <font-awesome-icon icon="plus" class="text-primary font-size-16" />
@@ -15,6 +16,7 @@
       :amount.sync="amount2"
       class="mb-3"
       @update:amount="tokenTwoChanged"
+      :balance="balanceToken2"
     />
     <rate-share-block :items="shareBlockItems" label="Prices and Pool Share" />
     <main-button
@@ -24,7 +26,7 @@
       :large="true"
       class="mt-3"
       :loading="rateLoading"
-      :disabled="!amount1 && !amount2"
+      :disabled="!amount1 || !amount2"
     />
     <modal-pool-action
       :amounts-array="[smartTokenAmount, amount1, amount2]"
@@ -76,6 +78,9 @@ export default class PoolActionsAddV1 extends Vue {
   smartTokenAmount: string = "??.??????";
   amount1: string = "";
   amount2: string = "";
+
+  balanceToken1: string = "";
+  balanceToken2: string = "";
 
   singleUnitCosts: any[] = [];
   shareOfPool = 0;
@@ -234,8 +239,14 @@ export default class PoolActionsAddV1 extends Vue {
     this.setSingleUnitCosts(results.singleUnitCosts);
   }
 
+  async loadBalances() {
+    this.balanceToken1 = vxm.bancor.token(this.pool.reserves[0].id).balance;
+    this.balanceToken2 = vxm.bancor.token(this.pool.reserves[1].id).balance;
+  }
+
   created() {
     this.initialLoadPrices();
+    this.loadBalances();
   }
 }
 </script>
