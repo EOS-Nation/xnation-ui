@@ -75,13 +75,18 @@
 
     <main-button
       label="Remove"
-      @click.native="removeLiquidity"
+      @click.native="$bvModal.show('modal-pool-action')"
       :active="true"
       :large="true"
       class="mt-1"
+      :disabled="!amountSmartToken"
     />
 
-    <modal-pool-action :amounts-array="[amountSmartToken, poolTokenAmount]" />
+    <modal-pool-action
+      :amounts-array="[expectedReturn, amountSmartToken]"
+      :selected-token="selectedPoolToken"
+      :advanced-block-items="advancedBlockItems"
+    />
   </div>
   <div v-else>
     <h3>Loading...</h3>
@@ -138,6 +143,7 @@ export default class PoolActionsRemoveV2 extends Vue {
       token => token.id == this.selectedToken
     );
     console.log("returning", selectedToken);
+    console.log("returning2", this.selectedToken);
     return selectedToken!;
   }
 
@@ -147,6 +153,19 @@ export default class PoolActionsRemoveV2 extends Vue {
 
   get isAuthenticated() {
     return vxm.wallet.isAuthenticated;
+  }
+
+  get advancedBlockItems() {
+    return [
+      {
+        label: "Liquidate ",
+        value: this.amountSmartToken + " " + this.selectedPoolToken.symbol
+      },
+      {
+        label: "Exit Fee",
+        value: this.exitFee + "%"
+      }
+    ];
   }
 
   @Watch("isAuthenticated")
@@ -208,15 +227,6 @@ export default class PoolActionsRemoveV2 extends Vue {
     this.percentage = String(percentOfBalance);
   }
 
-  async removeLiquidity() {
-    await vxm.bancor.removeLiquidity({
-      id: this.pool.id,
-      reserves: [
-        { id: this.selectedPoolToken.id, amount: this.amountSmartToken }
-      ]
-    });
-  }
-
   setPercentage(percent: string) {
     const decPercent = Number(percent) / 100;
     const poolTokenAmount = String(this.selectedPoolToken.balance * decPercent);
@@ -224,8 +234,8 @@ export default class PoolActionsRemoveV2 extends Vue {
     this.poolTokenChange(poolTokenAmount);
   }
 
-  created() {
-    this.getPoolBalances();
+  async created() {
+    await this.getPoolBalances();
     this.setPercentage(this.percentage);
   }
 }
