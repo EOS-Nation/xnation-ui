@@ -41,12 +41,7 @@
       <label-content-split v-if="fee !== null" label="Slippage" :value="fee" />
     </div>
 
-    <main-button
-      @click.native="changeModule('eos')"
-      label="Continue"
-      :active="true"
-      :large="true"
-    />
+    <main-button label="Continue" :active="true" :large="true" />
   </div>
 </template>
 
@@ -160,8 +155,18 @@ export default class SwapAction extends Vue {
 
   @Watch("$route.query")
   async onTokenChange(query: any) {
-    this.token1 = vxm.bancor.token(query.from);
-    this.token2 = vxm.bancor.token(query.to);
+    try {
+      this.token1 = await vxm.bancor.token(query.from);
+    } catch (e) {
+      console.log(e);
+      this.token1 = vxm.bancor.tokens[0];
+    }
+    try {
+      this.token2 = await vxm.bancor.token(query.to);
+    } catch (e) {
+      console.log(e);
+      this.token2 = vxm.bancor.tokens[1];
+    }
     await this.updatePriceReturn(this.amount1);
     await this.loadBalances();
   }
@@ -169,22 +174,7 @@ export default class SwapAction extends Vue {
   async created() {
     if (this.$route.query.to && this.$route.query.from)
       await this.onTokenChange(this.$route.query);
-    else {
-      const from =
-        vxm.bancor.currentNetwork === "eth"
-          ? "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c"
-          : "bntbntbntbnt-BNT";
 
-      const to =
-        vxm.bancor.currentNetwork === "eth"
-          ? "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
-          : "eosio.token-EOS";
-
-      await this.$router.push({
-        name: "Swap",
-        query: { from, to }
-      });
-    }
     await this.loadBalances();
   }
 }
