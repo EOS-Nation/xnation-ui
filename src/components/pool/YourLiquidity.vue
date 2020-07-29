@@ -1,44 +1,41 @@
 <template>
-  <div>
+  <div class="mt-3">
     <label-content-split label="Your Liquidity" />
-    <div class="block block-rounded block-bordered">
-      <!-- below just testing -->
-      <div class="block-content">
-        <main-button v-b-toggle="'collapse-x'" label="USD/BNT" />
-        <b-collapse :id="'collapse-x'" accordion="liquidityPools" class="mt-2">
-          <p class="card-text">Data goes here</p>
-          <b-row>
-            <b-col cols="6" class="pr-1">
-              <main-button label="Add Liquidity" :active="true" />
-            </b-col>
-            <b-col cols="6" class="pl-1">
-              <main-button label="Remove Liquidity" />
-            </b-col>
-          </b-row>
-        </b-collapse>
-      </div>
-      <!-- above hardcoded for testing and below array with all pools as prop?? -->
-      <div
-        v-for="(pool, index) in liquidPools"
-        :key="index"
-        class="block-content"
-      >
+    <div>
+      <div v-for="(pool, index) in pools" :key="index" class="mt-2 mb-1">
         <main-button
           v-b-toggle="'collapse-' + `${index}`"
-          :label="pool.symbol"
+          :label="getPoolLabel(pool.relay.reserves)"
         />
-        <b-collapse
-          :id="'collapse-' + index"
-          accordion="liquidityPools"
-          class="mt-2"
-        >
-          <p class="card-text">Data goes here</p>
+        <b-collapse :id="'collapse-' + index" accordion="liquidityPools">
+          <div class="my-3">
+            <label-content-split
+              v-if="!pool.relay.v2"
+              label="Pool Token Balance"
+              :value="pool.smartTokenAmount"
+            />
+            <div v-else-if="pool.poolTokens">
+              <label-content-split
+                v-for="token in pool.poolTokens"
+                :key="token.reserveId"
+                label="Your Pool Tokens"
+                :value="token.balance"
+              />
+            </div>
+          </div>
           <b-row>
             <b-col cols="6" class="pr-1">
-              <main-button label="Add Liquidity" :active="true" />
+              <main-button
+                @click.native="goToAdd(pool.relay)"
+                label="Add Liquidity"
+                :active="true"
+              />
             </b-col>
             <b-col cols="6" class="pl-1">
-              <main-button label="Remove Liquidity" />
+              <main-button
+                @click.native="goToRemove(pool.relay)"
+                label="Remove Liquidity"
+              />
             </b-col>
           </b-row>
         </b-collapse>
@@ -51,14 +48,40 @@
 import { Watch, Component, Vue, Prop } from "vue-property-decorator";
 import { vxm } from "@/store";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
-import { ViewReserve } from "@/types/bancor";
+import { PoolTokenPosition, ViewRelay, ViewReserve } from "@/types/bancor";
 import MainButton from "@/components/common/Button.vue";
 
 @Component({
   components: { LabelContentSplit, MainButton }
 })
 export default class YourLiquidity extends Vue {
-  @Prop({ default: [] }) liquidPools!: ViewReserve[];
+  get pools(): PoolTokenPosition[] {
+    return vxm.bancor.poolTokenPositions;
+  }
+
+  getPoolLabel(reserves: ViewReserve[]) {
+    return `${reserves[0].symbol}/${reserves[1].symbol}`;
+  }
+
+  goToAdd(pool: ViewRelay) {
+    this.$router.push({
+      name: "PoolAction",
+      params: {
+        poolAction: "add",
+        account: pool.id
+      }
+    });
+  }
+
+  goToRemove(pool: ViewRelay) {
+    this.$router.push({
+      name: "PoolAction",
+      params: {
+        poolAction: "remove",
+        account: pool.id
+      }
+    });
+  }
 
   get darkMode() {
     return vxm.general.darkMode;

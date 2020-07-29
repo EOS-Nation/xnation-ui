@@ -45,8 +45,6 @@ import YourLiquidity from "@/components/pool/YourLiquidity.vue";
   }
 })
 export default class PoolHome extends Vue {
-  modalJoinPool = false;
-
   get darkMode() {
     return vxm.general.darkMode;
   }
