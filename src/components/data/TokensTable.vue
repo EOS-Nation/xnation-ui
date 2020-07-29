@@ -52,7 +52,7 @@
           <span v-else>{{ numeral(data.item.price).format("$0,0.00") }}</span>
         </span>
       </template>
-      <template v-slot:cell(actions)="data">
+      <template v-slot:cell(actions)>
         <b-btn
           :to="{
             name: 'Tokens'
