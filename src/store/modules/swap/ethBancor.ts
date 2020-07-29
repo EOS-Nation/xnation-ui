@@ -1272,8 +1272,8 @@ export class EthBancorModule
 
   get stats() {
     return {
-      totalLiquidityDepth: this.relays.reduce(
-        (acc, item) => acc + item.liqDepth,
+      totalLiquidityDepth: this.tokens.reduce(
+        (acc, item) => acc + (item.liqDepth || 0),
         0
       )
     };
