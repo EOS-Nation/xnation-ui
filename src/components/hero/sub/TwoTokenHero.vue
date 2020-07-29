@@ -21,7 +21,7 @@
             :input-label="inputLabels[0]"
             :label="label"
             :errors="tokenOneMeta.errors"
-            :warnBalance="warnBalance"
+            :warnBalance="tokenOneMeta.warnBalance"
           />
         </b-col>
       </b-row>
@@ -46,7 +46,7 @@
             :input-label="inputLabels[1]"
             :label="label"
             :errors="tokenTwoMeta.errors"
-            :warnBalance="warnBalance"
+            :warnBalance="tokenTwoMeta.warnBalance"
           />
         </b-col>
       </b-row>
