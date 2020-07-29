@@ -185,7 +185,6 @@ export default class PoolActionsRemoveV2 extends Vue {
   }
 
   async poolTokenChange(amount: string) {
-    console.log(amount, "was in");
     const res = await vxm.bancor.calculateOpposingWithdraw({
       id: this.pool.id,
       reserve: {
@@ -202,7 +201,6 @@ export default class PoolActionsRemoveV2 extends Vue {
   }
 
   async removeLiquidity() {
-    console.log("button pressed");
     await vxm.bancor.removeLiquidity({
       id: this.pool.id,
       reserves: [
