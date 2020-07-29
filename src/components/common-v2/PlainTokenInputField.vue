@@ -1,8 +1,8 @@
 <template>
   <div>
     <label-content-split :label="label" class="mb-1">
-      <span v-if="isAuthenticated" class="font-size-12 font-w500"
-        >Balance: {{ balance }} (~$??.??)</span
+      <span v-if="typeof balance !== 'undefined'" class="font-size-12 font-w500"
+        >Balance: {{ balance }} {{ usdValue && "(~$??.??)" }}</span
       >
     </label-content-split>
     <b-input-group>
@@ -13,29 +13,22 @@
         :class="darkMode ? 'form-control-alt-dark' : 'form-control-alt-light'"
         placeholder="Enter Amount"
       ></b-form-input>
-      <b-input-group-append :class="{ cursor: pool }">
+      <b-input-group-append>
         <div
           class="rounded-right d-flex align-items-center px-2"
           :class="darkMode ? 'bg-body-dark' : 'bg-light'"
         >
-          <div v-if="token" class="d-flex align-items-center">
+          <div v-if="logo && symbol" class="d-flex align-items-center">
             <img
               class="img-avatar img-avatar32 border-colouring bg-white mr-1"
-              :src="token.logo"
+              :src="logo"
               alt="Token Logo"
             />
             <span
               class="px-1 font-size-14 font-w600"
               :class="darkMode ? 'text-dark' : 'text-light'"
-              >{{ token.symbol }}</span
+              >{{ symbol }}</span
             >
-          </div>
-          <div v-else>
-            <pool-logos
-              @click.native="$bvModal.show('modal-join-pool')"
-              :pool="pool"
-              :dropdown="true"
-            />
           </div>
         </div>
       </b-input-group-append>
@@ -48,45 +41,21 @@ import { Component, Vue, Prop, Watch, PropSync } from "vue-property-decorator";
 import { vxm } from "@/store/";
 import { ViewRelay, ViewReserve } from "@/types/bancor";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
-import PoolLogos from "@/components/common/PoolLogos.vue";
 
 @Component({
-  components: { PoolLogos, LabelContentSplit }
+  components: { LabelContentSplit }
 })
 export default class TokenInputField extends Vue {
   @Prop() label!: string;
-  @Prop() token?: ViewReserve;
-  @Prop() pool?: ViewRelay;
+  @Prop() usdValue?: number;
+  @Prop() logo!: string;
+  @Prop() symbol!: string;
+  @Prop() balance!: string;
+  @Prop() disabled!: boolean;
   @PropSync("amount", { type: String }) tokenAmount!: string;
-  @Prop({ default: false }) dropdown!: boolean;
-
-  balance = "0"
 
   get darkMode() {
     return vxm.general.darkMode;
-  }
-
-  get isAuthenticated() {
-    return vxm.wallet.isAuthenticated
-  }
-
-  async getBalance() {
-    if (!this.isAuthenticated) return
-    if (this.pool) {
-      const {maxWithdrawals, iouBalances} = await vxm.bancor.getUserBalances(this.pool.id)
-      this.balance = iouBalances[0].amount;
-    } else this.balance = vxm.bancor.token(this.token?.id).balance;
-  }
-
-  @Watch("token")
-  async onTokenChange(token: ViewReserve) {
-    console.log("change")
-    await this.getBalance()
-
-  }
-
-  async created() {
-    await this.getBalance()
   }
 }
 </script>

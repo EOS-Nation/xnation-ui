@@ -13,7 +13,9 @@
       :src="pool.reserves[1].logo"
       alt="Token Logo"
     />
-    <span class="ml-2 mr-2">{{ pool.smartTokenSymbol }}</span>
+    <span class="ml-2 mr-2"
+      >{{ pool.reserves[0].symbol }}/{{ pool.reserves[1].symbol }}</span
+    >
     <font-awesome-icon v-if="dropdown" icon="caret-down" />
   </div>
 </template>
@@ -28,8 +30,7 @@ import { vxm } from "@/store";
 })
 export default class PoolLogos extends Vue {
   @Prop() pool!: ViewRelay;
-  @Prop({default: false}) dropdown!: boolean;
-
+  @Prop({ default: false }) dropdown!: boolean;
 
   get darkMode() {
     return vxm.general.darkMode;

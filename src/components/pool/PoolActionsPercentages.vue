@@ -11,6 +11,7 @@
       id="range-1"
       v-model="percentageAmount"
       type="range"
+      debounce="300"
       min="0"
       max="100"
       class="my-2"
@@ -37,9 +38,9 @@ import MainButton from "@/components/common/Button.vue";
   components: { LabelContentSplit, MainButton }
 })
 export default class PoolActionsPercentages extends Vue {
-  @PropSync("percentage", { type: Number }) percentageAmount!: number;
+  @PropSync("percentage", { type: String }) percentageAmount!: string;
 
-  percentages = [25, 50, 75, 100];
+  percentages = ["25", "50", "75", "100"];
 
   get darkMode() {
     return vxm.general.darkMode;

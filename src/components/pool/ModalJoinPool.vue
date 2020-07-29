@@ -1,26 +1,5 @@
 <template>
-  <b-modal
-    id="modal-join-pool"
-    scrollable
-    size="sm"
-    centered
-    hide-footer
-    :content-class="darkMode ? 'bg-block-dark' : 'bg-block-light'"
-  >
-    <template slot="modal-header">
-      <span
-        class="font-size-14 font-w600"
-        :class="darkMode ? 'text-dark' : 'text-light'"
-        >Select a Pool</span
-      >
-      <font-awesome-icon
-        class="cursor font-size-lg"
-        :class="darkMode ? 'text-dark' : 'text-light'"
-        @click="$bvModal.hide('modal-join-pool')"
-        icon="times"
-      />
-    </template>
-
+  <base-modal id="modal-join-pool" title="Select a Pool" size="sm">
     <div>
       <b-row>
         <b-col class="mb-3">
@@ -52,7 +31,7 @@
         </b-col>
       </b-row>
     </div>
-  </b-modal>
+  </base-modal>
 </template>
 
 <script lang="ts">
@@ -60,9 +39,10 @@ import { Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store/";
 import { ViewRelay } from "@/types/bancor";
 import SelectPoolRow from "@/components/pool/SelectPoolRow.vue";
+import BaseModal from "@/components/common-v2/BaseModal.vue";
 
 @Component({
-  components: { SelectPoolRow }
+  components: { BaseModal, SelectPoolRow }
 })
 export default class ModalJoinPool extends Vue {
   tokenSearch: string = "";

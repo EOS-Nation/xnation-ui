@@ -10,7 +10,9 @@ import {
   HistoryRow,
   ProposedToTransaction,
   ProposedFromTransaction,
-  ModuleParam
+  ModuleParam,
+  UserPoolBalances,
+  OpposingLiquid
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -353,8 +355,8 @@ export class BancorModule extends VuexModule.With({
     return this.dispatcher(["updateOwner", owner]);
   }
 
-  @action async getUserBalances(symbolName: string) {
-    return this.dispatcher(["getUserBalances", symbolName]);
+  @action async getUserBalances(relayId: string): Promise<UserPoolBalances> {
+    return this.dispatcher(["getUserBalances", relayId]);
   }
 
   @action async createPool(newPoolParams: any): Promise<string> {
@@ -385,7 +387,7 @@ export class BancorModule extends VuexModule.With({
 
   @action async calculateOpposingWithdraw(
     opposingWithdraw: OpposingLiquidParams
-  ) {
+  ): Promise<OpposingLiquid> {
     return this.dispatcher(["calculateOpposingWithdraw", opposingWithdraw]);
   }
 
