@@ -4,7 +4,7 @@
     <b-navbar class="navBar">
       <div class="d-flex justify-content-between container-xl">
         <b-navbar-brand class="pb-1" style="width: 250px">
-          <router-link :to="{ name: 'Tokens' }">
+          <router-link :to="{ name: 'Swap' }">
             <img
               v-if="darkMode"
               src="@/assets/media/logos/bancor-white.png"
@@ -37,22 +37,7 @@
             </b-btn>
           </b-navbar-nav>
           <b-navbar-nav class="mr-2">
-            <settings-menu>
-              <template slot="blockchains">
-                <div class="d-flex justify-content-between">
-                  <b-btn
-                    size="sm"
-                    @click="loadNewModule(option.value)"
-                    v-for="option in options"
-                    :key="option.value"
-                    :variant="selected === option.value ? 'primary' : 'light'"
-                    class="border-0 px-4 block-rounded"
-                  >
-                    {{ option.text }}
-                  </b-btn>
-                </div>
-              </template>
-            </settings-menu>
+            <settings-menu />
           </b-navbar-nav>
           <b-navbar-nav>
             <bancor-menu />

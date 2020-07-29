@@ -93,9 +93,26 @@
     <b-dropdown-divider></b-dropdown-divider>
     <b-dropdown-group id="dropdown-group-3">
       <b-dropdown-header class="text-uppercase">Blockchains</b-dropdown-header>
-      <b-dropdown-item>
-        <slot name="blockchains"></slot>
-      </b-dropdown-item>
+      <b-dropdown-text style="width: 300px">
+        <div class="d-flex justify-content-between align-items-end">
+          <b-btn
+            size="sm"
+            @click="changeModule('eos')"
+            :variant="currentNetwork === 'eos' ? 'primary' : 'light'"
+            class="border-0 px-4 block-rounded btn-block mr-1"
+          >
+            EOS
+          </b-btn>
+          <b-btn
+            size="sm"
+            @click="changeModule('eth')"
+            :variant="currentNetwork === 'eth' ? 'primary' : 'light'"
+            class="border-0 px-4 block-rounded btn-block ml-1"
+          >
+            ETH
+          </b-btn>
+        </div>
+      </b-dropdown-text>
     </b-dropdown-group>
   </b-dropdown>
 </template>
@@ -114,10 +131,25 @@ export default class SettingsMenu extends Vue {
     return vxm.bancor.slippageTolerance;
   }
 
+  get currentNetwork() {
+    return vxm.bancor.currentNetwork;
+  }
+
   customSlippage: string = "";
 
   setSlippage(slippage: number) {
     vxm.bancor.setSlippageTolerance(slippage);
+  }
+
+  async changeModule(id: string) {
+    const currentRoute = this.$route.fullPath;
+    const currentModule = currentRoute.split("/")[1];
+    const currentService = currentRoute.split("/")[2].split("?")[0];
+    let hostbase = window.location.hostname;
+    if (hostbase === "localhost") hostbase = "http://" + hostbase + ":8080";
+
+    if (id === currentModule) return;
+    window.location.replace([hostbase, id, currentService].join("/"));
   }
 
   @Watch("customSlippage")
