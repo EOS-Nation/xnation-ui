@@ -21,7 +21,7 @@
     <b-dropdown-divider></b-dropdown-divider>
     <b-dropdown-group id="dropdown-group-2">
       <b-dropdown-header class="text-uppercase">Apps</b-dropdown-header>
-      <b-dropdown-item :to="{ name: 'Tokens' }"
+      <b-dropdown-item :to="{ name: 'Swap' }"
         ><font-awesome-icon icon="exchange-alt" class="mr-2" fixed-width />
         Bancor Swap</b-dropdown-item
       >
