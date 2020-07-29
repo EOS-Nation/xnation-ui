@@ -98,7 +98,10 @@ export const router = new Router({
         Nav: Navigation,
         Hero: PoolHome
       },
-      props: true
+      props: true,
+      meta: {
+        feature: "Liquidity"
+      }
     },
     {
       path: "/:service/pool/:poolAction/:account",
@@ -146,13 +149,16 @@ export const router = new Router({
       }
     },
     {
-      path: "/:service",
+      path: "/:service/swap",
       name: "Swap",
       components: {
         Nav: Navigation,
         Hero: SwapHome
       },
-      props: true
+      props: true,
+      meta: {
+        feature: "Trade"
+      }
     },
     // {
     //   path: "/:service",
@@ -190,9 +196,9 @@ export const router = new Router({
           const foundService = services.find(
             service => service.namespace == preferredService
           );
-          if (foundService) return `/${foundService.namespace}`;
+          if (foundService) return `/${foundService.namespace}/swap`;
         }
-        return `/${defaultModule}`;
+        return `/${defaultModule}/swap`;
       }
     }
   ]
