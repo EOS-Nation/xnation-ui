@@ -40,7 +40,7 @@
           v-fallback="reserve.logo.slice(1)"
           :alt="`${reserve.symbol} Token Logo`"
         />
-        {{ data.item.symbol }}
+        {{ data.item.reserves.map(reserve => reserve.symbol).join("-") }}
         <b-badge variant="primary"> {{ data.item.v2 ? "V2" : "V1" }}</b-badge>
       </template>
       <template v-slot:cell(index)="data">
@@ -48,9 +48,6 @@
       </template>
       <template v-slot:cell(v2)="data">
         <span> {{ data.item.v2 ? "V2" : "V1" }}</span>
-      </template>
-      <template v-slot:cell(ratio)>
-        50 - 50
       </template>
       <template v-slot:cell(actions)>
         <b-btn
@@ -70,7 +67,12 @@
 import { Watch, Component, Vue, Prop } from "vue-property-decorator";
 import { vxm } from "@/store";
 import SortIcons from "@/components/common/SortIcons.vue";
-import { TokenPrice, TradingModule, LiquidityModule } from "@/types/bancor";
+import {
+  TokenPrice,
+  TradingModule,
+  LiquidityModule,
+  ViewRelay
+} from "@/types/bancor";
 import { multiContract } from "@/api/multiContractTx";
 import Velocity from "velocity-animate";
 import { State, Getter, Action, namespace } from "vuex-class";
@@ -101,16 +103,14 @@ export default class TablePools extends Vue {
       label: "Token",
       tdClass: ["tokenss", "align-middle"]
     },
-    // {
-    //   key: "owner",
-    //   thClass: "text-center",
-    //   tdClass: ["text-center", "align-middle"],
-    //   formatter: (value: any) => this.shortenEthAddress(value)
-    // },
     {
       key: "ratio",
       tdClass: ["align-middle"],
-      class: "noWrap"
+      class: "noWrap",
+      formatter: (value: any, key: any, item: ViewRelay) =>
+        item.reserves
+          .map(reserve => Number.parseInt(String(reserve.reserveWeight * 100)))
+          .join("-")
     },
     {
       key: "liqDepth",

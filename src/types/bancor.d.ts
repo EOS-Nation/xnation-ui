@@ -196,6 +196,7 @@ export interface ViewReserve {
   symbol: string;
   contract: string;
   balance?: number;
+  reserveWeight: number;
 }
 
 export interface ViewRelay {

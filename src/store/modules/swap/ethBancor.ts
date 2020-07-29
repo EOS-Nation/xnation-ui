@@ -1923,6 +1923,7 @@ export class EthBancorModule
           reserves: [networkReserve, tokenReserve].map(reserve => {
             const meta = this.tokenMetaObj(reserve.contract);
             return {
+              reserveWeight: reserve.reserveWeight,
               id: reserve.contract,
               reserveId: poolContainerAddress + reserve.contract,
               logo: [meta.image],
@@ -1969,6 +1970,7 @@ export class EthBancorModule
             const meta = this.tokenMetaObj(reserve.contract);
             return {
               id: reserve.contract,
+              reserveWeight: reserve.reserveWeight,
               reserveId: relay.anchor.contract + reserve.contract,
               logo: [meta.image],
               symbol: reserve.symbol,
@@ -3734,7 +3736,10 @@ export class EthBancorModule
           isMultiContract: false,
           network: "ETH",
           owner: pool.owner,
-          reserves: rawPool.reserves.map(reserve => reserve.token),
+          reserves: rawPool.reserves.map(reserve => ({
+            ...reserve.token,
+            reserveWeight: Number(reserve.reserveWeight) / oneMillion.toNumber()
+          })),
           version: String(pool.version),
           fee: Number(pool.conversionFee) / 10000
         };
@@ -3783,7 +3788,7 @@ export class EthBancorModule
 
       const relay: RelayWithReserveBalances = {
         id: smartTokenAddress,
-        reserves: reserveTokens,
+        reserves: reserveTokens.map(x => ({ ...x, reserveWeight: 0.5 })),
         reserveBalances: zippedReserveBalances.map(zip => ({
           amount: zip.amount,
           id: zip.contract

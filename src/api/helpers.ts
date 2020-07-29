@@ -395,9 +395,12 @@ export interface PoolContainer {
 export type SmartToken = Token;
 export type Anchor = SmartToken | PoolContainer;
 
+interface TokenWithWeight extends Token {
+  reserveWeight: number;
+}
 export interface Relay {
   id: string;
-  reserves: Token[];
+  reserves: TokenWithWeight[];
   anchor: Anchor;
   contract: ContractAccount;
   isMultiContract: boolean;

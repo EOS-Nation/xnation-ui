@@ -1023,6 +1023,7 @@ export class EosBancorModule
           v2: false,
           reserves: sortedReserves.map((reserve: AgnosticToken) => ({
             ...reserve,
+            reserveWeight: 0.5,
             reserveId: relay.id + reserve.id,
             logo: [this.token(reserve.id).logo],
             ...(reserve.amount && { balance: reserve.amount })
