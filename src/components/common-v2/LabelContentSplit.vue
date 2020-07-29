@@ -5,7 +5,14 @@
       :class="darkMode ? 'text-muted-dark' : 'text-muted-light'"
       >{{ label }}</span
     >
-    <slot></slot>
+    <span
+      v-if="value"
+      class="font-size-12 font-w600"
+      :class="darkMode ? 'text-dark' : 'text-light'"
+    >
+      {{ value }}
+    </span>
+    <slot v-else></slot>
   </div>
 </template>
 
@@ -18,6 +25,7 @@ import { vxm } from "@/store/";
 })
 export default class LabelContentSplit extends Vue {
   @Prop() label!: string;
+  @Prop() value?: string;
 
   get darkMode() {
     return vxm.general.darkMode;
