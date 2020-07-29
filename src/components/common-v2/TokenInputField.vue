@@ -1,10 +1,12 @@
 <template>
   <div>
     <label-content-split :label="label" class="mb-1">
-      <span v-if="isAuthenticated" class="font-size-12 font-w500"
-        >Balance: {{ balance }} (~$??.??)</span
-      >
+      <span v-if="isAuthenticated" class="font-size-12 font-w500">
+        Balance: {{ formattedBalance }} (~$??.??)
+        {{ usdValue && "(~$??.??)" }}
+      </span>
     </label-content-split>
+
     <b-input-group>
       <b-form-input
         type="text"
@@ -14,6 +16,7 @@
         placeholder="Enter Amount"
         :state="errorState.state"
       ></b-form-input>
+
       <b-input-group-append :class="{ cursor: pool }">
         <div
           class="rounded-right d-flex align-items-center px-2"
@@ -40,6 +43,7 @@
           </div>
         </div>
       </b-input-group-append>
+
       <b-form-invalid-feedback id="input-live-feedback">
         {{ errorState.msg }}
       </b-form-invalid-feedback>
@@ -53,6 +57,7 @@ import { vxm } from "@/store/";
 import { ViewRelay, ViewReserve } from "@/types/bancor";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
 import PoolLogos from "@/components/common/PoolLogos.vue";
+import numeral from "numeral";
 
 @Component({
   components: { PoolLogos, LabelContentSplit }
@@ -61,36 +66,45 @@ export default class TokenInputField extends Vue {
   @Prop() label!: string;
   @Prop() token?: ViewReserve;
   @Prop() pool?: ViewRelay;
+  @Prop() balance!: string;
+  @Prop() usdValue?: number;
   @PropSync("amount", { type: String }) tokenAmount!: string;
   @Prop({ default: false }) dropdown!: boolean;
 
-  balance = "0"
+  numeral = numeral;
+
+  get formattedBalance() {
+    const balance = parseFloat(this.balance);
+    if (!balance || balance === 0) return "0";
+    else if (balance < 0.000001) return "< 0.000001";
+    else if (balance > 1000) return numeral(balance).format("0,0.0000");
+    else return numeral(balance).format("0,0.000000");
+  }
 
   get errorState() {
-    const a = parseFloat(this.tokenAmount)
-    const b = parseFloat(this.balance)
+    const a = parseFloat(this.tokenAmount);
+    const b = parseFloat(this.balance);
 
     if (this.tokenAmount === "") {
       return {
         msg: "",
         state: null
-      }
-    }
-    else if (!a) {
+      };
+    } else if (!a) {
       return {
         msg: "Invalid Input",
         state: false
-      }
-    }
-    else if (a > b) {
+      };
+    } else if (a > b) {
       return {
         msg: "Pool balance is currently insufficient",
         state: false
-      }
-    }
-    else return {
-      msg: "",
-      state: true
+      };
+    } else {
+      return {
+        msg: "",
+        state: null
+      };
     }
   }
 
@@ -99,26 +113,7 @@ export default class TokenInputField extends Vue {
   }
 
   get isAuthenticated() {
-    return vxm.wallet.isAuthenticated
-  }
-
-  async getBalance() {
-    if (!this.isAuthenticated) return
-    if (this.pool) {
-      const {maxWithdrawals, iouBalances} = await vxm.bancor.getUserBalances(this.pool.id)
-      this.balance = iouBalances[0].amount;
-    } else this.balance = vxm.bancor.token(this.token?.id).balance;
-  }
-
-  @Watch("token")
-  async onTokenChange(token: ViewReserve) {
-    console.log("change")
-    await this.getBalance()
-
-  }
-
-  async created() {
-    await this.getBalance()
+    return vxm.wallet.isAuthenticated;
   }
 }
 </script>
