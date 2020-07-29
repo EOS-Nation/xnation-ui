@@ -12,6 +12,8 @@
           :active="true"
           :large="true"
         />
+
+        <your-liquidity />
       </div>
     </content-block>
     <div class="d-flex justify-content-center">
@@ -32,13 +34,11 @@ import { vxm } from "@/store";
 import ContentBlock from "@/components/common/ContentBlock.vue";
 import SubNavigation from "@/components/layout/SubNavigation.vue";
 import MainButton from "@/components/common/Button.vue";
-import ModalLogin from "@/components/modals/ModalLogin.vue";
-import ModalSelect from "@/components/modals/ModalSelect.vue";
+import YourLiquidity from "@/components/pool/YourLiquidity.vue";
 
 @Component({
   components: {
-    ModalSelect,
-    ModalLogin,
+    YourLiquidity,
     MainButton,
     SubNavigation,
     ContentBlock
