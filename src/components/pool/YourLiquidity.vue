@@ -1,8 +1,12 @@
 <template>
   <div class="mt-3">
     <label-content-split label="Your Liquidity" />
-    <div>
-      <div v-for="(pool, index) in pools" :key="index" class="mt-2 mb-1">
+    <div v-if="positions.length">
+      <div
+        v-for="(pool, index) in positions.splice(0, 10)"
+        :key="index"
+        class="mt-2 mb-1"
+      >
         <main-button
           v-b-toggle="'collapse-' + `${index}`"
           :label="getPoolLabel(pool.relay.reserves)"
@@ -41,6 +45,9 @@
         </b-collapse>
       </div>
     </div>
+    <div v-else class="font-size-14 font-w600 mt-3 text-center">
+      You dont have any Liquidity yet.
+    </div>
   </div>
 </template>
 
@@ -55,7 +62,7 @@ import MainButton from "@/components/common/Button.vue";
   components: { LabelContentSplit, MainButton }
 })
 export default class YourLiquidity extends Vue {
-  get pools(): PoolTokenPosition[] {
+  get positions(): PoolTokenPosition[] {
     return vxm.bancor.poolTokenPositions;
   }
 
