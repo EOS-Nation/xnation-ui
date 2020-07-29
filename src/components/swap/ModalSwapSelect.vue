@@ -18,7 +18,7 @@
             class="text-uppercase font-w500 font-size-12"
             :class="darkMode ? 'text-muted-dark' : 'text-muted-light'"
           >
-            Pool Name
+            Tokens
           </span>
         </b-col>
         <b-col
@@ -28,7 +28,20 @@
           class="my-3 cursor"
           @click="selectToken(token)"
         >
-          {{ token.symbol }}
+          <div
+            class="d-flex align-items-center justify-content-between"
+            :class="darkMode ? 'text-dark' : 'text-light'"
+          >
+            <div>
+              <img
+                :src="token.logo"
+                class="img-avatar img-avatar32 mr-2"
+                alt="Token Logo"
+              />
+              <span class="font-w600 font-size-14">{{ token.symbol }}</span>
+            </div>
+            <span class="font-w500 font-size-12">{{ token.balance }}</span>
+          </div>
         </b-col>
       </b-row>
     </div>
