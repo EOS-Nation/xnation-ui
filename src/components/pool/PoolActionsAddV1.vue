@@ -85,10 +85,6 @@ export default class PoolActionsAddV1 extends Vue {
   token1Error = "";
   token2Error = "";
 
-  get withdrawLiquidity() {
-    return this.$route.params.poolAction === "remove";
-  }
-
   get share() {
     if (this.shareOfPool === 0) return "0";
     else {
@@ -133,11 +129,17 @@ export default class PoolActionsAddV1 extends Vue {
       },
       {
         label: "Rates",
-        value: "????"
+        value:
+          this.singleUnitCosts.length > 1
+            ? `${this.singleUnitCosts[0].title} ${this.singleUnitCosts[0].label}`
+            : "0"
       },
       {
         label: "",
-        value: "????"
+        value:
+          this.singleUnitCosts.length > 1
+            ? `${this.singleUnitCosts[1].title} ${this.singleUnitCosts[1].label}`
+            : "0"
       },
       {
         label: "Share of Pool",
