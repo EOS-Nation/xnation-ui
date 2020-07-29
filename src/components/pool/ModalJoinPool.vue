@@ -51,7 +51,9 @@ export default class ModalJoinPool extends Vue {
     this.$router.push({
       name: "PoolAction",
       params: {
-        poolAction: "add",
+        poolAction: this.$route.params.poolAction
+          ? this.$route.params.poolAction
+          : "add",
         account: pool.id
       }
     });
