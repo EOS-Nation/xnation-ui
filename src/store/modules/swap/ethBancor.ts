@@ -624,11 +624,9 @@ const iouTokensInRelay = (relay: Relay): Token[] => {
     const poolContainer = relay.anchor as PoolContainer;
     const poolTokens = poolContainer.poolTokens;
     const tokens = poolTokens.map(token => token.poolToken);
-    console.log("returning chainlink", tokens);
     return tokens;
   } else if (relay.converterType == PoolType.Traditional) {
     const smartToken = relay.anchor as SmartToken;
-    console.log("returning smarttoken", smartToken);
     return [smartToken];
   } else throw new Error("Failed to identify pool");
 };
