@@ -4,15 +4,13 @@
       <b-col cols="6" class="pr-1">
         <b-btn
           class="btn-block block-rounded"
-          :key="navItems[0].label"
-          :to="navItems[0].destination"
-          :disabled="navItems[0].disabled"
+          :to="{ name: 'Swap' }"
           :variant="
-            !navItems[0].active ? (darkMode ? 'dark' : 'light') : 'primary'
+            $route.name !== 'Swap' ? (darkMode ? 'dark' : 'light') : 'primary'
           "
           size="lg"
         >
-          {{ navItems[0].label }}
+          Swap
         </b-btn>
       </b-col>
       <b-col cols="6" class="pl-1">
@@ -20,9 +18,7 @@
           class="btn-block block-rounded"
           :to="{ name: 'Pool' }"
           :variant="
-            !navItems[1].active &&
-            !navItems[2].active &&
-            $route.name === 'Tokens'
+            !navItems[1].active && !navItems[2].active && $route.name === 'Swap'
               ? darkMode
                 ? 'dark'
                 : 'light'
