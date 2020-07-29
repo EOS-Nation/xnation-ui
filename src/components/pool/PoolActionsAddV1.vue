@@ -100,14 +100,25 @@ export default class PoolActionsAddV1 extends Vue {
   }
 
   get shareBlockItems() {
-    return [
-      ...this.singleUnitCosts,
-      {
-        id: "poolShare",
-        title: `${formatNumber(this.shareOfPool)}%`,
-        label: "Share of Pool"
-      }
-    ];
+    if (this.shareOfPool > 0) {
+      return [
+        ...this.singleUnitCosts,
+        {
+          id: "poolShare",
+          title: `${formatNumber(this.shareOfPool)}%`,
+          label: "Share of Pool"
+        }
+      ];
+    } else {
+      return [
+        ...this.singleUnitCosts,
+        {
+          id: "poolShare",
+          label: "Share of Pool",
+          title: "?"
+        }
+      ];
+    }
   }
 
   get advancedBlockItems() {
@@ -135,10 +146,14 @@ export default class PoolActionsAddV1 extends Vue {
     ];
   }
 
+  setDefault() {
+    this.shareOfPool = 0;
+  }
+
   async tokenOneChanged(tokenAmount: string) {
     if (tokenAmount === "") {
       this.amount2 = "";
-      this.shareOfPool = 0;
+      this.setDefault();
       return;
     }
     this.rateLoading = true;
@@ -181,7 +196,7 @@ export default class PoolActionsAddV1 extends Vue {
   async tokenTwoChanged(tokenAmount: string) {
     if (tokenAmount === "") {
       this.amount1 = "";
-      this.shareOfPool = 0;
+      this.setDefault();
       return;
     }
     this.rateLoading = true;
@@ -207,6 +222,18 @@ export default class PoolActionsAddV1 extends Vue {
 
   get darkMode() {
     return vxm.general.darkMode;
+  }
+
+  async initialLoadPrices() {
+    const results = await this.calculateOpposingDeposit({
+      id: this.pool.id,
+      reserve: { id: this.pool.reserves[1].id, amount: this.amount2 }
+    });
+    this.setSingleUnitCosts(results.singleUnitCosts);
+  }
+
+  created() {
+    this.initialLoadPrices();
   }
 }
 </script>
