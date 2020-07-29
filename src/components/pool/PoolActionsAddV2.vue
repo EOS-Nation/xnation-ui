@@ -1,6 +1,6 @@
 <template>
   <div>
-    <label-content-split label="Pool" class="mb-4">
+    <label-content-split label="Pool" class="my-4">
       <pool-logos
         @click.native="$bvModal.show('modal-join-pool')"
         :pool="pool"
@@ -39,6 +39,7 @@
       :token="selectedToken"
       :amount.sync="amount"
       @update:amount="loadPrices(amount)"
+      :balance="balance"
       class="mb-3"
     />
 
@@ -55,7 +56,7 @@
     />
     <modal-pool-action
       :selected-token="selectedToken"
-      :amounts-array="[amount]"
+      :amounts-array="[amountSmartToken, amount]"
       :advanced-block-items="advancedBlockItems"
     />
   </div>
@@ -100,6 +101,9 @@ export default class PoolActionsAddV2 extends Vue {
 
   selectedToken: ViewReserve = this.pool.reserves[0];
   amount: string = "";
+  amountSmartToken: string = "??.????";
+
+  balance = "0";
 
   rateLoading = false;
   singleUnitCosts: any[] = [];
@@ -193,14 +197,25 @@ export default class PoolActionsAddV2 extends Vue {
     return vxm.general.darkMode;
   }
 
+  async loadData() {
+    this.balance = vxm.bancor.token(this.selectedToken.id).balance;
+    await this.loadPrices("0");
+  }
+
   @Watch("pool")
   async updateSelection(pool: ViewRelay) {
     if (pool.reserves[0] === this.selectedToken) return;
     this.selectedToken = pool.reserves[0];
+    await this.loadData();
   }
 
-  created() {
-    this.loadPrices("0");
+  @Watch("selectedToken")
+  async onTokenChange() {
+    await this.loadData();
+  }
+
+  async created() {
+    await this.loadData();
   }
 }
 </script>
