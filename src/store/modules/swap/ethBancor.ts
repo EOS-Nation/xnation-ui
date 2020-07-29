@@ -21,7 +21,8 @@ import {
   ViewAmount,
   ModuleParam,
   UserPoolBalances,
-  CallReturn
+  CallReturn,
+  PoolTokenPosition
 } from "@/types/bancor";
 import { ethBancorApi } from "@/api/bancorApiWrapper";
 import {
@@ -49,7 +50,8 @@ import {
   RelayWithReserveBalances,
   createIndexes,
   rebuildFromIndex,
-  ConverterV2Row
+  ConverterV2Row,
+  buildTokenId
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
@@ -617,18 +619,27 @@ interface AnchorProps {
   converterType: PoolType;
 }
 
-const tokensInRelay = (relay: Relay): Token[] => {
-  const reserveTokens = relay.reserves;
+const iouTokensInRelay = (relay: Relay): Token[] => {
   if (relay.converterType == PoolType.ChainLink) {
     const poolContainer = relay.anchor as PoolContainer;
     const poolTokens = poolContainer.poolTokens;
     const tokens = poolTokens.map(token => token.poolToken);
-    return [...reserveTokens, ...tokens];
+    console.log("returning chainlink", tokens);
+    return tokens;
   } else if (relay.converterType == PoolType.Traditional) {
     const smartToken = relay.anchor as SmartToken;
-    return [...reserveTokens, smartToken];
+    console.log("returning smarttoken", smartToken);
+    return [smartToken];
   } else throw new Error("Failed to identify pool");
 };
+
+const reserveTokensInRelay = (relay: Relay): Token[] => relay.reserves;
+
+const tokensInRelay = (relay: Relay): Token[] => [
+  ...reserveTokensInRelay(relay),
+  ...iouTokensInRelay(relay)
+];
+
 interface EthNetworkVariables {
   contractRegistry: string;
   bntToken: string;
@@ -1293,6 +1304,57 @@ export class EthBancorModule
 
   @mutation setBancorApiTokens(tokens: TokenPrice[]) {
     this.bancorApiTokens = tokens;
+  }
+
+  get poolTokenPositions(): PoolTokenPosition[] {
+    const allIouTokens = this.relaysList.flatMap(iouTokensInRelay);
+    const existingBalances = this.tokenBalances.filter(balance =>
+      allIouTokens.some(iouToken =>
+        compareString(balance.id, iouToken.contract)
+      )
+    );
+
+    const relevantRelays = this.relaysList.filter(relay =>
+      iouTokensInRelay(relay).some(token =>
+        existingBalances.some(balance =>
+          compareString(balance.id, token.contract)
+        )
+      )
+    );
+
+    return relevantRelays.map(relay => {
+      const anchorTokens = iouTokensInRelay(relay);
+      const iouTokens = existingBalances.filter(existingBalance =>
+        anchorTokens.some(anchor =>
+          compareString(existingBalance.id, anchor.contract)
+        )
+      );
+
+      const viewRelay = this.relay(relay.id);
+      const isV1 = relay.converterType == PoolType.Traditional;
+      if (isV1) {
+        return {
+          relay: viewRelay,
+          smartTokenAmount: iouTokens[0].balance
+        };
+      } else {
+        const chainkLinkRelay = relay as ChainLinkRelay;
+        const reserveBalances = iouTokens.map(iouToken => {
+          const relevantPoolTokenData = chainkLinkRelay.anchor.poolTokens.find(
+            poolToken =>
+              compareString(poolToken.poolToken.contract, iouToken.id)
+          )!;
+          return {
+            balance: iouToken.balance,
+            reserveId: relevantPoolTokenData.reserveId
+          };
+        });
+        return {
+          relay: viewRelay,
+          poolTokens: reserveBalances
+        };
+      }
+    });
   }
 
   get morePoolsAvailable() {
@@ -3542,7 +3604,7 @@ export class EthBancorModule
     //   return reJoined;
     // } catch (e) {
     const secondTry = await this.multiCallInChunks({
-      chunkSizes: [1000, 150, 45, 15, 5],
+      chunkSizes: [5000, 150, 45, 15, 5],
       flatCalls: flattened
     });
     return rebuildFromIndex(secondTry, indexes);
@@ -4130,33 +4192,35 @@ export class EthBancorModule
       throw new Error("Received nothing for addPoolsBulk");
 
     this.setLoadingPools(true);
-    const { pools, reserveFeeds } = await this.addPoolsV2(convertersAndAnchors);
-    const poolsFailed = _.differenceWith(convertersAndAnchors, pools, (a, b) =>
-      compareString(a.anchorAddress, b.id)
-    );
-    console.warn(
-      (pools.length / convertersAndAnchors.length) * 100,
-      "% success rate."
-    );
-    console.log(poolsFailed, "are pools failed");
-    this.updateFailedPools(
-      poolsFailed.map(failedPool => failedPool.anchorAddress)
-    );
-    console.log(pools, "are the pools");
-    this.updateRelays(pools);
-    this.buildPossibleReserveFeedsFromBancorApi(pools);
-    this.updateRelayFeeds(reserveFeeds);
+
+    const chunked = chunk(convertersAndAnchors, 15);
+    const tokenAddresses: string[] = [];
+    for (const chunk of chunked) {
+      const { pools, reserveFeeds } = await this.addPoolsV2(chunk);
+      const poolsFailed = _.differenceWith(
+        convertersAndAnchors,
+        pools,
+        (a, b) => compareString(a.anchorAddress, b.id)
+      );
+      this.updateFailedPools(
+        poolsFailed.map(failedPool => failedPool.anchorAddress)
+      );
+      this.updateRelays(pools);
+      this.buildPossibleReserveFeedsFromBancorApi(pools);
+      this.updateRelayFeeds(reserveFeeds);
+      tokenAddresses.concat(
+        pools.flatMap(tokensInRelay).map(token => token.contract)
+      );
+    }
+    if (this.isAuthenticated) {
+      const toFetch = uniqWith(tokenAddresses, compareString);
+      console.log(toFetch, "is to be fetched");
+      this.fetchBulkTokenBalances(toFetch);
+    }
     this.setLoadingPools(false);
 
-    const allTokenAddresses = uniqWith(
-      pools.flatMap(tokensInRelay).map(token => token.contract),
-      compareString
-    );
-    if (this.isAuthenticated) {
-      this.fetchBulkTokenBalances(allTokenAddresses);
-    }
     console.timeEnd("addPoolsBulk");
-    return { pools, reserveFeeds };
+    // return { pools, reserveFeeds };
   }
 
   @action async fetchBulkTokenBalances(tokenContractAddresses: string[]) {

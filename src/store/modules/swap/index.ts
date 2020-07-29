@@ -12,7 +12,8 @@ import {
   ProposedFromTransaction,
   ModuleParam,
   UserPoolBalances,
-  OpposingLiquid
+  OpposingLiquid,
+  PoolTokenPosition
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
@@ -184,6 +185,11 @@ export class BancorModule extends VuexModule.With({
   get stats() {
     // @ts-ignore
     return vxm[`${this.currentNetwork}Bancor`]["stats"];
+  }
+
+  get poolTokenPositions(): PoolTokenPosition[] {
+    // @ts-ignore
+    return vxm[`${this.currentNetwork}Bancor`]["poolTokenPositions"];
   }
 
   @mutation updateModule({
