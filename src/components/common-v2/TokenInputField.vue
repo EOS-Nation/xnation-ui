@@ -1,7 +1,11 @@
 <template>
   <div>
     <label-content-split :label="label" class="mb-1">
-      <span v-if="isAuthenticated" class="font-size-12 font-w500">
+      <span
+        @click="tokenAmount = balance"
+        v-if="isAuthenticated"
+        class="font-size-12 font-w500 cursor"
+      >
         Balance: {{ formattedBalance }} (~$??.??)
         {{ usdValue && "(~$??.??)" }}
       </span>
@@ -17,12 +21,16 @@
         :state="errorState.state"
       ></b-form-input>
 
-      <b-input-group-append :class="{ cursor: pool }">
+      <b-input-group-append :class="{ cursor: pool || dropdown }">
         <div
           class="rounded-right d-flex align-items-center px-2"
           :class="darkMode ? 'bg-body-dark' : 'bg-light'"
         >
-          <div v-if="token" class="d-flex align-items-center">
+          <div
+            v-if="token"
+            @click="openSwapModal"
+            class="d-flex align-items-center"
+          >
             <img
               class="img-avatar img-avatar32 border-colouring bg-white mr-1"
               :src="token.logo"
@@ -31,9 +39,12 @@
             <span
               class="px-1 font-size-14 font-w600"
               :class="darkMode ? 'text-dark' : 'text-light'"
-              >{{ token.symbol }}</span
             >
+              {{ token.symbol }}
+            </span>
+            <font-awesome-icon v-if="dropdown" icon="caret-down" />
           </div>
+
           <div v-else>
             <pool-logos
               @click.native="$bvModal.show('modal-join-pool')"
@@ -63,6 +74,7 @@ import numeral from "numeral";
   components: { PoolLogos, LabelContentSplit }
 })
 export default class TokenInputField extends Vue {
+  @Prop() name?: string;
   @Prop() label!: string;
   @Prop() token?: ViewReserve;
   @Prop() pool?: ViewRelay;
@@ -106,6 +118,10 @@ export default class TokenInputField extends Vue {
         state: null
       };
     }
+  }
+
+  openSwapModal() {
+    if (this.dropdown && this.name) this.$emit("open-swap-modal", this.name);
   }
 
   get darkMode() {
