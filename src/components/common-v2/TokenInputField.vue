@@ -12,6 +12,7 @@
         v-model="tokenAmount"
         :class="darkMode ? 'form-control-alt-dark' : 'form-control-alt-light'"
         placeholder="Enter Amount"
+        :state="errorState.state"
       ></b-form-input>
       <b-input-group-append :class="{ cursor: pool }">
         <div
@@ -39,6 +40,9 @@
           </div>
         </div>
       </b-input-group-append>
+      <b-form-invalid-feedback id="input-live-feedback">
+        {{ errorState.msg }}
+      </b-form-invalid-feedback>
     </b-input-group>
   </div>
 </template>
@@ -61,6 +65,34 @@ export default class TokenInputField extends Vue {
   @Prop({ default: false }) dropdown!: boolean;
 
   balance = "0"
+
+  get errorState() {
+    const a = parseFloat(this.tokenAmount)
+    const b = parseFloat(this.balance)
+
+    if (this.tokenAmount === "") {
+      return {
+        msg: "",
+        state: null
+      }
+    }
+    else if (!a) {
+      return {
+        msg: "Invalid Input",
+        state: false
+      }
+    }
+    else if (a > b) {
+      return {
+        msg: "Pool balance is currently insufficient",
+        state: false
+      }
+    }
+    else return {
+      msg: "",
+      state: true
+    }
+  }
 
   get darkMode() {
     return vxm.general.darkMode;
