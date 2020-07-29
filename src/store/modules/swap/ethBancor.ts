@@ -2410,11 +2410,9 @@ export class EthBancorModule
       .div(poolTokenSupplyWei);
 
     const feeAmountWei = noFeeLiquidityReturn.minus(removeLiquidityReturnWei);
-    const feeAmountDec = shrinkToken(
-      feeAmountWei.toString(),
-      sameReserve.token.decimals
-    );
-
+    const feePercent = new BigNumber(feeAmountWei)
+      .div(noFeeLiquidityReturn)
+      .toNumber();
     // (Liquidation Amount * StakedBalance) / PoolTokenSupply
 
     const removeLiquidityReturnDec = shrinkToken(
@@ -2426,10 +2424,7 @@ export class EthBancorModule
       opposingAmount: undefined,
       shareOfPool,
       singleUnitCosts,
-      withdrawFee: {
-        id: sameReserve.token.contract,
-        amount: String(Number(feeAmountDec))
-      },
+      withdrawFee: feePercent,
       expectedReturn: {
         id: sameReserve.token.contract,
         amount: String(Number(removeLiquidityReturnDec))
@@ -3525,7 +3520,7 @@ export class EthBancorModule
     throw new Error("Multi call in chunks failed");
   }
 
-  @action async multiCallShit(
+  @action async multiCallSmart(
     calls: MultiCall[][]
   ): Promise<MultiCallReturn[][]> {
     if (!calls || calls.length == 0) {
@@ -3919,7 +3914,7 @@ export class EthBancorModule
     const allCallGroups = handlers.map(callSection => callSection.callGroups);
     const indexes = createIndexes(allCallGroups);
     const flattened = allCallGroups.flat(1);
-    const allCalls = await this.multiCallShit(flattened);
+    const allCalls = await this.multiCallSmart(flattened);
 
     const rebuilt = rebuildFromIndex(allCalls, indexes);
 

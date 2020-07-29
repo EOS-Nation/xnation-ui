@@ -197,7 +197,7 @@ export default class PoolActionsRemoveV2 extends Vue {
     this.expectedReturn = res.expectedReturn!.amount;
 
     if (res.withdrawFee) {
-      this.exitFee = 0.043;
+      this.exitFee = res.withdrawFee;
     }
   }
 
