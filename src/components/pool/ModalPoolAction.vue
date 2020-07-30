@@ -174,6 +174,7 @@ export default class ModalPoolAction extends Vue {
     if (this.success) {
       this.$bvModal.hide("modal-pool-action");
       this.success = "";
+      await this.$router.push({ name: "Pool" });
       return;
     }
 

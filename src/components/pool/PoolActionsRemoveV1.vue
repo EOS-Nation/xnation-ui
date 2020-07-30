@@ -107,7 +107,6 @@
       class="mt-1"
       :disabled="!(amountToken1 && amountToken2)"
     />
-    <pre v-if="res !== null">{{ res }}</pre>
 
     <modal-pool-action
       :amounts-array="[amountSmartToken, amountToken1, amountToken2]"
