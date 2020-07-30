@@ -200,10 +200,27 @@ export default class ModalPoolAction extends Vue {
         id: this.pool.reserves[1].id,
         amount: this.amountsArray[2]
       });
+    } else {
+      // Add V2
+      if (this.$route.params.poolAction === "add" && this.selectedToken) {
+        params.reserves.push({
+          id: this.selectedToken.id,
+          amount: this.amountsArray[1]
+        });
+        // Remove V2
+      } else if (
+        this.$route.params.poolAction === "remove" &&
+        this.selectedToken
+      ) {
+        params.reserves.push({
+          id: this.selectedToken.id,
+          amount: this.amountsArray[0]
+        });
+      }
     }
 
     // Add Liquidity V2
-    if (this.selectedToken && !this.pool.v2) {
+    if (this.selectedToken && this.pool.v2) {
       params.reserves.push({
         id: this.selectedToken.id,
         amount: this.amountsArray[1]
