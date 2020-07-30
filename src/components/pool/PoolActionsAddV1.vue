@@ -138,7 +138,7 @@ export default class PoolActionsAddV1 extends Vue {
         {
           id: "poolShare",
           label: "Share of Pool",
-          title: "?"
+          title: "0%"
         }
       ];
     }
@@ -182,8 +182,6 @@ export default class PoolActionsAddV1 extends Vue {
     this.token1Error = "";
     this.token2Error = "";
   }
-  // this.errorToken1 = this.balance1 < amount ? "Pool balance is currently insufficient" : "";
-
 
   async tokenOneChanged(tokenAmount: string) {
     if (tokenAmount === "") {

@@ -36,9 +36,10 @@
 
     <div class="my-3">
       <label-content-split
-        v-if="slippage !== null"
-        label="Slippage"
-        :value="slippage"
+        label="Price Impact"
+        :value="
+          slippage !== null ? numeral(this.slippage).format('0.0000%') : '0.00%'
+        "
       />
       <label-content-split v-if="fee !== null" label="Slippage" :value="fee" />
     </div>
@@ -48,9 +49,8 @@
       label="Continue"
       :active="true"
       :large="true"
-      :disabled="
-        errorToken1 !== '' || errorToken2 !== '' || !(amount1 && amount2)
-      "
+      :loading="rateLoading"
+      :disabled="disableButton"
     />
 
     <modal-swap-action
@@ -73,6 +73,7 @@ import ModalSwapSelect from "@/components/swap/ModalSwapSelect.vue";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
 import { compareString, findOrThrow } from "@/api/helpers";
 import ModalSwapAction from "@/components/swap/ModalSwapAction.vue";
+import numeral from "numeral"
 
 @Component({
   components: {
@@ -96,24 +97,35 @@ export default class SwapAction extends Vue {
   errorToken1 = "";
   errorToken2 = "";
 
+  rateLoading = false
+
+  numeral = numeral;
+
+
+  get disableButton() {
+    if (!this.isAuthenticated) return false
+    else if (this.amount1 && this.amount2 && !this.errorToken1 && !this.errorToken2) return false
+    else return true
+  }
+
   get advancedBlockItems() {
     return [
-      {
-        label: "Price",
-        value: "??.??"
-      },
-      {
-        label: "Minimum Received",
-        value: "??.??"
-      },
+      // {
+      //   label: "Price",
+      //   value: "??.??"
+      // },
+      // {
+      //   label: "Minimum Received",
+      //   value: "??.??"
+      // },
       {
         label: "Price Impact",
-        value: "??.??"
+        value: this.slippage !== null ? numeral(this.slippage).format('0.0000%') : '0.00%'
       },
-      {
-        label: "Liquidity Provider Fee",
-        value: "??.??"
-      }
+      // {
+      //   label: "Liquidity Provider Fee",
+      //   value: "??.??"
+      // }
     ];
   }
 
@@ -137,6 +149,7 @@ export default class SwapAction extends Vue {
       return;
     }
     try {
+      this.rateLoading = true
       const reward = await vxm.bancor.getReturn({
         from: {
           id: this.token1.id,
@@ -156,11 +169,14 @@ export default class SwapAction extends Vue {
     } catch (e) {
       this.errorToken1 = e.message;
       this.errorToken2 = "";
+    } finally {
+      this.rateLoading = false
     }
   }
 
   setDefault() {
-    this.amount1 = this.amount2 = "";
+    this.amount1 = "";
+    this.amount2 = "";
     this.fee = this.slippage = null;
     this.errorToken2 = "";
     this.errorToken1 = "";
@@ -172,6 +188,7 @@ export default class SwapAction extends Vue {
       return;
     }
     try {
+      this.rateLoading = true
       const reward = await vxm.bancor.getCost({
         to: {
           id: this.token2.id,
@@ -186,11 +203,13 @@ export default class SwapAction extends Vue {
         this.fee = reward.fee;
       }
       this.amount1 = reward.amount;
-      this.errorToken1 = this.balance1 < reward.amount ? "Pool balance is currently insufficient" : "";
+      this.errorToken1 = this.balance1 < this.amount1 ? "Token balance is currently insufficient" : "";
       this.errorToken2 = "";
     } catch (e) {
       this.errorToken1 = "";
       this.errorToken2 = e.message;
+    } finally {
+      this.rateLoading = false
     }
   }
   get balance1() {
