@@ -51,7 +51,8 @@ import {
   createIndexes,
   rebuildFromIndex,
   ConverterV2Row,
-  buildTokenId
+  buildTokenId,
+  sortByLiqDepth
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
@@ -364,6 +365,10 @@ interface AbiTemplate {
   [key: string]: CallReturn<any>;
 }
 
+interface AbiEncodedTemplate {
+  [key: string]: string;
+}
+
 interface DecodedResult<T> {
   originAddress: string;
   data: T;
@@ -415,10 +420,10 @@ const decodeCallGroup = <T>(
 };
 
 const createCallGroup = (
-  template: AbiTemplate,
+  template: AbiEncodedTemplate,
   originAddress: string
 ): MultiCall[] =>
-  Object.keys(template).map(key => [originAddress, template[key].encodeABI()]);
+  Object.keys(template).map(key => [originAddress, template[key]]);
 
 interface RawV2Pool {
   reserves: {
@@ -737,11 +742,99 @@ interface RawAbiV2PoolBalances {
   effectiveReserveWeights: { 0: string; 1: string };
 }
 
+type OriginAndTemplate = [string, AbiTemplate];
+
+const arrToObject = (arr: { encoded: string; key: string }[]) =>
+  arr.reduce((acc, item) => {
+    return {
+      ...acc,
+      [item.key]: item.encoded
+    };
+  }, {});
+
+const matchKeyOrdering = (sortedOrder: string[], obj: any) => {
+  const newObj = sortedOrder.reduce(
+    (acc, item) => ({
+      ...acc,
+      [item]: obj[item]
+    }),
+    {}
+  );
+
+  const testKeys = Object.keys(newObj);
+  const correct = _.isEqual(sortedOrder, testKeys);
+  if (!correct) {
+    throw new Error("does not match key ordering");
+  }
+  return newObj;
+};
+
+const createCallGroups = (
+  originAndTemplates: OriginAndTemplate[]
+): MultiCall[][] => {
+  if (originAndTemplates.length == 0) return [];
+  const [firstOrigin, firstTemplate] = originAndTemplates[0];
+  const templateOrder = Object.keys(firstTemplate);
+  const methodsArr = Object.keys(firstTemplate).map(key => ({
+    method: firstTemplate[key],
+    key
+  }));
+  const noArgMethods = methodsArr.filter(
+    template => template.method.arguments.length == 0
+  );
+  const argMethods = methodsArr.filter(
+    template => template.method.arguments.length > 0
+  );
+  const sameArgMethods = argMethods.filter(method => {
+    const allMethods = originAndTemplates.map(
+      ([_, methods]) => methods[method.key]
+    );
+    const firstArgs = allMethods[0].arguments;
+    return allMethods.every(method => _.isEqual(method.arguments, firstArgs));
+  });
+
+  const staticMethods = [...noArgMethods, ...sameArgMethods];
+  const dynamicMethods = _.differenceBy(methodsArr, staticMethods, "key");
+  if (staticMethods.length + dynamicMethods.length !== methodsArr.length)
+    throw new Error("Failed filtering methods");
+
+  const staticEncoded = staticMethods.map(method => ({
+    key: method.key,
+    encoded: method.method.encodeABI()
+  }));
+
+  const dynamic = originAndTemplates.map(([originAddress, abiTemplate]) => {
+    const dynamicEncoded = dynamicMethods.map(dynamicMethod => ({
+      encoded: abiTemplate[dynamicMethod.key].encodeABI(),
+      key: dynamicMethod.key
+    }));
+    return {
+      templatesArray: [...dynamicEncoded, ...staticEncoded],
+      originAddress
+    };
+  });
+
+  const objectBase = dynamic.map(d => ({
+    originAddress: d.originAddress,
+    data: arrToObject(d.templatesArray)
+  }));
+
+  const multiCalls = objectBase.map(obj =>
+    createCallGroup(
+      matchKeyOrdering(templateOrder, obj.data),
+      obj.originAddress
+    )
+  );
+  return multiCalls;
+};
+
 const relayHandler = (converterAddresses: string[]): Handler => {
   const template = relayTemplate();
-  const callGroups = converterAddresses.map(address =>
-    createCallGroup(template, address)
+
+  const originAndTemplates: OriginAndTemplate[] = converterAddresses.map(
+    address => [address, template]
   );
+  const callGroups = createCallGroups(originAndTemplates);
 
   const finisher = (callGroupRes: MultiCallReturn[]): unknown => {
     const decoded = decodeCallGroup<RawAbiRelay>(template, callGroupRes);
@@ -774,12 +867,12 @@ const reserveBalanceHandler = (
     ethReserveAddress
   ]);
 
-  const callGroups = relays.map(relay =>
-    createCallGroup(
-      reserveBalanceTemplate(relay.reserves),
-      relay.converterAddress
-    )
-  );
+  const originAndTemplates: OriginAndTemplate[] = relays.map(relay => [
+    relay.converterAddress,
+    reserveBalanceTemplate(relay.reserves)
+  ]);
+  const callGroups = createCallGroups(originAndTemplates);
+
   const finisher = (callGroupsRes: MultiCallReturn[]) => {
     const decoded = decodeCallGroup<RawAbiReserveBalance>(
       template,
@@ -859,12 +952,13 @@ const stakedAndReserveHandler = (
     ethReserveAddress,
     ethReserveAddress
   ]);
-  const callGroups = relays.map(relay =>
-    createCallGroup(
-      v2PoolBalanceTemplate([relay.reserveOne, relay.reserveTwo]),
-      relay.converterAdress
-    )
-  );
+
+  const originAndTemplates: OriginAndTemplate[] = relays.map(relay => [
+    relay.converterAdress,
+    v2PoolBalanceTemplate([relay.reserveOne, relay.reserveTwo])
+  ]);
+  const callGroups = createCallGroups(originAndTemplates);
+
   const finisher = (callGroupsRes: MultiCallReturn[]) => {
     const decoded = decodeCallGroup<RawAbiV2PoolBalances>(
       template,
@@ -987,9 +1081,12 @@ const nameOriginAs = <T>(propertyName: string, obj: DecodedResult<T>) => ({
 
 const miniPoolHandler = (anchorAddresses: string[]): Handler => {
   const template = miniPoolTokenTemplate();
-  const callGroups = anchorAddresses.map(address =>
-    createCallGroup(template, address)
+
+  const originAndTemplates: OriginAndTemplate[] = anchorAddresses.map(
+    address => [address, template]
   );
+  const callGroups = createCallGroups(originAndTemplates);
+
   const finisher = (callGroupsRes: MultiCallReturn[]): unknown => {
     const decoded = decodeCallGroup<RawAbiCentralPoolToken>(
       template,
@@ -1009,9 +1106,10 @@ const tokenHandler = (tokenAddresses: string[]): Handler => {
     decimals: contract.methods.decimals()
   };
 
-  const callGroups = tokenAddresses.map(address =>
-    createCallGroup(template, address)
+  const originAndTemplates: OriginAndTemplate[] = tokenAddresses.map(
+    address => [address, template]
   );
+  const callGroups = createCallGroups(originAndTemplates);
 
   const finisher = (callGroupsRes: MultiCallReturn[]): Token => {
     const decoded = decodeCallGroup<RawAbiToken>(template, callGroupsRes);
@@ -1264,8 +1362,8 @@ export class EthBancorModule
   loadingPools: boolean = true;
 
   bancorApiTokens: TokenPrice[] = [];
-  relayFeed: ReserveFeed[] = [];
-  relaysList: Relay[] = [];
+  relayFeed: readonly ReserveFeed[] = [];
+  relaysList: readonly Relay[] = [];
   tokenBalances: { id: string; balance: number }[] = [];
   bntUsdPrice: number = 0;
   tokenMeta: TokenMeta[] = [];
@@ -1306,10 +1404,12 @@ export class EthBancorModule
 
   get poolTokenPositions(): PoolTokenPosition[] {
     const allIouTokens = this.relaysList.flatMap(iouTokensInRelay);
-    const existingBalances = this.tokenBalances.filter(balance =>
-      allIouTokens.some(iouToken =>
-        compareString(balance.id, iouToken.contract)
-      )
+    const existingBalances = this.tokenBalances.filter(
+      balance =>
+        balance.balance > 0 &&
+        allIouTokens.some(iouToken =>
+          compareString(balance.id, iouToken.contract)
+        )
     );
 
     const relevantRelays = this.relaysList.filter(relay =>
@@ -1863,11 +1963,14 @@ export class EthBancorModule
       .flatMap(relay =>
         relay.reserves.map(reserve => {
           const { name, image } = this.tokenMetaObj(reserve.contract);
-          const relayFeed = this.relayFeed.find(
-            feed =>
-              compareString(feed.poolId, relay.id) &&
-              compareString(feed.tokenId, reserve.contract)
-          )!;
+          const relayFeed = this.relayFeed
+            .slice()
+            .sort(sortFeedByExtraProps)
+            .find(
+              feed =>
+                compareString(feed.poolId, relay.id) &&
+                compareString(feed.tokenId, reserve.contract)
+            )!;
           const balance = this.tokenBalance(reserve.contract);
           return {
             id: reserve.contract,
@@ -1885,7 +1988,7 @@ export class EthBancorModule
           };
         })
       )
-      .sort((a, b) => b.liqDepth - a.liqDepth)
+      .sort(sortByLiqDepth)
       .reduce<ViewToken[]>((acc, item) => {
         const existingToken = acc.find(token =>
           compareString(token.id!, item.id)
@@ -1893,7 +1996,8 @@ export class EthBancorModule
         return existingToken
           ? updateArray(
               acc,
-              token => compareString(token.id!, item.id),
+              token =>
+                compareString(token.id!, item.id) && !isNaN(item.liqDepth),
               token => ({ ...token, liqDepth: token.liqDepth! + item.liqDepth })
             )
           : [...acc, item as ViewToken];
@@ -1961,7 +2065,7 @@ export class EthBancorModule
 
   get relays(): ViewRelay[] {
     return [...this.chainkLinkRelays, ...this.traditionalRelays].sort(
-      (a, b) => b.liqDepth - a.liqDepth
+      sortByLiqDepth
     );
   }
 
@@ -3095,7 +3199,7 @@ export class EthBancorModule
 
   @mutation updateRelayFeeds(feeds: ReserveFeed[]) {
     const allFeeds = [...feeds, ...this.relayFeed];
-    this.relayFeed = _.uniqWith(allFeeds, compareRelayFeed);
+    this.relayFeed = Object.freeze(allFeeds);
   }
 
   @action async fetchCost({
@@ -3567,11 +3671,12 @@ export class EthBancorModule
             try {
               return await this.fetchWithMultiCall({ calls: callGroup });
             } catch (e) {
-              console.error("Chunk attempt failed,", callGroup);
               this.recordDepthError({ calls: callGroup, depth: chunkSize });
               const currentIndex = chunkSizes.indexOf(chunkSize);
-              if (currentIndex == 0)
+              if (currentIndex == 0) {
+                console.error("Chunk attempt failed", callGroup);
                 throw new Error("Ran out of chunks to try");
+              }
               const smallerChunkSize = chunkSizes.slice(currentIndex);
               return await this.multiCallInChunks({
                 flatCalls: callGroup,
@@ -4195,7 +4300,7 @@ export class EthBancorModule
 
     this.setLoadingPools(true);
 
-    const chunked = chunk(convertersAndAnchors, 15);
+    const chunked = chunk(convertersAndAnchors, 30);
     const tokenAddresses: string[] = [];
     for (const chunk of chunked) {
       const { pools, reserveFeeds } = await this.addPoolsV2(chunk);
@@ -4216,13 +4321,11 @@ export class EthBancorModule
     }
     if (this.isAuthenticated) {
       const toFetch = uniqWith(tokenAddresses, compareString);
-      console.log(toFetch, "is to be fetched");
       this.fetchBulkTokenBalances(toFetch);
     }
     this.setLoadingPools(false);
 
     console.timeEnd("addPoolsBulk");
-    // return { pools, reserveFeeds };
   }
 
   @action async fetchBulkTokenBalances(tokenContractAddresses: string[]) {
@@ -4324,7 +4427,7 @@ export class EthBancorModule
       "relays and setting",
       meshedRelays.length
     );
-    this.relaysList = meshedRelays;
+    this.relaysList = Object.freeze(meshedRelays);
   }
 
   @action async fetchReserveBalance({
@@ -4439,7 +4542,7 @@ export class EthBancorModule
   }: {
     fromId: string;
     toId: string;
-    relays: Relay[];
+    relays: readonly Relay[];
   }) {
     const lowerCased = relays.map(relay => ({
       ...relay,

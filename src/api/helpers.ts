@@ -88,8 +88,8 @@ export const getSxContracts = async () => {
 };
 
 export const findOrThrow = <T>(
-  arr: T[],
-  iteratee: (obj: T, index: number, arr: T[]) => unknown,
+  arr: readonly T[],
+  iteratee: (obj: T, index: number, arr: readonly T[]) => unknown,
   message?: string
 ) => {
   const res = arr.find(iteratee);
@@ -350,6 +350,17 @@ export interface PoolToken {
   reserveId: string;
   poolToken: Token;
 }
+
+interface LiqDepth {
+  liqDepth: number;
+}
+
+export const sortByLiqDepth = (a: LiqDepth, b: LiqDepth) => {
+  if (isNaN(a.liqDepth) && isNaN(b.liqDepth)) return 0;
+  if (isNaN(a.liqDepth)) return 1;
+  if (isNaN(b.liqDepth)) return -1;
+  return b.liqDepth - a.liqDepth;
+};
 
 export const sortAlongSide = <T>(
   arr: T[],
