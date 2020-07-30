@@ -186,18 +186,18 @@ export default class PoolActionsRemoveV1 extends Vue {
 
   get advancedBlockItems() {
     return [
-      {
-        label: "UNI Burned",
-        value: "????"
-      },
-      {
-        label: "Price",
-        value: "????"
-      },
-      {
-        label: "",
-        value: "??.??"
-      }
+      // {
+      //   label: "UNI Burned",
+      //   value: "????"
+      // },
+      // {
+      //   label: "Price",
+      //   value: "????"
+      // },
+      // {
+      //   label: "",
+      //   value: "??.??"
+      // }
     ];
   }
 
