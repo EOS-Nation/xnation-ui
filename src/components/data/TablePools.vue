@@ -44,10 +44,14 @@
         <template v-slot:cell(v2)="data">
           <span> {{ data.item.v2 ? "V2" : "V1" }}</span>
         </template>
-        <template v-slot:cell(actions)>
+        <template v-slot:cell(actions)="data">
           <b-btn
             :to="{
-              name: 'Pool'
+              name: 'PoolAction',
+              params: {
+                poolAction: 'add',
+                account: data.item.id
+              }
             }"
             class="mr-2"
             variant="primary"
@@ -57,7 +61,10 @@
 
           <b-btn
             :to="{
-              name: 'Swap'
+              name: 'Swap',
+              query: {
+                from: data.item.reserves[1].id
+              }
             }"
             variant="primary"
           >
