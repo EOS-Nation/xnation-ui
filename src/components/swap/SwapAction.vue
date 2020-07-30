@@ -83,9 +83,6 @@ export default class SwapAction extends Vue {
   amount1 = "";
   amount2 = "";
 
-  balance1 = "";
-  balance2 = "";
-
   token1: ViewToken = vxm.bancor.tokens[0];
   token2: ViewToken = vxm.bancor.tokens[1];
 
@@ -190,11 +187,18 @@ export default class SwapAction extends Vue {
       this.errorToken2 = e.message;
     }
   }
-
-  async loadBalances() {
-    this.balance1 = vxm.bancor.token(this.token1.id).balance;
-    this.balance2 = vxm.bancor.token(this.token2.id).balance;
+  get balance1() {
+    return vxm.bancor.token(this.token1.id).balance ?? "0";
   }
+
+  get balance2() {
+    return vxm.bancor.token(this.token2.id).balance ?? "0";
+  }
+
+  // async loadBalances() {
+  //   this.balance1 = vxm.bancor.token(this.token1.id).balance;
+  //   this.balance2 = vxm.bancor.token(this.token2.id).balance;
+  // }
 
   get darkMode() {
     return vxm.general.darkMode;
@@ -215,14 +219,14 @@ export default class SwapAction extends Vue {
       this.token2 = vxm.bancor.tokens[1];
     }
     await this.updatePriceReturn(this.amount1);
-    await this.loadBalances();
+    //await this.loadBalances();
   }
 
   async created() {
     if (this.$route.query.to && this.$route.query.from)
       await this.onTokenChange(this.$route.query);
 
-    await this.loadBalances();
+    //await this.loadBalances();
   }
 }
 </script>
