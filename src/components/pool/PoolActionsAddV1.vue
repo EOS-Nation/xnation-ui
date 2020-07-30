@@ -6,6 +6,7 @@
       :amount.sync="amount1"
       @update:amount="tokenOneChanged"
       :balance="balance1"
+      :error-msg="token1Error"
     />
     <div class="text-center my-3">
       <font-awesome-icon icon="plus" class="text-primary font-size-16" />
@@ -17,6 +18,7 @@
       class="mb-3"
       @update:amount="tokenTwoChanged"
       :balance="balance2"
+      :error-msg="token2Error"
     />
     <rate-share-block :items="shareBlockItems" label="Prices and Pool Share" />
     <main-button
@@ -26,7 +28,9 @@
       :large="true"
       class="mt-3"
       :loading="rateLoading"
-      :disabled="!amount1 || !amount2"
+      :disabled="
+        token1Error !== '' || token2Error !== '' || !(amount1 && amount2)
+      "
     />
     <modal-pool-action
       :amounts-array="[smartTokenAmount, amount1, amount2]"
@@ -173,11 +177,16 @@ export default class PoolActionsAddV1 extends Vue {
 
   setDefault() {
     this.shareOfPool = 0;
+    this.amount2 = "";
+    this.amount1 = "";
+    this.token1Error = "";
+    this.token2Error = "";
   }
+  // this.errorToken1 = this.balance1 < amount ? "Pool balance is currently insufficient" : "";
+
 
   async tokenOneChanged(tokenAmount: string) {
     if (tokenAmount === "") {
-      this.amount2 = "";
       this.setDefault();
       return;
     }
@@ -187,11 +196,11 @@ export default class PoolActionsAddV1 extends Vue {
         id: this.pool.id,
         reserve: { id: this.pool.reserves[0].id, amount: this.amount1 }
       });
-      this.token1Error = "";
-      this.token2Error = "";
       if (typeof results.opposingAmount !== "undefined") {
         this.amount2 = results.opposingAmount;
       }
+      this.token1Error = this.balance1 < tokenAmount ? "Pool balance is currently insufficient" : "";
+      this.token2Error = this.balance2 < this.amount2 ? "Pool balance is currently insufficient" : "";
       this.shareOfPool = results.shareOfPool;
       this.setSingleUnitCosts(results.singleUnitCosts);
     } catch (e) {
@@ -220,7 +229,6 @@ export default class PoolActionsAddV1 extends Vue {
 
   async tokenTwoChanged(tokenAmount: string) {
     if (tokenAmount === "") {
-      this.amount1 = "";
       this.setDefault();
       return;
     }
@@ -231,16 +239,16 @@ export default class PoolActionsAddV1 extends Vue {
         reserve: { id: this.pool.reserves[1].id, amount: this.amount2 }
       });
       console.log(results, "are the results");
-      this.token1Error = "";
-      this.token2Error = "";
       if (typeof results.opposingAmount !== "undefined") {
         this.amount1 = results.opposingAmount;
       }
+      this.token1Error = this.balance1 < this.amount1 ? "Token balance is currently insufficient" : "";
+      this.token2Error = this.balance2 < tokenAmount ? "Token balance is currently insufficient" : "";
       this.shareOfPool = results.shareOfPool;
       this.setSingleUnitCosts(results.singleUnitCosts);
     } catch (e) {
-      this.token1Error = e.message;
-      this.token2Error = "";
+      this.token1Error = "";
+      this.token2Error = e.message;
     }
     this.rateLoading = false;
   }

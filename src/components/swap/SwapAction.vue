@@ -151,7 +151,7 @@ export default class SwapAction extends Vue {
         this.fee = reward.fee;
       }
       this.amount2 = reward.amount;
-      this.errorToken1 = this.balance1 < amount ? "Pool balance is currently insufficient" : "";
+      this.errorToken1 = this.balance1 < amount ? "Token balance is currently insufficient" : "";
       this.errorToken2 = "";
     } catch (e) {
       this.errorToken1 = e.message;
