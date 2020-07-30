@@ -1950,7 +1950,8 @@ export class EthBancorModule
   }
 
   get tokens(): ViewToken[] {
-    return this.relaysList
+    console.time("tokens");
+    const ret = this.relaysList
       .filter(relay =>
         relay.reserves.every(reserve =>
           this.relayFeed.some(
@@ -2001,11 +2002,9 @@ export class EthBancorModule
               token => ({ ...token, liqDepth: token.liqDepth! + item.liqDepth })
             )
           : [...acc, item as ViewToken];
-      }, [])
-      .filter(
-        (token, index, arr) =>
-          arr.findIndex(t => compareString(t.symbol, token.symbol)) == index
-      );
+      }, []);
+    console.timeEnd("tokens");
+    return ret;
   }
 
   get tokenMetaObj() {
@@ -2041,32 +2040,13 @@ export class EthBancorModule
       );
   }
 
-  get tokenCount() {
-    const tokens = this.relaysList.flatMap(relay => relay.reserves);
-
-    const uniqueTokens = tokens.filter(
-      (token, index, arr) =>
-        arr.findIndex(r => r.contract == token.contract) == index
-    );
-    const countToken = (token: Token, tokens: Token[]) => {
-      return tokens.filter(x => x.contract == token.contract).length;
-    };
-
-    return uniqueTokens
-      .map((token): [Token, number] => [token, countToken(token, tokens)])
-      .sort(([token1, count1], [token2, count2]) => count2 - count1);
-  }
-
-  get count() {
-    return (tokenId: string) =>
-      this.tokenCount.find(([token]) => token.contract == tokenId) &&
-      this.tokenCount.find(([token]) => token.contract == tokenId)![1];
-  }
-
   get relays(): ViewRelay[] {
-    return [...this.chainkLinkRelays, ...this.traditionalRelays].sort(
+    console.time("relays");
+    const toReturn = [...this.chainkLinkRelays, ...this.traditionalRelays].sort(
       sortByLiqDepth
     );
+    console.timeEnd("relays");
+    return toReturn;
   }
 
   get chainkLinkRelays(): ViewRelay[] {
@@ -2586,7 +2566,17 @@ export class EthBancorModule
     const feePercent = new BigNumber(feeAmountWei)
       .div(noFeeLiquidityReturn)
       .toNumber();
-    // (Liquidation Amount * StakedBalance) / PoolTokenSupply
+
+    console.log(
+      {
+        feePercent,
+        feeAmountWei,
+        suggestedWithdrawWei,
+        noFeeLiquidityReturn,
+        removeLiquidityReturnWei
+      },
+      "look"
+    );
 
     const removeLiquidityReturnDec = shrinkToken(
       removeLiquidityReturnWei,
@@ -4188,11 +4178,6 @@ export class EthBancorModule
         })
       ]);
       console.timeEnd("ThirdPromise");
-
-      console.log(
-        anchorAndConvertersMatched,
-        "were anchors and converters matched"
-      );
 
       const blackListedAnchors = ["0x7Ef1fEDb73BD089eC1010bABA26Ca162DFa08144"];
 
