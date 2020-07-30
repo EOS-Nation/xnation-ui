@@ -41,7 +41,20 @@
       <label-content-split v-if="fee !== null" label="Slippage" :value="fee" />
     </div>
 
-    <main-button label="Continue" :active="true" :large="true" />
+    <main-button
+      @click.native="$bvModal.show('modal-swap-action')"
+      label="Continue"
+      :active="true"
+      :large="true"
+    />
+
+    <modal-swap-action
+      :token1="token1"
+      :token2="token2"
+      :amount1="amount1"
+      :amount2="amount2"
+      :advanced-block-items="advancedBlockItems"
+    />
   </div>
 </template>
 
@@ -50,13 +63,15 @@ import { Watch, Component, Vue } from "vue-property-decorator";
 import { vxm } from "@/store";
 import MainButton from "@/components/common/Button.vue";
 import TokenInputField from "@/components/common-v2/TokenInputField.vue";
-import { ViewReserve } from "@/types/bancor";
+import { ViewReserve, ViewToken } from "@/types/bancor";
 import ModalSwapSelect from "@/components/swap/ModalSwapSelect.vue";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
 import { compareString, findOrThrow } from "@/api/helpers";
+import ModalSwapAction from "@/components/swap/ModalSwapAction.vue";
 
 @Component({
   components: {
+    ModalSwapAction,
     LabelContentSplit,
     ModalSwapSelect,
     TokenInputField,
@@ -70,14 +85,35 @@ export default class SwapAction extends Vue {
   balance1 = "";
   balance2 = "";
 
-  token1: ViewReserve = vxm.bancor.tokens[0];
-  token2: ViewReserve = vxm.bancor.tokens[1];
+  token1: ViewToken = vxm.bancor.tokens[0];
+  token2: ViewToken = vxm.bancor.tokens[1];
 
   slippage: number | null = null;
   fee: string | null = null;
 
   errorToken1 = "";
   errorToken2 = "";
+
+  get advancedBlockItems() {
+    return [
+      {
+        label: "Price",
+        value: "??.??"
+      },
+      {
+        label: "Minimum Received",
+        value: "??.??"
+      },
+      {
+        label: "Price Impact",
+        value: "??.??"
+      },
+      {
+        label: "Liquidity Provider Fee",
+        value: "??.??"
+      }
+    ];
+  }
 
   openModal(name: string) {
     this.$bvModal.show(name);
