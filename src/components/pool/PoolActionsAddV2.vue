@@ -41,6 +41,7 @@
       @update:amount="loadPrices(amount)"
       :balance="balance"
       class="mb-3"
+      :error-msg="balanceError"
     />
 
     <rate-share-block :items="shareBlockItems" label="Prices and Pool Share" />
@@ -51,7 +52,7 @@
       :active="true"
       :large="true"
       class="mt-3"
-      :disabled="!amount"
+      :disabled="!amount || balanceError !== ''"
       :loading="rateLoading"
     />
     <modal-pool-action
@@ -117,6 +118,12 @@ export default class PoolActionsAddV2 extends Vue {
     else await this.promptAuth();
   }
 
+  get balanceError() {
+    if (!this.isAuthenticated) return ""
+    if (this.amount === "") return ""
+    if (this.balance < this.amount) return "Pool balance is currently insufficient"
+    else return ""
+  }
 
   get balance() {
     return vxm.bancor.token(this.selectedToken.id).balance ?? "0";
@@ -137,7 +144,7 @@ export default class PoolActionsAddV2 extends Vue {
         {
           id: "poolShare",
           label: "Share of Pool",
-          title: "?"
+          title: "0%"
         }
       ];
     }
