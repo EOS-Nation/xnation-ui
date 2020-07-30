@@ -48,6 +48,7 @@
         @update:amount="poolTokenChange"
         :balance="selectedPoolToken.balance"
         class="mt-4"
+        :error-msg="balanceError"
       />
 
       <div class="text-center my-3">
@@ -86,7 +87,7 @@
       :active="true"
       :large="true"
       class="mt-1"
-      :disabled="!amountSmartToken"
+      :disabled="!amountSmartToken || balanceError !== ''"
     />
 
     <modal-pool-action
@@ -147,6 +148,14 @@ export default class PoolActionsRemoveV2 extends Vue {
   expectedReturn = "";
 
   poolTokens: PoolTokenUI[] = [];
+
+  get balanceError() {
+    if (!this.isAuthenticated) return "";
+    if (this.amountSmartToken === "") return "";
+    if (this.selectedPoolToken.balance < parseFloat(this.amountSmartToken))
+      return "Pool balance is currently insufficient";
+    else return "";
+  }
 
   get selectedPoolToken() {
     const selectedToken = this.poolTokens.find(
