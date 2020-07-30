@@ -28,8 +28,9 @@
             class="font-size-sm font-w400 text-center mt-2 mb-3"
             :class="!darkMode ? 'text-muted-light' : 'text-muted-dark'"
           >
-            Output is estimated. If the price changes by more than 0.5% your
-            transaction will revert.
+            Output is estimated. If the price changes by more than
+            {{ numeral(slippageTolerance).format("0.0[0]%") }} your transaction
+            will revert.
           </p>
         </b-col>
 
@@ -84,7 +85,7 @@ import ActionModalStatus from "@/components/common-v2/ActionModalStatus.vue";
 import MainButton from "@/components/common/Button.vue";
 import AdvancedBlockItem from "@/components/common/AdvancedBlockItem.vue";
 import NotUsCheckbox from "@/components/common-v2/NotUsCheckbox.vue";
-
+import numeral from "numeral";
 @Component({
   components: {
     NotUsCheckbox,
@@ -106,7 +107,7 @@ export default class ModalSwapAction extends Vue {
   error = "";
   sections: Step[] = [];
   stepIndex = 0;
-
+  numeral = numeral;
   notUsChecked = "false";
   notUsState: boolean | null = null;
 
@@ -118,6 +119,10 @@ export default class ModalSwapAction extends Vue {
       : this.txBusy
       ? "processing ..."
       : "Confirm";
+  }
+
+  get slippageTolerance() {
+    return vxm.bancor.slippageTolerance;
   }
 
   setDefault() {

@@ -51,8 +51,9 @@
             class="font-size-sm font-w400 text-center mt-2 mb-3"
             :class="!darkMode ? 'text-muted-light' : 'text-muted-dark'"
           >
-            Output is estimated. If the price changes by more than 0.5% your
-            transaction will revert.
+            Output is estimated. If the price changes by more than
+            {{ numeral(slippageTolerance).format("0.0[0]%") }} your transaction
+            will revert.
           </p>
         </b-col>
 
@@ -118,6 +119,7 @@ import MainButton from "@/components/common/Button.vue";
 import { namespace } from "vuex-class";
 import ActionModalStatus from "@/components/common-v2/ActionModalStatus.vue";
 import NotUsCheckbox from "@/components/common-v2/NotUsCheckbox.vue";
+import numeral from "numeral";
 
 const bancor = namespace("bancor");
 
@@ -140,6 +142,7 @@ export default class ModalPoolAction extends Vue {
   @Prop() amountsArray!: string[];
   @Prop() selectedToken?: ViewReserve;
   @Prop() advancedBlockItems!: any[];
+  numeral = numeral;
 
   txBusy = false;
   success = "";
@@ -149,7 +152,9 @@ export default class ModalPoolAction extends Vue {
 
   notUsChecked = "false";
   notUsState: boolean | null = null;
-
+  get slippageTolerance() {
+    return vxm.bancor.slippageTolerance;
+  }
   get confirmButton() {
     return this.error
       ? "Try Again"
