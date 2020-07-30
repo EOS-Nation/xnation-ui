@@ -47,11 +47,21 @@
         <template v-slot:cell(actions)>
           <b-btn
             :to="{
-              name: 'Relay'
+              name: 'Pool'
             }"
-            class="mr-1"
+            class="mr-2"
+            variant="primary"
           >
-            Liquidity
+            Add Liquidity
+          </b-btn>
+
+          <b-btn
+            :to="{
+              name: 'Swap'
+            }"
+            variant="primary"
+          >
+            Trade
           </b-btn>
         </template>
       </b-table>

@@ -19,13 +19,14 @@
           {{ data.index + 1 }}
         </template>
         <template v-slot:cell(symbol)="data">
-          <img
-            v-b-tooltip.hover
-            class="img-avatar img-avatar32"
-            :src="data.item.logo"
-            alt="Token Logo"
-          />
-          {{ data.item.symbol }}
+          <div class="d-flex align-items-center">
+            <img
+              class="img-avatar img-avatar32 mr-2"
+              :src="data.item.logo"
+              alt="Token Logo"
+            />
+            <span>{{ data.item.symbol }}</span>
+          </div>
         </template>
         <template v-slot:cell(change24h)="data">
           <span
@@ -58,7 +59,7 @@
             }"
             variant="primary"
           >
-            Swap
+            Trade
           </b-btn>
         </template>
       </b-table>
