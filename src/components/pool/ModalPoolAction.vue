@@ -3,7 +3,7 @@
     <b-row class="d-flex justify-content-center">
       <div v-if="!(txBusy || success || error)">
         <b-col
-          v-if="!withdrawLiquidity"
+          v-if="false"
           cols="12"
           class="d-flex align-items-center justify-content-center"
         >
