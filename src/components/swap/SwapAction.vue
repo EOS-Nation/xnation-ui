@@ -9,6 +9,7 @@
       :dropdown="true"
       name="token1"
       v-on:open-swap-modal="openModal"
+      :error-msg="errorToken1"
     />
     <modal-swap-select name="token1" />
 
@@ -29,6 +30,7 @@
       :dropdown="true"
       name="token2"
       v-on:open-swap-modal="openModal"
+      :error-msg="errorToken2"
     />
     <modal-swap-select name="token2" />
 
@@ -46,7 +48,9 @@
       label="Continue"
       :active="true"
       :large="true"
-      :disabled="!(amount1 && amount2)"
+      :disabled="
+        errorToken1 !== '' || errorToken2 !== '' || !(amount1 && amount2)
+      "
     />
 
     <modal-swap-action
@@ -147,17 +151,19 @@ export default class SwapAction extends Vue {
         this.fee = reward.fee;
       }
       this.amount2 = reward.amount;
-      this.errorToken1 = "";
+      this.errorToken1 = this.balance1 < amount ? "Pool balance is currently insufficient" : "";
       this.errorToken2 = "";
     } catch (e) {
-      this.errorToken2 = "";
       this.errorToken1 = e.message;
+      this.errorToken2 = "";
     }
   }
 
   setDefault() {
     this.amount1 = this.amount2 = "";
     this.fee = this.slippage = null;
+    this.errorToken2 = "";
+    this.errorToken1 = "";
   }
 
   async updatePriceCost(amount: string) {
@@ -180,7 +186,7 @@ export default class SwapAction extends Vue {
         this.fee = reward.fee;
       }
       this.amount1 = reward.amount;
-      this.errorToken1 = "";
+      this.errorToken1 = this.balance1 < reward.amount ? "Pool balance is currently insufficient" : "";
       this.errorToken2 = "";
     } catch (e) {
       this.errorToken1 = "";
