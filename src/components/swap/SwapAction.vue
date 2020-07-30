@@ -254,8 +254,9 @@ export default class SwapAction extends Vue {
   }
 
   async created() {
-    if (this.$route.query.to && this.$route.query.from)
+    if (this.$route.query.to || this.$route.query.from)
       await this.onTokenChange(this.$route.query);
+
     this.rateLoading = true
     try {
       const reward = await vxm.bancor.getReturn({
