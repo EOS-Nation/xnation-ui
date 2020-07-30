@@ -246,7 +246,13 @@ export default class PoolActionsRemoveV1 extends Vue {
     return vxm.general.darkMode;
   }
 
+  @Watch("isAuthenticated")
+  async onAuthChange(auth: boolean) {
+    await this.fetchBalances();
+  }
+
   async fetchBalances() {
+    if (!this.isAuthenticated) return;
     const res = await this.getUserBalances(this.pool.id);
     if (this.pool.reserves[0].id === res.maxWithdrawals[0].id) {
       this.balance1 = res.maxWithdrawals[0].amount;
