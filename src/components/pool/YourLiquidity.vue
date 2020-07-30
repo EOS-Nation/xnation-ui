@@ -2,11 +2,7 @@
   <div class="mt-3">
     <label-content-split label="Your Liquidity" />
     <div v-if="positions.length">
-      <div
-        v-for="(pool, index) in positions.splice(0, 10)"
-        :key="index"
-        class="mt-2 mb-1"
-      >
+      <div v-for="(pool, index) in positions" :key="pool.id" class="mt-2 mb-1">
         <main-button
           v-b-toggle="'collapse-' + `${index}`"
           :label="getPoolLabel(pool.relay.reserves)"
