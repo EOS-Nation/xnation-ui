@@ -5,7 +5,7 @@
       :token="pool.reserves[0]"
       :amount.sync="amount1"
       @update:amount="tokenOneChanged"
-      :balance="balanceToken1"
+      :balance="balance1"
     />
     <div class="text-center my-3">
       <font-awesome-icon icon="plus" class="text-primary font-size-16" />
@@ -16,7 +16,7 @@
       :amount.sync="amount2"
       class="mb-3"
       @update:amount="tokenTwoChanged"
-      :balance="balanceToken2"
+      :balance="balance2"
     />
     <rate-share-block :items="shareBlockItems" label="Prices and Pool Share" />
     <main-button
@@ -79,8 +79,8 @@ export default class PoolActionsAddV1 extends Vue {
   amount1: string = "";
   amount2: string = "";
 
-  balanceToken1: string = "";
-  balanceToken2: string = "";
+  // balanceToken1: string = "";
+  // balanceToken2: string = "";
 
   singleUnitCosts: any[] = [];
   shareOfPool = 0;
@@ -98,6 +98,14 @@ export default class PoolActionsAddV1 extends Vue {
     if (this.isAuthenticated) this.$bvModal.show("modal-pool-action");
     //@ts-ignore
     else await this.promptAuth();
+  }
+
+  get balance1() {
+    return vxm.bancor.token(this.pool.reserves[0].id).balance ?? "0";
+  }
+
+  get balance2() {
+    return vxm.bancor.token(this.pool.reserves[1].id).balance ?? "0";
   }
 
   get share() {
@@ -249,14 +257,14 @@ export default class PoolActionsAddV1 extends Vue {
     this.setSingleUnitCosts(results.singleUnitCosts);
   }
 
-  async loadBalances() {
-    this.balanceToken1 = vxm.bancor.token(this.pool.reserves[0].id).balance;
-    this.balanceToken2 = vxm.bancor.token(this.pool.reserves[1].id).balance;
-  }
+  // async loadBalances() {
+  //   this.balanceToken1 = vxm.bancor.token(this.pool.reserves[0].id).balance;
+  //   this.balanceToken2 = vxm.bancor.token(this.pool.reserves[1].id).balance;
+  // }
 
   created() {
     this.initialLoadPrices();
-    this.loadBalances();
+    //this.loadBalances();
   }
 }
 </script>

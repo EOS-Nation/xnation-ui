@@ -103,8 +103,6 @@ export default class PoolActionsAddV2 extends Vue {
   amount: string = "";
   amountSmartToken: string = "??.????";
 
-  balance = "0";
-
   rateLoading = false;
   singleUnitCosts: any[] = [];
   shareOfPool = 0;
@@ -119,6 +117,10 @@ export default class PoolActionsAddV2 extends Vue {
     else await this.promptAuth();
   }
 
+
+  get balance() {
+    return vxm.bancor.token(this.selectedToken.id).balance ?? "0";
+  }
   get shareBlockItems() {
     if (this.shareOfPool > 0) {
       return [
@@ -208,7 +210,7 @@ export default class PoolActionsAddV2 extends Vue {
   }
 
   async loadData() {
-    this.balance = vxm.bancor.token(this.selectedToken.id).balance;
+    // this.balance = vxm.bancor.token(this.selectedToken.id).balance;
     await this.loadPrices("0");
   }
 
