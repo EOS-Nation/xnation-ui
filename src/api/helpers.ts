@@ -88,8 +88,8 @@ export const getSxContracts = async () => {
 };
 
 export const findOrThrow = <T>(
-  arr: T[],
-  iteratee: (obj: T, index: number, arr: T[]) => unknown,
+  arr: readonly T[],
+  iteratee: (obj: T, index: number, arr: readonly T[]) => unknown,
   message?: string
 ) => {
   const res = arr.find(iteratee);

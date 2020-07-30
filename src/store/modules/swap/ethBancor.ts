@@ -1264,8 +1264,8 @@ export class EthBancorModule
   loadingPools: boolean = true;
 
   bancorApiTokens: TokenPrice[] = [];
-  relayFeed: ReserveFeed[] = [];
-  relaysList: Relay[] = [];
+  relayFeed: readonly ReserveFeed[] = [];
+  relaysList: readonly Relay[] = [];
   tokenBalances: { id: string; balance: number }[] = [];
   bntUsdPrice: number = 0;
   tokenMeta: TokenMeta[] = [];
@@ -3095,7 +3095,8 @@ export class EthBancorModule
 
   @mutation updateRelayFeeds(feeds: ReserveFeed[]) {
     const allFeeds = [...feeds, ...this.relayFeed];
-    this.relayFeed = _.uniqWith(allFeeds, compareRelayFeed);
+    const uniqueFeeds = _.uniqWith(allFeeds, compareRelayFeed);
+    this.relayFeed = Object.freeze(uniqueFeeds);
   }
 
   @action async fetchCost({
@@ -4324,7 +4325,7 @@ export class EthBancorModule
       "relays and setting",
       meshedRelays.length
     );
-    this.relaysList = meshedRelays;
+    this.relaysList = Object.freeze(meshedRelays);
   }
 
   @action async fetchReserveBalance({
@@ -4439,7 +4440,7 @@ export class EthBancorModule
   }: {
     fromId: string;
     toId: string;
-    relays: Relay[];
+    relays: readonly Relay[];
   }) {
     const lowerCased = relays.map(relay => ({
       ...relay,
