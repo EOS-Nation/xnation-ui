@@ -18,7 +18,7 @@
         v-model="tokenAmount"
         :class="darkMode ? 'form-control-alt-dark' : 'form-control-alt-light'"
         placeholder="Enter Amount"
-        :state="errorState.state"
+        :state="errorState"
       ></b-form-input>
 
       <b-input-group-append :class="{ cursor: pool || dropdown }">
@@ -55,8 +55,11 @@
         </div>
       </b-input-group-append>
 
-      <b-form-invalid-feedback id="input-live-feedback">
-        {{ errorState.msg }}
+      <b-form-invalid-feedback
+        v-if="errorMsg !== null"
+        id="input-live-feedback"
+      >
+        {{ errorMsg }}
       </b-form-invalid-feedback>
     </b-input-group>
   </div>
@@ -83,7 +86,7 @@ export default class TokenInputField extends Vue {
   @PropSync("amount", { type: String }) tokenAmount!: string;
   @Prop({ default: false }) dropdown!: boolean;
   @Prop({ default: false }) ignoreError!: boolean;
-
+  @Prop({ default: "" }) errorMsg!: string;
   numeral = numeral;
 
   get formattedBalance() {
@@ -95,29 +98,10 @@ export default class TokenInputField extends Vue {
   }
 
   get errorState() {
-    const a = parseFloat(this.tokenAmount);
-    const b = parseFloat(this.balance);
-
-    if (this.tokenAmount === "") {
-      return {
-        msg: "",
-        state: null
-      };
-    } else if (!a) {
-      return {
-        msg: "Invalid Input",
-        state: false
-      };
-    } else if (a > b) {
-      return {
-        msg: "Pool balance is currently insufficient",
-        state: false
-      };
-    } else {
-      return {
-        msg: "",
-        state: null
-      };
+    if (!this.isAuthenticated) return null;
+    else {
+      if (this.errorMsg === "") return null;
+      else return false;
     }
   }
 
