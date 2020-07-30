@@ -1,1 +1,1 @@
-declare module 'vue-avatar';
+declare module "vue-avatar";

@@ -14,13 +14,13 @@
 </template>
 
 <script lang="ts">
-import { Prop, Component, Vue } from 'vue-property-decorator'
+import { Prop, Component, Vue } from "vue-property-decorator";
 
 @Component
 export default class SortIcons extends Vue {
-  @Prop() currentSort!: string
-  @Prop() currentSortDir!: string
-  @Prop() category!: string
+  @Prop() currentSort!: string;
+  @Prop() currentSortDir!: string;
+  @Prop() category!: string;
 }
 </script>
 

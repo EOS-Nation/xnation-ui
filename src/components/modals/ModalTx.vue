@@ -14,8 +14,15 @@
   >
     <b-row>
       <b-col class="d-flex justify-content-between">
-        <h5 :class="darkMode ? 'text-body-dark' : 'text-body-light'">{{ title }}</h5>
-        <font-awesome-icon icon="times" @click="onHide()" class="cursor" :class="darkMode ? 'text-body-dark' : 'text-body-light'"/>
+        <h5 :class="darkMode ? 'text-body-dark' : 'text-body-light'">
+          {{ title }}
+        </h5>
+        <font-awesome-icon
+          icon="times"
+          @click="onHide()"
+          class="cursor"
+          :class="darkMode ? 'text-body-dark' : 'text-body-light'"
+        />
       </b-col>
     </b-row>
     <transition name="slide-fade" mode="out-in">
@@ -36,7 +43,7 @@ export default class ModalConvertToken extends Vue {
   @Prop() busy!: boolean;
 
   get darkMode() {
-    return vxm.general.darkMode
+    return vxm.general.darkMode;
   }
 
   onClose(event: any) {

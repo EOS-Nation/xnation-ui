@@ -39,7 +39,7 @@ export default class DynamicDropdown extends Vue {
   }
 
   get variant() {
-    return this.noMenus ? 'warning' : this.focusedMenu[3] || 'success'
+    return this.noMenus ? "warning" : this.focusedMenu[3] || "success";
   }
 
   get title() {

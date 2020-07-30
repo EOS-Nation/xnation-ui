@@ -1,1 +1,1 @@
-declare module "velocity-animate"
+declare module "velocity-animate";

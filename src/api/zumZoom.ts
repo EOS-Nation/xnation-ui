@@ -4,8 +4,10 @@ import { RawRow, HistoryRow } from "@/types/bancor.d.ts";
 
 const baseUrl = "https://zumzoom.github.io/analytics/";
 
-
-export interface HistoryItem { id: string; text: string }
+export interface HistoryItem {
+  id: string;
+  text: string;
+}
 
 export const fetchSmartTokens = async () => {
   const res = await axios.get<{ results: HistoryItem[] }>(
