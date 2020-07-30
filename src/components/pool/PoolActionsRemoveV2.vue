@@ -76,7 +76,7 @@
     </div>
 
     <div v-if="exitFee !== 0">
-      <p>
+      <p class="text-danger font-w600 text-center">
         Pool is not balanced. Recommended to wait until it will be balanced.
       </p>
     </div>

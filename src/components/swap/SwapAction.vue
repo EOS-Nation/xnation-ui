@@ -35,6 +35,8 @@
     <modal-swap-select name="token2" />
 
     <div class="my-3">
+      <label-content-split label="Rate" :value="rate" class="mb-2" />
+
       <label-content-split
         label="Price Impact"
         :value="
@@ -98,9 +100,13 @@ export default class SwapAction extends Vue {
   errorToken2 = "";
 
   rateLoading = false
-
+  initialRate = ""
   numeral = numeral;
 
+  get rate() {
+    if (this.amount1 && this.amount2) return "1 " + this.token1.symbol + " = " + (parseFloat(this.amount2) / parseFloat(this.amount1)) + " " + this.token2.symbol
+    else return "1 " + this.token1.symbol + " = " + this.initialRate + " " + this.token2.symbol
+  }
 
   get disableButton() {
     if (!this.isAuthenticated) return false
@@ -110,10 +116,10 @@ export default class SwapAction extends Vue {
 
   get advancedBlockItems() {
     return [
-      // {
-      //   label: "Price",
-      //   value: "??.??"
-      // },
+      {
+        label: "Rate",
+        value: "1 " + this.token1.symbol + " = " + (parseFloat(this.amount2) / parseFloat(this.amount1)) + " " + this.token2.symbol
+      },
       // {
       //   label: "Minimum Received",
       //   value: "??.??"
@@ -250,6 +256,21 @@ export default class SwapAction extends Vue {
   async created() {
     if (this.$route.query.to && this.$route.query.from)
       await this.onTokenChange(this.$route.query);
+    this.rateLoading = true
+    try {
+      const reward = await vxm.bancor.getReturn({
+        from: {
+          id: this.token1.id,
+          amount: "1"
+        },
+        toId: this.token2.id
+      });
+      this.initialRate = reward.amount
+
+    } catch (e) {
+      console.log(e)
+    }
+    this.rateLoading = false
 
     //await this.loadBalances();
   }
