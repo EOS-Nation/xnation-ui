@@ -29,23 +29,23 @@
         ><font-awesome-icon icon="chart-line" class="mr-2" fixed-width /> Bancor
         Data</b-dropdown-item
       >
-      <b-dropdown-item disabled
+      <b-dropdown-item @click="openUrl('https://x.bancor.network/')"
         ><font-awesome-icon icon="times" class="mr-2" fixed-width /> Bancor
         X</b-dropdown-item
       >
       <b-dropdown-item disabled
         ><font-awesome-icon icon="chart-bar" class="mr-2" fixed-width /> Bancor
-        DAO</b-dropdown-item
+        DAO (Coming Soon)</b-dropdown-item
       >
     </b-dropdown-group>
     <b-dropdown-divider></b-dropdown-divider>
     <b-dropdown-group id="dropdown-group-3">
       <b-dropdown-header class="text-uppercase">Developers</b-dropdown-header>
-      <b-dropdown-item disabled
+      <b-dropdown-item @click="openUrl('https://docs.bancor.network/')"
         ><font-awesome-icon icon="book-open" class="mr-2" fixed-width />
         Gitbook</b-dropdown-item
       >
-      <b-dropdown-item disabled
+      <b-dropdown-item @click="openUrl('https://github.com/bancorprotocol/')"
         ><font-awesome-icon
           :icon="['fab', 'github']"
           class="mr-2"
@@ -53,7 +53,7 @@
         />
         GitHub</b-dropdown-item
       >
-      <b-dropdown-item disabled
+      <b-dropdown-item @click="openUrl('https://t.me/BancorDevelopers')"
         ><font-awesome-icon
           :icon="['fab', 'telegram-plane']"
           class="mr-2"
@@ -68,26 +68,33 @@
       <b-dropdown-text>
         <div class="d-flex justify-content-between">
           <font-awesome-icon
+            @click="openUrl('https://www.facebook.com/bancor/')"
             :icon="['fab', 'facebook']"
             class="mr-2"
             fixed-width
           />
           <font-awesome-icon
+            @click="openUrl('https://twitter.com/Bancor')"
             :icon="['fab', 'twitter']"
             class="mr-2"
             fixed-width
           />
           <font-awesome-icon
+            @click="
+              openUrl('https://www.linkedin.com/company/bancor-foundation/')
+            "
             :icon="['fab', 'linkedin']"
             class="mr-2"
             fixed-width
           />
           <font-awesome-icon
+            @click="openUrl('https://www.reddit.com/r/Bancor/')"
             :icon="['fab', 'reddit-alien']"
             class="mr-2"
             fixed-width
           />
           <font-awesome-icon
+            @click="openUrl('https://t.me/bancor')"
             :icon="['fab', 'telegram-plane']"
             class="mr-2"
             fixed-width
@@ -106,6 +113,10 @@ import { vxm } from "@/store";
 export default class BancorMenu extends Vue {
   get darkMode() {
     return vxm.general.darkMode;
+  }
+
+  openUrl(url: string) {
+    window.open(url, "_blank");
   }
 
   toggleDarkMode() {
