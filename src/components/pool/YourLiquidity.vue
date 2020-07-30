@@ -42,7 +42,8 @@
       </div>
     </div>
     <div v-else class="font-size-14 font-w600 mt-3 text-center">
-      You dont have any Liquidity yet.
+      <span v-if="isAuthenticated">You dont have any Liquidity yet</span>
+      <span v-else>Connect Wallet to see your Liquidity</span>
     </div>
   </div>
 </template>
@@ -60,6 +61,10 @@ import MainButton from "@/components/common/Button.vue";
 export default class YourLiquidity extends Vue {
   get positions(): PoolTokenPosition[] {
     return vxm.bancor.poolTokenPositions;
+  }
+
+  get isAuthenticated() {
+    return vxm.wallet.isAuthenticated;
   }
 
   getPoolLabel(reserves: ViewReserve[]) {
