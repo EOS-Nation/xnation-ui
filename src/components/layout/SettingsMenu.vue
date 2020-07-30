@@ -147,6 +147,7 @@ export default class SettingsMenu extends Vue {
     const currentService = currentRoute.split("/")[2].split("?")[0];
     let hostbase = window.location.hostname;
     if (hostbase === "localhost") hostbase = "http://" + hostbase + ":8080";
+    else hostbase = "https://" + hostbase;
 
     if (id === currentModule) return;
     window.location.replace([hostbase, id, currentService].join("/"));
