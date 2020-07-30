@@ -1,7 +1,28 @@
 <template>
-  <base-modal id="modal-swap-action" size="sm" title="Select a Token">
+  <base-modal id="modal-swap-action" size="md" title="Select a Token">
     <b-row class="d-flex justify-content-center">
       <div v-if="!(txBusy || success || error)">
+        <b-col cols="12">
+          <div>
+            <div
+              class="font-size-24 font-w600 mr-2"
+              :class="darkMode ? 'text-dark' : 'text-light'"
+            >
+              {{ amount1 }} {{ token1.symbol }}
+            </div>
+            <font-awesome-icon
+              icon="exchange-alt"
+              rotation="90"
+              class="text-primary"
+            />
+            <div
+              class="font-size-24 font-w600 mr-2"
+              :class="darkMode ? 'text-dark' : 'text-light'"
+            >
+              {{ amount2 }} {{ token2.symbol }}
+            </div>
+          </div>
+        </b-col>
         <b-col cols="12">
           <p
             class="font-size-sm font-w400 text-center mt-2 mb-3"

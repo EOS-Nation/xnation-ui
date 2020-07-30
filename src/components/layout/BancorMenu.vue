@@ -15,7 +15,8 @@
     <b-dropdown-group id="dropdown-group-1">
       <b-dropdown-header class="text-uppercase">Bancor</b-dropdown-header>
       <b-dropdown-item style="width: 230px;" disabled>
-        <font-awesome-icon icon="info" class="mr-2" fixed-width /> About
+        <font-awesome-icon icon="info" class="mr-2" fixed-width /> About (Coming
+        Soon)
       </b-dropdown-item>
     </b-dropdown-group>
     <b-dropdown-divider></b-dropdown-divider>
