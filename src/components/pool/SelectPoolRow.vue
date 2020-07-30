@@ -11,7 +11,6 @@
         }}</b-badge>
       </div>
     </div>
-    <span>~$??.??</span>
   </div>
 </template>
 
