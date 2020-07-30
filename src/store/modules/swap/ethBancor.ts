@@ -753,13 +753,20 @@ const arrToObject = (arr: { encoded: string; key: string }[]) =>
   }, {});
 
 const matchKeyOrdering = (sortedOrder: string[], obj: any) => {
-  return sortedOrder.reduce(
+  const newObj = sortedOrder.reduce(
     (acc, item) => ({
       ...acc,
       [item]: obj[item]
     }),
     {}
   );
+
+  const testKeys = Object.keys(newObj);
+  const correct = _.isEqual(sortedOrder, testKeys);
+  if (!correct) {
+    throw new Error("does not match key ordering");
+  }
+  return newObj;
 };
 
 const createCallGroups = (
@@ -783,7 +790,7 @@ const createCallGroups = (
       ([_, methods]) => methods[method.key]
     );
     const firstArgs = allMethods[0].arguments;
-    return allMethods.map(method => _.isEqual(method.arguments, firstArgs));
+    return allMethods.every(method => _.isEqual(method.arguments, firstArgs));
   });
 
   const staticMethods = [...noArgMethods, ...sameArgMethods];
