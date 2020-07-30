@@ -98,7 +98,7 @@
     </div>
 
     <main-button
-      @click.native="$bvModal.show('modal-pool-action')"
+      @click.native="initAction"
       label="Remove"
       :active="true"
       :large="true"
@@ -158,6 +158,16 @@ export default class PoolActionsRemoveV1 extends Vue {
 
   token1Error = "";
   token2Error = "";
+
+  get isAuthenticated() {
+    return vxm.wallet.isAuthenticated;
+  }
+
+  async initAction() {
+    if (this.isAuthenticated) this.$bvModal.show("modal-pool-action");
+    //@ts-ignore
+    else await this.promptAuth();
+  }
 
   get advancedBlockItems() {
     return [

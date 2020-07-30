@@ -164,6 +164,12 @@ export default class ModalPoolAction extends Vue {
     return vxm.general.darkMode;
   }
 
+  setDefault() {
+    this.sections = [];
+    this.error = "";
+    this.success = "";
+  }
+
   async initAction() {
     if (this.success) {
       this.$bvModal.hide("modal-pool-action");
@@ -176,9 +182,7 @@ export default class ModalPoolAction extends Vue {
       return;
     }
 
-    this.sections = [];
-    this.error = "";
-    this.success = "";
+    this.setDefault();
 
     const params: LiquidityParams = {
       id: this.pool.id,

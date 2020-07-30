@@ -42,10 +42,11 @@
     </div>
 
     <main-button
-      @click.native="$bvModal.show('modal-swap-action')"
+      @click.native="initConvert()"
       label="Continue"
       :active="true"
       :large="true"
+      :disabled="!(amount1 && amount2)"
     />
 
     <modal-swap-action
@@ -117,6 +118,16 @@ export default class SwapAction extends Vue {
 
   openModal(name: string) {
     this.$bvModal.show(name);
+  }
+
+  get isAuthenticated() {
+    return vxm.wallet.isAuthenticated;
+  }
+
+  async initConvert() {
+    if (this.isAuthenticated) this.$bvModal.show("modal-swap-action");
+    //@ts-ignore
+    else await this.promptAuth();
   }
 
   async updatePriceReturn(amount: string) {

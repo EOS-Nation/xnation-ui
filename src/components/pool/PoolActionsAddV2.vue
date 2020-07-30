@@ -46,7 +46,7 @@
     <rate-share-block :items="shareBlockItems" label="Prices and Pool Share" />
 
     <main-button
-      @click.native="$bvModal.show('modal-pool-action')"
+      @click.native="initAction"
       label="Supply"
       :active="true"
       :large="true"
@@ -108,6 +108,16 @@ export default class PoolActionsAddV2 extends Vue {
   rateLoading = false;
   singleUnitCosts: any[] = [];
   shareOfPool = 0;
+
+  get isAuthenticated() {
+    return vxm.wallet.isAuthenticated;
+  }
+
+  async initAction() {
+    if (this.isAuthenticated) this.$bvModal.show("modal-pool-action");
+    //@ts-ignore
+    else await this.promptAuth();
+  }
 
   get shareBlockItems() {
     if (this.shareOfPool > 0) {
