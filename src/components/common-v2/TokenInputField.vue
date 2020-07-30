@@ -6,8 +6,8 @@
         v-if="isAuthenticated"
         class="font-size-12 font-w500 cursor"
       >
-        Balance: {{ formattedBalance }} (~$??.??)
-        {{ usdValue && "(~$??.??)" }}
+        Balance: {{ formattedBalance }}
+        {{ usdValue ? usdValue : "" }}
       </span>
     </label-content-split>
 
@@ -82,6 +82,7 @@ export default class TokenInputField extends Vue {
   @Prop() usdValue?: number;
   @PropSync("amount", { type: String }) tokenAmount!: string;
   @Prop({ default: false }) dropdown!: boolean;
+  @Prop({ default: false }) ignoreError!: boolean;
 
   numeral = numeral;
 
