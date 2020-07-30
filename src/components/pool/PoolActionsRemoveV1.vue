@@ -1,7 +1,6 @@
 <template>
   <div>
     <pool-actions-percentages v-if="!advanced" :percentage.sync="percentage" />
-
     <div v-if="!advanced" class="text-center my-3">
       <font-awesome-icon
         icon="long-arrow-alt-down"
@@ -140,9 +139,9 @@ const bancor = namespace("bancor");
 })
 export default class PoolActionsRemoveV1 extends Vue {
   @bancor.Action
-  calculateOpposingDeposit!: LiquidityModule["calculateOpposingDeposit"];
-  @bancor.Action
   calculateOpposingWithdraw!: LiquidityModule["calculateOpposingWithdraw"];
+  @bancor.Action
+  getUserBalances!: LiquidityModule["getUserBalances"];
 
   @Prop() pool!: ViewRelay;
 
@@ -231,6 +230,14 @@ export default class PoolActionsRemoveV1 extends Vue {
     return vxm.general.darkMode;
   }
 
+  async fetchBalances() {
+    const res = await this.getUserBalances(this.pool.id);
+    // todo
+  }
+
+  created() {
+    this.fetchBalances();
+  }
   // @Watch("pool")
   // async updateSelection(pool: ViewRelay) {
   //   if (pool.reserves[0] === this.selectedToken) return;
