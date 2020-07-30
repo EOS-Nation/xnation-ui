@@ -1404,10 +1404,12 @@ export class EthBancorModule
 
   get poolTokenPositions(): PoolTokenPosition[] {
     const allIouTokens = this.relaysList.flatMap(iouTokensInRelay);
-    const existingBalances = this.tokenBalances.filter(balance =>
-      allIouTokens.some(iouToken =>
-        compareString(balance.id, iouToken.contract)
-      )
+    const existingBalances = this.tokenBalances.filter(
+      balance =>
+        balance.balance > 0 &&
+        allIouTokens.some(iouToken =>
+          compareString(balance.id, iouToken.contract)
+        )
     );
 
     const relevantRelays = this.relaysList.filter(relay =>
