@@ -67,6 +67,7 @@
         @update:amount="tokenOneChanged"
         :token="pool.reserves[0]"
         class="my-3"
+        :balance="balance1"
       />
 
       <div class="text-center my-3">
@@ -77,6 +78,7 @@
         :amount.sync="amountToken2"
         @update:amount="tokenTwoChanged"
         :token="pool.reserves[1]"
+        :balance="balance2"
       />
     </div>
 
@@ -105,6 +107,7 @@
       class="mt-1"
       :disabled="!(amountToken1 && amountToken2)"
     />
+    <pre v-if="res !== null">{{ res }}</pre>
 
     <modal-pool-action
       :amounts-array="[amountSmartToken, amountToken1, amountToken2]"
@@ -158,6 +161,10 @@ export default class PoolActionsRemoveV1 extends Vue {
 
   token1Error = "";
   token2Error = "";
+  balance1 = "";
+  balance2 = "";
+
+  res: any = null;
 
   get isAuthenticated() {
     return vxm.wallet.isAuthenticated;
@@ -242,7 +249,14 @@ export default class PoolActionsRemoveV1 extends Vue {
 
   async fetchBalances() {
     const res = await this.getUserBalances(this.pool.id);
-    // todo
+    if (this.pool.reserves[0].id === res.maxWithdrawals[0].id) {
+      this.balance1 = res.maxWithdrawals[0].amount;
+      this.balance2 = res.maxWithdrawals[1].amount;
+    } else {
+      this.balance1 = res.maxWithdrawals[1].amount;
+      this.balance2 = res.maxWithdrawals[0].amount;
+    }
+    this.res = res.maxWithdrawals;
   }
 
   created() {
