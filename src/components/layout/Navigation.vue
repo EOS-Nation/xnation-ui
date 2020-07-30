@@ -1,8 +1,15 @@
 <template>
   <div>
-    <div id="banner" class="d-block mb-0 pt-3 pb-2 bg-primary">
+    <div
+      class="d-block mb-0 py-2 bg-primary text-white text-center font-size-12 font-w600"
+    >
       To use the previous Bancor App, click here. Be sure to try out
-      <a href="https://bancor.network/" target="_blank">Bancor Analytics</a>
+      <a
+        href="https://bancor.network/"
+        target="_blank"
+        class="text-white border-bottom"
+        >Bancor Analytics</a
+      >
       for more stats on liquidity pools and tokens.
     </div>
     <b-navbar class="navBar">
@@ -360,11 +367,6 @@ export default class Navigation extends Vue {
 
 #form-group {
   margin-bottom: unset;
-}
-
-#banner {
-  text-align: center;
-  font-size: 12px;
 }
 
 .btn-branded {
