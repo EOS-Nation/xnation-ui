@@ -364,6 +364,10 @@ interface AbiTemplate {
   [key: string]: CallReturn<any>;
 }
 
+interface AbiEncodedTemplate {
+  [key: string]: string;
+}
+
 interface DecodedResult<T> {
   originAddress: string;
   data: T;
@@ -415,10 +419,10 @@ const decodeCallGroup = <T>(
 };
 
 const createCallGroup = (
-  template: AbiTemplate,
+  template: AbiEncodedTemplate,
   originAddress: string
 ): MultiCall[] =>
-  Object.keys(template).map(key => [originAddress, template[key].encodeABI()]);
+  Object.keys(template).map(key => [originAddress, template[key]]);
 
 interface RawV2Pool {
   reserves: {
@@ -737,11 +741,92 @@ interface RawAbiV2PoolBalances {
   effectiveReserveWeights: { 0: string; 1: string };
 }
 
+type OriginAndTemplate = [string, AbiTemplate];
+
+const arrToObject = (arr: { encoded: string; key: string }[]) =>
+  arr.reduce((acc, item) => {
+    return {
+      ...acc,
+      [item.key]: item.encoded
+    };
+  }, {});
+
+const matchKeyOrdering = (sortedOrder: string[], obj: any) => {
+  return sortedOrder.reduce(
+    (acc, item) => ({
+      ...acc,
+      [item]: obj[item]
+    }),
+    {}
+  );
+};
+
+const createCallGroups = (
+  originAndTemplates: OriginAndTemplate[]
+): MultiCall[][] => {
+  if (originAndTemplates.length == 0) return [];
+  const [firstOrigin, firstTemplate] = originAndTemplates[0];
+  const templateOrder = Object.keys(firstTemplate);
+  const methodsArr = Object.keys(firstTemplate).map(key => ({
+    method: firstTemplate[key],
+    key
+  }));
+  const noArgMethods = methodsArr.filter(
+    template => template.method.arguments.length == 0
+  );
+  const argMethods = methodsArr.filter(
+    template => template.method.arguments.length > 0
+  );
+  const sameArgMethods = argMethods.filter(method => {
+    const allMethods = originAndTemplates.map(
+      ([_, methods]) => methods[method.key]
+    );
+    const firstArgs = allMethods[0].arguments;
+    return allMethods.map(method => _.isEqual(method.arguments, firstArgs));
+  });
+
+  const staticMethods = [...noArgMethods, ...sameArgMethods];
+  const dynamicMethods = _.differenceBy(methodsArr, staticMethods, "key");
+  if (staticMethods.length + dynamicMethods.length !== methodsArr.length)
+    throw new Error("Failed filtering methods");
+
+  const staticEncoded = staticMethods.map(method => ({
+    key: method.key,
+    encoded: method.method.encodeABI()
+  }));
+
+  const dynamic = originAndTemplates.map(([originAddress, abiTemplate]) => {
+    const dynamicEncoded = dynamicMethods.map(dynamicMethod => ({
+      encoded: abiTemplate[dynamicMethod.key].encodeABI(),
+      key: dynamicMethod.key
+    }));
+    return {
+      templatesArray: [...dynamicEncoded, ...staticEncoded],
+      originAddress
+    };
+  });
+
+  const objectBase = dynamic.map(d => ({
+    originAddress: d.originAddress,
+    data: arrToObject(d.templatesArray)
+  }));
+
+  const multiCalls = objectBase.map(obj =>
+    createCallGroup(
+      matchKeyOrdering(templateOrder, obj.data),
+      obj.originAddress
+    )
+  );
+  return multiCalls;
+};
+
 const relayHandler = (converterAddresses: string[]): Handler => {
   const template = relayTemplate();
-  const callGroups = converterAddresses.map(address =>
-    createCallGroup(template, address)
+
+  const originAndTemplates: OriginAndTemplate[] = converterAddresses.map(
+    address => [address, template]
   );
+  const callGroups = createCallGroups(originAndTemplates);
 
   const finisher = (callGroupRes: MultiCallReturn[]): unknown => {
     const decoded = decodeCallGroup<RawAbiRelay>(template, callGroupRes);
@@ -774,12 +859,12 @@ const reserveBalanceHandler = (
     ethReserveAddress
   ]);
 
-  const callGroups = relays.map(relay =>
-    createCallGroup(
-      reserveBalanceTemplate(relay.reserves),
-      relay.converterAddress
-    )
-  );
+  const originAndTemplates: OriginAndTemplate[] = relays.map(relay => [
+    relay.converterAddress,
+    reserveBalanceTemplate(relay.reserves)
+  ]);
+  const callGroups = createCallGroups(originAndTemplates);
+
   const finisher = (callGroupsRes: MultiCallReturn[]) => {
     const decoded = decodeCallGroup<RawAbiReserveBalance>(
       template,
@@ -859,12 +944,13 @@ const stakedAndReserveHandler = (
     ethReserveAddress,
     ethReserveAddress
   ]);
-  const callGroups = relays.map(relay =>
-    createCallGroup(
-      v2PoolBalanceTemplate([relay.reserveOne, relay.reserveTwo]),
-      relay.converterAdress
-    )
-  );
+
+  const originAndTemplates: OriginAndTemplate[] = relays.map(relay => [
+    relay.converterAdress,
+    v2PoolBalanceTemplate([relay.reserveOne, relay.reserveTwo])
+  ]);
+  const callGroups = createCallGroups(originAndTemplates);
+
   const finisher = (callGroupsRes: MultiCallReturn[]) => {
     const decoded = decodeCallGroup<RawAbiV2PoolBalances>(
       template,
@@ -987,9 +1073,12 @@ const nameOriginAs = <T>(propertyName: string, obj: DecodedResult<T>) => ({
 
 const miniPoolHandler = (anchorAddresses: string[]): Handler => {
   const template = miniPoolTokenTemplate();
-  const callGroups = anchorAddresses.map(address =>
-    createCallGroup(template, address)
+
+  const originAndTemplates: OriginAndTemplate[] = anchorAddresses.map(
+    address => [address, template]
   );
+  const callGroups = createCallGroups(originAndTemplates);
+
   const finisher = (callGroupsRes: MultiCallReturn[]): unknown => {
     const decoded = decodeCallGroup<RawAbiCentralPoolToken>(
       template,
@@ -1009,9 +1098,10 @@ const tokenHandler = (tokenAddresses: string[]): Handler => {
     decimals: contract.methods.decimals()
   };
 
-  const callGroups = tokenAddresses.map(address =>
-    createCallGroup(template, address)
+  const originAndTemplates: OriginAndTemplate[] = tokenAddresses.map(
+    address => [address, template]
   );
+  const callGroups = createCallGroups(originAndTemplates);
 
   const finisher = (callGroupsRes: MultiCallReturn[]): Token => {
     const decoded = decodeCallGroup<RawAbiToken>(template, callGroupsRes);
