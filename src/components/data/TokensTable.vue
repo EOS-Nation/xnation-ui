@@ -1,68 +1,103 @@
 <template>
-  <div class="table-responsive">
-    <b-table
-      id="tokens-table"
-      :dark="darkMode ? true : false"
-      striped
-      stacked="sm"
-      :items="tokens"
-      :fields="filteredFields"
-      :filter="filter"
-      primary-key="id"
-      :tbody-transition-props="transProps"
-      :tbody-transition-handlers="transHandler"
-    >
-      <template v-slot:head(change24h)="data">
-        <span class="cursor text-center">{{ data.label }}</span>
-      </template>
-      <template v-slot:cell(index)="data">
-        {{ data.index + 1 }}
-      </template>
-      <template v-slot:cell(symbol)="data">
-        <img
-          v-b-tooltip.hover
-          class="img-avatar img-avatar32"
-          :src="data.item.logo"
-          alt="Token Logo"
-        />
-        {{ data.item.symbol }}
-      </template>
-      <template v-slot:cell(change24h)="data">
-        <span
+  <div>
+    <div class="table-responsive">
+      <b-table
+        id="tokens-table"
+        :dark="darkMode ? true : false"
+        striped
+        :items="tokens"
+        :fields="fields"
+        :filter="filter"
+        primary-key="id"
+        :current-page="currentPage"
+        :per-page="perPage"
+      >
+        <template v-slot:head(change24h)="data">
+          <span class="cursor text-center">{{ data.label }}</span>
+        </template>
+        <template v-slot:cell(index)="data">
+          {{ data.index + 1 }}
+        </template>
+        <template v-slot:cell(symbol)="data">
+          <img
+            v-b-tooltip.hover
+            class="img-avatar img-avatar32"
+            :src="data.item.logo"
+            alt="Token Logo"
+          />
+          {{ data.item.symbol }}
+        </template>
+        <template v-slot:cell(change24h)="data">
+          <span
+            :class="
+              data.item.change24h == null
+                ? ''
+                : data.item.change24h > 0
+                ? `text-success font-w700`
+                : 'text-danger font-w700'
+            "
+            >{{
+              data.item.change24h == null
+                ? "N/A"
+                : numeral(data.item.change24h).format("0.00") + "%"
+            }}</span
+          >
+        </template>
+        <template v-slot:cell(price)="data">
+          <span class="font-w700">
+            <span v-if="data.item.price < 100">{{
+              numeral(data.item.price).format("$0,0.0000")
+            }}</span>
+            <span v-else>{{ numeral(data.item.price).format("$0,0.00") }}</span>
+          </span>
+        </template>
+        <template v-slot:cell(actions)>
+          <b-btn
+            :to="{
+              name: 'Swap'
+            }"
+            variant="primary"
+          >
+            Swap
+          </b-btn>
+        </template>
+      </b-table>
+    </div>
+    <div class="d-flex justify-content-center align-items-center mt-3">
+      <div
+        :class="currentPage > 1 ? 'cursor' : ''"
+        @click="currentPage > 1 ? currentPage-- : null"
+      >
+        <font-awesome-icon
+          icon="long-arrow-alt-left"
+          size="2x"
           :class="
-            data.item.change24h == null
-              ? ''
-              : data.item.change24h > 0
-              ? `text-success font-w700`
-              : 'text-danger font-w700'
+            currentPage === 1
+              ? darkMode
+                ? 'text-muted-dark'
+                : 'text-muted-light'
+              : 'text-primary'
           "
-          >{{
-            data.item.change24h == null
-              ? "N/A"
-              : numeral(data.item.change24h).format("0.00") + "%"
-          }}</span
-        >
-      </template>
-      <template v-slot:cell(price)="data">
-        <span class="font-w700">
-          <span v-if="data.item.price < 100">{{
-            numeral(data.item.price).format("$0,0.0000")
-          }}</span>
-          <span v-else>{{ numeral(data.item.price).format("$0,0.00") }}</span>
-        </span>
-      </template>
-      <template v-slot:cell(actions)>
-        <b-btn
-          :to="{
-            name: 'Tokens'
-          }"
-          variant="primary"
-          class="mr-1"
-        >
-          <font-awesome-icon icon="exchange-alt" /> Swap
-        </b-btn>
-      </template>
-    </b-table>
+        />
+      </div>
+      <span class="mx-3">Page {{ currentPage }} of {{ pagesTotal }}</span>
+      <div
+        :class="currentPage < pagesTotal ? 'cursor' : ''"
+        @click="currentPage < pagesTotal ? currentPage++ : null"
+      >
+        <font-awesome-icon
+          icon="long-arrow-alt-right"
+          size="2x"
+          :class="
+            currentPage === pagesTotal
+              ? darkMode
+                ? 'text-muted-dark'
+                : 'text-muted-light'
+              : 'text-primary'
+          "
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -109,6 +144,13 @@ export default class TokensTable extends Vue {
   small = false;
 
   numeral = numeral;
+
+  currentPage = 1;
+  perPage = 7;
+
+  get pagesTotal() {
+    return Math.ceil(this.tokens.length / this.perPage);
+  }
 
   transProps = {
     name: "flip-list"

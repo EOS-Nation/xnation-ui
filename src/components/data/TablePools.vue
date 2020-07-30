@@ -1,64 +1,97 @@
 <template>
-  <div class="table-responsive">
-    <b-table
-      id="relays-table"
-      :dark="darkMode ? true : false"
-      striped
-      stacked="sm"
-      :items="tokens"
-      :fields="fields"
-      :filter="filter"
-      sort-by="liqDepth"
-      :sort-desc="true"
-      primary-key="id"
-      :table-busy="loadingPools"
-      :tbody-transition-props="transProps"
-      :tbody-transition-handlers="transHandler"
-    >
-      <template v-slot:table-busy>
-        <div class="text-center my-2">
-          <b-spinner class="align-middle"></b-spinner>
-          <strong>Loading...</strong>
-        </div>
-      </template>
-      <template v-if="morePoolsAvailable" v-slot:custom-foot>
-        <b-button :disabled="loadingPools" @click="loadMorePools"
-          >Load more...
-        </b-button>
-      </template>
-      <template v-slot:table-colgroup>
-        <col key="symbol" style="width: 260px;" />
-        <col key="smart" style="width: 200px;" />
-      </template>
-      <template v-slot:cell(symbol)="data">
-        <img
-          :key="reserve.reserveId"
-          v-for="reserve in data.item.reserves"
-          class="img-avatar img-avatar-thumb img-avatar32"
-          :src="reserve.logo[0]"
-          v-fallback="reserve.logo.slice(1)"
-          :alt="`${reserve.symbol} Token Logo`"
+  <div>
+    <div class="table-responsive">
+      <b-table
+        id="relays-table"
+        :dark="darkMode ? true : false"
+        striped
+        :items="tokens"
+        :fields="fields"
+        :filter="filter"
+        sort-by="liqDepth"
+        :current-page="currentPage"
+        :per-page="perPage"
+        :sort-desc="true"
+        primary-key="id"
+        :table-busy="loadingPools"
+      >
+        <template v-slot:table-busy>
+          <div class="text-center my-2">
+            <b-spinner class="align-middle"></b-spinner>
+            <strong>Loading...</strong>
+          </div>
+        </template>
+        <template v-if="morePoolsAvailable" v-slot:custom-foot>
+          <b-button :disabled="loadingPools" @click="loadMorePools"
+            >Load more...
+          </b-button>
+        </template>
+        <template v-slot:table-colgroup>
+          <col key="symbol" style="width: 260px;" />
+          <col key="smart" style="width: 200px;" />
+        </template>
+        <template v-slot:cell(symbol)="data">
+          <div class="d-flex align-items-center">
+            <pool-logos :pool="data.item" class="font-size-16 font-w700" />
+            <b-badge variant="primary">
+              {{ data.item.v2 ? "V2" : "V1" }}</b-badge
+            >
+          </div>
+        </template>
+        <template v-slot:cell(index)="data">
+          {{ data.index + 1 }}
+        </template>
+        <template v-slot:cell(v2)="data">
+          <span> {{ data.item.v2 ? "V2" : "V1" }}</span>
+        </template>
+        <template v-slot:cell(actions)>
+          <b-btn
+            :to="{
+              name: 'Relay'
+            }"
+            class="mr-1"
+          >
+            Liquidity
+          </b-btn>
+        </template>
+      </b-table>
+    </div>
+
+    <div class="d-flex justify-content-center align-items-center mt-3">
+      <div
+        :class="currentPage > 1 ? 'cursor' : ''"
+        @click="currentPage > 1 ? currentPage-- : null"
+      >
+        <font-awesome-icon
+          icon="long-arrow-alt-left"
+          size="2x"
+          :class="
+            currentPage === 1
+              ? darkMode
+                ? 'text-muted-dark'
+                : 'text-muted-light'
+              : 'text-primary'
+          "
         />
-        {{ data.item.reserves.map(reserve => reserve.symbol).join("-") }}
-        <b-badge variant="primary"> {{ data.item.v2 ? "V2" : "V1" }}</b-badge>
-      </template>
-      <template v-slot:cell(index)="data">
-        {{ data.index + 1 }}
-      </template>
-      <template v-slot:cell(v2)="data">
-        <span> {{ data.item.v2 ? "V2" : "V1" }}</span>
-      </template>
-      <template v-slot:cell(actions)>
-        <b-btn
-          :to="{
-            name: 'Relay'
-          }"
-          class="mr-1"
-        >
-          Liquidity
-        </b-btn>
-      </template>
-    </b-table>
+      </div>
+      <span class="mx-3">Page {{ currentPage }} of {{ pagesTotal }}</span>
+      <div
+        :class="currentPage < pagesTotal ? 'cursor' : ''"
+        @click="currentPage < pagesTotal ? currentPage++ : null"
+      >
+        <font-awesome-icon
+          icon="long-arrow-alt-right"
+          size="2x"
+          :class="
+            currentPage === pagesTotal
+              ? darkMode
+                ? 'text-muted-dark'
+                : 'text-muted-light'
+              : 'text-primary'
+          "
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -76,6 +109,7 @@ import { multiContract } from "@/api/multiContractTx";
 import Velocity from "velocity-animate";
 import { State, Getter, Action, namespace } from "vuex-class";
 import _ from "lodash";
+import PoolLogos from "@/components/common/PoolLogos.vue";
 
 const bancor = namespace("bancor");
 
@@ -83,6 +117,7 @@ const numeral = require("numeral");
 
 @Component({
   components: {
+    PoolLogos,
     SortIcons
   }
 })
@@ -94,21 +129,19 @@ export default class TablePools extends Vue {
   @bancor.Getter morePoolsAvailable!: LiquidityModule["morePoolsAvailable"];
   @bancor.Getter loadingPools!: LiquidityModule["loadingPools"];
 
+  currentPage = 1;
+  perPage = 7;
+
+  get pagesTotal() {
+    return Math.ceil(this.tokens.length / this.perPage);
+  }
+
   fields = [
     {
       key: "symbol",
       sortable: true,
       label: "Token",
       tdClass: ["tokenss", "align-middle"]
-    },
-    {
-      key: "ratio",
-      tdClass: ["align-middle"],
-      class: "noWrap",
-      formatter: (value: any, key: any, item: ViewRelay) =>
-        item.reserves
-          .map(reserve => Number.parseInt(String(reserve.reserveWeight * 100)))
-          .join("-")
     },
     {
       key: "liqDepth",
@@ -125,6 +158,15 @@ export default class TablePools extends Vue {
       class: ["text-right", "font-w700"],
       tdClass: ["align-middle"],
       formatter: (value: string) => numeral(value).format("0.00%")
+    },
+    {
+      key: "ratio",
+      tdClass: ["align-middle"],
+      class: "noWrap",
+      formatter: (value: any, key: any, item: ViewRelay) =>
+        item.reserves
+          .map(reserve => Number.parseInt(String(reserve.reserveWeight * 100)))
+          .join("-")
     },
     {
       key: "actions",

@@ -18,7 +18,7 @@
     </div>
   </div>
 </template>
-a
+
 <script lang="ts">
 import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import { vxm } from "@/store";

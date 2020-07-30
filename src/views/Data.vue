@@ -6,12 +6,12 @@
           <statistics />
         </content-block>
       </b-col>
-      <b-col md="6">
+      <b-col v-if="false" md="6">
         <content-block title="Liquidity">
           <liquidity-chart />
         </content-block>
       </b-col>
-      <b-col md="6">
+      <b-col v-if="false" md="6">
         <content-block title="Volume">
           <liquidity-chart />
         </content-block>
