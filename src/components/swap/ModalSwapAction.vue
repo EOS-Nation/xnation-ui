@@ -48,6 +48,9 @@
             </div>
           </div>
         </b-col>
+        <b-col cols="12">
+          <not-us-checkbox :state="notUsState" :value.sync="notUsChecked" />
+        </b-col>
       </div>
 
       <action-modal-status
@@ -80,9 +83,16 @@ import { Step, ViewRelay, ViewReserve, ViewToken } from "@/types/bancor";
 import ActionModalStatus from "@/components/common-v2/ActionModalStatus.vue";
 import MainButton from "@/components/common/Button.vue";
 import AdvancedBlockItem from "@/components/common/AdvancedBlockItem.vue";
+import NotUsCheckbox from "@/components/common-v2/NotUsCheckbox.vue";
 
 @Component({
-  components: { AdvancedBlockItem, ActionModalStatus, BaseModal, MainButton }
+  components: {
+    NotUsCheckbox,
+    AdvancedBlockItem,
+    ActionModalStatus,
+    BaseModal,
+    MainButton
+  }
 })
 export default class ModalSwapAction extends Vue {
   @Prop() amount1!: string;
@@ -97,6 +107,9 @@ export default class ModalSwapAction extends Vue {
   sections: Step[] = [];
   stepIndex = 0;
 
+  notUsChecked = "false";
+  notUsState: boolean | null = null;
+
   get confirmButton() {
     return this.error
       ? "Try Again"
@@ -105,6 +118,14 @@ export default class ModalSwapAction extends Vue {
       : this.txBusy
       ? "processing ..."
       : "Confirm";
+  }
+
+  setDefault() {
+    this.sections = [];
+    this.error = "";
+    this.success = "";
+    this.notUsChecked = "false";
+    this.notUsState = null;
   }
 
   async initAction() {
@@ -119,9 +140,12 @@ export default class ModalSwapAction extends Vue {
       return;
     }
 
-    this.sections = [];
-    this.error = "";
-    this.success = "";
+    if (this.notUsChecked === "false") {
+      this.notUsState = false;
+      return;
+    }
+
+    this.setDefault();
 
     try {
       this.txBusy = true;

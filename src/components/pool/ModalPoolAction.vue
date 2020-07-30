@@ -58,7 +58,7 @@
 
         <b-col md="12">
           <div
-            class="block block-rounded font-size-sm block-shadow"
+            class="block block-rounded font-size-sm block-shadow mb-3"
             :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
           >
             <div class="block-content py-2">
@@ -70,6 +70,9 @@
               />
             </div>
           </div>
+        </b-col>
+        <b-col cols="12">
+          <not-us-checkbox :state="notUsState" :value.sync="notUsChecked" />
         </b-col>
       </div>
 
@@ -114,11 +117,13 @@ import MainButton from "@/components/common/Button.vue";
 
 import { namespace } from "vuex-class";
 import ActionModalStatus from "@/components/common-v2/ActionModalStatus.vue";
+import NotUsCheckbox from "@/components/common-v2/NotUsCheckbox.vue";
 
 const bancor = namespace("bancor");
 
 @Component({
   components: {
+    NotUsCheckbox,
     ActionModalStatus,
     AdvancedBlockItem,
     PoolLogos,
@@ -141,6 +146,9 @@ export default class ModalPoolAction extends Vue {
   error = "";
   sections: Step[] = [];
   stepIndex = 0;
+
+  notUsChecked = "false";
+  notUsState: boolean | null = null;
 
   get confirmButton() {
     return this.error
@@ -168,6 +176,8 @@ export default class ModalPoolAction extends Vue {
     this.sections = [];
     this.error = "";
     this.success = "";
+    this.notUsChecked = "false";
+    this.notUsState = null;
   }
 
   async initAction() {
@@ -180,6 +190,11 @@ export default class ModalPoolAction extends Vue {
 
     if (this.error) {
       this.error = "";
+      return;
+    }
+
+    if (this.notUsChecked === "false") {
+      this.notUsState = false;
       return;
     }
 
