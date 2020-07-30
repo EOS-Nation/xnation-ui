@@ -47,7 +47,8 @@ import {
   multiSteps,
   viewTokenToModalChoice,
   reserveIncludedInEosRelay,
-  sortAlongSide
+  sortAlongSide,
+  sortByLiqDepth
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -861,14 +862,8 @@ export class EosBancorModule
       )
       .filter(relay =>
         relay.reserves.every(reserve => {
-          const relayId = buildTokenId({
-            contract: relay.smartToken.contract,
-            symbol: relay.smartToken.symbol
-          });
-          const reserveId = buildTokenId({
-            contract: reserve.contract,
-            symbol: reserve.symbol
-          });
+          const relayId = buildTokenId(relay.smartToken);
+          const reserveId = buildTokenId(reserve);
           const feed = this.relayFeed.find(
             feed =>
               compareString(feed.smartTokenId, relayId) &&
@@ -907,7 +902,7 @@ export class EosBancorModule
           };
         })
       )
-      .sort((a, b) => b.liqDepth - a.liqDepth)
+      .sort(sortByLiqDepth)
       .reduce<any[]>((acc, item) => {
         const existingToken = acc.find(token =>
           compareString(token.id, item.id)
@@ -919,7 +914,9 @@ export class EosBancorModule
               token => compareString(token.id, item.id),
               token => ({
                 ...token,
-                liqDepth: existingToken.liqDepth + item.liqDepth,
+                liqDepth:
+                  existingToken.liqDepth +
+                  (isNaN(item.liqDepth) ? 0 : item.liqDepth),
                 ...(!existingToken.change24h &&
                   item.change24h && { change24h: item.change24h }),
                 ...(!existingToken.volume24h &&
@@ -1071,7 +1068,7 @@ export class EosBancorModule
           liqDepth: feed!.liqDepth
         };
       })
-      .sort((a, b) => b.liqDepth - a.liqDepth)
+      .sort(sortByLiqDepth)
       .filter(
         (value, index, arr) =>
           arr.findIndex(x =>

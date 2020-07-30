@@ -51,7 +51,8 @@ import {
   createIndexes,
   rebuildFromIndex,
   ConverterV2Row,
-  buildTokenId
+  buildTokenId,
+  sortByLiqDepth
 } from "@/api/helpers";
 import { ContractSendMethod } from "web3-eth-contract";
 import {
@@ -1953,11 +1954,14 @@ export class EthBancorModule
       .flatMap(relay =>
         relay.reserves.map(reserve => {
           const { name, image } = this.tokenMetaObj(reserve.contract);
-          const relayFeed = this.relayFeed.find(
-            feed =>
-              compareString(feed.poolId, relay.id) &&
-              compareString(feed.tokenId, reserve.contract)
-          )!;
+          const relayFeed = this.relayFeed
+            .slice()
+            .sort(sortFeedByExtraProps)
+            .find(
+              feed =>
+                compareString(feed.poolId, relay.id) &&
+                compareString(feed.tokenId, reserve.contract)
+            )!;
           const balance = this.tokenBalance(reserve.contract);
           return {
             id: reserve.contract,
@@ -1975,7 +1979,7 @@ export class EthBancorModule
           };
         })
       )
-      .sort((a, b) => b.liqDepth - a.liqDepth)
+      .sort(sortByLiqDepth)
       .reduce<ViewToken[]>((acc, item) => {
         const existingToken = acc.find(token =>
           compareString(token.id!, item.id)
@@ -1983,7 +1987,8 @@ export class EthBancorModule
         return existingToken
           ? updateArray(
               acc,
-              token => compareString(token.id!, item.id),
+              token =>
+                compareString(token.id!, item.id) && !isNaN(item.liqDepth),
               token => ({ ...token, liqDepth: token.liqDepth! + item.liqDepth })
             )
           : [...acc, item as ViewToken];
@@ -2051,7 +2056,7 @@ export class EthBancorModule
 
   get relays(): ViewRelay[] {
     return [...this.chainkLinkRelays, ...this.traditionalRelays].sort(
-      (a, b) => b.liqDepth - a.liqDepth
+      sortByLiqDepth
     );
   }
 
@@ -3185,8 +3190,7 @@ export class EthBancorModule
 
   @mutation updateRelayFeeds(feeds: ReserveFeed[]) {
     const allFeeds = [...feeds, ...this.relayFeed];
-    const uniqueFeeds = _.uniqWith(allFeeds, compareRelayFeed);
-    this.relayFeed = Object.freeze(uniqueFeeds);
+    this.relayFeed = Object.freeze(allFeeds);
   }
 
   @action async fetchCost({
@@ -3658,11 +3662,12 @@ export class EthBancorModule
             try {
               return await this.fetchWithMultiCall({ calls: callGroup });
             } catch (e) {
-              console.error("Chunk attempt failed,", callGroup);
               this.recordDepthError({ calls: callGroup, depth: chunkSize });
               const currentIndex = chunkSizes.indexOf(chunkSize);
-              if (currentIndex == 0)
+              if (currentIndex == 0) {
+                console.error("Chunk attempt failed", callGroup);
                 throw new Error("Ran out of chunks to try");
+              }
               const smallerChunkSize = chunkSizes.slice(currentIndex);
               return await this.multiCallInChunks({
                 flatCalls: callGroup,
@@ -4286,7 +4291,7 @@ export class EthBancorModule
 
     this.setLoadingPools(true);
 
-    const chunked = chunk(convertersAndAnchors, 15);
+    const chunked = chunk(convertersAndAnchors, 30);
     const tokenAddresses: string[] = [];
     for (const chunk of chunked) {
       const { pools, reserveFeeds } = await this.addPoolsV2(chunk);
@@ -4307,13 +4312,11 @@ export class EthBancorModule
     }
     if (this.isAuthenticated) {
       const toFetch = uniqWith(tokenAddresses, compareString);
-      console.log(toFetch, "is to be fetched");
       this.fetchBulkTokenBalances(toFetch);
     }
     this.setLoadingPools(false);
 
     console.timeEnd("addPoolsBulk");
-    // return { pools, reserveFeeds };
   }
 
   @action async fetchBulkTokenBalances(tokenContractAddresses: string[]) {

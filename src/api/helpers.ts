@@ -351,6 +351,17 @@ export interface PoolToken {
   poolToken: Token;
 }
 
+interface LiqDepth {
+  liqDepth: number;
+}
+
+export const sortByLiqDepth = (a: LiqDepth, b: LiqDepth) => {
+  if (isNaN(a.liqDepth) && isNaN(b.liqDepth)) return 0;
+  if (isNaN(a.liqDepth)) return 1;
+  if (isNaN(b.liqDepth)) return -1;
+  return b.liqDepth - a.liqDepth;
+};
+
 export const sortAlongSide = <T>(
   arr: T[],
   selector: (item: T) => string,
