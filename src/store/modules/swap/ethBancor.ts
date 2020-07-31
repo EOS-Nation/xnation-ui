@@ -4752,20 +4752,24 @@ export class EthBancorModule
       async (acc, [fromTokenAddress, anchor, toTokenAddress]) => {
         const relay = await this.relayById(anchor);
         const contract = buildConverterContract(relay.contract);
-        const fromReserveBalance = await contract.methods
-          .getConnectorBalance(fromTokenAddress)
-          .call();
-        const toReserveBalance = await contract.methods
-          .getConnectorBalance(toTokenAddress)
-          .call();
+
+        const [
+          fromReserveBalance,
+          toReserveBalance,
+          returnWei
+        ] = await Promise.all([
+          contract.methods.getConnectorBalance(fromTokenAddress).call(),
+          contract.methods.getConnectorBalance(toTokenAddress).call(),
+          this.getReturnByPath({
+            path: [fromTokenAddress, anchor, toTokenAddress],
+            amount: acc.lastReward
+          })
+        ]);
+
         const slippageLessReturnRate = new BigNumber(toReserveBalance).div(
           fromReserveBalance
         );
 
-        const returnWei = await this.getReturnByPath({
-          path: [fromTokenAddress, anchor, toTokenAddress],
-          amount: acc.lastReward
-        });
         const zeroSlippageReturnWei = slippageLessReturnRate.times(
           acc.lastReward
         );
@@ -4783,11 +4787,9 @@ export class EthBancorModule
       { lastReward: fromWei, slippagesPaid: [] as number[] }
     );
 
-    console.log(costs, "are the costs");
-    // @ts-ignore
-    return costs.slippagesPaid.reduce(
+    return (costs.slippagesPaid as number[]).reduce(
       (a, v, i) => (a * i + v) / (i + 1)
-    ) as number;
+    );
   }
 
   @action async getReturn({
