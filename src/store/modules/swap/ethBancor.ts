@@ -4771,7 +4771,9 @@ export class EthBancorModule
         // slippage = new BigNumber(fromWei)
         //   .div(new BigNumber(fromReserveBalanceWei))
         //   .toNumber();
-      } catch (e) {}
+      } catch (e) {
+        console.warn('Failed fetching and calculating slippage')
+      }
     }
 
     return {
