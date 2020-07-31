@@ -103,11 +103,6 @@ export default class App extends Vue {
   }
 
   async loadBancor() {
-    this.$gtag.event("loadBlockchain", {
-      event_category: "blockchain",
-      event_label: this.$route.params.service
-    });
-
     console.log("feature:", this.$route.meta.feature);
     console.log("service:", this.$route.params.service);
     console.log("query:", this.$route.query);
@@ -133,6 +128,10 @@ export default class App extends Vue {
     try {
       await vxm.bancor.init(initParams);
       this.loading = false;
+      this.$gtag.event("loadBancor", {
+        event_category: "blockchain",
+        event_label: this.$route.params.service
+      });
     } catch (e) {
       await wait(1000);
       try {

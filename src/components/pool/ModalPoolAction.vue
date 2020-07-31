@@ -269,8 +269,8 @@ export default class ModalPoolAction extends Vue {
       this.$gtag.event(
         this.withdrawLiquidity ? "removeLiquidity" : "addLiquidity",
         {
-          event_category: this.$route.params.account,
-          event_label: "success"
+          event_category: "success",
+          event_label: this.$route.params.account
         }
       );
     } catch (e) {
@@ -278,8 +278,8 @@ export default class ModalPoolAction extends Vue {
       this.$gtag.event(
         this.withdrawLiquidity ? "removeLiquidity" : "addLiquidity",
         {
-          event_category: this.$route.params.account,
-          event_label: "error"
+          event_category: "error",
+          event_label: this.$route.params.account
         }
       );
     } finally {

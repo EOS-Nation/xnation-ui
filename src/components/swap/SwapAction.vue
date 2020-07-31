@@ -288,6 +288,7 @@ export default class SwapAction extends Vue {
       });
       this.initialRate = reward.amount
     } catch (e) {
+      // n
     }
     this.rateLoading = false;
 
