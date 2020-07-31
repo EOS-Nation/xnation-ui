@@ -50,7 +50,7 @@
           </div>
         </b-col>
         <b-col cols="12">
-          <not-us-checkbox :state="notUsState" :value.sync="notUsChecked" />
+          <not-us-checkbox v-model="notUsState" />
         </b-col>
       </div>
 
@@ -108,8 +108,7 @@ export default class ModalSwapAction extends Vue {
   sections: Step[] = [];
   stepIndex = 0;
   numeral = numeral;
-  notUsChecked = "false";
-  notUsState: boolean | null = null;
+  notUsState: boolean = false;
 
   get confirmButton() {
     return this.error
@@ -129,8 +128,7 @@ export default class ModalSwapAction extends Vue {
     this.sections = [];
     this.error = "";
     this.success = "";
-    this.notUsChecked = "false";
-    this.notUsState = null;
+    this.notUsState = false;
   }
 
   async initAction() {
@@ -145,8 +143,7 @@ export default class ModalSwapAction extends Vue {
       return;
     }
 
-    if (this.notUsChecked === "false") {
-      this.notUsState = false;
+    if (!this.notUsState) {
       return;
     }
 

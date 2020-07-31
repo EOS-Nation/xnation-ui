@@ -1,10 +1,8 @@
 <template>
   <div class="mb-3 d-flex justify-content-center">
     <b-form-checkbox
-      v-model="checked"
-      :state="state"
-      value="true"
-      unchecked-value="false"
+      :value="checked"
+      @input="update"
       name="us-validation"
       size="lg"
     >
@@ -16,23 +14,23 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop, Watch, PropSync } from "vue-property-decorator";
+import {
+  Component,
+  Vue,
+  Prop,
+  Watch,
+  PropSync,
+  Emit
+} from "vue-property-decorator";
 import { vxm } from "@/store/";
 
-@Component({
-  components: {}
-})
+@Component
 export default class NotUsCheckbox extends Vue {
-  @PropSync("value", { type: String }) checked!: string;
-  @Prop() state!: boolean;
+  @Prop() checked!: boolean;
 
-  @Watch("value")
-  onValueChange(value: string) {
-    this.state = value === "true";
-  }
-
-  get darkMode() {
-    return vxm.general.darkMode;
+  @Emit("input")
+  update(value: boolean) {
+    return value;
   }
 }
 </script>
