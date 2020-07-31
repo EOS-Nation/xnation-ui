@@ -20,6 +20,7 @@ import {
   HistoryModule,
   ViewAmount,
   ModuleParam,
+  ConvertReturn,
   UserPoolBalances,
   CallReturn,
   PoolTokenPosition
@@ -4727,7 +4728,10 @@ export class EthBancorModule
     return reserve.decimals;
   }
 
-  @action async getReturn({ from, toId }: ProposedFromTransaction) {
+  @action async getReturn({
+    from,
+    toId
+  }: ProposedFromTransaction): Promise<ConvertReturn> {
     if (compareString(from.id, toId))
       throw new Error("Cannot convert a token to itself.");
     const [fromToken, toToken] = await this.tokensById([from.id, toId]);
@@ -4750,20 +4754,29 @@ export class EthBancorModule
 
     const path = generateEthPath(fromToken.symbol, relays.map(relayToMinimal));
 
-    console.log(
-      path,
-      "is the path came up with",
-      relays,
-      "are the relays involved"
-    );
-
+    const fromWei = expandToken(amount, fromTokenDecimals);
     const wei = await this.getReturnByPath({
       path,
-      amount: expandToken(amount, fromTokenDecimals)
+      amount: fromWei
     });
 
+    let slippage: number | undefined;
+    if (relays.length == 1 && relays[0].converterType == PoolType.Traditional) {
+      try {
+        // const contractAddress = relays[0].contract;
+        // const contract = buildConverterContract(contractAddress);
+        // const fromReserveBalanceWei = await contract.methods
+        //   .getConnectorBalance(fromTokenContract)
+        //   .call();
+        // slippage = new BigNumber(fromWei)
+        //   .div(new BigNumber(fromReserveBalanceWei))
+        //   .toNumber();
+      } catch (e) {}
+    }
+
     return {
-      amount: shrinkToken(wei, toTokenDecimals)
+      amount: shrinkToken(wei, toTokenDecimals),
+      slippage
     };
   }
 
