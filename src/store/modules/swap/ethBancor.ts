@@ -2269,7 +2269,115 @@ export class EthBancorModule
   @action async calculateOpposingDepositV2(
     opposingDeposit: OpposingLiquidParams
   ): Promise<OpposingLiquid> {
-    return this.calculateOpposingWithdrawV2(opposingDeposit);
+    const relay = await this.chainLinkRelayById(opposingDeposit.id);
+
+    const suggestedDepositDec = opposingDeposit.reserve.amount;
+
+    const [[stakedAndReserveWeight]] = (await this.smartMulti([
+      stakedAndReserveHandler([
+        {
+          converterAdress: relay.contract,
+          reserveOne: relay.reserves[0].contract,
+          reserveTwo: relay.reserves[1].contract
+        }
+      ])
+    ])) as [StakedAndReserve[]];
+
+    const [biggerWeight, smallerWeight] = stakedAndReserveWeight.reserves
+      .map(reserve => ({
+        ...reserve,
+        decReserveWeight: new BigNumber(reserve.reserveWeight).div(oneMillion),
+        token: findOrThrow(relay.reserves, r =>
+          compareString(r.contract, reserve.reserveAddress)
+        )
+      }))
+      .sort((a, b) => b.decReserveWeight.minus(a.reserveWeight).toNumber());
+
+    const weightsEqualOneMillion = new BigNumber(biggerWeight.reserveWeight)
+      .plus(smallerWeight.reserveWeight)
+      .eq(oneMillion);
+    if (!weightsEqualOneMillion)
+      throw new Error("Was expecting reserve weights to equal 100%");
+    const distanceFromMiddle = biggerWeight.decReserveWeight.minus(0.5);
+
+    const adjustedBiggerWeight = new BigNumber(biggerWeight.stakedBalance).div(
+      new BigNumber(1).minus(distanceFromMiddle)
+    );
+    const adjustedSmallerWeight = new BigNumber(
+      smallerWeight.stakedBalance
+    ).div(new BigNumber(1).plus(distanceFromMiddle));
+
+    const singleUnitCosts = [
+      {
+        id: biggerWeight.reserveAddress,
+        amount: shrinkToken(
+          adjustedBiggerWeight.toString(),
+          biggerWeight.token.decimals
+        )
+      },
+      {
+        id: smallerWeight.reserveAddress,
+        amount: shrinkToken(
+          adjustedSmallerWeight.toString(),
+          smallerWeight.token.decimals
+        )
+      }
+    ];
+
+    const sameReserve = findOrThrow([biggerWeight, smallerWeight], weight =>
+      compareString(weight.reserveAddress, opposingDeposit.reserve.id)
+    );
+
+    const shareOfPool =
+      Number(opposingDeposit.reserve.amount) /
+      Number(
+        shrinkToken(sameReserve.stakedBalance, sameReserve.token.decimals)
+      );
+
+    const suggestedDepositWei = expandToken(
+      suggestedDepositDec,
+      sameReserve.token.decimals
+    );
+
+    const v2Converter = buildV2Converter(relay.contract);
+    const maxStakingEnabled = await v2Converter.methods
+      .maxStakedBalanceEnabled()
+      .call();
+    console.log({ maxStakingEnabled });
+    if (maxStakingEnabled) {
+      const maxStakedBalance = await v2Converter.methods
+        .maxStakedBalances(sameReserve.reserveAddress)
+        .call();
+
+      console.log({ maxStakedBalance });
+      if (maxStakedBalance !== "0") {
+        const currentBalance = new BigNumber(sameReserve.stakedBalance);
+        const proposedTotalBalance = new BigNumber(suggestedDepositWei).plus(
+          currentBalance
+        );
+        const maxStakedBalanceWei = new BigNumber(maxStakedBalance);
+        if (proposedTotalBalance.gt(maxStakedBalanceWei)) {
+          const remainingSpaceAvailableWei = maxStakedBalanceWei.minus(
+            currentBalance
+          );
+          const remainingSpaceAvailableDec = shrinkToken(
+            remainingSpaceAvailableWei.toString(),
+            sameReserve.token.decimals
+          );
+          throw new Error(
+            `This pool is currently capped and can receive ${remainingSpaceAvailableDec} additional tokens`
+          );
+        }
+      }
+    }
+
+    const result = {
+      opposingAmount: undefined,
+      shareOfPool,
+      singleUnitCosts
+    };
+    console.log(result, "was the result");
+    return result;
   }
 
   @action async calculateOpposingDeposit(
