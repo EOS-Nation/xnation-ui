@@ -152,6 +152,7 @@ export default class App extends Vue {
       // if (provider) vxm.eosWallet.initLogin(provider);
     }
     vxm.general.setLanguage();
+    vxm.general.getUserCountry();
     this.loadBancor();
   }
 }

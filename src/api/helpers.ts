@@ -726,3 +726,9 @@ export const rebuildFromIndex = <T>(
   arr: T[],
   indexes: [number, number][]
 ): T[][] => indexes.map(([before, after]) => arr.slice(before, after));
+
+export const getCountryCode = () => {
+  return fetch(`https://ipapi.co/json`, { referrerPolicy: "no-referrer" })
+    .then(res => res.json())
+    .then(res => res.country_code_iso3);
+};

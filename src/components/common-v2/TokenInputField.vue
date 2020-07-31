@@ -93,8 +93,8 @@ export default class TokenInputField extends Vue {
     const balance = parseFloat(this.balance);
     if (!balance || balance === 0) return "0";
     else if (balance < 0.000001) return "< 0.000001";
-    else if (balance > 1000) return numeral(balance).format("0,0.0000");
-    else return numeral(balance).format("0,0.000000");
+    else if (balance > 1000) return "~" + numeral(balance).format("0,0.0000");
+    else return "~" + numeral(balance).format("0,0.000000");
   }
 
   get errorState() {

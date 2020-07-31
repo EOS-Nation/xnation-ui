@@ -1,5 +1,5 @@
 <template>
-  <base-modal id="modal-swap-action" size="md" title="Select a Token">
+  <base-modal id="modal-swap-action" size="md" title="Confirm Token Swap">
     <b-row class="d-flex justify-content-center">
       <div v-if="!(txBusy || success || error)">
         <b-col cols="12">
@@ -124,6 +124,10 @@ export default class ModalSwapAction extends Vue {
     return vxm.bancor.slippageTolerance;
   }
 
+  get isCountryBanned() {
+    return vxm.general.isCountryBanned;
+  }
+
   setDefault() {
     this.sections = [];
     this.error = "";
@@ -143,7 +147,9 @@ export default class ModalSwapAction extends Vue {
       return;
     }
 
-    if (!this.notUsState) {
+    if (!this.notUsState || this.isCountryBanned) {
+      this.error =
+        "This action through swap.bancor.network is not available in your country.";
       return;
     }
 

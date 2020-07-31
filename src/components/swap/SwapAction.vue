@@ -17,7 +17,8 @@
       <font-awesome-icon
         icon="exchange-alt"
         rotation="90"
-        class="text-primary font-size-16"
+        @click="invertSelection"
+        class="text-primary font-size-16 cursor"
       />
     </div>
 
@@ -40,10 +41,12 @@
       <label-content-split
         label="Price Impact"
         :value="
-          slippage !== null ? numeral(this.slippage).format('0.0000%') : '0.00%'
+          slippage !== null && slippage !== undefined
+            ? numeral(this.slippage).format('0.0000%')
+            : '0.00%'
         "
       />
-      <label-content-split v-if="fee !== null" label="Slippage" :value="fee" />
+      <label-content-split v-if="fee !== null" label="Fee" :value="fee" />
     </div>
 
     <main-button
@@ -93,7 +96,7 @@ export default class SwapAction extends Vue {
   token1: ViewToken = vxm.bancor.tokens[0];
   token2: ViewToken = vxm.bancor.tokens[1];
 
-  slippage: number | null = null;
+  slippage: number | null | undefined = null;
   fee: string | null = null;
 
   errorToken1 = "";
@@ -126,7 +129,7 @@ export default class SwapAction extends Vue {
       // },
       {
         label: "Price Impact",
-        value: this.slippage !== null ? numeral(this.slippage).format('0.0000%') : '0.00%'
+        value: this.slippage !== null && this.slippage !== undefined ? numeral(this.slippage).format('0.0000%') : '0.00%'
       },
       // {
       //   label: "Liquidity Provider Fee",
@@ -137,6 +140,16 @@ export default class SwapAction extends Vue {
 
   openModal(name: string) {
     this.$bvModal.show(name);
+  }
+
+  invertSelection() {
+    this.$router.push({
+      name: "Swap",
+      query: {
+        from: this.token2.id,
+        to: this.token1.id
+      }
+    })
   }
 
   get isAuthenticated() {
@@ -254,8 +267,17 @@ export default class SwapAction extends Vue {
   }
 
   async created() {
-    if (this.$route.query.to || this.$route.query.from)
+    if (this.$route.query.to && this.$route.query.from)
       await this.onTokenChange(this.$route.query);
+    else {
+      const defaultQuery = {
+        from: vxm.bancor.tokens[0].id,
+        to: vxm.bancor.tokens[1].id
+      }
+      if (this.$route.query.from) defaultQuery.from = this.$route.query.from
+      if (this.$route.query.to) defaultQuery.to = this.$route.query.to
+      await this.$router.push({name: "Swap", query: defaultQuery})
+    }
 
     this.rateLoading = true
     try {
