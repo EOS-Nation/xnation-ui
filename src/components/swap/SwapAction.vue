@@ -17,7 +17,8 @@
       <font-awesome-icon
         icon="exchange-alt"
         rotation="90"
-        class="text-primary font-size-16"
+        @click="invertSelection"
+        class="text-primary font-size-16 cursor"
       />
     </div>
 
@@ -137,6 +138,16 @@ export default class SwapAction extends Vue {
 
   openModal(name: string) {
     this.$bvModal.show(name);
+  }
+
+  invertSelection() {
+    this.$router.push({
+      name: "Swap",
+      query: {
+        from: this.token2.id,
+        to: this.token1.id
+      }
+    })
   }
 
   get isAuthenticated() {
