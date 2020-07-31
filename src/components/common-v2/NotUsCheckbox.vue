@@ -14,15 +14,7 @@
 </template>
 
 <script lang="ts">
-import {
-  Component,
-  Vue,
-  Prop,
-  Watch,
-  PropSync,
-  Emit
-} from "vue-property-decorator";
-import { vxm } from "@/store/";
+import { Component, Vue, Prop, Emit } from "vue-property-decorator";
 
 @Component
 export default class NotUsCheckbox extends Vue {
