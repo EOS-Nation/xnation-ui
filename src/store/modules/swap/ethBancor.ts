@@ -4718,6 +4718,50 @@ export class EthBancorModule
     return reserve.decimals;
   }
 
+  @action async hopAlongPath({
+    fromSymbol,
+    fromWei,
+    relays
+  }: {
+    fromSymbol: string;
+    fromWei: string;
+    relays: Relay[];
+  }) {
+    const hops = relays.reduce(
+      (acc, item) => {
+        const opposingSymbol = item.reserves.find(
+          reserve => !compareString(reserve.symbol, acc.lastFrom)
+        )!;
+        const addedPath = generateEthPath(acc.lastFrom, [relayToMinimal(item)]);
+        return {
+          path: [...acc.path, addedPath],
+          lastFrom: opposingSymbol.symbol
+        };
+      },
+      {
+        lastFrom: fromSymbol,
+        path: [] as any[]
+      }
+    ).path;
+
+    console.log(hops, "are the hops!");
+
+    const costs = hops.reduce(async (acc, ([fromTokenAddress, ])) => {
+
+        // const contract = buildConverterContrac
+        // t(item[1]);
+
+      const fromReserveBalanceWei = await contract.methods
+        .getConnectorBalance(fromTokenContract)
+        .call();
+
+      const priceReturn = await this.getReturnByPath({ path: item, amount: acc.lastReward });
+      const totalReserveBalance = await 
+
+    }, { lastReward: fromWei, data: [] as any[] });
+
+  }
+
   @action async getReturn({
     from,
     toId
@@ -4744,26 +4788,39 @@ export class EthBancorModule
 
     const path = generateEthPath(fromToken.symbol, relays.map(relayToMinimal));
 
+    console.log(path, "is the path");
+
     const fromWei = expandToken(amount, fromTokenDecimals);
     const wei = await this.getReturnByPath({
       path,
       amount: fromWei
     });
+    const weiNumber = new BigNumber(wei);
 
     let slippage: number | undefined;
-    if (relays.length == 1 && relays[0].converterType == PoolType.Traditional) {
-      try {
-        // const contractAddress = relays[0].contract;
-        // const contract = buildConverterContract(contractAddress);
-        // const fromReserveBalanceWei = await contract.methods
-        //   .getConnectorBalance(fromTokenContract)
-        //   .call();
-        // slippage = new BigNumber(fromWei)
-        //   .div(new BigNumber(fromReserveBalanceWei))
-        //   .toNumber();
-      } catch (e) {
-        console.warn("Failed fetching and calculating slippage");
-      }
+    try {
+      this.hopAlongPath({ fromSymbol: fromToken.symbol, fromWei, relays });
+      // const firstConverter = relays[0].contract;
+      // const contract = buildConverterContract(firstConverter);
+      // const fromReserveBalanceWei = await contract.methods
+      //   .getConnectorBalance(fromTokenContract)
+      //   .call();
+      // const fixedReserveBalanceWei = new BigNumber(fromReserveBalanceWei)
+      //   .times(0.001)
+      //   .toFixed(0);
+      // const fixedReturnWei = await this.getReturnByPath({
+      //   path,
+      //   amount: fixedReserveBalanceWei
+      // });
+      // const tinyReturnWeiNumber = new BigNumber(fixedReturnWei);
+      // const result = tinyReturnWeiNumber
+      //   .minus(weiNumber)
+      //   .abs()
+      //   .div(tinyReturnWeiNumber);
+      // slippage = new BigNumber(1).minus(result).toNumber();
+      // console.log("slippage is", slippage);
+    } catch (e) {
+      console.warn("Failed calculating slippage", e.message);
     }
 
     return {
