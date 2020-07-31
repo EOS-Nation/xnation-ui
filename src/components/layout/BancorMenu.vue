@@ -12,31 +12,31 @@
       <font-awesome-icon icon="bars" fixed-width />
     </template>
 
-    <b-dropdown-group id="dropdown-group-1">
+    <b-dropdown-group v-if="false" id="dropdown-group-1">
       <b-dropdown-header class="text-uppercase">Bancor</b-dropdown-header>
       <b-dropdown-item style="width: 230px;" disabled>
         <font-awesome-icon icon="info" class="mr-2" fixed-width /> About (Coming
         Soon)
       </b-dropdown-item>
     </b-dropdown-group>
-    <b-dropdown-divider></b-dropdown-divider>
+    <b-dropdown-divider v-if="false"></b-dropdown-divider>
     <b-dropdown-group id="dropdown-group-2">
       <b-dropdown-header class="text-uppercase">Apps</b-dropdown-header>
-      <b-dropdown-item :to="{ name: 'Swap' }"
+      <b-dropdown-item v-if="false" :to="{ name: 'Swap' }"
         ><font-awesome-icon icon="exchange-alt" class="mr-2" fixed-width />
         Bancor Swap</b-dropdown-item
       >
-      <b-dropdown-item :to="{ name: 'Data' }"
+      <b-dropdown-item disabled :to="{ name: 'Data' }"
         ><font-awesome-icon icon="chart-line" class="mr-2" fixed-width /> Bancor
-        Data</b-dropdown-item
+        Data (Coming Soon)</b-dropdown-item
       >
       <b-dropdown-item @click="openUrl('https://x.bancor.network/')"
         ><font-awesome-icon icon="times" class="mr-2" fixed-width /> Bancor
         X</b-dropdown-item
       >
-      <b-dropdown-item disabled
+      <b-dropdown-item @click="openUrl('https://bancor.network/')"
         ><font-awesome-icon icon="chart-bar" class="mr-2" fixed-width /> Bancor
-        DAO (Coming Soon)</b-dropdown-item
+        Wallet</b-dropdown-item
       >
     </b-dropdown-group>
     <b-dropdown-divider></b-dropdown-divider>

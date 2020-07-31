@@ -1,5 +1,5 @@
 <template>
-  <base-modal id="modal-swap-action" size="md" title="Select a Token">
+  <base-modal id="modal-swap-action" size="md" title="Confirm Token Swap">
     <b-row class="d-flex justify-content-center">
       <div v-if="!(txBusy || success || error)">
         <b-col cols="12">

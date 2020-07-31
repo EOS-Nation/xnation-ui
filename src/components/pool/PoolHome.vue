@@ -16,7 +16,7 @@
         <your-liquidity />
       </div>
     </content-block>
-    <div class="d-flex justify-content-center">
+    <div v-if="false" class="d-flex justify-content-center">
       <router-link
         :to="{ name: 'Create' }"
         class="cursor font-w700 mb-3"

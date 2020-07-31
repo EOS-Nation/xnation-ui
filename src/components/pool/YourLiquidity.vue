@@ -12,7 +12,7 @@
             <label-content-split
               v-if="!pool.relay.v2"
               label="Pool Token Balance"
-              :value="pool.smartTokenAmount"
+              :value="formattedBalance(pool.smartTokenAmount.toString())"
             />
             <div v-else-if="pool.poolTokens">
               <label-content-split
@@ -25,7 +25,7 @@
                     ).symbol
                   }`
                 "
-                :value="token.balance"
+                :value="formattedBalance(token.balance.toString())"
               />
             </div>
           </div>
@@ -63,6 +63,7 @@ import { vxm } from "@/store";
 import LabelContentSplit from "@/components/common-v2/LabelContentSplit.vue";
 import { PoolTokenPosition, ViewRelay, ViewReserve } from "@/types/bancor";
 import MainButton from "@/components/common/Button.vue";
+import numeral from "numeral";
 
 @Component({
   components: { LabelContentSplit, MainButton }
@@ -74,6 +75,14 @@ export default class YourLiquidity extends Vue {
 
   get isAuthenticated() {
     return vxm.wallet.isAuthenticated;
+  }
+
+  formattedBalance(amount: string) {
+    const balance = parseFloat(amount);
+    if (!balance || balance === 0) return "0";
+    else if (balance < 0.000001) return "< 0.000001";
+    else if (balance > 1000) return "~" + numeral(balance).format("0,0.0000");
+    else return "~" + numeral(balance).format("0,0.000000");
   }
 
   getPoolLabel(reserves: ViewReserve[]) {
