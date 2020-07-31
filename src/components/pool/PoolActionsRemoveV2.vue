@@ -250,7 +250,9 @@ export default class PoolActionsRemoveV2 extends Vue {
     const decPercent = Number(percent) / 100;
     if (decPercent === 1)
       this.amountSmartToken = this.selectedPoolToken.balance;
-    const poolTokenAmount = new BigNumber(this.selectedPoolToken.balance)
+
+    const BN = BigNumber.clone({ DECIMAL_PLACES: 18, EXPONENTIAL_AT: 256 });
+    const poolTokenAmount = new BN(this.selectedPoolToken.balance)
       .times(decPercent)
       .toString();
 

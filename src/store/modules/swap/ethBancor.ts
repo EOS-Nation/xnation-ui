@@ -2393,7 +2393,7 @@ export class EthBancorModule
           keepWei: false
         });
 
-        BigNumber.config({ EXPONENTIAL_AT: 999 });
+        BigNumber.config({ EXPONENTIAL_AT: 256 });
 
         return {
           ...reserveAndPool,
@@ -4107,10 +4107,7 @@ export class EthBancorModule
       return this.refresh();
     }
 
-    BigNumber.config({ EXPONENTIAL_AT: 999 });
-
-    const x = new BigNumber(11000000).div(Math.pow(10, 18)).toString();
-    console.log(x, "is the balane");
+    BigNumber.config({ EXPONENTIAL_AT: 256 });
 
     const web3NetworkVersion = await web3.eth.getChainId();
     const currentNetwork: EthNetworks = web3NetworkVersion;
@@ -4129,7 +4126,6 @@ export class EthBancorModule
       params.tradeQuery.quote = networkVariables.bntToken;
     }
 
-    console.log("getting to try...");
     try {
       let bancorApiTokens: TokenPrice[] = [];
 
