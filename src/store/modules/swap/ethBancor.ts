@@ -979,6 +979,7 @@ const stakedAndReserveHandler = (
     );
 
     const data = decoded.data;
+    console.log(data, "is data");
     return {
       converterAddress: decoded.originAddress,
       reserves: [
@@ -4357,6 +4358,17 @@ export class EthBancorModule
       const x = await this.addPoolsBulk(initialLoad);
       console.timeEnd("initialPools");
       console.log("finished add pools...", x);
+
+      try {
+        await this.addPoolsBulk([
+          {
+            anchorAddress: "0xC42a9e06cEBF12AE96b11f8BAE9aCC3d6b016237",
+            converterAddress: "0x222b06E3392998911A79C51Ee64b4aabE1653537"
+          }
+        ]);
+      } catch (e) {
+        console.log(e, "was e");
+      }
 
       if (remainingLoad.length > 0) {
         const banned = [
