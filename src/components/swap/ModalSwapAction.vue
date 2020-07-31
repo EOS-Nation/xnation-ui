@@ -170,8 +170,16 @@ export default class ModalSwapAction extends Vue {
       });
 
       this.success = result;
+      this.$gtag.event("swapAction", {
+        event_category: this.$route.query.from + "+" + this.$route.query.to,
+        event_label: "success"
+      });
     } catch (e) {
       this.error = e.message;
+      this.$gtag.event("swapAction", {
+        event_category: this.$route.query.from + "+" + this.$route.query.to,
+        event_label: "error"
+      });
     } finally {
       this.txBusy = false;
     }
