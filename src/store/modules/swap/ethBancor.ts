@@ -2288,7 +2288,9 @@ export class EthBancorModule
       tokenContractAddress,
       keepWei
     });
-    this.updateBalance([tokenContractAddress, Number(balance)]);
+    if (Number(balance) > 0) {
+      this.updateBalance([tokenContractAddress, Number(balance)]);
+    }
     return balance;
   }
 
@@ -4746,20 +4748,46 @@ export class EthBancorModule
 
     console.log(hops, "are the hops!");
 
-    const costs = hops.reduce(async (acc, ([fromTokenAddress, ])) => {
+    const costs = await hops.reduce(
+      async (acc, [fromTokenAddress, anchor, toTokenAddress]) => {
+        const relay = await this.relayById(anchor);
+        const contract = buildConverterContract(relay.contract);
+        const fromReserveBalance = await contract.methods
+          .getConnectorBalance(fromTokenAddress)
+          .call();
+        const toReserveBalance = await contract.methods
+          .getConnectorBalance(toTokenAddress)
+          .call();
+        const slippageLessReturnRate = new BigNumber(toReserveBalance).div(
+          fromReserveBalance
+        );
 
-        // const contract = buildConverterContrac
-        // t(item[1]);
+        const returnWei = await this.getReturnByPath({
+          path: [fromTokenAddress, anchor, toTokenAddress],
+          amount: acc.lastReward
+        });
+        const zeroSlippageReturnWei = slippageLessReturnRate.times(
+          acc.lastReward
+        );
+        const returnWeiNumber = new BigNumber(returnWei);
+        const slippagePercent = zeroSlippageReturnWei
+          .minus(returnWeiNumber)
+          .abs()
+          .div(zeroSlippageReturnWei);
 
-      const fromReserveBalanceWei = await contract.methods
-        .getConnectorBalance(fromTokenContract)
-        .call();
+        return {
+          lastReward: returnWei,
+          slippagesPaid: [...acc.slippagesPaid, slippagePercent.toNumber()]
+        };
+      },
+      { lastReward: fromWei, slippagesPaid: [] as number[] }
+    );
 
-      const priceReturn = await this.getReturnByPath({ path: item, amount: acc.lastReward });
-      const totalReserveBalance = await 
-
-    }, { lastReward: fromWei, data: [] as any[] });
-
+    console.log(costs, "are the costs");
+    // @ts-ignore
+    return costs.slippagesPaid.reduce(
+      (a, v, i) => (a * i + v) / (i + 1)
+    ) as number;
   }
 
   @action async getReturn({
@@ -4799,26 +4827,13 @@ export class EthBancorModule
 
     let slippage: number | undefined;
     try {
-      this.hopAlongPath({ fromSymbol: fromToken.symbol, fromWei, relays });
-      // const firstConverter = relays[0].contract;
-      // const contract = buildConverterContract(firstConverter);
-      // const fromReserveBalanceWei = await contract.methods
-      //   .getConnectorBalance(fromTokenContract)
-      //   .call();
-      // const fixedReserveBalanceWei = new BigNumber(fromReserveBalanceWei)
-      //   .times(0.001)
-      //   .toFixed(0);
-      // const fixedReturnWei = await this.getReturnByPath({
-      //   path,
-      //   amount: fixedReserveBalanceWei
-      // });
-      // const tinyReturnWeiNumber = new BigNumber(fixedReturnWei);
-      // const result = tinyReturnWeiNumber
-      //   .minus(weiNumber)
-      //   .abs()
-      //   .div(tinyReturnWeiNumber);
-      // slippage = new BigNumber(1).minus(result).toNumber();
-      // console.log("slippage is", slippage);
+      const slippagePaid = await this.hopAlongPath({
+        fromSymbol: fromToken.symbol,
+        fromWei,
+        relays
+      });
+      console.log(slippagePaid, "is slippage paid");
+      slippage = slippagePaid;
     } catch (e) {
       console.warn("Failed calculating slippage", e.message);
     }
