@@ -182,10 +182,10 @@ export const buildV2Converter = (
   poolToken: (reserveToken: string) => CallReturn<string>;
   liquidationLimit: (poolToken: string) => CallReturn<string>;
   effectiveReserveWeights: () => CallReturn<{ "0": string; "1": string }>;
-  removeLiquidityReturn: (
+  removeLiquidityReturnAndFee: (
     poolToken: string,
     amount: string
-  ) => CallReturn<string>;
+  ) => CallReturn<{ "0": string; "1": string }>;
   addLiquidity: (
     reserveTokenAddress: string,
     amount: string,

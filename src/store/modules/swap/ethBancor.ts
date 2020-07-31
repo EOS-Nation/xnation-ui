@@ -2377,9 +2377,11 @@ export class EthBancorModule
   }) {
     const v2Converter = buildV2Converter(converterAddress);
 
-    return v2Converter.methods
-      .removeLiquidityReturn(poolTokenContract, poolTokenWei)
+    const res = await v2Converter.methods
+      .removeLiquidityReturnAndFee(poolTokenContract, poolTokenWei)
       .call();
+
+    return { feeAmountWei: res[1], returnAmountWei: res[0] };
   }
 
   @action async getUserBalancesChainLink(
@@ -2413,12 +2415,12 @@ export class EthBancorModule
           poolTokenBalance.poolToken.decimals
         );
 
-        const maxWithdrawWei = await v2Converter.methods
-          .removeLiquidityReturn(
+        const maxWithdrawWei = (await v2Converter.methods
+          .removeLiquidityReturnAndFee(
             poolTokenBalance.poolToken.contract,
             poolTokenBalanceWei
           )
-          .call();
+          .call())[0];
 
         return {
           ...poolTokenBalance,
@@ -2539,7 +2541,7 @@ export class EthBancorModule
     );
 
     const [
-      removeLiquidityReturnWei,
+      { returnAmountWei },
       poolTokenSupplyWei,
       liquidatationLimit
     ] = await Promise.all([
@@ -2562,7 +2564,7 @@ export class EthBancorModule
       .times(sameReserve.stakedBalance)
       .div(poolTokenSupplyWei);
 
-    const feeAmountWei = noFeeLiquidityReturn.minus(removeLiquidityReturnWei);
+    const feeAmountWei = noFeeLiquidityReturn.minus(returnAmountWei);
     const feePercent = new BigNumber(feeAmountWei)
       .div(noFeeLiquidityReturn)
       .toNumber();
@@ -2573,13 +2575,13 @@ export class EthBancorModule
         feeAmountWei,
         suggestedWithdrawWei,
         noFeeLiquidityReturn,
-        removeLiquidityReturnWei
+        returnAmountWei
       },
       "look"
     );
 
     const removeLiquidityReturnDec = shrinkToken(
-      removeLiquidityReturnWei,
+      returnAmountWei,
       sameReserve.token.decimals
     );
 
@@ -2621,6 +2623,7 @@ export class EthBancorModule
     const chainlinkRelay = assertChainlink(relay);
     return chainlinkRelay;
   }
+
   @action async calculateOpposingWithdrawInfo(
     opposingWithdraw: OpposingLiquidParams
   ): Promise<EthOpposingLiquid> {
@@ -2784,7 +2787,9 @@ export class EthBancorModule
           tokenContract: poolToken.poolToken.contract,
           weiAmount: roundedWeiAmount
         },
-        miniumReserveReturnWei: new BigNumber(expectedReserveReturn)
+        miniumReserveReturnWei: new BigNumber(
+          expectedReserveReturn.returnAmountWei
+        )
           .times(0.99)
           .toFixed(0)
       });

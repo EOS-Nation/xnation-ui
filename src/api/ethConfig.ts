@@ -3244,6 +3244,15 @@ export const ABINetworkContract: AbiItem[] = [
 
 export const ABIV2Converter: AbiItem[] = [
   {
+    constant: true,
+    inputs: [{ name: "_reserveToken", type: "address" }],
+    name: "reserveStakedBalance",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
     constant: false,
     inputs: [{ name: "_onlyOwnerCanUpdateRegistry", type: "bool" }],
     name: "restrictRegistryUpdate",
@@ -3295,12 +3304,34 @@ export const ABIV2Converter: AbiItem[] = [
     type: "function"
   },
   {
+    constant: false,
+    inputs: [
+      { name: "_primaryReserveToken", type: "address" },
+      { name: "_primaryReserveOracle", type: "address" },
+      { name: "_secondaryReserveOracle", type: "address" }
+    ],
+    name: "activate",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
     constant: true,
     inputs: [],
     name: "hasETHReserve",
     outputs: [{ name: "", type: "bool" }],
     payable: false,
     stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [],
+    name: "disableMaxStakedBalances",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
     type: "function"
   },
   {
@@ -3346,8 +3377,35 @@ export const ABIV2Converter: AbiItem[] = [
   {
     constant: true,
     inputs: [],
+    name: "isActive",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
     name: "priceOracle",
     outputs: [{ name: "", type: "address" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_reserveToken", type: "address" }],
+    name: "reserveAmplifiedBalance",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_poolToken", type: "address" }],
+    name: "liquidationLimit",
+    outputs: [{ name: "", type: "uint256" }],
     payable: false,
     stateMutability: "view",
     type: "function"
@@ -3384,6 +3442,27 @@ export const ABIV2Converter: AbiItem[] = [
     type: "function"
   },
   {
+    constant: true,
+    inputs: [],
+    name: "converterType",
+    outputs: [{ name: "", type: "uint16" }],
+    payable: false,
+    stateMutability: "pure",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_reserve1MaxStakedBalance", type: "uint256" },
+      { name: "_reserve2MaxStakedBalance", type: "uint256" }
+    ],
+    name: "setMaxStakedBalances",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
     constant: false,
     inputs: [],
     name: "updateRegistry",
@@ -3406,6 +3485,28 @@ export const ABIV2Converter: AbiItem[] = [
     inputs: [],
     name: "version",
     outputs: [{ name: "", type: "uint16" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_reserveToken", type: "address" },
+      { name: "_amount", type: "uint256" },
+      { name: "_minReturn", type: "uint256" }
+    ],
+    name: "addLiquidity",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: true,
+    stateMutability: "payable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [{ name: "_reserveToken", type: "address" }],
+    name: "poolToken",
+    outputs: [{ name: "", type: "address" }],
     payable: false,
     stateMutability: "view",
     type: "function"
@@ -3451,9 +3552,33 @@ export const ABIV2Converter: AbiItem[] = [
     type: "function"
   },
   {
+    constant: true,
+    inputs: [
+      { name: "_poolToken", type: "address" },
+      { name: "_amount", type: "uint256" }
+    ],
+    name: "removeLiquidityReturnAndFee",
+    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
     constant: false,
     inputs: [{ name: "_to", type: "address" }],
     name: "withdrawETH",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_token", type: "address" },
+      { name: "_weight", type: "uint32" }
+    ],
+    name: "addReserve",
     outputs: [],
     payable: false,
     stateMutability: "nonpayable",
@@ -3532,6 +3657,19 @@ export const ABIV2Converter: AbiItem[] = [
     type: "function"
   },
   {
+    constant: true,
+    inputs: [
+      { name: "_sourceToken", type: "address" },
+      { name: "_targetToken", type: "address" },
+      { name: "_amount", type: "uint256" }
+    ],
+    name: "targetAmountAndFee",
+    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
     constant: false,
     inputs: [],
     name: "restoreRegistry",
@@ -3547,6 +3685,18 @@ export const ABIV2Converter: AbiItem[] = [
     outputs: [{ name: "", type: "bool" }],
     payable: false,
     stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_reserveToken", type: "address" },
+      { name: "_balance", type: "uint256" }
+    ],
+    name: "setReserveStakedBalance",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
     type: "function"
   },
   {
@@ -3623,6 +3773,15 @@ export const ABIV2Converter: AbiItem[] = [
   },
   {
     constant: true,
+    inputs: [],
+    name: "amplificationFactor",
+    outputs: [{ name: "", type: "uint8" }],
+    payable: false,
+    stateMutability: "pure",
+    type: "function"
+  },
+  {
+    constant: true,
     inputs: [{ name: "", type: "address" }],
     name: "reserves",
     outputs: [
@@ -3648,6 +3807,15 @@ export const ABIV2Converter: AbiItem[] = [
   {
     constant: true,
     inputs: [],
+    name: "effectiveTokensRate",
+    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
     name: "secondaryReserveToken",
     outputs: [{ name: "", type: "address" }],
     payable: false,
@@ -3666,6 +3834,19 @@ export const ABIV2Converter: AbiItem[] = [
   {
     constant: false,
     inputs: [
+      { name: "_poolToken", type: "address" },
+      { name: "_amount", type: "uint256" },
+      { name: "_minReturn", type: "uint256" }
+    ],
+    name: "removeLiquidity",
+    outputs: [{ name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
       { name: "_sourceToken", type: "address" },
       { name: "_targetToken", type: "address" },
       { name: "_amount", type: "uint256" },
@@ -3676,6 +3857,15 @@ export const ABIV2Converter: AbiItem[] = [
     outputs: [{ name: "", type: "uint256" }],
     payable: true,
     stateMutability: "payable",
+    type: "function"
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: "effectiveReserveWeights",
+    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
+    payable: false,
+    stateMutability: "view",
     type: "function"
   },
   {
@@ -3752,8 +3942,9 @@ export const ABIV2Converter: AbiItem[] = [
   {
     anonymous: false,
     inputs: [
-      { indexed: false, name: "_anchor", type: "address" },
-      { indexed: false, name: "_activated", type: "bool" }
+      { indexed: true, name: "_type", type: "uint16" },
+      { indexed: true, name: "_anchor", type: "address" },
+      { indexed: true, name: "_activated", type: "bool" }
     ],
     name: "Activation",
     type: "event"
@@ -3799,177 +3990,5 @@ export const ABIV2Converter: AbiItem[] = [
     ],
     name: "OwnerUpdate",
     type: "event"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "converterType",
-    outputs: [{ name: "", type: "uint16" }],
-    payable: false,
-    stateMutability: "pure",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "isActive",
-    outputs: [{ name: "", type: "bool" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_primaryReserveToken", type: "address" },
-      { name: "_primaryReserveOracle", type: "address" },
-      { name: "_secondaryReserveOracle", type: "address" }
-    ],
-    name: "activate",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_reserveToken", type: "address" }],
-    name: "reserveStakedBalance",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_reserveToken", type: "address" },
-      { name: "_balance", type: "uint256" }
-    ],
-    name: "setReserveStakedBalance",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_reserve1MaxStakedBalance", type: "uint256" },
-      { name: "_reserve2MaxStakedBalance", type: "uint256" }
-    ],
-    name: "setMaxStakedBalances",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [],
-    name: "disableMaxStakedBalances",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_reserveToken", type: "address" }],
-    name: "poolToken",
-    outputs: [{ name: "", type: "address" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [{ name: "_poolToken", type: "address" }],
-    name: "liquidationLimit",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_token", type: "address" },
-      { name: "_weight", type: "uint32" }
-    ],
-    name: "addReserve",
-    outputs: [],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "effectiveTokensRate",
-    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_sourceToken", type: "address" },
-      { name: "_targetToken", type: "address" },
-      { name: "_amount", type: "uint256" }
-    ],
-    name: "targetAmountAndFee",
-    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_reserveToken", type: "address" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" }
-    ],
-    name: "addLiquidity",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: true,
-    stateMutability: "payable",
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_poolToken", type: "address" },
-      { name: "_amount", type: "uint256" },
-      { name: "_minReturn", type: "uint256" }
-    ],
-    name: "removeLiquidity",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "nonpayable",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [
-      { name: "_poolToken", type: "address" },
-      { name: "_amount", type: "uint256" }
-    ],
-    name: "removeLiquidityReturn",
-    outputs: [{ name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
-  },
-  {
-    constant: true,
-    inputs: [],
-    name: "effectiveReserveWeights",
-    outputs: [{ name: "", type: "uint256" }, { name: "", type: "uint256" }],
-    payable: false,
-    stateMutability: "view",
-    type: "function"
   }
 ];
