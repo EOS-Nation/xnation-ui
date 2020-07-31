@@ -30,6 +30,7 @@ export default class SwapHome extends Vue {
   get darkMode() {
     return vxm.general.darkMode;
   }
+  created() {}
 }
 </script>
 
