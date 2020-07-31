@@ -63,7 +63,11 @@ export default class ModalJoinPool extends Vue {
   get searchedPools() {
     return this.tokenSearch
       ? this.pools.filter(pool =>
-          pool.symbol.toLowerCase().includes(this.tokenSearch.toLowerCase())
+          pool.reserves
+            .map(reserve => reserve.symbol)
+            .join("/")
+            .toLowerCase()
+            .includes(this.tokenSearch.toLowerCase())
         )
       : this.pools;
   }
