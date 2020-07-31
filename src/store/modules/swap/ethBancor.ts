@@ -255,6 +255,18 @@ const smartTokenAnchor = (smartToken: Token) => {
   return { anchor: smartToken, converterType: PoolType.Traditional };
 };
 
+const calculateSlippage = (
+  slippageLessRate: BigNumber,
+  slippagedRate: BigNumber
+): BigNumber => {
+  if (slippagedRate.gt(slippageLessRate)) throw new Error("Rates are bad");
+  const result = slippageLessRate.minus(slippagedRate).abs();
+  return result.div(slippageLessRate);
+};
+
+const buildRate = (amountEntered: BigNumber, returnAmount: BigNumber) =>
+  returnAmount.div(amountEntered);
+
 const buildRelayFeedChainkLink = ({
   relays,
   usdPriceOfBnt
@@ -4797,6 +4809,37 @@ export class EthBancorModule
     );
   }
 
+  @action async testWeiReturns({
+    path,
+    amounts
+  }: {
+    path: string[];
+    amounts: { label: string; weiAmount: string }[];
+  }) {
+    const data = await Promise.all(
+      amounts.map(async amount => {
+        const returnWei = await this.getReturnByPath({
+          path,
+          amount: amount.weiAmount
+        });
+
+        return {
+          ...amount,
+          returnWei,
+          rate: buildRate(
+            new BigNumber(amount.weiAmount),
+            new BigNumber(returnWei)
+          ).toString()
+        };
+      })
+    );
+
+    return {
+      tests: data,
+      path
+    };
+  }
+
   @action async getReturn({
     from,
     toId
@@ -4832,7 +4875,7 @@ export class EthBancorModule
     });
     const weiNumber = new BigNumber(wei);
 
-    const userReturnRate = new BigNumber(fromWei).div(weiNumber);
+    const userReturnRate = buildRate(new BigNumber(fromWei), weiNumber);
 
     let slippage: number | undefined;
     try {
@@ -4841,26 +4884,40 @@ export class EthBancorModule
         .getConnectorBalance(fromTokenContract)
         .call();
 
-      const fixedReserveBalance = new BigNumber(fromReserveBalanceWei).times(
-        0.00001
-      );
+      const smallPortionOfReserveBalance = new BigNumber(
+        fromReserveBalanceWei
+      ).times(0.00001);
 
-      if (fixedReserveBalance.lt(fromWei)) {
-        const fixedReserveBalanceWei = fixedReserveBalance.toFixed(0);
-
-        const tinySlippage = await this.getReturnByPath({
-          path,
-          amount: fixedReserveBalanceWei
-        });
-
-        const tinyReturnRate = new BigNumber(fixedReserveBalanceWei).div(
-          tinySlippage
+      if (smallPortionOfReserveBalance.isLessThan(fromWei)) {
+        const smallPortionOfReserveBalanceWei = smallPortionOfReserveBalance.toFixed(
+          0
         );
 
-        const result = tinyReturnRate.minus(userReturnRate).abs();
+        const smallPortionReturn = await this.getReturnByPath({
+          path,
+          amount: smallPortionOfReserveBalanceWei
+        });
 
-        const x = result.div(tinyReturnRate);
-        slippage = x.toNumber();
+        const tinyReturnRate = buildRate(
+          new BigNumber(smallPortionOfReserveBalanceWei),
+          new BigNumber(smallPortionReturn)
+        );
+
+        // const x = await this.testWeiReturns({
+        //   path,
+        //   amounts: [
+        //     {
+        //       label: "smallReturn",
+        //       weiAmount: smallPortionOfReserveBalanceWei
+        //     },
+        //     { label: "userReturn", weiAmount: fromWei }
+        //   ]
+        // });
+        const slippageNumber = calculateSlippage(
+          tinyReturnRate,
+          userReturnRate
+        );
+        slippage = slippageNumber.toNumber();
       }
     } catch (e) {
       console.warn("Failed calculating slippage", e.message);
