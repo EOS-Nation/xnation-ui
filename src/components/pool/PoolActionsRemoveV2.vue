@@ -37,7 +37,7 @@
 
     <pool-actions-percentages
       :percentage.sync="percentage"
-      @update:percentage="setPercentage"
+      @update:percentage="percentageUpdate"
     />
 
     <div>
@@ -45,7 +45,7 @@
         label="Input"
         :token="selectedPoolToken"
         :amount.sync="amountSmartToken"
-        @update:amount="poolTokenChange"
+        @update:amount="poolTokenUpdate"
         :balance="selectedPoolToken.balance"
         class="mt-4"
         :error-msg="balanceError"
@@ -115,10 +115,11 @@ import PoolActionsPercentages from "@/components/pool/PoolActionsPercentages.vue
 import ModalPoolAction from "@/components/pool/ModalPoolAction.vue";
 import { compareString } from "../../api/helpers";
 import TokenInputField from "@/components/common-v2/TokenInputField.vue";
+import BigNumber from "bignumber.js";
 
 interface PoolTokenUI {
   disabled: boolean;
-  balance: number;
+  balance: string;
   id: string;
   symbol: string;
   logo: string[];
@@ -148,11 +149,12 @@ export default class PoolActionsRemoveV2 extends Vue {
   expectedReturn = "";
 
   poolTokens: PoolTokenUI[] = [];
+  insufficientBalance: boolean = false;
 
   get balanceError() {
     if (!this.isAuthenticated) return "";
     if (this.amountSmartToken === "") return "";
-    if (this.selectedPoolToken.balance < parseFloat(this.amountSmartToken))
+    if (this.insufficientBalance)
       return "Pool balance is currently insufficient";
     else return "";
   }
@@ -216,7 +218,7 @@ export default class PoolActionsRemoveV2 extends Vue {
         const { id, logo, symbol } = iouBalance.token;
         return {
           disabled: Number(iouBalance.amount) == 0,
-          balance: Number(iouBalance.amount),
+          balance: iouBalance.amount,
           id,
           logo,
           symbol
@@ -229,7 +231,34 @@ export default class PoolActionsRemoveV2 extends Vue {
     this.selectedToken = tokenToSelect!.id;
   }
 
-  async poolTokenChange(amount: string) {
+  async poolTokenUpdate(amount: string) {
+    const amountNumber = new BigNumber(amount);
+    const poolTokenBalanceNumber = new BigNumber(
+      this.selectedPoolToken.balance
+    );
+    if (amountNumber.gt(poolTokenBalanceNumber))
+      this.insufficientBalance = true;
+    const percentOfBalance = amountNumber
+      .div(poolTokenBalanceNumber)
+      .times(100)
+      .toFixed(0);
+    this.percentage = percentOfBalance;
+  }
+
+  percentageUpdate(percent: string) {
+    this.insufficientBalance = false;
+    const decPercent = Number(percent) / 100;
+    if (decPercent === 1)
+      this.amountSmartToken = this.selectedPoolToken.balance;
+    const poolTokenAmount = new BigNumber(this.selectedPoolToken.balance)
+      .times(decPercent)
+      .toString();
+
+    this.amountSmartToken = poolTokenAmount;
+  }
+
+  @Watch("amountSmartToken")
+  async smartTokenChanged(amount: string) {
     const res = await vxm.bancor.calculateOpposingWithdraw({
       id: this.pool.id,
       reserve: {
@@ -243,30 +272,18 @@ export default class PoolActionsRemoveV2 extends Vue {
     if (res.withdrawFee) {
       this.exitFee = Number((res.withdrawFee * 100).toFixed(4));
     }
-
-    const percentOfBalance = Number.parseInt(
-      String((Number(amount) / this.selectedPoolToken.balance) * 100)
-    );
-    this.percentage = String(percentOfBalance);
-  }
-
-  setPercentage(percent: string) {
-    const decPercent = Number(percent) / 100;
-    const poolTokenAmount = String(this.selectedPoolToken.balance * decPercent);
-    this.amountSmartToken = poolTokenAmount;
-    this.poolTokenChange(poolTokenAmount);
   }
 
   @Watch("pool")
   async updateSelection(pool: ViewRelay) {
     this.selectedToken = "";
     await this.getPoolBalances();
-    this.setPercentage(this.percentage);
+    this.percentageUpdate(this.percentage);
   }
 
   async created() {
     await this.getPoolBalances();
-    this.setPercentage(this.percentage);
+    this.percentageUpdate(this.percentage);
   }
 }
 </script>
