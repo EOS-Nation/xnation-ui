@@ -661,8 +661,8 @@ const getNetworkVariables = (ethNetwork: EthNetworks): EthNetworkVariables => {
       };
     case EthNetworks.Ropsten:
       return {
-        contractRegistry: "0xF9A25630f489173CE8e5993974D67b241b0D715B",
-        bntToken: "0x6348321a698f7a694044fa2bDe1841029fe5b7ba",
+        contractRegistry: "0xA6DB4B0963C37Bc959CbC0a874B5bDDf2250f26F",
+        bntToken: "0x98474564A00d15989F16BFB7c162c782b0e2b336",
         ethToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         multiCall: "0xf3ad7e31b052ff96566eedd218a823430e74b406"
       };
@@ -1286,11 +1286,11 @@ const getTokenMeta = async (currentNetwork: EthNetworks) => {
         symbol: "YYYY"
       },
       {
-        contract: "0x5Dc5AeC22B8477164Af275F7d58FD3CFD2940d2f",
+        contract: "0x63B75DfA4E87d3B949e876dF2Cd2e656Ec963466",
         symbol: "YYY"
       },
       {
-        contract: "0x13BCcc0ac4f7a458db5863dBbfd2586Df5eBD572",
+        contract: "0xAa2A908Ca3E38ECEfdbf8a14A3bbE7F2cA2a1BE4",
         symbol: "XXX"
       },
       {
