@@ -2056,9 +2056,15 @@ export class EthBancorModule
 
   get relays(): ViewRelay[] {
     console.time("relays");
-    const toReturn = [...this.chainkLinkRelays, ...this.traditionalRelays].sort(
-      sortByLiqDepth
-    );
+    const toReturn = [...this.chainkLinkRelays, ...this.traditionalRelays]
+      .sort(sortByLiqDepth)
+      .sort((a, b) => {
+        if (a.v2 && b.v2) return 0;
+        if (!a.v2 && !b.v2) return 0;
+        if (a.v2 && !b.v2) return -1;
+        if (!a.v2 && b.v2) return 1;
+        return 0;
+      });
     console.timeEnd("relays");
     return toReturn;
   }
