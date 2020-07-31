@@ -2544,8 +2544,7 @@ export class EthBancorModule
     );
 
     const [
-      { returnAmountWei },
-      poolTokenSupplyWei,
+      { returnAmountWei, feeAmountWei },
       liquidatationLimit
     ] = await Promise.all([
       this.removeLiquidityReturn({
@@ -2553,7 +2552,6 @@ export class EthBancorModule
         poolTokenContract: sameReserve.poolTokenAddress,
         poolTokenWei: suggestedWithdrawWei
       }),
-      this.getTokenSupply(sameReserve.poolTokenAddress),
       this.liquidationLimit({
         converterContract: relay.contract,
         poolTokenAddress: sameReserve.poolTokenAddress
@@ -2563,25 +2561,13 @@ export class EthBancorModule
     if (new BigNumber(suggestedWithdrawWei).gt(liquidatationLimit))
       throw new Error("Withdrawal amount above current liquidation limit");
 
-    const noFeeLiquidityReturn = new BigNumber(suggestedWithdrawWei)
-      .times(sameReserve.stakedBalance)
-      .div(poolTokenSupplyWei);
+    const noFeeLiquidityReturn = new BigNumber(returnAmountWei).plus(
+      feeAmountWei
+    );
 
-    const feeAmountWei = noFeeLiquidityReturn.minus(returnAmountWei);
     const feePercent = new BigNumber(feeAmountWei)
       .div(noFeeLiquidityReturn)
       .toNumber();
-
-    console.log(
-      {
-        feePercent,
-        feeAmountWei,
-        suggestedWithdrawWei,
-        noFeeLiquidityReturn,
-        returnAmountWei
-      },
-      "look"
-    );
 
     const removeLiquidityReturnDec = shrinkToken(
       returnAmountWei,
