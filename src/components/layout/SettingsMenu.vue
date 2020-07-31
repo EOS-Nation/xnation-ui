@@ -40,27 +40,34 @@
             >1.0%</b-btn
           >
           <b-btn
-            @click="customSlippage = '3'"
+            @click="setSlippage(0.05)"
             size="sm"
-            :variant="
-              !(slippage === 0.01 || slippage === 0.005 || slippage === 0.001)
-                ? 'primary'
-                : 'light'
-            "
-            class="mr-1 rounded btn-block"
-            >Custom</b-btn
+            :variant="slippage === 0.05 ? 'primary' : 'light'"
+            class="rounded btn-block"
+            >5.0%</b-btn
           >
+          <!--          <b-btn-->
+          <!--            @click="customSlippage = '3'"-->
+          <!--            size="sm"-->
+          <!--            :variant="-->
+          <!--              !(slippage === 0.01 || slippage === 0.005 || slippage === 0.001)-->
+          <!--                ? 'primary'-->
+          <!--                : 'light'-->
+          <!--            "-->
+          <!--            class="mr-1 rounded btn-block"-->
+          <!--            >Custom</b-btn-->
+          <!--          >-->
         </div>
-        <b-input
-          debounce="500"
-          v-if="
-            !(slippage === 0.01 || slippage === 0.005 || slippage === 0.001)
-          "
-          v-model="customSlippage"
-          placeholder="Enter Percentage"
-          class="form-control-alt-light font-size-sm mt-2"
-          style="height: 30px"
-        ></b-input>
+        <!--        <b-input-->
+        <!--          debounce="500"-->
+        <!--          v-if="-->
+        <!--            !(slippage === 0.01 || slippage === 0.005 || slippage === 0.001)-->
+        <!--          "-->
+        <!--          v-model="customSlippage"-->
+        <!--          placeholder="Enter Percentage"-->
+        <!--          class="form-control-alt-light font-size-sm mt-2"-->
+        <!--          style="height: 30px"-->
+        <!--        ></b-input>-->
       </b-dropdown-text>
     </b-dropdown-group>
     <b-dropdown-divider></b-dropdown-divider>
