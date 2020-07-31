@@ -97,19 +97,19 @@
         <div class="d-flex justify-content-between align-items-end">
           <b-btn
             size="sm"
-            @click="changeModule('eos')"
-            :variant="currentNetwork === 'eos' ? 'primary' : 'light'"
+            @click="changeModule('eth')"
+            :variant="currentNetwork === 'eth' ? 'primary' : 'light'"
             class="border-0 px-4 block-rounded btn-block mr-1"
           >
-            EOS
+            ETH
           </b-btn>
           <b-btn
             size="sm"
-            @click="changeModule('eth')"
-            :variant="currentNetwork === 'eth' ? 'primary' : 'light'"
+            @click="changeModule('eos')"
+            :variant="currentNetwork === 'eos' ? 'primary' : 'light'"
             class="border-0 px-4 block-rounded btn-block ml-1"
           >
-            ETH
+            EOS
           </b-btn>
         </div>
       </b-dropdown-text>
@@ -166,6 +166,10 @@ export default class SettingsMenu extends Vue {
 
   set darkMode(value: boolean) {
     vxm.general.toggleDarkMode();
+  }
+
+  created() {
+    if (this.slippage === 0.05) this.setSlippage(0.005);
   }
 }
 </script>
