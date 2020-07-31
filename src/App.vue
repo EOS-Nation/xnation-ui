@@ -103,6 +103,11 @@ export default class App extends Vue {
   }
 
   async loadBancor() {
+    this.$gtag.event("loadBlockchain", {
+      event_category: "blockchain",
+      event_label: this.$route.params.service
+    });
+
     console.log("feature:", this.$route.meta.feature);
     console.log("service:", this.$route.params.service);
     console.log("query:", this.$route.query);

@@ -40,16 +40,14 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-firebase.analytics();
+// firebase.analytics();
 
-Vue.prototype.$analytics = firebase.analytics();
+// Vue.prototype.$analytics = firebase.analytics();
 
 Vue.use(
   VueGtag,
   {
-    config: { id: "UA-162006365-2" },
-    appName: "Bancor Network",
-    pageTrackerScreenviewEnabled: true
+    config: { id: "UA-174155472-1" }
   },
   router
 );

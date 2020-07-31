@@ -17,7 +17,6 @@ import { services } from "@/api/helpers";
 import PoolHome from "@/components/pool/PoolHome.vue";
 import PoolActions from "@/components/pool/PoolActions.vue";
 import SwapHome from "@/components/swap/SwapHome.vue";
-import * as firebase from "firebase/app";
 
 Vue.use(Router);
 
@@ -210,7 +209,6 @@ const setPreferredService = (service: string) => {
 };
 
 router.beforeEach((to, from, next) => {
-  firebase.analytics().logEvent("page_view", { type: "internal" });
   if (to.meta && to.meta.feature) {
     const service = services.find(
       service => service.namespace == to.params.service
