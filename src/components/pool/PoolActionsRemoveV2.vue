@@ -154,8 +154,7 @@ export default class PoolActionsRemoveV2 extends Vue {
   get balanceError() {
     if (!this.isAuthenticated) return "";
     if (this.amountSmartToken === "") return "";
-    if (this.insufficientBalance)
-      return "Pool balance is currently insufficient";
+    if (this.insufficientBalance) return "Insufficient balance";
     else return "";
   }
 

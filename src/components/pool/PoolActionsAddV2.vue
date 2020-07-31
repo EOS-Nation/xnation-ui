@@ -121,7 +121,7 @@ export default class PoolActionsAddV2 extends Vue {
   get balanceError() {
     if (!this.isAuthenticated) return ""
     if (this.amount === "") return ""
-    if (this.balance < this.amount) return "Pool balance is currently insufficient"
+    if (this.balance < this.amount) return "Insufficient balance"
     else return ""
   }
 

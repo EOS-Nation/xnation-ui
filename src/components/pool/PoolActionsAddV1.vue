@@ -197,8 +197,8 @@ export default class PoolActionsAddV1 extends Vue {
       if (typeof results.opposingAmount !== "undefined") {
         this.amount2 = results.opposingAmount;
       }
-      this.token1Error = this.balance1 < tokenAmount ? "Pool balance is currently insufficient" : "";
-      this.token2Error = this.balance2 < this.amount2 ? "Pool balance is currently insufficient" : "";
+      this.token1Error = this.balance1 < tokenAmount ? "Insufficient balance" : "";
+      this.token2Error = this.balance2 < this.amount2 ? "Insufficient balance" : "";
       this.shareOfPool = results.shareOfPool;
       this.setSingleUnitCosts(results.singleUnitCosts);
     } catch (e) {
