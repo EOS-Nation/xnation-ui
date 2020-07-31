@@ -1,5 +1,6 @@
-import { createModule, mutation } from "vuex-class-component";
+import { createModule, mutation, action } from "vuex-class-component";
 import i18n from "@/i18n";
+import { getCountryCode } from "@/api/helpers";
 
 const VuexModule = createModule({
   strict: false
@@ -8,6 +9,23 @@ const VuexModule = createModule({
 export class GeneralModule extends VuexModule.With({ namespaced: "general/" }) {
   language: string = "en";
   darkMode: boolean = false;
+  countryCode: string = "";
+  bannedCountries: string[] = ["USA"];
+
+  get isCountryBanned() {
+    return !!this.bannedCountries.find(
+      (code: string) => this.countryCode === code
+    );
+  }
+
+  @action async getUserCountry() {
+    const countryCode = await getCountryCode();
+    this.setCountryCode(countryCode);
+  }
+
+  @mutation setCountryCode(countryCode: string) {
+    this.countryCode = countryCode;
+  }
 
   @mutation toggleDarkMode() {
     this.darkMode = !this.darkMode;

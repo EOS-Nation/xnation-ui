@@ -183,6 +183,10 @@ export default class ModalPoolAction extends Vue {
     this.notUsState = false;
   }
 
+  get isCountryBanned() {
+    return vxm.general.isCountryBanned;
+  }
+
   async initAction() {
     if (this.success) {
       this.$bvModal.hide("modal-pool-action");
@@ -196,7 +200,9 @@ export default class ModalPoolAction extends Vue {
       return;
     }
 
-    if (!this.notUsState) {
+    if (!this.notUsState || this.isCountryBanned) {
+      this.error =
+        "This action through swap.bancor.network is not available in your country.";
       return;
     }
 
