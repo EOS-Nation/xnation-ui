@@ -25,22 +25,32 @@ import { sync } from "vuex-router-sync";
 
 import * as firebase from "firebase/app";
 import "firebase/analytics";
+// @ts-ignore
+import VueGtag from "vue-gtag";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA4wJnD2aEvo_m3G7ELk-u1P2XmaxziGU8",
-  authDomain: "xnation.firebaseapp.com",
-  databaseURL: "https://xnation.firebaseio.com",
-  projectId: "xnation",
-  storageBucket: "xnation.appspot.com",
-  messagingSenderId: "1048762453805",
-  appId: "1:1048762453805:web:c4ef8341987208fac64da4",
-  measurementId: "G-DJCHSS27CX"
+  apiKey: "AIzaSyD4yWnTGa6qj6dR1RLW6Clod0iMn4niflU",
+  authDomain: "bancor-v2.firebaseapp.com",
+  databaseURL: "https://bancor-v2.firebaseio.com",
+  projectId: "bancor-v2",
+  storageBucket: "bancor-v2.appspot.com",
+  messagingSenderId: "110441058637",
+  appId: "1:110441058637:web:72d14dee900e63f6f2a704",
+  measurementId: "G-VW13H4KTX3"
 };
 
 firebase.initializeApp(firebaseConfig);
-firebase.analytics();
+// firebase.analytics();
 
-Vue.prototype.$analytics = firebase.analytics();
+// Vue.prototype.$analytics = firebase.analytics();
+
+Vue.use(
+  VueGtag,
+  {
+    config: { id: "UA-174155472-1" }
+  },
+  router
+);
 
 Vue.use(VueFuse);
 

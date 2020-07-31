@@ -128,6 +128,9 @@ export default class App extends Vue {
     try {
       await vxm.bancor.init(initParams);
       this.loading = false;
+      this.$gtag.event("initBancor", {
+        event_category: this.$route.params.service
+      });
     } catch (e) {
       await wait(1000);
       try {

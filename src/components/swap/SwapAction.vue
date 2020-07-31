@@ -253,13 +253,11 @@ export default class SwapAction extends Vue {
     try {
       this.token1 = await vxm.bancor.token(query.from);
     } catch (e) {
-      console.log(e);
       this.token1 = vxm.bancor.tokens[0];
     }
     try {
       this.token2 = await vxm.bancor.token(query.to);
     } catch (e) {
-      console.log(e);
       this.token2 = vxm.bancor.tokens[1];
     }
     await this.updatePriceReturn(this.amount1);
@@ -289,11 +287,10 @@ export default class SwapAction extends Vue {
         toId: this.token2.id
       });
       this.initialRate = reward.amount
-
     } catch (e) {
-      console.log(e)
+      // n
     }
-    this.rateLoading = false
+    this.rateLoading = false;
 
     //await this.loadBalances();
   }

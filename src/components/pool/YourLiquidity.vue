@@ -18,13 +18,7 @@
               <label-content-split
                 v-for="token in pool.poolTokens"
                 :key="token.reserveId"
-                :label="
-                  `Pool Token: ${
-                    pool.relay.reserves.find(
-                      reserve => reserve.contract == token.reserveId
-                    ).symbol
-                  }`
-                "
+                :label="`Pool Token: `"
                 :value="formattedBalance(token.balance.toString())"
               />
             </div>
