@@ -3006,10 +3006,12 @@ export class EthBancorModule
   @action async addLiquidityV2({
     converterAddress,
     reserve,
+    poolTokenMinReturnWei = "1",
     onHash
   }: {
     converterAddress: string;
     reserve: TokenWei;
+    poolTokenMinReturnWei?: string;
     onHash?: (hash: string) => void;
   }) {
     const contract = buildV2Converter(converterAddress);
@@ -3023,7 +3025,7 @@ export class EthBancorModule
       tx: contract.methods.addLiquidity(
         reserve.tokenContract,
         reserve.weiAmount,
-        "1"
+        poolTokenMinReturnWei
       ),
       onHash: onHash,
       ...(newEthReserve && { value: reserve.weiAmount })
@@ -3134,12 +3136,26 @@ export class EthBancorModule
       });
     } else if (postV28 && relay.converterType == PoolType.ChainLink) {
       console.log("treating as a chainlink v2 relay");
+      const chainLinkRelay = await this.chainLinkRelayById(relay.id);
+      const reserveToken = matchedBalances.map(balance => ({
+        tokenContract: balance.contract,
+        weiAmount: expandToken(balance.amount, balance.decimals)
+      }))[0];
+      const poolToken = chainLinkRelay.anchor.poolTokens.find(poolToken =>
+        compareString(poolToken.reserveId, reserveToken.tokenContract)
+      );
+      if (!poolToken)
+        throw new Error("Client side error - failed finding pool token");
+      if (poolToken.poolToken.decimals !== matchedBalances[0].decimals)
+        throw new Error("Client side decimal rounding issue");
+      const minimumReturnWei = new BigNumber(reserveToken.weiAmount)
+        .times(0.98)
+        .toString();
+      console.log(minimumReturnWei, "is minimum return wei");
       txHash = await this.addLiquidityV2({
         converterAddress,
-        reserve: matchedBalances.map(balance => ({
-          tokenContract: balance.contract,
-          weiAmount: expandToken(balance.amount, balance.decimals)
-        }))[0],
+        reserve: reserveToken,
+        poolTokenMinReturnWei: minimumReturnWei,
         onHash: () => onUpdate!(2, steps)
       });
     } else {
