@@ -2231,7 +2231,7 @@ export class EthBancorModule
       opposingReserveCostDec
     );
 
-    return {
+    const res = {
       opposingAmount: shrinkToken(opposingAmount, opposingReserve.decimals),
       smartTokenAmount: { id: smartTokenAddress, amount: fundReward },
       shareOfPool,
@@ -2240,6 +2240,8 @@ export class EthBancorModule
         { id: opposingReserve.contract, amount: opposingReserveCostDec }
       ]
     };
+    console.log("v1 add liquidity sending back", res);
+    return res;
   }
 
   @action async opposingReserveChangeNotRequired(poolId: string) {
@@ -4772,7 +4774,7 @@ export class EthBancorModule
         //   .div(new BigNumber(fromReserveBalanceWei))
         //   .toNumber();
       } catch (e) {
-        console.warn('Failed fetching and calculating slippage')
+        console.warn("Failed fetching and calculating slippage");
       }
     }
 
