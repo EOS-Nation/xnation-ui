@@ -10,7 +10,29 @@ export class GeneralModule extends VuexModule.With({ namespaced: "general/" }) {
   language: string = "en";
   darkMode: boolean = false;
   countryCode: string = "";
-  bannedCountries: string[] = ["USA"];
+  bannedCountries: string[] = [
+    "USA",
+    "BLR",
+    "BDI",
+    "CAF",
+    "COG",
+    "PRK",
+    "GIN",
+    "GNB",
+    "IRN",
+    "IRQ",
+    "LBN",
+    "LBY",
+    "MLI",
+    "MMR",
+    "SSD",
+    "SOM",
+    "SDN",
+    "SYR",
+    "VEN",
+    "YEM",
+    "ZWE"
+  ];
 
   get isCountryBanned() {
     return !!this.bannedCountries.find(
