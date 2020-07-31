@@ -23,7 +23,7 @@
         </b-col>
         <b-col
           cols="12"
-          v-for="pool in pools"
+          v-for="pool in searchedPools"
           :key="pool.id"
           class="my-3 cursor"
         >
@@ -58,6 +58,14 @@ export default class ModalJoinPool extends Vue {
       }
     });
     this.$bvModal.hide("modal-join-pool");
+  }
+
+  get searchedPools() {
+    return this.tokenSearch
+      ? this.pools.filter(pool =>
+          pool.symbol.toLowerCase().includes(this.tokenSearch.toLowerCase())
+        )
+      : this.pools;
   }
 
   get pools(): ViewRelay[] {
