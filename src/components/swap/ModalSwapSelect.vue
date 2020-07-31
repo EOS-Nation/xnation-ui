@@ -63,21 +63,41 @@ export default class ModalSwapSelect extends Vue {
 
   selectToken(token: ViewToken): void {
     if (this.name === "token1") {
-      this.$router.push({
-        name: "Swap",
-        query: {
-          from: token.id,
-          to: this.$route.query.to
-        }
-      });
+      if (token.id === this.$route.query.to) {
+        this.$router.push({
+          name: "Swap",
+          query: {
+            from: this.$route.query.to,
+            to: this.$route.query.from
+          }
+        });
+      } else {
+        this.$router.push({
+          name: "Swap",
+          query: {
+            from: token.id,
+            to: this.$route.query.to
+          }
+        });
+      }
     } else {
-      this.$router.push({
-        name: "Swap",
-        query: {
-          from: this.$route.query.from,
-          to: token.id
-        }
-      });
+      if (token.id === this.$route.query.from) {
+        this.$router.push({
+          name: "Swap",
+          query: {
+            from: this.$route.query.to,
+            to: this.$route.query.from
+          }
+        });
+      } else {
+        this.$router.push({
+          name: "Swap",
+          query: {
+            from: this.$route.query.from,
+            to: token.id
+          }
+        });
+      }
     }
     this.$bvModal.hide(this.name);
   }

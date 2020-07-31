@@ -265,8 +265,17 @@ export default class SwapAction extends Vue {
   }
 
   async created() {
-    if (this.$route.query.to || this.$route.query.from)
+    if (this.$route.query.to && this.$route.query.from)
       await this.onTokenChange(this.$route.query);
+    else {
+      const defaultQuery = {
+        from: vxm.bancor.tokens[0].id,
+        to: vxm.bancor.tokens[1].id
+      }
+      if (this.$route.query.from) defaultQuery.from = this.$route.query.from
+      if (this.$route.query.to) defaultQuery.to = this.$route.query.to
+      await this.$router.push({name: "Swap", query: defaultQuery})
+    }
 
     this.rateLoading = true
     try {
