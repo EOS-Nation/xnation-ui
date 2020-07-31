@@ -223,13 +223,9 @@ export default class PoolActionsRemoveV1 extends Vue {
         this.amountToken2 = results.opposingAmount;
       }
       this.token1Error =
-        this.balance1 < tokenAmount
-          ? "Insufficient balance"
-          : "";
+        this.balance1 < tokenAmount ? "Insufficient balance" : "";
       this.token2Error =
-        this.balance2 < this.amountToken2
-          ? "Insufficient balance"
-          : "";
+        this.balance2 < this.amountToken2 ? "Insufficient balance" : "";
     } catch (e) {
       this.token1Error = e.message;
       this.token2Error = "";
