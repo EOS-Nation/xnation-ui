@@ -1,7 +1,7 @@
 <template>
   <base-modal id="modal-pool-action" title="You will receive">
     <b-row class="d-flex justify-content-center">
-      <div v-if="!(txBusy || success || error)">
+      <div v-if="!(txBusy || success || error)" class="w-100">
         <b-col
           v-if="false"
           cols="12"
@@ -46,9 +46,9 @@
           </div>
         </b-col>
 
-        <b-col cols="12">
+        <b-col cols="12" v-if="pool.v2">
           <p
-            class="font-size-sm font-w400 text-center mt-2 mb-3"
+            class="font-size-sm font-w400 text-center mt-2"
             :class="!darkMode ? 'text-muted-light' : 'text-muted-dark'"
           >
             Output is estimated. If the price changes by more than
@@ -57,12 +57,12 @@
           </p>
         </b-col>
 
-        <b-col md="12">
+        <b-col cols="12">
           <div
-            class="block block-rounded font-size-sm block-shadow mb-3"
+            class="block block-rounded font-size-sm block-shadow my-3"
             :class="darkMode ? 'bg-body-dark' : 'bg-body-light'"
           >
-            <div class="block-content py-2">
+            <div class="block-content py-2" v-if="advancedBlockItems.length">
               <advanced-block-item
                 v-for="item in advancedBlockItems"
                 :key="item.label"
