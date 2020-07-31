@@ -4107,6 +4107,11 @@ export class EthBancorModule
 
     BigNumber.config({ EXPONENTIAL_AT: 256 });
 
+    // const bigBnt = new BigNumber(toWei("100000"));
+    // const bntBalance = new BigNumber("3917675891686726629443620");
+    // const percent = bigBnt.div(bntBalance).toString();
+    // console.log(percent, "is the percent");
+
     const web3NetworkVersion = await web3.eth.getChainId();
     const currentNetwork: EthNetworks = web3NetworkVersion;
     console.log(currentNetwork, "is the current network");
@@ -4827,15 +4832,36 @@ export class EthBancorModule
     });
     const weiNumber = new BigNumber(wei);
 
+    const userReturnRate = new BigNumber(fromWei).div(weiNumber);
+
     let slippage: number | undefined;
     try {
-      const slippagePaid = await this.hopAlongPath({
-        fromSymbol: fromToken.symbol,
-        fromWei,
-        relays
-      });
-      console.log(slippagePaid, "is slippage paid");
-      slippage = slippagePaid;
+      const contract = buildConverterContract(relays[0].contract);
+      const fromReserveBalanceWei = await contract.methods
+        .getConnectorBalance(fromTokenContract)
+        .call();
+
+      const fixedReserveBalance = new BigNumber(fromReserveBalanceWei).times(
+        0.00001
+      );
+
+      if (fixedReserveBalance.lt(fromWei)) {
+        const fixedReserveBalanceWei = fixedReserveBalance.toFixed(0);
+
+        const tinySlippage = await this.getReturnByPath({
+          path,
+          amount: fixedReserveBalanceWei
+        });
+
+        const tinyReturnRate = new BigNumber(fixedReserveBalanceWei).div(
+          tinySlippage
+        );
+
+        const result = tinyReturnRate.minus(userReturnRate).abs();
+
+        const x = result.div(tinyReturnRate);
+        slippage = x.toNumber();
+      }
     } catch (e) {
       console.warn("Failed calculating slippage", e.message);
     }
