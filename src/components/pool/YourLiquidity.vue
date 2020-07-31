@@ -48,8 +48,11 @@
       </div>
     </div>
     <div v-else class="font-size-14 font-w600 mt-3 text-center">
-      <span v-if="isAuthenticated">You dont have any Liquidity yet</span>
-      <span v-else>Connect Wallet to see your Liquidity</span>
+      <span>{{
+        isAuthenticated
+          ? "You dont have any Liquidity yet"
+          : "Connect Wallet to see your Liquidity"
+      }}</span>
     </div>
   </div>
 </template>
