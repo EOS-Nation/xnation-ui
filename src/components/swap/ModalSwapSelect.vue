@@ -23,7 +23,7 @@
         </b-col>
         <b-col
           cols="12"
-          v-for="token in tokens"
+          v-for="token in searchedTokens"
           :key="token.id"
           class="my-3 cursor"
           @click="selectToken(token)"
@@ -100,6 +100,14 @@ export default class ModalSwapSelect extends Vue {
       }
     }
     this.$bvModal.hide(this.name);
+  }
+
+  get searchedTokens() {
+    return this.tokenSearch
+      ? this.tokens.filter(token =>
+          token.symbol.toLowerCase().includes(this.tokenSearch.toLowerCase())
+        )
+      : this.tokens;
   }
 
   get tokens(): ViewToken[] {
