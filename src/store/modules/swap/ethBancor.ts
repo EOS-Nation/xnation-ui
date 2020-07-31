@@ -108,7 +108,7 @@ import { openDB, DBSchema } from "idb/with-async-ittr.js";
 const calculatePoolTokenWithdrawalWei = (
   poolToken: Token,
   reserveToken: Token,
-  reserveDecAmount: number
+  reserveDecAmount: string
 ): string => {
   if (poolToken.decimals == reserveToken.decimals) {
     return expandToken(reserveDecAmount, poolToken.decimals);
@@ -2704,10 +2704,12 @@ export class EthBancorModule
   @action async removeLiquidityV2({
     converterAddress,
     poolToken,
+    miniumReserveReturnWei = "1",
     onHash
   }: {
     converterAddress: string;
     poolToken: TokenWei;
+    miniumReserveReturnWei: string;
     onHash?: (hash: string) => void;
   }) {
     const contract = buildV2Converter(converterAddress);
@@ -2716,7 +2718,7 @@ export class EthBancorModule
       tx: contract.methods.removeLiquidity(
         poolToken.tokenContract,
         poolToken.weiAmount,
-        "1"
+        miniumReserveReturnWei
       ),
       onHash
     });
@@ -2754,33 +2756,37 @@ export class EthBancorModule
       const poolToken = findOrThrow(v2Relay.anchor.poolTokens, poolToken =>
         compareString(poolToken.reserveId, withdraw.id)
       );
-      const reserveToken = findOrThrow(v2Relay.reserves, reserve =>
-        compareString(reserve.contract, withdraw.id)
-      );
-      const reserveDecAmount = Number(withdraw.amount);
-      const weiAmount = calculatePoolTokenWithdrawalWei(
-        poolToken.poolToken,
-        reserveToken,
-        reserveDecAmount
-      );
 
+      const poolTokenWeiAmount = expandToken(
+        withdraw.amount,
+        poolToken.poolToken.decimals
+      );
       const weiPoolTokenBalance = (await this.getUserBalance({
         tokenContractAddress: poolToken.poolToken.contract,
         keepWei: true
       })) as string;
 
-      const roundedWeiAmount = new BigNumber(weiAmount).gt(
+      const roundedWeiAmount = new BigNumber(poolTokenWeiAmount).gt(
         new BigNumber(weiPoolTokenBalance).times(0.995)
       )
         ? weiPoolTokenBalance
-        : weiAmount;
+        : poolTokenWeiAmount;
+
+      const expectedReserveReturn = await this.removeLiquidityReturn({
+        converterAddress: relay.contract,
+        poolTokenWei: roundedWeiAmount,
+        poolTokenContract: poolToken.poolToken.contract
+      });
 
       hash = await this.removeLiquidityV2({
         converterAddress,
         poolToken: {
           tokenContract: poolToken.poolToken.contract,
           weiAmount: roundedWeiAmount
-        }
+        },
+        miniumReserveReturnWei: new BigNumber(expectedReserveReturn)
+          .times(0.99)
+          .toFixed(0)
       });
     } else if (postV28 && relay.converterType == PoolType.Traditional) {
       const { smartTokenAmount } = await this.calculateOpposingWithdrawInfo({
