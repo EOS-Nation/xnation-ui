@@ -2565,6 +2565,8 @@ export class EthBancorModule
       feeAmountWei
     );
 
+    console.log({ returnAmountWei, feeAmountWei }, "xxx");
+
     const feePercent = new BigNumber(feeAmountWei)
       .div(noFeeLiquidityReturn)
       .toNumber();
