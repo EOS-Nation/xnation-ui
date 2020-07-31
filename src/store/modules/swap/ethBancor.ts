@@ -4293,7 +4293,7 @@ export class EthBancorModule
     this.setLoadingPools(true);
 
     const chunked = chunk(convertersAndAnchors, 30);
-    const tokenAddresses: string[] = [];
+    const tokenAddresses: string[][] = [];
     for (const chunk of chunked) {
       const { pools, reserveFeeds } = await this.addPoolsV2(chunk);
       const poolsFailed = _.differenceWith(
@@ -4307,12 +4307,13 @@ export class EthBancorModule
       this.updateRelays(pools);
       this.buildPossibleReserveFeedsFromBancorApi(pools);
       this.updateRelayFeeds(reserveFeeds);
-      tokenAddresses.concat(
-        pools.flatMap(tokensInRelay).map(token => token.contract)
-      );
+      const tokensInChunk = pools
+        .flatMap(tokensInRelay)
+        .map(token => token.contract);
+      tokenAddresses.push(tokensInChunk);
     }
     if (this.isAuthenticated) {
-      const toFetch = uniqWith(tokenAddresses, compareString);
+      const toFetch = uniqWith(tokenAddresses.flat(), compareString);
       this.fetchBulkTokenBalances(toFetch);
     }
     this.setLoadingPools(false);
