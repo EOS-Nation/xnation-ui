@@ -67,7 +67,7 @@
     <b-dropdown-group id="dropdown-group-3">
       <b-dropdown-header class="text-uppercase">Community</b-dropdown-header>
       <b-dropdown-text>
-        <div class="d-flex justify-content-between">
+        <div class="d-flex justify-content-between cursor">
           <font-awesome-icon
             @click="openUrl('https://www.facebook.com/bancor/')"
             :icon="['fab', 'facebook']"
