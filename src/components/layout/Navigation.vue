@@ -3,9 +3,15 @@
     <div
       class="d-block mb-0 py-2 bg-primary text-white text-center font-size-12 font-w600"
     >
-      To use the previous Bancor App, click here. Be sure to try out
+      To use the previous Bancor App,
       <a
-        href="https://bancor.network/"
+        href="https://wallet.bancor.network/"
+        target="_blank"
+        class="text-white border-bottom"
+        >click here</a
+      >. Be sure to try out
+      <a
+        href="https://info.bancor.network/"
         target="_blank"
         class="text-white border-bottom"
         >Bancor Analytics</a
