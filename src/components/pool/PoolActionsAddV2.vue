@@ -108,6 +108,8 @@ export default class PoolActionsAddV2 extends Vue {
   singleUnitCosts: any[] = [];
   shareOfPool = 0;
 
+  errorMsg = ""
+
   get isAuthenticated() {
     return vxm.wallet.isAuthenticated;
   }
@@ -122,6 +124,7 @@ export default class PoolActionsAddV2 extends Vue {
     if (!this.isAuthenticated) return ""
     if (this.amount === "") return ""
     if (this.balance < this.amount) return "Insufficient balance"
+    else if (this.errorMsg !== "") return this.errorMsg
     else return ""
   }
 
@@ -177,12 +180,17 @@ export default class PoolActionsAddV2 extends Vue {
   }
 
   async loadPrices(amount: string) {
-    const results = await this.calculateOpposingDeposit({
-      id: this.pool.id,
-      reserve: { id: this.selectedToken.id, amount: amount ? amount : "0" }
-    });
-    if (amount !== "0" && amount !== "") this.shareOfPool = results.shareOfPool;
-    this.setSingleUnitCosts(results.singleUnitCosts);
+    this.errorMsg = ""
+    try {
+      const results = await this.calculateOpposingDeposit({
+        id: this.pool.id,
+        reserve: { id: this.selectedToken.id, amount: amount ? amount : "0" }
+      });
+      if (amount !== "0" && amount !== "") this.shareOfPool = results.shareOfPool;
+      this.setSingleUnitCosts(results.singleUnitCosts);
+    } catch (e) {
+      this.errorMsg = e.message
+    }
   }
 
   get advancedBlockItems() {
