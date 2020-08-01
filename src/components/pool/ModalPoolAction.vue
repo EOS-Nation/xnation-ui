@@ -266,6 +266,7 @@ export default class ModalPoolAction extends Vue {
       if (!this.withdrawLiquidity) txResult = await this.addLiquidity(params);
       else txResult = await this.removeLiquidity(params);
       this.success = txResult;
+      // @ts-ignore
       this.$gtag.event(
         this.withdrawLiquidity ? "removeLiquidity" : "addLiquidity",
         {
@@ -275,6 +276,7 @@ export default class ModalPoolAction extends Vue {
       );
     } catch (e) {
       this.error = e.message;
+      // @ts-ignore
       this.$gtag.event(
         this.withdrawLiquidity ? "removeLiquidity" : "addLiquidity",
         {
