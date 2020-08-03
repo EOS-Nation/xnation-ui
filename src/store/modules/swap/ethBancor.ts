@@ -4448,24 +4448,25 @@ export class EthBancorModule
 
     const chunked = chunk(convertersAndAnchors, 30);
     const tokenAddresses: string[][] = [];
-    for (const chunk of chunked) {
-      const { pools, reserveFeeds } = await this.addPoolsV2(chunk);
-      const poolsFailed = _.differenceWith(
-        convertersAndAnchors,
-        pools,
-        (a, b) => compareString(a.anchorAddress, b.id)
-      );
-      this.updateFailedPools(
-        poolsFailed.map(failedPool => failedPool.anchorAddress)
-      );
-      this.updateRelays(pools);
-      this.buildPossibleReserveFeedsFromBancorApi(pools);
-      this.updateRelayFeeds(reserveFeeds);
-      const tokensInChunk = pools
-        .flatMap(tokensInRelay)
-        .map(token => token.contract);
-      tokenAddresses.push(tokensInChunk);
-    }
+
+    const res = await Promise.all(chunked.map(this.addPoolsV2));
+    const pools = _.flatMap(res, "pools");
+    const reserveFeeds = _.flatMap(res, "reserveFeeds");
+    // for (const chunk of chunked) {
+    const poolsFailed = _.differenceWith(convertersAndAnchors, pools, (a, b) =>
+      compareString(a.anchorAddress, b.id)
+    );
+    this.updateFailedPools(
+      poolsFailed.map(failedPool => failedPool.anchorAddress)
+    );
+    this.updateRelays(pools);
+    this.buildPossibleReserveFeedsFromBancorApi(pools);
+    this.updateRelayFeeds(reserveFeeds);
+    const tokensInChunk = pools
+      .flatMap(tokensInRelay)
+      .map(token => token.contract);
+    tokenAddresses.push(tokensInChunk);
+    // }
     if (this.isAuthenticated) {
       const toFetch = uniqWith(tokenAddresses.flat(), compareString);
       this.fetchBulkTokenBalances(toFetch);
