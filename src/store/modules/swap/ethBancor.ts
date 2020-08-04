@@ -2371,6 +2371,8 @@ export class EthBancorModule
             remainingSpaceAvailableWei.toString(),
             sameReserve.token.decimals
           );
+          if (remainingSpaceAvailableWei.isLessThanOrEqualTo(0))
+            throw new Error("This pool has reached the max liquidity cap");
           throw new Error(
             `This pool is currently capped and can receive ${remainingSpaceAvailableDec} additional tokens`
           );
