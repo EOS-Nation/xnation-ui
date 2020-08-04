@@ -57,20 +57,22 @@
           class="text-primary font-size-16"
         />
       </div>
-      <label-content-split label="Output" class="my-3">
-        <span
-          class="font-size-12 font-w600"
-          :class="darkMode ? 'text-dark' : 'text-light'"
-        >
-          {{ expectedReturn }} {{ selectedPoolToken.symbol }}
-        </span>
-      </label-content-split>
+
       <label-content-split v-if="exitFee !== 0" label="Exit Fee" class="my-3">
         <span
           class="font-size-12 font-w600"
           :class="darkMode ? 'text-dark' : 'text-light'"
         >
           {{ exitFee }}%
+        </span>
+      </label-content-split>
+
+      <label-content-split label="Output" class="my-3">
+        <span
+          class="font-size-12 font-w600"
+          :class="darkMode ? 'text-dark' : 'text-light'"
+        >
+          {{ expectedReturn }} {{ selectedPoolToken.symbol }}
         </span>
       </label-content-split>
     </div>
