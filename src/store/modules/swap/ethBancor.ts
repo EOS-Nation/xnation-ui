@@ -2415,6 +2415,10 @@ export class EthBancorModule
       tokenContractAddress,
       keepWei
     });
+    const currentBalance = this.tokenBalance(tokenContractAddress);
+    if (currentBalance && currentBalance.balance !== balance) {
+      this.updateBalance([tokenContractAddress, Number(balance)]);
+    }
     if (Number(balance) > 0) {
       this.updateBalance([tokenContractAddress, Number(balance)]);
     }
