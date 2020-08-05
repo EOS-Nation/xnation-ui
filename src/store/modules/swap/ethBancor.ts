@@ -4913,7 +4913,7 @@ export class EthBancorModule
     if (!reserve) {
       try {
         const contract = buildTokenContract(tokenAddress);
-        const decimals = await contract.methods.decimals();
+        const decimals = await contract.methods.decimals().call();
         return Number(decimals);
       } catch (e) {
         throw new Error(
