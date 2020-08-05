@@ -255,9 +255,9 @@ export default class Navigation extends Vue {
     if (account) {
       vxm.bancor.refreshBalances();
       // @ts-ignore
-      this.$analytics.setUserId(account);
+      // this.$analytics.setUserId(account);
       // @ts-ignore
-      this.$analytics.logEvent("login", { account });
+      // this.$analytics.logEvent("login", { account });
     }
   }
 

@@ -57,14 +57,7 @@
           class="text-primary font-size-16"
         />
       </div>
-      <label-content-split label="Output" class="my-3">
-        <span
-          class="font-size-12 font-w600"
-          :class="darkMode ? 'text-dark' : 'text-light'"
-        >
-          {{ expectedReturn }} {{ selectedPoolToken.symbol }}
-        </span>
-      </label-content-split>
+
       <label-content-split v-if="exitFee !== 0" label="Exit Fee" class="my-3">
         <span
           class="font-size-12 font-w600"
@@ -73,10 +66,19 @@
           {{ exitFee }}%
         </span>
       </label-content-split>
+
+      <label-content-split label="Output" class="my-3">
+        <span
+          class="font-size-12 font-w600"
+          :class="darkMode ? 'text-dark' : 'text-light'"
+        >
+          {{ expectedReturn }} {{ selectedPoolToken.symbol }}
+        </span>
+      </label-content-split>
     </div>
 
     <div v-if="exitFee !== 0">
-      <p class="text-danger font-w600 text-center">
+      <p class="input-field-error text-danger font-w600">
         Pool is not balanced. Recommended to wait until it will be balanced.
       </p>
     </div>
@@ -289,4 +291,11 @@ export default class PoolActionsRemoveV2 extends Vue {
 }
 </script>
 
-<style lang="scss"></style>
+<style lang="scss">
+.input-field-error {
+  border: 1px #de4a5c solid !important;
+  background: #fff5f6;
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+</style>

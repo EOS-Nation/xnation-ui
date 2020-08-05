@@ -25,13 +25,12 @@
     <token-input-field
       label="To (Estimated)"
       :amount.sync="amount2"
-      @update:amount="updatePriceCost"
       :token="token2"
       :balance="balance2"
       :dropdown="true"
       name="token2"
       v-on:open-swap-modal="openModal"
-      :error-msg="errorToken2"
+      :disabled="true"
     />
     <modal-swap-select name="token2" />
 

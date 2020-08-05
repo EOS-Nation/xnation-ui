@@ -19,6 +19,7 @@
         :class="darkMode ? 'form-control-alt-dark' : 'form-control-alt-light'"
         placeholder="Enter Amount"
         :state="errorState"
+        :disabled="disabled"
       ></b-form-input>
 
       <b-input-group-append :class="{ cursor: pool || dropdown }">
@@ -58,6 +59,7 @@
       <b-form-invalid-feedback
         v-if="errorMsg !== null"
         id="input-live-feedback"
+        class="input-field-error"
       >
         {{ errorMsg }}
       </b-form-invalid-feedback>
@@ -87,6 +89,7 @@ export default class TokenInputField extends Vue {
   @Prop({ default: false }) dropdown!: boolean;
   @Prop({ default: false }) ignoreError!: boolean;
   @Prop({ default: "" }) errorMsg!: string;
+  @Prop({ default: false }) disabled!: boolean;
   numeral = numeral;
 
   get formattedBalance() {
@@ -119,4 +122,11 @@ export default class TokenInputField extends Vue {
 }
 </script>
 
-<style scoped lang="scss"></style>
+<style lang="scss">
+.input-field-error {
+  border: 1px #de4a5c solid !important;
+  background: #fff5f6;
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+</style>
