@@ -16,14 +16,10 @@
 import { Component, Vue, Prop } from "vue-property-decorator";
 import { vxm } from "@/store/";
 
-@Component({
-  components: {}
-})
+@Component
 export default class PoolActionsHeader extends Vue {
   @Prop() withdrawLiquidity!: boolean;
   @Prop() v2!: boolean;
-
-  created() {}
 }
 </script>
 
