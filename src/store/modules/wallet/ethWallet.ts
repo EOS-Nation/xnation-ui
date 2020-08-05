@@ -6,7 +6,7 @@ import {
   selectedWeb3Wallet,
   EthNetworks
 } from "@/api/helpers";
-import { ABISmartToken, ethReserveAddress } from "@/api/ethAbis";
+import { ABISmartToken, ethReserveAddress } from "@/api/eth/ethAbis";
 import { EthAddress } from "@/types/bancor";
 import { fromWei, isAddress, toHex, toWei } from "web3-utils";
 import { shrinkToken } from "@/api/ethBancorCalc";

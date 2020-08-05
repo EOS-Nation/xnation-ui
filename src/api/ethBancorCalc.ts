@@ -11,7 +11,7 @@ import {
   V2PoolsTokenContainer,
   ABIMultiCallContract,
   ABIContainerContract
-} from "@/api/ethAbis";
+} from "@/api/eth/ethAbis";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
 import { AbiItem } from "web3-utils";
@@ -43,8 +43,6 @@ export interface MinimalRelay {
   anchorAddress: string;
   reserves: TokenSymbol[];
 }
-
-
 
 export const generateEthPath = (from: string, relays: MinimalRelay[]) =>
   relays.reduce<{ lastSymbol: string; path: string[] }>(

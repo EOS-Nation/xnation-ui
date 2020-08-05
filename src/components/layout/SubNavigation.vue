@@ -49,7 +49,7 @@ import {
 } from "@/api/helpers";
 import { store } from "../../store";
 import { ModuleParam } from "../../types/bancor";
-import { ethReserveAddress } from "../../api/ethAbis";
+import { ethReserveAddress } from "../../api/eth/ethAbis";
 import { Route } from "vue-router";
 
 const defaultPaths = [
