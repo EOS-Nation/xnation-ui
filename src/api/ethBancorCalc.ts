@@ -11,7 +11,7 @@ import {
   V2PoolsTokenContainer,
   ABIMultiCallContract,
   ABIContainerContract
-} from "@/api/ethConfig";
+} from "@/api/ethAbis";
 import { web3 } from "@/api/helpers";
 import BigNumber from "bignumber.js";
 import { AbiItem } from "web3-utils";

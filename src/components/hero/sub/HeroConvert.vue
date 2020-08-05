@@ -146,7 +146,7 @@ import { LiquidityModule, TradingModule, Step } from "../../../types/bancor";
 import numeral from "numeral";
 import { vxm } from "@/store";
 import { buildTokenId, compareString } from "../../../api/helpers";
-import { ethReserveAddress } from "../../../api/ethConfig";
+import { ethReserveAddress } from "../../../api/ethAbis";
 import AdvancedBlockItem from "@/components/common/AdvancedBlockItem.vue";
 
 const appendBaseQuoteQuery = (base: string, quote: string, route: Route) => {
