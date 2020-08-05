@@ -44,27 +44,7 @@ export interface MinimalRelay {
   reserves: TokenSymbol[];
 }
 
-export interface ChoppedRelay {
-  contract: string;
-  reserves: TokenSymbol[];
-}
 
-export const chopRelay = (item: DryRelay): ChoppedRelay[] => [
-  {
-    contract: item.smartToken.contract,
-    reserves: [item.reserves[0], item.smartToken]
-  },
-  {
-    contract: item.smartToken.contract,
-    reserves: [item.reserves[1], item.smartToken]
-  }
-];
-
-export const chopRelays = (relays: DryRelay[]) =>
-  relays.reduce((accum: ChoppedRelay[], item: DryRelay) => {
-    const [relay1, relay2] = chopRelay(item);
-    return [...accum, relay1, relay2];
-  }, []);
 
 export const generateEthPath = (from: string, relays: MinimalRelay[]) =>
   relays.reduce<{ lastSymbol: string; path: string[] }>(
