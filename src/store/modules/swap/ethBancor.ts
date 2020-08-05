@@ -1839,7 +1839,8 @@ export class EthBancorModule
                 reserves: reserves.map(reserve => ({
                   tokenContract: reserve.contract,
                   weiAmount: reserve.weiAmount
-                }))
+                })),
+                minimumReturnWei: "1"
               })
             ]);
           }
@@ -1848,10 +1849,7 @@ export class EthBancorModule
       onUpdate: poolParams.onUpdate
     })) as { reserves: WeiExtendedAsset[]; txId: string };
 
-    reserves.forEach(reserve =>
-      this.getUserBalance({ tokenContractAddress: reserve.contract })
-    );
-
+    this.spamBalances(reserves.map(reserve => reserve.contract));
     wait(5000).then(() => this.init());
 
     return txId;
@@ -2429,14 +2427,20 @@ export class EthBancorModule
     );
   }
 
-  @action async getUserBalancesTraditional(
-    relayId: string
-  ): Promise<UserPoolBalances> {
+  @action async getUserBalancesTraditional({
+    relayId,
+    smartTokenDec
+  }: {
+    relayId: string;
+    smartTokenDec?: number;
+  }): Promise<UserPoolBalances> {
     const relay = await this.traditionalRelayById(relayId);
 
-    const smartTokenUserBalance = await this.getUserBalance({
-      tokenContractAddress: relay.anchor.contract
-    });
+    const smartTokenUserBalance =
+      smartTokenDec ||
+      (await this.getUserBalance({
+        tokenContractAddress: relay.anchor.contract
+      }));
 
     const { smartTokenSupplyWei, reserves } = await this.fetchRelayBalances(
       relay.anchor.contract
@@ -2592,7 +2596,7 @@ export class EthBancorModule
     const poolType = await this.getPoolType(relayId);
     console.log("detected pool type is", poolType);
     return poolType == PoolType.Traditional
-      ? this.getUserBalancesTraditional(relayId)
+      ? this.getUserBalancesTraditional({ relayId })
       : this.getUserBalancesChainLink(relayId);
   }
 
@@ -2916,14 +2920,34 @@ export class EthBancorModule
           .toFixed(0)
       });
     } else if (postV28 && relay.converterType == PoolType.Traditional) {
+      const traditionalRelay = await this.traditionalRelayById(relay.id);
       const { smartTokenAmount } = await this.calculateOpposingWithdrawInfo({
         id: relayId,
         reserve: reserves[0]
       });
+      const userPoolBalance = await this.getUserBalancesTraditional({
+        relayId,
+        smartTokenDec: Number(
+          shrinkToken(smartTokenAmount.amount, traditionalRelay.anchor.decimals)
+        )
+      });
       hash = await this.removeLiquidityV28({
         converterAddress,
         smartTokensWei: smartTokenAmount.amount,
-        reserveTokenAddresses: relay.reserves.map(reserve => reserve.contract)
+        reserveTokens: relay.reserves.map(reserve => {
+          const reserveBalances = userPoolBalance.maxWithdrawals;
+          return {
+            tokenAddress: reserve.contract,
+            minimumReturnWei: expandToken(
+              Number(
+                reserveBalances.find(balance =>
+                  compareString(balance.id, reserve.contract)
+                )!.amount
+              ) * 0.98,
+              reserve.decimals
+            )
+          };
+        })
       });
     } else {
       const { smartTokenAmount } = await this.calculateOpposingWithdrawInfo({
@@ -2983,24 +3007,30 @@ export class EthBancorModule
     });
   }
 
-  @action async addLiquidityV28(par: {
+  @action async addLiquidityV28({
+    converterAddress,
+    reserves,
+    minimumReturnWei,
+    onHash
+  }: {
     converterAddress: string;
     reserves: TokenWei[];
+    minimumReturnWei: string;
     onHash?: (hash: string) => void;
   }) {
-    const contract = buildV28ConverterContract(par.converterAddress);
+    const contract = buildV28ConverterContract(converterAddress);
 
-    const newEthReserve = par.reserves.find(reserve =>
+    const newEthReserve = reserves.find(reserve =>
       compareString(reserve.tokenContract, ethReserveAddress)
     );
 
     return this.resolveTxOnConfirmation({
       tx: contract.methods.addLiquidity(
-        par.reserves.map(reserve => reserve.tokenContract),
-        par.reserves.map(reserve => reserve.weiAmount),
-        "1"
+        reserves.map(reserve => reserve.tokenContract),
+        reserves.map(reserve => reserve.weiAmount),
+        minimumReturnWei
       ),
-      onHash: par.onHash,
+      onHash,
       ...(newEthReserve && { value: newEthReserve.weiAmount })
     });
   }
@@ -3037,19 +3067,19 @@ export class EthBancorModule
   @action async removeLiquidityV28({
     converterAddress,
     smartTokensWei,
-    reserveTokenAddresses
+    reserveTokens
   }: {
     converterAddress: string;
     smartTokensWei: string;
-    reserveTokenAddresses: string[];
+    reserveTokens: { tokenAddress: string; minimumReturnWei: string }[];
   }) {
     const contract = buildV28ConverterContract(converterAddress);
 
     return this.resolveTxOnConfirmation({
       tx: contract.methods.removeLiquidity(
         smartTokensWei,
-        reserveTokenAddresses,
-        reserveTokenAddresses.map(() => "1")
+        reserveTokens.map(token => token.tokenAddress),
+        reserveTokens.map(token => token.minimumReturnWei)
       )
     });
   }
@@ -3128,12 +3158,20 @@ export class EthBancorModule
 
     if (postV28 && relay.converterType == PoolType.Traditional) {
       console.log("treating as a traditional relay");
+      const { smartTokenAmount } = await this.calculateOpposingDepositInfo({
+        id: relay.id,
+        reserve: reserves[0]
+      });
+      const reducedWei = new BigNumber(smartTokenAmount.amount)
+        .times(0.99)
+        .toFixed(0);
       txHash = await this.addLiquidityV28({
         converterAddress,
         reserves: matchedBalances.map(balance => ({
           tokenContract: balance.contract,
           weiAmount: expandToken(balance.amount, balance.decimals)
         })),
+        minimumReturnWei: reducedWei,
         onHash: () => onUpdate!(2, steps)
       });
     } else if (postV28 && relay.converterType == PoolType.ChainLink) {
@@ -4786,13 +4824,13 @@ export class EthBancorModule
       tx: networkContract.methods.convertByPath(
         ethPath,
         fromWei,
-        expandToken(toAmount * 0.9, toTokenDecimals),
+        expandToken(toAmount * 0.99, toTokenDecimals),
         zeroAddress,
         zeroAddress,
         0
       ),
       ...(fromIsEth && { value: fromWei }),
-      gas: 550000 * 1.3,
+      // gas: 550000 * 1.3,
       onHash: () => onUpdate!(3, steps)
     });
     onUpdate!(4, steps);
