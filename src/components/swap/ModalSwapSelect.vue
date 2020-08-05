@@ -43,6 +43,7 @@
             <span class="font-w500 font-size-12">{{ token.balance }}</span>
           </div>
         </b-col>
+        <b-col v-if="!searchedTokens.length">No results found.</b-col>
       </b-row>
     </div>
   </base-modal>
