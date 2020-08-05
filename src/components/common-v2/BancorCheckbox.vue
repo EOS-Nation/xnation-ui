@@ -1,13 +1,8 @@
 <template>
   <div class="mb-3 d-flex justify-content-center">
-    <b-form-checkbox
-      :value="checked"
-      @input="update"
-      name="us-validation"
-      size="lg"
-    >
+    <b-form-checkbox :value="checked" @input="update" size="lg">
       <span class="font-w600 font-size-12 mt-1">
-        I am not a US citizen or domiciliary
+        {{ label }}
       </span>
     </b-form-checkbox>
   </div>
@@ -17,8 +12,9 @@
 import { Component, Vue, Prop, Emit } from "vue-property-decorator";
 
 @Component
-export default class NotUsCheckbox extends Vue {
+export default class BancorCheckbox extends Vue {
   @Prop() checked!: boolean;
+  @Prop() label!: string;
 
   @Emit("input")
   update(value: boolean) {

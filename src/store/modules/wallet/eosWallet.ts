@@ -26,7 +26,7 @@ interface EosWalletAction {
   account: string;
 }
 
-const appName = "XNation";
+const appName = "Bancor";
 
 const VuexModule = createModule({
   strict: false

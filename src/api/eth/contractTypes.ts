@@ -1,5 +1,4 @@
 import { ContractSendMethod } from "web3-eth-contract";
-import _ from "lodash";
 import { CallReturn, ContractMethods } from "@/types/bancor.d.ts";
 import {
   ABIConverter,
@@ -11,79 +10,9 @@ import {
   V2PoolsTokenContainer,
   ABIMultiCallContract,
   ABIContainerContract
-} from "@/api/ethConfig";
+} from "@/api/eth/ethAbis";
 import { web3 } from "@/api/helpers";
-import BigNumber from "bignumber.js";
 import { AbiItem } from "web3-utils";
-
-export const expandToken = (amount: string | number, precision: number) =>
-  new BigNumber(amount).times(new BigNumber(10).pow(precision)).toFixed(0);
-
-export const shrinkToken = (amount: string | number, precision: number) =>
-  new BigNumber(amount)
-    .div(new BigNumber(10).pow(precision))
-    .toFixed(precision);
-
-export interface TokenSymbol {
-  contract: string;
-  symbol: string;
-}
-
-export interface BaseRelay {
-  contract: string;
-  smartToken: TokenSymbol;
-}
-
-export interface DryRelay extends BaseRelay {
-  reserves: TokenSymbol[];
-}
-
-export interface MinimalRelay {
-  contract: string;
-  anchorAddress: string;
-  reserves: TokenSymbol[];
-}
-
-export interface ChoppedRelay {
-  contract: string;
-  reserves: TokenSymbol[];
-}
-
-export const chopRelay = (item: DryRelay): ChoppedRelay[] => [
-  {
-    contract: item.smartToken.contract,
-    reserves: [item.reserves[0], item.smartToken]
-  },
-  {
-    contract: item.smartToken.contract,
-    reserves: [item.reserves[1], item.smartToken]
-  }
-];
-
-export const chopRelays = (relays: DryRelay[]) =>
-  relays.reduce((accum: ChoppedRelay[], item: DryRelay) => {
-    const [relay1, relay2] = chopRelay(item);
-    return [...accum, relay1, relay2];
-  }, []);
-
-export const generateEthPath = (from: string, relays: MinimalRelay[]) =>
-  relays.reduce<{ lastSymbol: string; path: string[] }>(
-    (acc, item) => {
-      const destinationSymbol = item.reserves.find(
-        reserve => reserve.symbol !== acc.lastSymbol
-      )!;
-      return {
-        path: [...acc.path, item.anchorAddress, destinationSymbol.contract],
-        lastSymbol: destinationSymbol.symbol
-      };
-    },
-    {
-      lastSymbol: from,
-      path: [
-        relays[0].reserves.find(reserve => reserve.symbol == from)!.contract
-      ]
-    }
-  ).path;
 
 const buildContract = (abi: AbiItem[], contractAddress?: string) =>
   contractAddress
@@ -264,6 +193,8 @@ export const buildRegistryContract = (
   getConvertibleTokenAnchors: (
     convertibleToken: string
   ) => CallReturn<string[]>;
+  getConvertersByAnchors: (anchors: string[]) => CallReturn<string[]>;
+  getAnchors: () => CallReturn<string[]>;
   newConverter: (
     type: number,
     smartTokenName: string,
@@ -274,24 +205,3 @@ export const buildRegistryContract = (
     reserveWeights: number[]
   ) => ContractSendMethod;
 }> => buildContract(ABIConverterRegistry, contractAddress);
-
-export const makeBatchRequest = (calls: any[], from: string) => {
-  let batch = new web3.BatchRequest();
-  let promises = calls.map(
-    call =>
-      new Promise((resolve, reject) => {
-        let request = call.request({ from }, (error: any, data: any) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(data);
-          }
-        });
-        batch.add(request);
-      })
-  );
-
-  batch.execute();
-
-  return Promise.all(promises);
-};

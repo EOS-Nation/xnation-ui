@@ -19,7 +19,8 @@ import {
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
 import wait from "waait";
-import { buildConverterContract, shrinkToken } from "./ethBancorCalc";
+import { buildConverterContract } from "./eth/contractTypes";
+import { shrinkToken } from "./eth/helpers";
 import { sortByNetworkTokens } from "./sortByNetworkTokens";
 
 export const networkTokens = ["BNT", "USDB"];

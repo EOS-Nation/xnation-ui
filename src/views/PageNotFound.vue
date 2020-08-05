@@ -19,7 +19,7 @@
 <script lang="ts">
 import { Prop, Component, Vue } from "vue-property-decorator";
 
-@Component({})
+@Component
 export default class PageNotFound extends Vue {}
 </script>
 

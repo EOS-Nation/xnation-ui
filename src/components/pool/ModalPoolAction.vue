@@ -73,7 +73,10 @@
           </div>
         </b-col>
         <b-col cols="12">
-          <not-us-checkbox v-model="notUsState" />
+          <bancor-checkbox
+            v-model="notUsState"
+            label="I am not a US citizen or domiciliary"
+          />
         </b-col>
       </div>
 
@@ -118,14 +121,14 @@ import MainButton from "@/components/common/Button.vue";
 
 import { namespace } from "vuex-class";
 import ActionModalStatus from "@/components/common-v2/ActionModalStatus.vue";
-import NotUsCheckbox from "@/components/common-v2/NotUsCheckbox.vue";
+import BancorCheckbox from "@/components/common-v2/BancorCheckbox.vue";
 import numeral from "numeral";
 
 const bancor = namespace("bancor");
 
 @Component({
   components: {
-    NotUsCheckbox,
+    BancorCheckbox,
     ActionModalStatus,
     AdvancedBlockItem,
     PoolLogos,

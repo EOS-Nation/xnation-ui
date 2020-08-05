@@ -1,19 +1,18 @@
 {
   "name": "bancor-ui",
-  "version": "1.1.68",
+  "version": "1.1.69",
   "private": false,
   "scripts": {
     "start": "npm run serve",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "deploy": "firebase deploy --project bancor",
-    "deployprod": "firebase deploy --project xnation",
+    "deployprod": "firebase deploy --project bancor-v2",
     "test:unit": "vue-cli-service test:unit",
     "lint": "vue-cli-service lint",
     "i18n:report": "vue-cli-service i18n:report --src './src/**/*.?(js|vue)' --locales './src/locales/**/*.json'",
     "bump": "node bumpVersion.js",
-    "go": "yarn run bump && yarn build && yarn deploy",
-    "goo": "yarn build && firebase deploy --project bancor-v2"
+    "go": "yarn run bump && yarn build && yarn deploy"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.2.25",
