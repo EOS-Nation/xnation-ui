@@ -12,7 +12,6 @@ import HeroTransfer from "@/components/hero/sub/HeroTransfer.vue";
 import HeroRelay from "@/components/hero/sub/HeroRelay.vue";
 import HeroCreate from "@/components/hero/sub/HeroCreate.vue";
 import Navigation from "@/components/layout/Navigation.vue";
-import Privacy from "@/components/common/Privacy.vue";
 import { services } from "@/api/helpers";
 import PoolHome from "@/components/pool/PoolHome.vue";
 import PoolActions from "@/components/pool/PoolActions.vue";
@@ -39,14 +38,6 @@ export const router = new Router({
     });
   },
   routes: [
-    {
-      path: "/privacy",
-      name: "Privacy",
-      components: {
-        Nav: Navigation,
-        default: Privacy
-      }
-    },
     {
       path: "/404",
       name: "404",

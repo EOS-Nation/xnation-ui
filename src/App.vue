@@ -69,7 +69,6 @@
       </main>
     </div>
     <div>
-      <my-footer v-if="false"></my-footer>
       <modal-login />
       <modal-join-pool />
     </div>
@@ -80,7 +79,6 @@
 import { Component, Vue } from "vue-property-decorator";
 import ModalLogin from "@/components/modals/ModalLogin.vue";
 import ModalTx from "@/components/modals/ModalTx.vue";
-import MyFooter from "@/components/common/MyFooter.vue";
 import { vxm } from "@/store/";
 import { WalletProvider } from "eos-transit";
 import wait from "waait";
@@ -90,8 +88,7 @@ import ModalJoinPool from "@/components/pool/ModalJoinPool.vue";
   components: {
     ModalJoinPool,
     ModalLogin,
-    ModalTx,
-    MyFooter
+    ModalTx
   }
 })
 export default class App extends Vue {
