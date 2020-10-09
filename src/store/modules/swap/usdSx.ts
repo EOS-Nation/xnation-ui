@@ -38,13 +38,13 @@ import {
 } from "eos-common";
 import {
   compareString,
-  retryPromise,
   findOrThrow,
   getSxContracts,
   buildTokenId
 } from "@/api/helpers";
 import _ from "lodash";
 import wait from "waait";
+import { retry } from "blend-promise-utils";
 
 interface RateDetail {
   rate: Asset;
@@ -269,13 +269,27 @@ export class UsdBancorModule
   }
 
   @action async fetchContract(contract: string): Promise<Stat> {
-    const [tokens, volume, settings] = await Promise.all([
-      retryPromise(() => get_tokens(rpc, contract), 4, 500),
-      retryPromise(() => get_volume(rpc, contract, 1), 4, 500),
-      retryPromise(() => get_settings(rpc, contract), 4, 500)
-    ]);
+    try {
+      const [tokens, volume, settings] = await Promise.all([
+        retry(async () => get_tokens(rpc, contract), {
+          delayMs: 500,
+          maxAttempts: 5
+        })(),
+        retry(async () => get_volume(rpc, contract), {
+          delayMs: 500,
+          maxAttempts: 5
+        })(),
+        retry(async () => get_settings(rpc, contract), {
+          delayMs: 500,
+          maxAttempts: 5
+        })()
+      ]);
 
-    return { tokens, volume, settings, contract };
+      return { tokens, volume, settings, contract };
+    } catch (e) {
+      console.error(`Failed fetching contract ${e.message}`);
+      throw new Error(`Failed fetching contract ${e.message}`);
+    }
   }
 
   @action async checkPrices(contracts: string[]) {
@@ -326,7 +340,7 @@ export class UsdBancorModule
     const allTokens = await Promise.all(contracts.map(this.fetchContract));
     this.setStats(allTokens);
 
-    retryPromise(() => this.updateStats(), 4, 1000);
+    retry(() => this.updateStats(), { maxAttempts: 4, delayMs: 1000 });
 
     const all = await Promise.all(
       allTokens.flatMap(token =>

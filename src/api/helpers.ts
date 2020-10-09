@@ -272,22 +272,6 @@ export const fetchTokenStats = async (
   };
 };
 
-export const retryPromise = async <T>(
-  promise: () => Promise<T>,
-  maxAttempts = 10,
-  interval = 1000
-): Promise<T> => {
-  return new Promise(async (resolve, reject) => {
-    for (let i = 0; i < maxAttempts; i++) {
-      try {
-        return resolve(await promise());
-      } catch (e) {
-        await wait(interval);
-        if (i == maxAttempts) reject(e);
-      }
-    }
-  });
-};
 const isValidBalance = (data: any): boolean =>
   typeof data.contract == "string" &&
   typeof data.symbol == "string" &&
