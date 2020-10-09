@@ -53,7 +53,7 @@
     "moment": "^2.25.3",
     "numeral": "^2.0.6",
     "qrcode.vue": "^1.7.0",
-    "sxjs": "^2.2.4",
+    "sxjs": "^2.3.1",
     "velocity-animate": "^1.5.2",
     "vue": "^2.6.11",
     "vue-analytics": "^5.17.2",
