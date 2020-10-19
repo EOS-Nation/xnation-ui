@@ -14,6 +14,7 @@ import meetone from "eos-transit-meetone-provider";
 import whalevault from "eos-transit-whalevault-provider";
 import keycat from "eos-transit-keycat-provider";
 import anchor from "eos-transit-anchorlink-provider";
+import { vxm } from "@/store";
 
 interface EosWalletAction {
   name: string;
@@ -37,7 +38,7 @@ export class EosTransitModule extends VuexModule.With({
   accessContext = initAccessContext({
     appName,
     network: {
-      host: "nodes.get-scatter.com",
+      host: "api.eosn.io",
       port: 443,
       protocol: "https",
       chainId:
@@ -154,6 +155,9 @@ export class EosTransitModule extends VuexModule.With({
       try {
         await wallet.login();
         this.setWallet(wallet);
+        vxm.eosBancor.onAuthChange((this.wallet &&
+          this.wallet.auth &&
+          this.wallet.auth.accountName) as string);
         localStorage.setItem("autoLogin", provider.id);
       } catch (e) {
         console.log("auth error");

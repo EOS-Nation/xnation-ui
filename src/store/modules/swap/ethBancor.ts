@@ -1520,7 +1520,6 @@ export class EthBancorModule
         token => token.code == "ETH",
         "failed finding price of ETH from tokens request"
       ).price;
-      console.log(ethUsdPrice, "is the eth USD price");
 
       return relays
         .filter(relay => {

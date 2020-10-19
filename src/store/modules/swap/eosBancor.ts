@@ -649,11 +649,11 @@ export class EosBancorModule
     return vxm.eosNetwork.balances;
   }
 
-  @action async fetchTokenBalancesIfPossible(tokens: TokenBalanceParam[]) {
+  @action async fetchTokenBalancesIfPossible(tokens: TokenBalanceParam[] = []) {
     if (!this.isAuthenticated) return;
     const tokensFetched = this.currentUserBalances;
     const allTokens = _.uniqBy(
-      this.relaysList.flatMap(relay => relay.reserves),
+      [...this.relaysList.flatMap(relay => relay.reserves), ...this.relaysList.map(relay => relay.smartToken)],
       "id"
     );
     const tokenBalancesNotYetFetched = _.differenceWith(
@@ -2022,6 +2022,12 @@ export class EosBancorModule
     });
 
     return txRes.transaction_id;
+  }
+
+  @action async onAuthChange(accountName?: string) {
+    if (accountName) {
+      this.fetchTokenBalancesIfPossible();
+    }
   }
 
   @action async generateOpenActions({
