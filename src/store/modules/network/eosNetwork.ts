@@ -146,12 +146,10 @@ export class EosNetworkModule
 
       const [directTokens, bonusTokens] = await Promise.all([
         this.fetchBulkBalances(tokensToFetch),
-        getTokenBalances(this.isAuthenticated).catch(() => ({
-          tokens: [] as TokenBalance[]
-        }))
+        getTokenBalances(this.isAuthenticated).catch(() => [] as TokenBalance[])
       ]);
 
-      const equalisedBalances = bonusTokens.tokens.map(
+      const equalisedBalances = bonusTokens.map(
         tokenBalanceToTokenBalanceReturn
       );
       const merged = _.uniqWith(
@@ -164,9 +162,8 @@ export class EosNetworkModule
 
     const tokensAskedFor = params!.tokens;
 
-    if (params?.slow) {
       const bulkTokens = await getTokenBalances(this.isAuthenticated);
-      const equalisedBalances = bulkTokens.tokens.map(
+      const equalisedBalances = bulkTokens.map(
         tokenBalanceToTokenBalanceReturn
       );
       this.updateTokenBalances(equalisedBalances);
@@ -180,36 +177,6 @@ export class EosNetworkModule
       return [...equalisedBalances, ...remainingBalances].filter(
         includedInTokens(tokensAskedFor)
       );
-    }
-
-    const [directTokens, bonusTokens] = await Promise.all([
-      this.fetchBulkBalances(tokensAskedFor),
-      getTokenBalances(this.isAuthenticated).catch(() => ({
-        tokens: [] as TokenBalance[]
-      }))
-    ]);
-
-    const allTokensReceived = tokensAskedFor.every(fetchableToken =>
-      directTokens.some(fetchedToken =>
-        compareToken(fetchableToken, fetchedToken)
-      )
-    );
-    console.assert(
-      allTokensReceived,
-      "fetch bulk balances failed to return all tokens asked for!"
-    );
-
-    const equalisedBalances: TokenBalanceReturn[] = bonusTokens.tokens.map(
-      tokenBalanceToTokenBalanceReturn
-    );
-    const merged = _.uniqWith(
-      [...directTokens, ...equalisedBalances],
-      compareToken
-    );
-    if (!params.disableSetting) {
-      this.updateTokenBalances(merged);
-    }
-    return directTokens.filter(includedInTokens(tokensAskedFor));
   }
 
   @mutation updateTokenBalances(tokens: TokenBalanceReturn[]) {

@@ -25,7 +25,7 @@ import {
   get_fee,
   get_spot_price
 } from "sxjs";
-import { rpc } from "@/api/rpc";
+import { dFuse, rpc } from "@/api/rpc";
 import {
   asset_to_number,
   number_to_asset,
@@ -297,11 +297,7 @@ export class UsdBancorModule
 
     const prices = await Promise.all(
       contracts.map(async contract => {
-        const res = await rpc.get_table_rows({
-          code: contract,
-          table: "spotprices",
-          scope: contract
-        });
+        const res = await dFuse.stateTable(contract, contract, "spotprices");
 
         const data = res.rows[0];
         return {

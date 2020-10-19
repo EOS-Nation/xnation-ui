@@ -936,6 +936,14 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
+"@dfuse/client@^0.3.15":
+  version "0.3.15"
+  resolved "https://registry.yarnpkg.com/@dfuse/client/-/client-0.3.15.tgz#f170f36cbc53991cf32a5fcbca9f1be22c844696"
+  integrity sha512-/Ng9ofsTDpDM+3y0uY65edCgi/KLACsCU1zuswdya4iQfmRgsbCKWtcBTDltRgL4xZEPBguQ7S/WXTal+way0Q==
+  dependencies:
+    "@types/debug" "^0.0.31"
+    debug "^4.1.0"
+
 "@ethersproject/abi@5.0.0-beta.153":
   version "5.0.0-beta.153"
   resolved "https://registry.yarnpkg.com/@ethersproject/abi/-/abi-5.0.0-beta.153.tgz#43a37172b33794e4562999f6e2d555b7599a8eee"
@@ -2700,6 +2708,11 @@
   dependencies:
     "@types/long" "*"
     "@types/node" "*"
+
+"@types/debug@^0.0.31":
+  version "0.0.31"
+  resolved "https://registry.yarnpkg.com/@types/debug/-/debug-0.0.31.tgz#bac8d8aab6a823e91deb7f79083b2a35fa638f33"
+  integrity sha512-LS1MCPaQKqspg7FvexuhmDbWUhE2yIJ+4AgVIyObfc06/UKZ8REgxGNjZc82wPLWmbeOm7S+gSsLgo75TanG4A==
 
 "@types/eslint-visitor-keys@^1.0.0":
   version "1.0.0"

@@ -10,7 +10,7 @@ import {
   symbol,
   number_to_asset
 } from "eos-common";
-import { rpc } from "./rpc";
+import { dFuse, rpc } from "./rpc";
 import {
   TokenBalances,
   EosMultiRelay,
@@ -21,7 +21,8 @@ import {
   TokenBalanceParam,
   Section,
   Step,
-  OnUpdate
+  OnUpdate,
+  TokenBalance
 } from "@/types/bancor";
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
@@ -80,23 +81,20 @@ interface TraditionalStat {
 }
 
 export const getSxContracts = async () => {
-  const res = (await rpc.get_table_rows({
-    code: "registry.sx",
-    table: "swap",
-    scope: "registry.sx"
-  })) as {
-    rows: {
-      contract: string;
-      ext_tokens: { sym: string; contract: string }[];
-    }[];
-  };
-  return res.rows.map(set => ({
-    contract: set.contract,
-    tokens: set.ext_tokens.map(token => ({
-      contract: token.contract,
-      symbol: new Sym(token.sym).code().to_string()
-    }))
-  }));
+  const res = await dFuse.stateTable<{
+    contract: string;
+    ext_tokens: { sym: string; contract: string }[];
+  }>("registry.sx", "registry.sx", "swap");
+
+  return res.rows
+    .map(x => x.json!)
+    .map(set => ({
+      contract: set.contract,
+      tokens: set.ext_tokens.map(token => ({
+        contract: token.contract,
+        symbol: new Sym(token.sym).code().to_string()
+      }))
+    }));
 };
 
 export const findOrThrow = <T>(
@@ -207,18 +205,16 @@ export const fetchTokenSymbol = async (
   contractName: string,
   symbolName: string
 ): Promise<Sym> => {
-  const statRes: {
-    rows: { supply: string; max_supply: string; issuer: string }[];
-  } = await rpc.get_table_rows({
-    code: contractName,
-    scope: symbolName,
-    table: "stat"
-  });
+  const statRes = await dFuse.stateTable<{
+    supply: string;
+    max_supply: string;
+    issuer: string;
+  }>(contractName, symbolName, "stat");
   if (statRes.rows.length == 0)
     throw new Error(
       `Unexpected stats table return from tokenContract ${contractName} ${symbolName}`
     );
-  const maxSupplyAssetString = statRes.rows[0].max_supply;
+  const maxSupplyAssetString = statRes.rows[0].json!.max_supply;
   const maxSupplyAsset = new Asset(maxSupplyAssetString);
   return maxSupplyAsset.symbol;
 };
@@ -229,15 +225,14 @@ export const getBalance = async (
   precision?: number
 ): Promise<string> => {
   const account = isAuthenticatedViaModule(vxm.eosWallet);
-  const res: { rows: { balance: string }[] } = await rpc.get_table_rows({
-    code: contract,
-    scope: account,
-    table: "accounts",
-    limit: 99
-  });
+  const res = await dFuse.stateTable<{ balance: string }>(
+    contract,
+    account,
+    "accounts"
+  );
   const balance = res.rows.find(balance =>
     compareString(
-      new Asset(balance.balance).symbol.code().to_string(),
+      new Asset(balance.json!.balance).symbol.code().to_string(),
       symbolName
     )
   );
@@ -250,22 +245,20 @@ export const getBalance = async (
       return number_to_asset(0, symbol).to_string();
     }
   }
-  return balance.balance;
+  return balance.json!.balance;
 };
 
 export const fetchTokenStats = async (
   contract: string,
   symbol: string
 ): Promise<TraditionalStat> => {
-  const tableResult = await eosRpc.get_table_rows({
-    code: contract,
-    table: "stat",
-    scope: symbol,
-    limit: 1
-  });
+  const tableResult = await dFuse.stateTable<{
+    supply: string;
+    max_supply: string;
+  }>(contract, symbol, "stat");
   const tokenExists = tableResult.rows.length > 0;
   if (!tokenExists) throw new Error("Token does not exist");
-  const { supply, max_supply } = tableResult.rows[0];
+  const { supply, max_supply } = tableResult.rows[0].json!;
   return {
     supply: new Asset(supply),
     max_supply: new Asset(max_supply)
@@ -280,14 +273,58 @@ const isValidBalance = (data: any): boolean =>
 
 export const getTokenBalances = async (
   accountName: string
-): Promise<TokenBalances> => {
-  const res = await axios.get<TokenBalances>(
-    `https://eos.eosn.io/v2/state/get_tokens?account=${accountName}`
-  );
-  return {
-    ...res.data,
-    tokens: res.data.tokens.filter(isValidBalance)
-  };
+): Promise<TokenBalance[]> => {
+  try {
+    const res = await dFuse.graphql<{
+      accountBalances: {
+        edges: {
+          node: {
+            account: string;
+            contract: string;
+            symbol: string;
+            precision: number;
+            balance: string;
+          };
+        }[];
+      };
+    }>(
+      `
+      query($account: String!, $limit: Uint32, $opts: [ACCOUNT_BALANCE_OPTION!]) {
+        accountBalances(account: $account,limit: $limit, options: $opts) {
+          edges {
+            node {
+              account
+              contract
+              symbol
+              precision
+              balance
+            }
+          }
+        }
+      }`,
+      {
+        variables: {
+          account: accountName,
+          opts: ["EOS_INCLUDE_STAKED"],
+          limit: 90
+        }
+      }
+    );
+    console.log(
+      res.data.accountBalances.edges.map(x => x.node),
+      res,
+      "came back from dFuse!"
+    );
+    const tokens = res.data.accountBalances.edges.map(
+      (x): TokenBalance => ({
+        ...x.node,
+        amount: asset_to_number(new Asset(x.node.balance))
+      })
+    );
+    return tokens;
+  } catch (e) {
+    throw new Error("Failed to fetch tokens dFuse");
+  }
 };
 
 export const identifyVersionBySha3ByteCodeHash = (sha3Hash: string): string => {
@@ -338,18 +375,12 @@ export const getBankBalance = async (): Promise<
   }[]
 > => {
   const account = isAuthenticatedViaModule(vxm.eosWallet);
-  const res: {
-    rows: {
-      id: number;
-      quantity: string;
-      symbl: string;
-    }[];
-  } = await rpc.get_table_rows({
-    code: process.env.VUE_APP_MULTICONTRACT!,
-    scope: account,
-    table: "accounts"
-  })!;
-  return res.rows;
+  const res = await dFuse.stateTable<{
+    id: number;
+    quantity: string;
+    symbl: string;
+  }>(process.env.VUE_APP_MULTICONTRACT!, account, "accounts")!;
+  return res.rows.map(r => r.json!);
 };
 
 export enum Feature {
@@ -434,19 +465,13 @@ export const buildTokenId = ({ contract, symbol }: BaseToken): string =>
 export const fetchMultiRelays = async (): Promise<EosMultiRelay[]> => {
   const contractName = process.env.VUE_APP_MULTICONTRACT!;
 
-  const rawRelays: {
-    rows: ConverterV2Row[];
-    more: boolean;
-  } = await rpc.get_table_rows({
-    code: process.env.VUE_APP_MULTICONTRACT,
-    table: "converter.v2",
-    scope: process.env.VUE_APP_MULTICONTRACT,
-    limit: 99
-  });
-  if (rawRelays.more) {
-    console.warn("Warning, there are more than 99 multi relays!");
-  }
-  const parsedRelays = rawRelays.rows;
+  const rawRelays = await dFuse.stateTable<ConverterV2Row>(
+    process.env.VUE_APP_MULTICONTRACT!,
+    process.env.VUE_APP_MULTICONTRACT!,
+    "converter.v2"
+  );
+
+  const parsedRelays = rawRelays.rows.map(r => r.json!);
   const passedRelays = parsedRelays
     .filter(
       relay =>

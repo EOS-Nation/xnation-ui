@@ -41,7 +41,8 @@ import {
   buildTokenId,
   EosAccount,
   compareToken,
-  multiSteps
+  multiSteps,
+  getTokenBalances
 } from "@/api/helpers";
 import {
   Sym as Symbol,
@@ -53,7 +54,7 @@ import {
 import { multiContract } from "@/api/multiContractTx";
 import { multiContractAction } from "@/contracts/multi";
 import { vxm } from "@/store";
-import { rpc } from "@/api/rpc";
+import { dFuse, rpc } from "@/api/rpc";
 import {
   findCost,
   relaysToConvertPaths,
@@ -170,12 +171,14 @@ const compareEosMultiToDry = (multi: EosMultiRelay, dry: DryRelay) =>
 const fetchBalanceAssets = async (tokens: BaseToken[], account: string) => {
   return Promise.all(
     tokens.map(async token => {
-      const res: { rows: { balance: string }[] } = await rpc.get_table_rows({
-        code: token.contract,
-        scope: account,
-        table: "accounts"
-      });
-      const assets = res.rows.map(row => new Asset(row.balance));
+      const res = await dFuse.stateTable<{ balance: string }>(
+        token.contract,
+        account,
+        "accounts"
+      );
+      const assets = res.rows
+        .map(x => x.json!)
+        .map(row => new Asset(row.balance));
       const foundAsset = assets.find(
         asset => asset.symbol.code().to_string() == token.symbol
       );
@@ -397,13 +400,13 @@ const getEosioTokenPrecision = async (
   symbol: string,
   contract: string
 ): Promise<number> => {
-  const res = await rpc.get_table_rows({
-    code: contract,
-    table: "stat",
-    scope: symbol
-  });
+  const res = await dFuse.stateTable<{ supply: string }>(
+    contract,
+    symbol,
+    "stat"
+  );
   if (res.rows.length == 0) throw new Error("Failed to find token");
-  return new Asset(res.rows[0].supply).symbol.precision();
+  return new Asset(res.rows[0].json!.supply).symbol.precision();
 };
 
 const chopSecondSymbol = (one: string, two: string, maxLength = 7) =>
@@ -653,7 +656,10 @@ export class EosBancorModule
     if (!this.isAuthenticated) return;
     const tokensFetched = this.currentUserBalances;
     const allTokens = _.uniqBy(
-      [...this.relaysList.flatMap(relay => relay.reserves), ...this.relaysList.map(relay => relay.smartToken)],
+      [
+        ...this.relaysList.flatMap(relay => relay.reserves),
+        ...this.relaysList.map(relay => relay.smartToken)
+      ],
       "id"
     );
     const tokenBalancesNotYetFetched = _.differenceWith(
@@ -670,7 +676,7 @@ export class EosBancorModule
       compareToken
     );
 
-    return vxm.eosNetwork.getBalances({ tokens: tokensToAskFor, slow: false });
+    return vxm.eosNetwork.getBalances({ tokens: tokensToAskFor, slow: true });
   }
 
   @action async updateFee({ fee, id }: FeeParams) {
@@ -1085,7 +1091,7 @@ export class EosBancorModule
 
     return vxm.eosNetwork.getBalances({
       tokens: uniqueTokens,
-      slow: false
+      slow: true
     });
   }
 
@@ -1145,6 +1151,7 @@ export class EosBancorModule
   @action async init(param?: ModuleParam) {
     console.count("eosInit");
     console.time("eos");
+    getTokenBalances("thekellygang");
     console.log("eosInit received", param);
     if (this.initialised) {
       console.log("eos refreshing instead");
@@ -1315,21 +1322,15 @@ export class EosBancorModule
       relays.map(
         async (relay): Promise<EosMultiRelay> => {
           const [settings, reserveBalances] = await Promise.all([
-            rpc.get_table_rows({
-              code: relay.contract,
-              scope: relay.contract,
-              table: "settings"
-            }) as Promise<{
-              rows: {
-                smart_contract: string;
-                smart_currency: string;
-                smart_enabled: boolean;
-                enabled: boolean;
-                network: string;
-                max_fee: number;
-                fee: number;
-              }[];
-            }>,
+            dFuse.stateTable<{
+              smart_contract: string;
+              smart_currency: string;
+              smart_enabled: boolean;
+              enabled: boolean;
+              network: string;
+              max_fee: number;
+              fee: number;
+            }>(relay.contract, relay.contract, "settings"),
             fetchBalanceAssets(
               relay.reserves.map(reserve => ({
                 contract: reserve.contract,
@@ -1363,7 +1364,7 @@ export class EosBancorModule
             id: smartTokenId,
             contract: relay.contract,
             isMultiContract: false,
-            fee: settings.rows[0].fee / 1000000,
+            fee: settings.rows[0].json!.fee / 1000000,
             owner: relay.contract,
             smartToken: {
               id: smartTokenId,
@@ -1531,14 +1532,14 @@ export class EosBancorModule
     smartTokenSymbol: string;
     accountHolder: string;
   }): Promise<{ symbl: string; quantity: string }[]> {
-    const res: {
-      rows: { symbl: string; quantity: string }[];
-    } = await rpc.get_table_rows({
-      code: process.env.VUE_APP_MULTICONTRACT!,
-      scope: accountHolder,
-      table: "accounts"
-    });
-    return res.rows.filter(row => compareString(row.symbl, smartTokenSymbol));
+    const res = await dFuse.stateTable<{ symbl: string; quantity: string }>(
+      process.env.VUE_APP_MULTICONTRACT!,
+      accountHolder,
+      "accounts"
+    );
+    return res.rows
+      .map(row => row.json!)
+      .filter(row => compareString(row.symbl, smartTokenSymbol));
   }
 
   @action async relayById(id: string) {
@@ -1936,19 +1937,19 @@ export class EosBancorModule
     symbol: string;
   }) {
     try {
-      const res: { rows: { balance: string }[] } = await rpc.get_table_rows({
-        code: contract,
-        scope: this.isAuthenticated,
-        table: "accounts"
-      });
+      const res = await dFuse.stateTable<{ balance: string }>(
+        contract,
+        this.isAuthenticated,
+        "accounts"
+      );
       return (
         res.rows.length > 0 &&
         res.rows
+          .map(row => row.json!)
           .map(({ balance }) => balance)
           .some(balance => balance.includes(symbol))
       );
     } catch (e) {
-      console.log("Balance error", e);
       return false;
     }
   }
