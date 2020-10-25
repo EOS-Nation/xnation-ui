@@ -101,28 +101,28 @@ export class EosNetworkModule
   }
 
   @action async transfer({ to, amount, id, memo }: TransferParam) {
-    if (!this.isAuthenticated) throw new Error("Not authenticated!")
-    const symbol = id;
-    const dirtyReserve = vxm.eosBancor.relaysList
-      .flatMap(relay => relay.reserves)
-      .find(reserve => compareString(reserve.symbol, symbol));
-    if (!dirtyReserve) throw new Error("Failed finding dirty reserve");
+    // if (!this.isAuthenticated) throw new Error("Not authenticated!")
+    // const symbol = id;
+    // const dirtyReserve = vxm.eosBancor.relaysList
+    //   .flatMap(relay => relay.reserves)
+    //   .find(reserve => compareString(reserve.symbol, symbol));
+    // if (!dirtyReserve) throw new Error("Failed finding dirty reserve");
 
-    const { contract, precision } = dirtyReserve;
+    // const { contract, precision } = dirtyReserve;
 
-    const asset = number_to_asset(amount, new Sym(symbol, precision));
+    // const asset = number_to_asset(amount, new Sym(symbol, precision));
 
-    const actions = await multiContract.tokenTransfer(contract, {
-      to,
-      quantity: asset.to_string(),
-      memo
-    });
+    // const actions = await multiContract.tokenTransfer(contract, {
+    //   to,
+    //   quantity: asset.to_string(),
+    //   memo
+    // });
 
-    const originalBalances = await this.getBalances({
-      tokens: [{ contract, symbol }]
-    });
-    await vxm.eosWallet.tx(actions);
-    this.pingTillChange({ originalBalances });
+    // const originalBalances = await this.getBalances({
+    //   tokens: [{ contract, symbol }]
+    // });
+    // await vxm.eosWallet.tx(actions);
+    // this.pingTillChange({ originalBalances });
   }
 
   @action async fetchBulkBalances(

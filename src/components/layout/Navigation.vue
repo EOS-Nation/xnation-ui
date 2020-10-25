@@ -40,13 +40,7 @@
       </b-navbar-nav>
 
       <b-navbar-nav class="ml-auto login">
-        <b-btn
-          @click="loginAction"
-          variant="dual"
-          size="sm"
-          v-b-tooltip.hover
-          :title="loginTooltip"
-        >
+        <b-btn @click="loginAction" variant="dual" size="sm" v-b-tooltip.hover>
           {{ loginButtonLabel }}
           <font-awesome-icon :icon="icon" :pulse="spin" fixed-width />
         </b-btn>
@@ -74,16 +68,6 @@ import { ethReserveAddress } from "../../api/ethConfig";
 import { Route } from "vue-router";
 
 const defaultPaths = [
-  {
-    moduleId: "eos",
-    base: buildTokenId({ contract: "bntbntbntbnt", symbol: "BNT" }),
-    quote: buildTokenId({ contract: "eosio.token", symbol: "EOS" })
-  },
-  {
-    moduleId: "eth",
-    base: ethReserveAddress,
-    quote: "0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c"
-  },
   {
     moduleId: "usds",
     base: buildTokenId({ contract: "eosdtsttoken", symbol: "EOSDT" }),
@@ -242,9 +226,7 @@ export default class Navigation extends Vue {
     return services.find(service => service.namespace == this.selectedNetwork);
   }
 
-  created() {
-    vxm.ethWallet.checkAlreadySignedIn();
-  }
+  created() {}
 
   @Watch("isAuthenticated")
   onAuthentication(account: string) {
@@ -261,12 +243,6 @@ export default class Navigation extends Vue {
     return vxm.general.language;
   }
 
-  get loginTooltip() {
-    return this.selected == "eth" && vxm.ethWallet.isAuthenticated
-      ? "Logout via wallet"
-      : "";
-  }
-
   set language(lang: string) {
     vxm.general.setLanguage(lang);
   }
@@ -275,35 +251,12 @@ export default class Navigation extends Vue {
     return vxm.eosWallet.loginStatus;
   }
 
-  get shortenedEthAddress() {
-    const isAuthenticated = vxm.ethWallet.isAuthenticated;
-    return isAuthenticated.length > 13
-      ? isAuthenticated.substring(0, 4) +
-          "..." +
-          isAuthenticated.substring(
-            isAuthenticated.length - 6,
-            isAuthenticated.length
-          )
-      : isAuthenticated;
-  }
-
   get loginButtonLabel() {
-    if (this.selectedWallet == "eos") {
-      return this.loginStatus[0];
-    } else {
-      const isAuthenticated = vxm.ethWallet.isAuthenticated;
-      if (isAuthenticated) {
-        return this.shortenedEthAddress;
-      } else return "Login";
-    }
+    return this.loginStatus[0];
   }
 
   get icon() {
-    if (this.selectedWallet == "eos") {
-      return this.loginStatus[1];
-    } else {
-      return vxm.ethWallet.isAuthenticated ? "power-off" : "arrow-circle-right";
-    }
+    return this.loginStatus[1];
   }
 
   get spin() {
@@ -333,18 +286,8 @@ export default class Navigation extends Vue {
     }
   }
 
-  async loginActionEth() {
-    if (vxm.ethWallet.isAuthenticated) {
-      // Cannot logout of MetaMask
-    } else {
-      await vxm.ethWallet.connect();
-    }
-  }
-
   async loginAction() {
-    const wallet = this.selectedWallet;
-    if (wallet == "eos") this.loginActionEos();
-    else this.loginActionEth();
+    this.loginActionEos();
   }
 }
 </script>

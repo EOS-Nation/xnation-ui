@@ -155,7 +155,7 @@ export class EosTransitModule extends VuexModule.With({
       try {
         await wallet.login();
         this.setWallet(wallet);
-        vxm.eosBancor.onAuthChange((this.wallet &&
+        vxm.usdsBancor.onAuthChange((this.wallet &&
           this.wallet.auth &&
           this.wallet.auth.accountName) as string);
         localStorage.setItem("autoLogin", provider.id);

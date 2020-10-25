@@ -27,11 +27,6 @@ import {
 import Web3 from "web3";
 import { EosTransitModule } from "@/store/modules/wallet/eosWallet";
 import wait from "waait";
-import {
-  buildConverterContract,
-  shrinkToken,
-  buildV28ConverterContract
-} from "./ethBancorCalc";
 import { sortByNetworkTokens } from "./sortByNetworkTokens";
 import { add } from "lodash";
 
@@ -130,20 +125,6 @@ export const fetchBinanceUsdPriceOfBnt = async (): Promise<number> => {
   return Number(res.data.price);
 };
 
-export const fetchUsdPriceOfBntViaRelay = async (
-  relayContractAddress = "0xE03374cAcf4600F56BDDbDC82c07b375f318fc5C"
-): Promise<number> => {
-  const contract = buildConverterContract(relayContractAddress);
-  const res = await contract.methods
-    .getReturn(
-      "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
-      "0x309627af60F0926daa6041B8279484312f2bf060",
-      "1000000000000000000"
-    )
-    .call();
-  return Number(shrinkToken(res["0"], 18));
-};
-
 export const updateArray = <T>(
   arr: T[],
   conditioner: (element: T) => boolean,
@@ -153,29 +134,7 @@ export const updateArray = <T>(
 export type Wei = string | number;
 export type Ether = string | number;
 
-export let web3 = new Web3(
-  "https://mainnet.infura.io/v3/da059c364a2f4e6eb89bfd89600bce07"
-);
-
 export const selectedWeb3Wallet = "SELECTED_WEB3_WALLET";
-
-export const onboard = Onboard({
-  dappId: process.env.VUE_APP_BLOCKNATIVE,
-  networkId: 1,
-  hideBranding: true,
-  subscriptions: {
-    address: address => {
-      vxm.ethWallet.accountChange(address);
-    },
-    balance: balance => vxm.ethWallet.nativeBalanceChange(balance),
-    wallet: wallet => {
-      if (wallet.name) {
-        localStorage.setItem(selectedWeb3Wallet, wallet.name);
-      }
-      web3 = new Web3(wallet.provider);
-    }
-  }
-});
 
 export const fetchReserveBalance = async (
   converterContract: any,
@@ -396,19 +355,6 @@ export interface Service {
 }
 
 export const services: Service[] = [
-  {
-    namespace: "eos",
-    features: [
-      Feature.Trade,
-      Feature.Liquidity,
-      Feature.Wallet,
-      Feature.CreatePool
-    ]
-  },
-  {
-    namespace: "eth",
-    features: [Feature.Trade, Feature.Liquidity, Feature.CreatePool]
-  },
   { namespace: "usds", features: [Feature.Trade] }
 ];
 

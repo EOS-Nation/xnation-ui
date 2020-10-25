@@ -7,7 +7,8 @@ import {
   ProposedFromTransaction,
   ProposedToTransaction,
   ViewAmount,
-  ModuleParam
+  ModuleParam,
+  TokenMeta
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import {
@@ -40,7 +41,8 @@ import {
   compareString,
   findOrThrow,
   getSxContracts,
-  buildTokenId
+  buildTokenId,
+  getTokenMeta
 } from "@/api/helpers";
 import _ from "lodash";
 import wait from "waait";
@@ -208,7 +210,7 @@ export class UsdBancorModule
   }
 
   @action async loadMoreTokens() {}
-  @action async accountChange() {}
+  @action async onAuthChange(accountName: string) {}
 
   get tokens(): ViewToken[] {
     if (!this.initiated) {
@@ -220,7 +222,7 @@ export class UsdBancorModule
         const { contract, symbol } = token;
 
         try {
-          const eosModuleBorrowed = vxm.eosBancor.tokenMeta.find(
+          const eosModuleBorrowed = this.tokenMeta.find(
             tokenMeta => tokenMeta.symbol == token.symbol
           )!;
           if (!eosModuleBorrowed) throw new Error("Failed to find token");
@@ -287,7 +289,7 @@ export class UsdBancorModule
 
       return { tokens, volume, settings, contract };
     } catch (e) {
-      console.error(`Failed fetching contract ${e.message}`);
+      console.error(`Failed fetching contract ${contract} ${e.message}`);
       throw new Error(`Failed fetching contract ${e.message}`);
     }
   }
@@ -314,12 +316,23 @@ export class UsdBancorModule
     console.log("refresh called on sx, doing nothing");
   }
 
+  tokenMeta: TokenMeta[] = [];
+
+  @action async fetchAndSetTokenMeta() {
+    const tokenMeta = await getTokenMeta();
+    this.setTokenMeta(tokenMeta);
+  }
+
+  @mutation setTokenMeta(meta: TokenMeta[]) {
+    this.tokenMeta = meta;
+  }
+
   @action async init(params?: ModuleParam) {
     if (this.initiated) {
       return this.refresh();
     }
+    this.fetchAndSetTokenMeta();
     console.time("sx");
-    vxm.eosBancor.init();
 
     const registryData = await getSxContracts();
     if (this.isAuthenticated) {
@@ -330,6 +343,7 @@ export class UsdBancorModule
     }
 
     const contracts = registryData.map(x => x.contract);
+    console.log(contracts, "are the contracts to be fetched");
 
     this.checkPrices(contracts);
     this.setContracts(contracts);
@@ -395,6 +409,7 @@ export class UsdBancorModule
       }
     );
 
+    console.log("resolving with", newTokens);
     this.setNewTokens(newTokens);
     this.moduleInitiated();
     await wait(10);

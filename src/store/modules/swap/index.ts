@@ -14,14 +14,10 @@ import {
 } from "@/types/bancor";
 import { vxm } from "@/store";
 import { store } from "../../../store";
-import {
-  compareString,
-  fetchUsdPriceOfBntViaRelay,
-  updateArray
-} from "@/api/helpers";
+import { compareString, updateArray } from "@/api/helpers";
 import { fetchBinanceUsdPriceOfBnt } from "@/api/helpers";
 import wait from "waait";
-import { defaultModule } from '@/router';
+import { defaultModule } from "@/router";
 
 interface BntPrice {
   price: null | number;
@@ -38,14 +34,6 @@ interface RootParam {
 }
 
 const moduleIds: { label: string; id: string }[] = [
-  {
-    label: "EOS",
-    id: "eos"
-  },
-  {
-    label: "ETH",
-    id: "eth"
-  },
   {
     label: "USDⓈ",
     id: "usds"
@@ -255,17 +243,7 @@ export class BancorModule extends VuexModule.With({
 
   @action async getUsdPrice() {
     try {
-      const reverse = (promise: any) =>
-        new Promise((resolve, reject) =>
-          Promise.resolve(promise).then(reject, resolve)
-        );
-      const any = (arr: any[]) => reverse(Promise.all(arr.map(reverse)));
-      const res = await any([
-        fetchBinanceUsdPriceOfBnt(),
-        new Promise(resolve => {
-          wait(500).then(() => resolve(fetchUsdPriceOfBntViaRelay()));
-        })
-      ]);
+      const res = await fetchBinanceUsdPriceOfBnt();
       const usdPrice = res as number;
       this.setUsdPriceOfBnt({
         price: usdPrice,
