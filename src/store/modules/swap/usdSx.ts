@@ -158,7 +158,6 @@ interface SXToken {
 
 interface Stat {
   tokens: Tokens;
-  volume: Volume[];
   settings: Settings;
   contract: string;
 }
@@ -183,6 +182,11 @@ interface PoolReturn {
 const VuexModule = createModule({
   strict: false
 });
+
+interface KV {
+  key: string;
+  value: string;
+}
 
 export class UsdBancorModule
   extends VuexModule.With({ namespaced: "usdsBancor/" })
@@ -272,12 +276,8 @@ export class UsdBancorModule
 
   @action async fetchContract(contract: string): Promise<Stat> {
     try {
-      const [tokens, volume, settings] = await Promise.all([
+      const [tokens, settings] = await Promise.all([
         retry(async () => get_tokens(rpc, contract), {
-          delayMs: 500,
-          maxAttempts: 5
-        })(),
-        retry(async () => get_volume(rpc, contract), {
           delayMs: 500,
           maxAttempts: 5
         })(),
@@ -287,7 +287,7 @@ export class UsdBancorModule
         })()
       ]);
 
-      return { tokens, volume, settings, contract };
+      return { tokens, settings, contract };
     } catch (e) {
       console.error(`Failed fetching contract ${contract} ${e.message}`);
       throw new Error(`Failed fetching contract ${e.message}`);
@@ -327,6 +327,31 @@ export class UsdBancorModule
     this.tokenMeta = meta;
   }
 
+  @action async getVolume() {
+    const statsSx = "stats.sx";
+
+    interface VolumeHistory {
+      contract: string;
+      fees: KV[];
+      transactions: number;
+      volume: KV[];
+    }
+
+    const volumeStats = await dFuse.stateTable<VolumeHistory>(
+      statsSx,
+      statsSx,
+      "volume"
+    );
+    console.log(volumeStats, "was res");
+    const better = volumeStats.rows.map(row => {
+      // @ts-ignore
+      const key: string = row.key;
+      return [key, row.json!] as [string, VolumeHistory];
+    });
+    console.log(better, "was better");
+    return better;
+  }
+
   @action async init(params?: ModuleParam) {
     if (this.initiated) {
       return this.refresh();
@@ -347,7 +372,22 @@ export class UsdBancorModule
 
     this.checkPrices(contracts);
     this.setContracts(contracts);
+
+    const volumes = await this.getVolume();
     const allTokens = await Promise.all(contracts.map(this.fetchContract));
+
+    const addedVolumes = allTokens.map(token => {
+      const [_, volume] = volumes.find(([contract]) =>
+        compareString(contract, token.contract)
+      )!;
+
+      return {
+        ...token,
+        volume
+      };
+    });
+
+    console.log({ addedVolumes });
     this.setStats(allTokens);
 
     retry(() => this.updateStats(), { maxAttempts: 4, delayMs: 1000 });
